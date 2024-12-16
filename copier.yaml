@@ -1,0 +1,23 @@
+# questions
+repo_name:
+    type: str
+    help: What is the name of the repository?
+
+python_version:
+    type: str
+    help: What version of Python?
+    default: "3.13.1"
+
+_min_copier_version: "9.4"
+
+_subdirectory: template
+
+_templates_suffix: .jinja-base
+
+_exclude:
+    - "copier.yaml"
+
+# adapted from https://github.com/copier-org/copier-templates-extensions#context-hook-extension
+_jinja_extensions:
+- copier_templates_extensions.TemplateExtensionLoader
+- extensions/context.py:ContextUpdater
