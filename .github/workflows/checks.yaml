@@ -113,7 +113,7 @@ jobs:
 
       - name: install new dependencies
         run: |
-          uv python pin
+          uv python pin ${{ matrix.python-version }} --python-preference=only-system
           uv sync
           uv pip list
           # Add everything to git so that pre-commit recognizes the files and runs on them
