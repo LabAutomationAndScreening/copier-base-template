@@ -1,0 +1,1 @@
+../../../.devcontainer/initialize-command.sh
