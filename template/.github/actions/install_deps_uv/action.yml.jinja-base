@@ -28,9 +28,11 @@ runs:
 
     - name: Install Tooling
       run: sh .devcontainer/install-ci-tooling.sh ${{ env.PYTHON_VERSION }}
+      shell: bash
 
     - name: Install Dependencies
       if: ${{ inputs.uv-sync }}
       run: |
         uv sync --frozen
         uv pip list{% endraw %}
+      shell: bash
