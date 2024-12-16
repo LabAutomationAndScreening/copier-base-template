@@ -98,6 +98,7 @@ jobs:
           rm -rf !(new-template)
           rm -rf .github # apparently this folder doesn't get removed with the previous command for some reason
           rm -rf .devcontainer # apparently this folder doesn't get removed with the previous command for some reason
+          rm .python-version
           ls -la
       - name: Move the instantiated template into the repo root
         run: |
