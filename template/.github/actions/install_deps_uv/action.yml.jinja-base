@@ -1,0 +1,31 @@
+{% raw %}name: Install requirements
+description: Clone repo, setup python, and install dependencies using uv
+inputs:
+  python-version:
+    description: Python version to install
+
+runs:
+  using: composite
+  steps:
+    - name: Get version of python
+      # TODO: be able to pull the default version from the devcontainer.json file
+      run: |
+        PYTHON_VERSION="${{ inputs.python-version }}"
+        echo "PYTHON_VERSION=$PYTHON_VERSION" >> "$GITHUB_ENV"
+      shell: bash
+
+    - name: Checkout code
+      uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+
+    - name: Setup python
+      uses: actions/setup-python@{% endraw %}{{ gha_setup_python }}{% raw %}
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Tooling
+      run: sh .devcontainer/install-ci-tooling.sh ${{ env.PYTHON_VERSION }}
+
+    - name: Install Dependencies
+      run: |
+        uv sync --frozen
+        uv pip list{% endraw %}
