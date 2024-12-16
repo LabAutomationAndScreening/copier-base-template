@@ -8,6 +8,11 @@ python_version:
     help: What version of Python?
     default: "3.13.1"
 
+ssh_port_number:
+    type: int
+    help: What port should the devcontainer bind SSH to?
+    default: {{ range(49152, 65536) | random }}
+
 _min_copier_version: "9.4"
 
 _subdirectory: template

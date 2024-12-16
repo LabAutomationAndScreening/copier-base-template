@@ -7,6 +7,6 @@ services:
       - ..:/workspaces/{% endraw %}{{ repo_name }}{% raw %}:cached
     command: sleep infinity
     ports:
-      - "{% endraw %}{{ range(49152, 65536) | random }}{% raw %}:2222"
+      - "{% endraw %}{{ ssh_port_number }}{% raw %}:2222"
     environment:
       - AWS_PROFILE=localstack{% endraw %}
