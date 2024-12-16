@@ -18,6 +18,8 @@ class ContextUpdater(ContextHook):
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = "1.1.390"
         context["pytest_version"] = "8.3.4"
+        context["pytest_randomly_version"] = "3.16.0"
+        context["pytest_cov_version"] = "6.0.0"
         #######
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v4.2.2"
