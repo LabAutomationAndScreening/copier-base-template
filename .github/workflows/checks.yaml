@@ -71,8 +71,8 @@ jobs:
             - 3.12.6
             - 3.13.1
         copier: [
-          '--data repo_name=the_best_repo --data python_version=3.13.1',
-          '--data repo_name=another_repo --data python_version=3.12.6',
+          '--data repo_name=the_best_repo',
+          '--data repo_name=another_repo',
           ]
     runs-on: ${{ matrix.os }}
 
@@ -89,7 +89,7 @@ jobs:
 
       - name: Instantiate copier template
         run: |
-          copier copy --trust --vcs-ref ${{ github.sha }} ${{ matrix.copier }} . ./new-template
+          copier copy --trust --vcs-ref ${{ github.sha }} ${{ matrix.copier }} --data python_version=${{ matrix.python-version }} . ./new-template
       - name: Delete files from initial repo
         run: |
           # Delete everything except the folder containing the instantiated template
