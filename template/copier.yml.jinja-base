@@ -7,9 +7,6 @@ ssh_port_number:
     type: int
     help: What port should the devcontainer bind SSH to?
     default: "{{ range(49152, 65536) | random }}"
-
-
-# Questions specific to this template
 {% endraw %}{% if template_uses_python %}
 python_version:
     type: str
@@ -24,6 +21,9 @@ python_ci_versions:
       - "3.11.11"
       - "3.12.8"
       - "3.13.1"{% endif %}{% raw %}
+
+# Questions specific to this template
+
 
 # Additional Settings
 _min_copier_version: "9.4"
