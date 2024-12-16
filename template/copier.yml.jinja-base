@@ -20,7 +20,7 @@ _subdirectory: template
 _templates_suffix: .jinja
 
 _exclude:
-    - "copier.yaml"
+    - "copier.yml"
 
 # adapted from https://github.com/copier-org/copier-templates-extensions#context-hook-extension
 _jinja_extensions:
