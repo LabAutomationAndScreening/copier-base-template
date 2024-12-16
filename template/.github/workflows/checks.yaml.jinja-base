@@ -1,4 +1,4 @@
-name: Pre-commit
+{% raw %}name: Pre-commit
 
 on:
   push:
@@ -20,16 +20,16 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - "ubuntu-24.04"
+          - "{% endraw %}{{ gha_linux_runner }}{% raw %}"
         python-version:
-            - 3.12.6
+            - {% endraw %}{{ python_version }}{% raw %}
     name: Pre-commit for Py${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
 
       - name: Setup Python
-        uses: actions/setup-python@v5.3.0
+        uses: actions/setup-python@{% endraw %}{{ gha_setup_python }}{% raw %}
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -43,13 +43,13 @@ jobs:
 
       - name: Set up mutex # Github concurrency management is horrible, things get arbitrarily cancelled if queued up. So using mutex until github fixes itself. When multiple jobs are modifying cache at once, weird things can happen.  possible issue is https://github.com/actions/toolkit/issues/658
         if: ${{ runner.os != 'Windows' }} # we're just gonna have to YOLO on Windows, because this action doesn't support it yet https://github.com/ben-z/gh-action-mutex/issues/14
-        uses: ben-z/gh-action-mutex@d3d5b354d460d4b6a1e3ee5b7951678658327812 # v1.0.0-alpha.9
+        uses: ben-z/gh-action-mutex@{% endraw %}{{ gha_mutex }}{% raw %}
         with:
           branch: mutex-venv-${{ matrix.os }}-${{ matrix.python-version }}
         timeout-minutes: 30 # this is the amount of time this action will wait to attempt to acquire the mutex lock before failing, e.g. if other jobs are queued up in front of it
 
       - name: Cache Pre-commit hooks
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@{% endraw %}{{ gha_cache }}{% raw %}
         env:
           cache-name: cache-pre-commit-hooks
         with:
@@ -66,21 +66,22 @@ jobs:
     strategy:
       matrix:
         os:
-          - "ubuntu-24.04"
+          - "{% endraw %}{{ gha_linux_runner }}{% raw %}"
         python-version:
-            - 3.12.6
-            - 3.13.1
+{% endraw %}{% for item in python_ci_versions %}
+          - {{ item }}
+{% endfor %}{% raw %}
         copier: [
-          '--data tests/copier_data/data1.yaml',
-          '--data tests/copier_data/data2.yaml',
+          '--data repo_name=the_best_repo --data ssh_port_number=12345',
+          '--data repo_name=another_repo --data ssh_port_number=54321',
           ]
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
 
       - name: Setup Python
-        uses: actions/setup-python@v5.3.0
+        uses: actions/setup-python@{% endraw %}{{ gha_setup_python }}{% raw %}
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -120,13 +121,13 @@ jobs:
 
       - name: Set up mutex # Github concurrency management is horrible, things get arbitrarily cancelled if queued up. So using mutex until github fixes itself. When multiple jobs are modifying cache at once, weird things can happen.  possible issue is https://github.com/actions/toolkit/issues/658
         if: ${{ runner.os != 'Windows' }} # we're just gonna have to YOLO on Windows, because this action doesn't support it yet https://github.com/ben-z/gh-action-mutex/issues/14
-        uses: ben-z/gh-action-mutex@d3d5b354d460d4b6a1e3ee5b7951678658327812 # v1.0.0-alpha.9
+        uses: ben-z/gh-action-mutex@{% endraw %}{{ gha_mutex }}{% raw %}
         with:
           branch: mutex-venv-${{ matrix.os }}-${{ matrix.python-version }}
         timeout-minutes: 30 # this is the amount of time this action will wait to attempt to acquire the mutex lock before failing, e.g. if other jobs are queued up in front of it
 
       - name: Cache Pre-commit hooks
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@{% endraw %}{{ gha_cache }}{% raw %}
         env:
           cache-name: cache-pre-commit-hooks
         with:
@@ -148,11 +149,11 @@ jobs:
           path: "${{ github.workspace }}/.precommit_cache/pre-commit.log"
 
   required-check:
-    runs-on: ubuntu-24.04
+    runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
     needs: [ lint-matrix ]
     if: always()
     steps:
       - name: fail if prior job failure
         if: needs.lint-matrix.result != 'success'
         run: |
-          exit 1
+          exit 1{% endraw %}
