@@ -10,7 +10,20 @@ ssh_port_number:
 
 
 # Questions specific to this template
+{% endraw %}{% if template_uses_python %}
+python_version:
+    type: str
+    help: What version of Python is used for development?
+    default: "{{ python_version }}"
 
+python_ci_versions:
+    type: str
+    help: What versions should Python run CI on the instantiated template?
+    multiselect: true
+    choices:
+      - "3.11.11"
+      - "3.12.8"
+      - "3.13.1"{% endif %}{% raw %}
 
 # Additional Settings
 _min_copier_version: "9.4"
