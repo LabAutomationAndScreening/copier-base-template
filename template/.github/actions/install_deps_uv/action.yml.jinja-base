@@ -2,7 +2,14 @@
 description: Clone repo, setup python, and install dependencies using uv
 inputs:
   python-version:
+    type: string
     description: Python version to install
+  uv-sync:
+    required: false
+    default: true
+    type: boolean
+    description: Install the python packages with uv sync
+
 
 runs:
   using: composite
@@ -26,6 +33,7 @@ runs:
       run: sh .devcontainer/install-ci-tooling.sh ${{ env.PYTHON_VERSION }}
 
     - name: Install Dependencies
+      if: ${{ inputs.uv-sync }}
       run: |
         uv sync --frozen
         uv pip list{% endraw %}
