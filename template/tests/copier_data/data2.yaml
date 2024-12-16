@@ -1,0 +1,5 @@
+# Data managed by upstream template
+repo_name: another_repo
+ssh_port_number: 54321
+
+# Data added based on the specifics of this template
