@@ -8,8 +8,7 @@
     },
     "ghcr.io/devcontainers/features/python:1": { // https://github.com/devcontainers/features/tree/main/src/python
       "version": "3.12.6",
-      "installTools": true, // we have to set this to true in order for even pipx to be installed
-      "toolsToInstall": "black", // minimize conflict with system tools and tools we have in our venv by not installing much.  But install at least one thing, just to make sure pipx is set up correctly...out of caution...it's possible this could be empty string
+      "installTools": false,
       "optimize": true
     },
   },
