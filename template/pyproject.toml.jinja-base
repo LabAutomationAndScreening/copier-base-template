@@ -1,0 +1,19 @@
+{% raw %}[project]
+name = "{% endraw %}{{ repo_name | replace('_', '-') }}{% raw %}"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">={% endraw %}{{ python_version }}{% raw %}"
+dependencies = [
+    # Managed by upstream template
+    "pytest>={% endraw %}{{ pytest_version }}{% raw %}",
+    "pytest-cov>={% endraw %}{{ pytest_cov_version }}{% raw %}",
+    "pytest-randomly>={% endraw %}{{ pytest_randomly_version }}{% raw %}",
+    "pyright>={% endraw %}{{ pyright_version }}{% raw %}",
+    "copier>={% endraw %}{{ copier_version }}{% raw %}",
+    "copier-templates-extensions>={% endraw %}{{ copier_templates_extension_version }}{% raw %}"
+
+    # Specific to this template
+
+
+]{% endraw %}

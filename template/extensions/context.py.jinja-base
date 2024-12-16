@@ -1,0 +1,26 @@
+{% raw %}# adapted from https://github.com/copier-org/copier-templates-extensions#context-hook-extension
+from typing import Any
+
+from copier_templates_extensions import ContextHook
+
+
+class ContextUpdater(ContextHook):
+    update = False
+
+    def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:{% endraw %}
+        context["uv_version"] = "{{ uv_version }}"
+        context["pre_commit_version"] = "{{ pre_commit_version }}"
+        context["pyright_version"] = "{{ pyright_version }}"
+        context["pytest_version"] = "{{ pytest_version }}"
+        context["pytest_randomly_version"] = "{{ pytest_randomly_version }}"
+        context["pytest_cov_version"] = "{{ pytest_cov_version }}"
+        context["copier_version"] = "{{ copier_version }}"
+        context["copier_templates_extension_version"] = "{{ copier_templates_extension_version }}"
+
+        context["gha_checkout"] = "{{ gha_checkout }}"
+        context["gha_setup_python"] = "{{ gha_setup_python }}"
+        context["gha_cache"] = "{{ gha_cache }}"
+        context["gha_upload_artifact"] = "{{ gha_upload_artifact }}"
+        context["gha_mutex"] = "{{ gha_mutex }}"
+        context["gha_linux_runner"] = "{{ gha_linux_runner }}"
+        return context

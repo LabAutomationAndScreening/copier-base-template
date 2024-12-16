@@ -1,0 +1,5 @@
+# Data managed by upstream template
+repo_name: the_best_repo
+ssh_port_number: 12345
+
+# Data added based on the specifics of this template

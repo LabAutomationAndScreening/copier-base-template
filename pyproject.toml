@@ -1,0 +1,14 @@
+[project]
+name = "copier-base-template"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "pytest-randomly>=3.16.0",
+    "pyright>=1.1.390",
+    "copier>=9",
+    "copier-templates-extensions>=0.3.0"
+]
