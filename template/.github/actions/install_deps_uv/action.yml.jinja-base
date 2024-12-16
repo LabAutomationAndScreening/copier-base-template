@@ -1,5 +1,5 @@
 {% raw %}name: Install requirements
-description: Clone repo, setup python, and install dependencies using uv
+description: Setup python, and install dependencies using uv
 inputs:
   python-version:
     type: string
@@ -20,9 +20,6 @@ runs:
         PYTHON_VERSION="${{ inputs.python-version }}"
         echo "PYTHON_VERSION=$PYTHON_VERSION" >> "$GITHUB_ENV"
       shell: bash
-
-    - name: Checkout code
-      uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
 
     - name: Setup python
       uses: actions/setup-python@{% endraw %}{{ gha_setup_python }}{% raw %}

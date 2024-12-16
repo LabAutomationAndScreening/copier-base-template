@@ -26,6 +26,9 @@ jobs:
     name: Pre-commit for Py${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+
       - name: Install latest versions of python packages
         uses: ./.github/actions/install_deps_uv
         with:
@@ -68,6 +71,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+
       - name: Install python tooling
         uses: ./.github/actions/install_deps_uv
         with:
