@@ -142,7 +142,7 @@ repos:
     -   id: pylint
         name: pylint
         args:
-        - --rcfile=./pyproject.toml
+        - --rcfile=./pylintrc.toml
         verbose: true
 
 -   repo: local
