@@ -22,6 +22,11 @@ ssh_port_number:
     help: What port should the devcontainer bind SSH to?
     default: "{{ range(49152, 65536) | random }}"
 
+template_uses_python:
+    type: bool
+    help: Is this a template that will use Python within it?
+    default: yes
+
 
 _min_copier_version: "9.4"
 

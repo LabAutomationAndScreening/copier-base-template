@@ -3,3 +3,4 @@ ssh_port_number: 54321
 python_ci_versions:
   - "3.12.8"
   - "3.13.1"
+template_uses_python: true
