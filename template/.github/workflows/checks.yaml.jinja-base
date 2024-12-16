@@ -72,8 +72,8 @@ jobs:
           - {{ item }}
 {% endfor %}{% raw %}
         copier: [
-          '--data repo_name=the_best_repo --data ssh_port_number=12345',
-          '--data repo_name=another_repo --data ssh_port_number=54321',
+          '--data-file tests/copier_data/data1.yaml',
+          '--data-file tests/copier_data/data2.yaml',
           ]
     runs-on: ${{ matrix.os }}
 
