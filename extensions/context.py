@@ -1,5 +1,6 @@
 # adapted from https://github.com/copier-org/copier-templates-extensions#context-hook-extension
-from typing import Any, override
+from typing import Any
+from typing import override
 
 from copier_templates_extensions import ContextHook
 
