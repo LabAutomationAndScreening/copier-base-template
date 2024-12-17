@@ -1,5 +1,5 @@
 # adapted from https://github.com/copier-org/copier-templates-extensions#context-hook-extension
-from typing import Any
+from typing import Any, override
 
 from copier_templates_extensions import ContextHook
 
@@ -7,6 +7,7 @@ from copier_templates_extensions import ContextHook
 class ContextUpdater(ContextHook):
     update = False
 
+    @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.sh script in this repository
         context["uv_version"] = "0.5.9"
