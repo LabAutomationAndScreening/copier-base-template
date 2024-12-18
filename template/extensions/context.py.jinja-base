@@ -18,6 +18,7 @@ class ContextUpdater(ContextHook):
         context["pytest_cov_version"] = "{{ pytest_cov_version }}"
         context["copier_version"] = "{{ copier_version }}"
         context["copier_templates_extension_version"] = "{{ copier_templates_extension_version }}"
+        context["sphinx_version"] = "{{ sphinx_version }}"
 
         context["gha_checkout"] = "{{ gha_checkout }}"
         context["gha_setup_python"] = "{{ gha_setup_python }}"
