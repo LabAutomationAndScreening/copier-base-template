@@ -3,6 +3,10 @@ repo_name:
     type: str
     help: What is the name of the repository?
 
+description:
+    type: str
+    help: What is the description of this repository?
+
 ssh_port_number:
     type: int
     help: What port should the devcontainer bind SSH to?
