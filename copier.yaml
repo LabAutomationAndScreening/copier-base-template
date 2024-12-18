@@ -3,6 +3,10 @@ repo_name:
     type: str
     help: What is the name of the repository?
 
+description:
+    type: str
+    help: What is this copier template used for?
+
 python_version:
     type: str
     help: What version of Python?
