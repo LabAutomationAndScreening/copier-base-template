@@ -1,7 +1,7 @@
 {% raw %}[project]
 name = "{% endraw %}{{ repo_name | replace('_', '-') }}{% raw %}"
 version = "0.1.0"
-description = "Add your description here"
+description = "{% endraw %}{{ description }}{% raw %}"
 readme = "README.md"
 requires-python = ">={% endraw %}{{ python_version }}{% raw %}"
 dependencies = [
