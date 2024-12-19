@@ -32,6 +32,7 @@
         "samuelcolvin.jinjahtml@0.20.0",
         "tamasfe.even-better-toml@0.19.2",
         "emilast.LogFileHighlighter@3.3.3",
+        "esbenp.prettier-vscode@11.0.0",
       ],
       "settings": {
         "editor.accessibilitySupport": "off", // turn off annoying sounds
@@ -44,10 +45,14 @@
         "ruff.nativeServer": "on",
         // TODO: see if there's a way to specify different configurations for different folders
         "ruff.configuration": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/ruff-test.toml", // use the test configuration since it's less restrictive and won't show false positives and underline things
+        "[jsonc][json]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnSave": true
+        },
       },
     },
   },
-  //"initializeCommand": "sh .devcontainer/initialize-command.sh",
+  "initializeCommand": "sh .devcontainer/initialize-command.sh",
   "onCreateCommand": "sh .devcontainer/on-create-command.sh",
   "postStartCommand": ".devcontainer/post-start-command.sh",
 }{% endraw %}
