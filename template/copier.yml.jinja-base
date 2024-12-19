@@ -23,7 +23,7 @@ python_ci_versions:
     multiselect: true
     choices:
       - "3.11.11"
-      - "3.12.7"
+      - "3.12.7" # Readthedocs does not yet support 3.12.8 as of 2024-12-18
       - "3.13.1"{% endif %}{% raw %}
 
 # Questions specific to this template
