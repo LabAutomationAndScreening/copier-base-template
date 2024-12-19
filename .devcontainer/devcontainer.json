@@ -54,7 +54,7 @@
       }
     }
   },
-  "initializeCommand": "sh ${localWorkspaceFolder}/initialize-command.sh",
+  "initializeCommand": "sh .devcontainer/initialize-command.sh",
   "onCreateCommand": "sh .devcontainer/on-create-command.sh",
   "postStartCommand": "sh .devcontainer/post-start-command.sh"
 }
