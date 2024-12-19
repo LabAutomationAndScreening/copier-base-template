@@ -1,12 +1,12 @@
 # can pass in the full major.minor.patch version of python as an optional argument
 set -ex
 
-curl -LsSf https://astral.sh/uv/0.5.9/install.sh | sh
+curl -LsSf https://astral.sh/uv/0.5.10/install.sh | sh
 uv --version
 # TODO: add uv autocompletion to the shell https://docs.astral.sh/uv/getting-started/installation/#shell-autocompletion
 
 # Ensure that uv won't use the default system Python
-default_version="3.12.6"
+default_version="3.13.1"
 
 # Use the input argument if provided, otherwise use the default value
 input="${1:-$default_version}"

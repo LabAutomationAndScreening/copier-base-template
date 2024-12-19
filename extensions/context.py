@@ -1,5 +1,6 @@
 # adapted from https://github.com/copier-org/copier-templates-extensions#context-hook-extension
 from typing import Any
+from typing import override
 
 from copier_templates_extensions import ContextHook
 
@@ -7,20 +8,22 @@ from copier_templates_extensions import ContextHook
 class ContextUpdater(ContextHook):
     update = False
 
+    @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.sh script in this repository
-        context["uv_version"] = "0.5.9"
+        context["uv_version"] = "0.5.10"
         context["pre_commit_version"] = "4.0.1"
         # These also in pyproject.toml
         context["copier_version"] = "9.4.1"
         context["copier_templates_extension_version"] = "0.3.0"
         #######
         # These are duplicated in the pyproject.toml of this repository
-        context["pyright_version"] = "1.1.390"
+        context["pyright_version"] = "1.1.391"
         context["pytest_version"] = "8.3.4"
         context["pytest_randomly_version"] = "3.16.0"
         context["pytest_cov_version"] = "6.0.0"
         #######
+        context["sphinx_version"] = "8.1.3"
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v4.2.2"
         context["gha_setup_python"] = "v5.3.0"

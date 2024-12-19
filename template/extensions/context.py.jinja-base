@@ -1,5 +1,6 @@
 {% raw %}# adapted from https://github.com/copier-org/copier-templates-extensions#context-hook-extension
 from typing import Any
+from typing import override
 
 from copier_templates_extensions import ContextHook
 
@@ -7,6 +8,7 @@ from copier_templates_extensions import ContextHook
 class ContextUpdater(ContextHook):
     update = False
 
+    @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:{% endraw %}
         context["uv_version"] = "{{ uv_version }}"
         context["pre_commit_version"] = "{{ pre_commit_version }}"
@@ -16,6 +18,7 @@ class ContextUpdater(ContextHook):
         context["pytest_cov_version"] = "{{ pytest_cov_version }}"
         context["copier_version"] = "{{ copier_version }}"
         context["copier_templates_extension_version"] = "{{ copier_templates_extension_version }}"
+        context["sphinx_version"] = "{{ sphinx_version }}"
 
         context["gha_checkout"] = "{{ gha_checkout }}"
         context["gha_setup_python"] = "{{ gha_setup_python }}"

@@ -1,4 +1,5 @@
 repo_name: the_best_repo
+description: Doing amazing things
 ssh_port_number: 12345
 python_ci_versions:
   - 3.11.11

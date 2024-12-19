@@ -1,4 +1,4 @@
-{% raw %}name: Pre-commit
+{% raw %}name: CI
 
 on:
   push:

@@ -6,3 +6,5 @@ set -ex
 git config --global --add safe.directory /workspaces/copier-base-template
 
 sh .devcontainer/on-create-command-boilerplate.sh
+
+sh .devcontainer/manual-setup-deps.sh
