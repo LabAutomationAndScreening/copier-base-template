@@ -22,7 +22,6 @@ python_ci_versions:
     help: What versions should Python run CI on the instantiated template?
     multiselect: true
     choices:
-      - "{{ py311_version }}"
       - "{{ py312_version }}"
       - "{{ py313_version }}"{% endif %}{% raw %}
 
