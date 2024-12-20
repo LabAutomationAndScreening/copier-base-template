@@ -31,9 +31,7 @@ class ContextUpdater(ContextHook):
         context["gha_upload_artifact"] = "v4.4.3"
         context["gha_mutex"] = "d3d5b354d460d4b6a1e3ee5b7951678658327812 # v1.0.0-alpha.9"
         context["gha_linux_runner"] = "ubuntu-24.04"
-        #######
-        # These are duplicated in the tests/data.yml files in this repository
-        context["py311_version"] = "3.11.10"
+        # These also in the tests/data.yml files in this repository and in copier.yaml
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
         context["py313_version"] = "3.13.1"
         #######

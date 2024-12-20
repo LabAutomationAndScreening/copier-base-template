@@ -2,7 +2,7 @@
 set -ex
 
 # Ensure that uv won't use the default system Python
-default_version="3.13.1"
+default_version="3.12.7"
 
 # Use the input argument if provided, otherwise use the default value
 input="${1:-$default_version}"

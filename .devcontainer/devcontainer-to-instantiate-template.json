@@ -2,7 +2,7 @@
   "image": "mcr.microsoft.com/vscode/devcontainers/universal:2.9.0-focal",
   "features": {
     "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.13.1",
+      "version": "3.12.7",
       "installTools": false,
       "optimize": false
     }
