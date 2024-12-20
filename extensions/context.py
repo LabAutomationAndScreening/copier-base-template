@@ -32,4 +32,7 @@ class ContextUpdater(ContextHook):
         context["gha_mutex"] = "d3d5b354d460d4b6a1e3ee5b7951678658327812 # v1.0.0-alpha.9"
         context["gha_linux_runner"] = "ubuntu-24.04"
         #######
+        context["py311_version"] = "3.11.7"
+        context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
+        context["py313_version"] = "3.13.1"
         return context

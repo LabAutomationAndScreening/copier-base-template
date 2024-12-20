@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # can pass in the full major.minor.patch version of python as an optional argument
 set -ex
 
