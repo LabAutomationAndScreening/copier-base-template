@@ -33,6 +33,6 @@ runs:
     - name: Install Dependencies
       if: ${{ inputs.uv-sync }}
       run: |
-        uv sync --frozen
+        sh .devcontainer/manual-setup-deps.sh
         uv pip list{% endraw %}
       shell: bash
