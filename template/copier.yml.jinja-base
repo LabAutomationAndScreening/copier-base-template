@@ -22,9 +22,8 @@ python_ci_versions:
     help: What versions should Python run CI on the instantiated template?
     multiselect: true
     choices:
-      - "3.11.11"
-      - "3.12.7" # Readthedocs does not yet support 3.12.8 as of 2024-12-18
-      - "3.13.1"{% endif %}{% raw %}
+      - "{{ py312_version }}"
+      - "{{ py313_version }}"{% endif %}{% raw %}
 
 # Questions specific to this template
 

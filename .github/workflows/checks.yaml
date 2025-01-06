@@ -22,7 +22,7 @@ jobs:
         os:
           - "ubuntu-24.04"
         python-version:
-            - 3.12.6
+            - 3.12.7
     name: Pre-commit for Py${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
@@ -68,7 +68,7 @@ jobs:
         os:
           - "ubuntu-24.04"
         python-version:
-            - 3.12.6
+            - 3.12.7
             - 3.13.1
         copier: [
           '--data-file tests/copier_data/data1.yaml',

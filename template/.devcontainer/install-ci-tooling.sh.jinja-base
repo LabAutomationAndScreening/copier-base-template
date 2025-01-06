@@ -1,4 +1,5 @@
-{% raw %}# can pass in the full major.minor.patch version of python as an optional argument
+{% raw %}
+# can pass in the full major.minor.patch version of python as an optional argument
 set -ex
 
 curl -LsSf https://astral.sh/uv/{% endraw %}{{ uv_version }}{% raw %}/install.sh | sh
