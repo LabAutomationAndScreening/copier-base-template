@@ -2,5 +2,6 @@
 repo_name: the_best_repo
 description: Doing amazing things
 ssh_port_number: 12345
+use_windows_in_ci: false
 
 # Data added based on the specifics of this template
