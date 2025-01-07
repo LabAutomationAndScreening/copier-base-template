@@ -55,5 +55,6 @@ runs:
 
     - name: List Dependencies (Windows)
       if: ${{ inputs.uv-sync }} && runner.os == 'Windows'
-      run: & uv pip list
+      run: |
+        & uv pip list
       shell: pwsh{% endraw %}
