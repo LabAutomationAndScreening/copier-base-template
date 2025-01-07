@@ -12,7 +12,7 @@ ssh_port_number:
     help: What port should the devcontainer bind SSH to?
     default: "{{ range(49152, 65536) | random }}"
 
-windows_ci:
+use_windows_in_ci:
     type: bool
     help: Should CI in the instantiated template also use Windows runners?
     default: no
