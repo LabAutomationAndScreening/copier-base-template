@@ -1,4 +1,4 @@
-name: Bump tag version
+name: Tag on Merge to Main
 on:
   pull_request:
     types:
