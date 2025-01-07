@@ -35,4 +35,5 @@ class ContextUpdater(ContextHook):
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
         context["py313_version"] = "3.13.1"
         #######
+        context["gha_windows_runner"] = "windows-2022"
         return context
