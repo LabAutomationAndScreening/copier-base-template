@@ -6,7 +6,7 @@ Thank you for considering contributing! Contributions, whether big or small, are
 
 ## 📚 Table of Contents
 
-1. [Code of Conduct](#code-of-conduct)
+1. [Code of Conduct](#-code-of-conduct)
 2. [How to Contribute](#how-to-contribute)
 3. [Issues and Bug Reports](#issues-and-bug-reports)
 4. [Feature Requests](#feature-requests)
