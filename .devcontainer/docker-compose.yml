@@ -5,6 +5,7 @@ services:
     # can run `devcontainer-info content-url` in codespaces to see what image base is
     volumes:
       - ..:/workspaces/copier-base-template:cached
+      - python_venv:/workspaces/copier-base-template/.venv
     command: sleep infinity
     ports:
       - "14343:2222"
