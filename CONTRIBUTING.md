@@ -7,12 +7,12 @@ Thank you for considering contributing! Contributions, whether big or small, are
 ## 📚 Table of Contents
 
 1. [Code of Conduct](#-code-of-conduct)
-2. [How to Contribute](#how-to-contribute)
-3. [Issues and Bug Reports](#issues-and-bug-reports)
-4. [Feature Requests](#feature-requests)
-5. [Development Guidelines](#development-guidelines)
-6. [Pull Requests](#pull-requests)
-7. [License](#license)
+2. [How to Contribute](#-how-to-contribute)
+3. [Issues and Bug Reports](#-issues-and-bug-reports)
+4. [Feature Requests](#-feature-requests)
+5. [Development Guidelines](#-development-guidelines)
+6. [Pull Requests](#-pull-requests)
+7. [License](#-license)
 
 ---
 
@@ -27,7 +27,7 @@ By participating in this project, you agree to abide by our [Code of Conduct](./
 1. **Fork the repository** on GitHub.
 
 2. **Set up the Dev Container (Recommended Method)**
-   - Click on the "Open in Devcontainer" link in the Readme OR create a Github Codespcae
+   - Create a Github Codespcae OR click on the "Open in Devcontainer" link in the [Readme](./README.md)
 
 3. **Make Your Changes**
    - Create a branch for your feature or bug fix:
