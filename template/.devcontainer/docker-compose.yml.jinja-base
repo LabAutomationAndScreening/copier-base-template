@@ -4,7 +4,7 @@ services:
     build:
       context: .
       args:
-        VENV_PATH: /workspaces/{% endraw %}{{ repo_name }}{% raw %}/.venv
+        REPO_NAME: {% endraw %}{{ repo_name }}{% raw %}
     # You can run `devcontainer-info content-url` in codespaces to see what image base is
     volumes:
       - ..:/workspaces/{% endraw %}{{ repo_name }}{% raw %}:cached
