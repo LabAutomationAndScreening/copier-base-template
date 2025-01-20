@@ -105,7 +105,7 @@ jobs:
 
       - name: install new dependencies
         run: |
-          uv sync
+          sh .devcontainer/manual-setup-deps.sh ${{ matrix.python-version }}
           uv pip list
           # Add everything to git so that pre-commit recognizes the files and runs on them
           git add .
