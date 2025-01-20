@@ -52,6 +52,19 @@ coverage-report-pytest
 # test profiling
 prof/
 
+# NodeJS
+node_modules/
+.pnpm-store/
+
+
+# Nuxt
+.output
+.data
+.nuxt
+.nitro
+.cache
+
+
 # Infrastructure as Code
 .terraform/
 *.terraform.lock.hcl
