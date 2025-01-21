@@ -63,6 +63,8 @@ node_modules/
 .nuxt
 .nitro
 .cache
+# Nuxt generate creates a symlink to the dist folder, which can't have trailing slash
+dist
 
 
 # Infrastructure as Code
