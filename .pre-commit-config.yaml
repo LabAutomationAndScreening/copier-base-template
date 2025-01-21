@@ -159,7 +159,7 @@ repos:
         description: Runs hadolint to lint Dockerfiles
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 89c421dff2e1026ba12cdb9ebd731f4a83aa8021  # frozen: v0.8.6
+    rev: 73413df07b4ab0bf103ca1ae73c7cec5c0ace593  # frozen: v0.9.2
     hooks:
     -   id: ruff
         name: ruff-src
