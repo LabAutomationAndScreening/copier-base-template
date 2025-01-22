@@ -28,6 +28,7 @@ class ContextUpdater(ContextHook):
         context["pulumi_aws_version"] = "6.66.3"
         context["pulumi_aws_native_version"] = "1.24.0"
         context["pulumi_command_version"] = "1.0.1"
+        context["boto3_version"] = "1.36.3"
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v4.2.2"
         context["gha_setup_python"] = "v5.3.0"
