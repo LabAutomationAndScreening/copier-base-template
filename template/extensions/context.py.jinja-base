@@ -28,6 +28,7 @@ class ContextUpdater(ContextHook):
         context["gha_setup_python"] = "{{ gha_setup_python }}"
         context["gha_cache"] = "{{ gha_cache }}"
         context["gha_upload_artifact"] = "{{ gha_upload_artifact }}"
+        context["gha_configure_aws_credentials"] = "{{ gha_configure_aws_credentials }}"
         context["gha_mutex"] = "{{ gha_mutex }}"
         context["gha_linux_runner"] = "{{ gha_linux_runner }}"
         context["gha_windows_runner"] = "{{ gha_windows_runner }}"
