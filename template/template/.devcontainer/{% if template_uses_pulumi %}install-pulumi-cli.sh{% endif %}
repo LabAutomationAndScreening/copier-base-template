@@ -22,7 +22,7 @@ if [ "$(echo "$MATCH" | wc -l)" -ne 1 ]; then
 fi
 
 # Check the current Pulumi version
-if ~/.pulumi/bin/pulumi version &>/dev/null; then
+if ~/.pulumi/bin/pulumi version > /dev/null 2>&1; then
   INSTALLED_VERSION=$(~/.pulumi/bin/pulumi version | sed 's/^v//' | xargs)
   echo "Pulumi is already installed. Current version: v$INSTALLED_VERSION"
   if [ "$INSTALLED_VERSION" = "$MATCH" ]; then
