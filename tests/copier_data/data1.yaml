@@ -4,3 +4,4 @@ ssh_port_number: 12345
 python_ci_versions:
   - 3.13.1
 template_uses_python: true
+template_uses_pulumi: true

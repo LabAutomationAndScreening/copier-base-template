@@ -30,6 +30,11 @@ template_uses_python:
     help: Is this a template that will use Python within it?
     default: yes
 
+template_uses_pulumi:
+    type: bool
+    help: Is this a template that will use Python Pulumi within it?
+    default: no
+
 
 _min_copier_version: "9.4"
 
