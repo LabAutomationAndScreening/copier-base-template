@@ -35,7 +35,7 @@ aws_organization_id:
     type: str
     help: What's the AWS Organization ID?
 
-{% endraw %}{% if endif %}{% raw %}
+{% endraw %}{% endif %}{% raw %}
 
 # Questions specific to this template
 
