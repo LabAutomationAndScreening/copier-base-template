@@ -30,6 +30,13 @@ python_ci_versions:
       - "{{ py312_version }}"
       - "{{ py313_version }}"{% endif %}{% raw %}
 
+{% endraw %}{% if template_uses_pulumi %}{% raw %}
+aws_organization_id:
+    type: str
+    help: What's the AWS Organization ID?
+
+{% endraw %}{% if endif %}{% raw %}
+
 # Questions specific to this template
 
 
