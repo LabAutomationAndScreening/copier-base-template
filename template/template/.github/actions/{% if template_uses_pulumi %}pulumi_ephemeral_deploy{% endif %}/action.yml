@@ -26,6 +26,7 @@ inputs:
     type: string
     description: What's the AWS region of the role?
     required: false
+    default: us-east-1
 
 
 
@@ -35,4 +36,3 @@ runs:
     - name: Install Pulumi
       run: sh .devcontainer/install-pulumi-cli.sh ${{ inputs.project-dir }}uv.lock
       shell: bash
-
