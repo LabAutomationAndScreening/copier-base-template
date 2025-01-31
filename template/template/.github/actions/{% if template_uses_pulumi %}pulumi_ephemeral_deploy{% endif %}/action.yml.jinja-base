@@ -42,10 +42,10 @@ runs:
       shell: bash
 
     - name: AWS OIDC
-        uses: aws-actions/configure-aws-credentials@{% endraw %}{{ gha_configure_aws_credentials }}{% raw %}
-        with:
-            role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/${{ inputs.aws-role-name }}
-            aws-region: ${{ inputs.aws-region }}
+      uses: aws-actions/configure-aws-credentials@{% endraw %}{{ gha_configure_aws_credentials }}{% raw %}
+      with:
+        role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/${{ inputs.aws-role-name }}
+        aws-region: ${{ inputs.aws-region }}
     
     - name: Run CLI 
       run: uv --directory ${{ github.workspace }}/${{ inputs.project-dir }} run python -m ${{ inputs.deploy-script-package-name }}.pulumi_deploy --stack=${{ inputs.stack-name }}
