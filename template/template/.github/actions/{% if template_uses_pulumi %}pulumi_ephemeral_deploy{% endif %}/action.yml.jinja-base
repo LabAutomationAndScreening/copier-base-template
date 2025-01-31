@@ -1,0 +1,52 @@
+{% raw %}name: Pulumi ephemeral deploy
+description: Setup Pulumi and run the ephemeral deploy CLI
+inputs:
+  project-dir:
+    type: string
+    description: What's the relative path to the project (end in slash)?
+    required: true
+  deploy-script-package-name:
+    type: string
+    description: What's the name of the package that the deploy script is in?
+    required: true
+  stack-name:
+    type: string
+    description: What's the Pulumi Stack name?
+    required: true
+  cli-action:
+    type: string
+    description: What's the Pulumi Ephemeral CLI action?
+    required: false
+    default: ''
+  aws-account-id:
+    type: string
+    description: What's the AWS Account ID for the role to assume?
+    required: true
+  aws-role-name:
+    type: string
+    description: What's the AWS role name?
+    required: false
+  aws-region:
+    type: string
+    description: What's the AWS region to assume the role in?
+    required: false
+    default: us-east-1
+
+
+
+runs:
+  using: composite
+  steps:
+    - name: Install Pulumi
+      run: sh .devcontainer/install-pulumi-cli.sh ${{ github.workspace }}/${{ inputs.project-dir }}uv.lock
+      shell: bash
+
+    - name: AWS OIDC
+        uses: aws-actions/configure-aws-credentials@{% endraw %}{{ gha_configure_aws_credentials }}{% raw %}
+        with:
+            role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/${{ inputs.aws-role-name }}
+            aws-region: ${{ inputs.aws-region }}
+    
+    - name: Run CLI 
+      run: uv --directory ${{ github.workspace }}/${{ inputs.project-dir }} run python -m ${{ inputs.deploy-script-package-name }}.pulumi_deploy --stack=${{ inputs.stack-name }}
+      shell: bash{% endraw %}
