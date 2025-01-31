@@ -41,6 +41,13 @@ runs:
       run: sh .devcontainer/install-pulumi-cli.sh ${{ github.workspace }}/${{ inputs.project-dir }}/uv.lock
       shell: bash
 
+    - name: Add .pulumi to PATH
+      run: |
+        echo "$HOME/.pulumi" >> $GITHUB_PATH
+        # delete the built-in pulumi installation as it appears to interfere with caching
+        rm /usr/local/bin/pulumi -f
+      shell: bash
+
     - name: AWS OIDC
       uses: aws-actions/configure-aws-credentials@{% endraw %}{{ gha_configure_aws_credentials }}{% raw %}
       with:
