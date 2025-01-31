@@ -3,7 +3,7 @@ description: Setup Pulumi and run the ephemeral deploy CLI
 inputs:
   project-dir:
     type: string
-    description: What's the relative path to the project from the root (start with directory and end in slash)?
+    description: What's the relative path to the project from the root (start with directory and don't end in slash)?
     required: true
   deploy-script-package-name:
     type: string
@@ -38,7 +38,7 @@ runs:
   using: composite
   steps:
     - name: Install Pulumi
-      run: sh .devcontainer/install-pulumi-cli.sh ${{ github.workspace }}/${{ inputs.project-dir }}uv.lock
+      run: sh .devcontainer/install-pulumi-cli.sh ${{ github.workspace }}/${{ inputs.project-dir }}/uv.lock
       shell: bash
 
     - name: AWS OIDC
