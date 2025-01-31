@@ -5,9 +5,9 @@ inputs:
     type: string
     description: What's the relative path to the project from the root (start with directory and don't end in slash)?
     required: true
-  deploy-script-package-name:
+  deploy-script-module-name:
     type: string
-    description: What's the name of the package that the deploy script is in?
+    description: What's the name of the module that the deploy script is in (snake case)?
     required: true
   stack-name:
     type: string
@@ -49,5 +49,5 @@ runs:
 
     - name: Run CLI
       working-directory: ${{ github.workspace }}/${{ inputs.project-dir }}
-      run: uv run python -m ${{ inputs.deploy-script-package-name }}.pulumi_deploy --stack=${{ inputs.stack-name }}
+      run: uv run python -m ${{ inputs.deploy-script-module-name }}.pulumi_deploy --stack=${{ inputs.stack-name }}
       shell: bash{% endraw %}
