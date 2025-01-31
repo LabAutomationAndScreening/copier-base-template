@@ -3,7 +3,7 @@ description: Setup Pulumi and run the ephemeral deploy CLI
 inputs:
   project-dir:
     type: string
-    description: What's the relative path to the project (end in slash)?
+    description: What's the relative path to the project from the root (start with directory and end in slash)?
     required: true
   deploy-script-package-name:
     type: string
@@ -48,5 +48,6 @@ runs:
         aws-region: ${{ inputs.aws-region }}
 
     - name: Run CLI
-      run: uv --directory ${{ github.workspace }}/${{ inputs.project-dir }} run python -m ${{ inputs.deploy-script-package-name }}.pulumi_deploy --stack=${{ inputs.stack-name }}
+      working-directory: ${{ github.workspace }}/${{ inputs.project-dir }}
+      run: uv run python -m ${{ inputs.deploy-script-package-name }}.pulumi_deploy --stack=${{ inputs.stack-name }}
       shell: bash{% endraw %}
