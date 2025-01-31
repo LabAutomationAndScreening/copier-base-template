@@ -49,8 +49,10 @@ runs:
 
     - name: Add .pulumi to PATH
       run: |
-        echo "$HOME/.pulumi" >> $GITHUB_PATH
+        echo "$HOME/.pulumi/bin" >> $GITHUB_PATH
         echo "$HOME/.pulumi"
+        whereis pulumi
+        pulumi version
       shell: bash
 
     - name: AWS OIDC
