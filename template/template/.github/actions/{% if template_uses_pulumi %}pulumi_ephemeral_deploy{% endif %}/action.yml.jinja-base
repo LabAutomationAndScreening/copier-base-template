@@ -37,6 +37,12 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Delete original runner Pulumi
+      # delete the built-in pulumi installation as it appears to interfere with caching
+      run: |
+        rm /usr/local/bin/pulumi -f
+      shell: bash
+
     - name: Install Pulumi
       run: sh .devcontainer/install-pulumi-cli.sh ${{ github.workspace }}/${{ inputs.project-dir }}/uv.lock
       shell: bash
@@ -44,8 +50,7 @@ runs:
     - name: Add .pulumi to PATH
       run: |
         echo "$HOME/.pulumi" >> $GITHUB_PATH
-        # delete the built-in pulumi installation as it appears to interfere with caching
-        rm /usr/local/bin/pulumi -f
+        echo "$HOME/.pulumi"
       shell: bash
 
     - name: AWS OIDC
