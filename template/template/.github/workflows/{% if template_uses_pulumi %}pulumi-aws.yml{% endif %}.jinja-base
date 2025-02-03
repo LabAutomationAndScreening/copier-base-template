@@ -1,4 +1,4 @@
-{% raw %}name: Pulumi Advanced Test Env
+{% raw %}name: Pulumi Advanced Test Env on AWS
 
 on:
   workflow_call:
