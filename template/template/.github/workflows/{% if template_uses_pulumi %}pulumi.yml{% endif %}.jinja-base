@@ -94,4 +94,3 @@ jobs:
           deploy-script-name: ${{ inputs.DEPLOY_SCRIPT_NAME }}
           aws-region: us-east-1
           aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}{% endraw %}
-
