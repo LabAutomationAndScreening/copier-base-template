@@ -9,6 +9,11 @@ inputs:
     type: string
     description: What's the name of the module that the deploy script is in (snake case)?
     required: true
+  deploy-script-name:
+    type: string
+    description: What's the name of the deploy script?
+    required: false
+    default: pulumi_deploy
   stack-name:
     type: string
     description: What's the Pulumi Stack name?
@@ -37,10 +42,11 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Delete original runner Pulumi
-      # delete the built-in pulumi installation as it appears to interfere with caching
+    - name: Delete original runner Pulumi and add new installation location to PATH
+      # delete the built-in pulumi installation as it appears to interfere with caching and using the version specified in the requirements file
       run: |
         rm /usr/local/bin/pulumi -f
+        echo "$HOME/.pulumi/bin" >> $GITHUB_PATH
       shell: bash
 
     - name: Install Pulumi
@@ -63,5 +69,5 @@ runs:
 
     - name: Run CLI
       working-directory: ${{ github.workspace }}/${{ inputs.project-dir }}
-      run: uv run python -m ${{ inputs.deploy-script-module-name }}.pulumi_deploy --stack=${{ inputs.stack-name }}
+      run: uv run python -m ${{ inputs.deploy-script-module-name }}.${{ deploy-script-name }} --stack=${{ inputs.stack-name }}
       shell: bash{% endraw %}
