@@ -93,5 +93,5 @@ jobs:
           aws-role-name: ${{ inputs.PREVIEW_ROLE_NAME }}
           deploy-script-name: ${{ inputs.DEPLOY_SCRIPT_NAME }}
           aws-region: us-east-1
-          aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}{% raw %}
+          aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}{% endraw %}
 
