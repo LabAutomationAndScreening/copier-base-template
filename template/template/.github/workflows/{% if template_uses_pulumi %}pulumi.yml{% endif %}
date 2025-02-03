@@ -1,0 +1,97 @@
+{% raw %}name: Pulumi Advanced Test Env
+
+on:
+  workflow_call:
+    inputs:
+      AWS_REGION:
+        required: false
+        default: us-east-1
+        type: string
+      INIT_TEST_STACK_USING_TARGET:
+        required: false
+        default: false
+        type: boolean
+      INIT_TEST_STACK_NAME:
+        required: false
+        default: main
+        type: string
+      SPECIFIED_BRANCH_NAME:
+        description: 'specify a branch name to run this workflow on that is different than the commit triggering it. this should be combined with setting the INIT_TEST_STACK_NAME to the same name and INIT_TEST_STACK_USING_TARGET to True...it is hacky for now but then that will result in just doing a single full run through on the branch specified here'
+        required: false
+        default: do-not-do-this
+        type: string
+      PULUMI_PREVIEW:
+        required: false
+        default: false
+        type: boolean
+      PREVIEW_ROLE_NAME:
+        required: false
+        default: ''
+        type: string
+      AWS_ACCOUNT_ID:
+        required: true
+        type: string
+      DEPLOY_SCRIPT_MODULE_NAME:
+        required: true
+        type: string
+      DEPLOY_SCRIPT_NAME:
+        required: false
+        type: string
+        default: pulumi_deploy
+      PULUMI_UP:
+        required: false
+        default: false
+        type: boolean
+      PULUMI_INTEGRATION_TEST:
+        required: false
+        default: false
+        type: boolean
+      PULUMI_DESTROY:
+        required: false
+        default: false
+        type: boolean
+      PULUMI_STACK_NAME:
+        required: true
+        type: string
+      PYTHON_VERSION:
+        required: true
+        type: string
+
+
+env:
+  PYTHONUNBUFFERED: True
+  PRE_COMMIT_HOME: ${{ github.workspace }}/.precommit_cache
+
+permissions:
+    id-token: write
+    contents: write # needed for mutex
+
+jobs:
+  pulumi:
+    runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+
+      - name: Install latest versions of python packages
+        uses: ./.github/actions/install_deps_uv
+        with:
+          python-version: ${{ inputs.PYTHON_VERSION }}
+
+      - name: Set up mutex # Github concurrency management is horrible, things get arbitrarily cancelled if queued up. So using mutex until github fixes itself. When multiple jobs are modifying cache at once, weird things can happen.  possible issue is https://github.com/actions/toolkit/issues/658
+        uses: ben-z/gh-action-mutex@{% endraw %}{{ gha_mutex }}{% raw %}
+        with:
+          branch: mutex-pulumi-${{ inputs.PULUMI_STACK_NAME }}
+        timeout-minutes: 30 # this is the amount of time this action will wait to attempt to acquire the mutex lock before failing, e.g. if other jobs are queued up in front of it
+
+      - name: Preview
+        uses: ./.github/actions/pulumi_ephemeral_deploy
+        with:
+          project-dir: ""
+          deploy-script-module-name: ${{ inputs.DEPLOY_SCRIPT_MODULE_NAME }}
+          stack-name: ${{ inputs.PULUMI_STACK_NAME }}
+          aws-role-name: ${{ inputs.PREVIEW_ROLE_NAME }}
+          deploy-script-name: ${{ inputs.DEPLOY_SCRIPT_NAME }}
+          aws-region: us-east-1
+          aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}{% raw %}
+
