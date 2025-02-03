@@ -50,15 +50,11 @@ runs:
       shell: bash
 
     - name: Install Pulumi
-      run: sh .devcontainer/install-pulumi-cli.sh ${{ github.workspace }}/${{ inputs.project-dir }}/uv.lock
-      shell: bash
-
-    - name: Add .pulumi to PATH
       run: |
-        echo "$HOME/.pulumi/bin" >> $GITHUB_PATH
-        echo "$HOME/.pulumi"
+        sh .devcontainer/install-pulumi-cli.sh ${{ github.workspace }}/${{ inputs.project-dir }}/uv.lock
         whereis pulumi
         pulumi version
+        pulumi plugin ls
       shell: bash
 
     - name: AWS OIDC
