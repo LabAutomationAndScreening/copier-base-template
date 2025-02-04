@@ -30,6 +30,7 @@ class ContextUpdater(ContextHook):
         context["pulumi_command_version"] = "1.0.1"
         context["boto3_version"] = "1.36.3"
         context["ephemeral_pulumi_deploy_version"] = "0.0.1"
+        context["pydantic_version"] = "2.10.6"
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v4.2.2"
         context["gha_setup_python"] = "v5.3.0"
