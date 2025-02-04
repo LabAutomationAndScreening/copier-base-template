@@ -24,6 +24,7 @@ class ContextUpdater(ContextHook):
         context["pulumi_aws_native_version"] = "{{ pulumi_aws_native_version }}"
         context["pulumi_command_version"] = "{{ pulumi_command_version }}"
         context["boto3_version"] = "{{ boto3_version }}"
+        context["pulumi_ephemeral_deploy_version"] = "{{ pulumi_ephemeral_deploy_version }}"
 
         context["gha_checkout"] = "{{ gha_checkout }}"
         context["gha_setup_python"] = "{{ gha_setup_python }}"

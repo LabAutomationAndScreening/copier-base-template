@@ -11,7 +11,7 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.sh script in this repository
-        context["uv_version"] = "0.5.26"
+        context["uv_version"] = "0.5.27"
         context["pre_commit_version"] = "4.0.1"
         # These also in pyproject.toml
         context["copier_version"] = "9.4.1"
@@ -29,6 +29,7 @@ class ContextUpdater(ContextHook):
         context["pulumi_aws_native_version"] = "1.24.0"
         context["pulumi_command_version"] = "1.0.1"
         context["boto3_version"] = "1.36.3"
+        context["ephemeral_pulumi_deploy_version"] = "0.0.1"
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v4.2.2"
         context["gha_setup_python"] = "v5.3.0"
