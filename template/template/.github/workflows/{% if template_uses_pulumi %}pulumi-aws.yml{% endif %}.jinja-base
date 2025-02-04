@@ -15,10 +15,6 @@ on:
         required: false
         default: ''
         type: string
-      PULUMI_PREVIEW_TIMEOUT_MINUTES:
-        required: false
-        default: 4
-        type: string
       AWS_ACCOUNT_ID:
         required: true
         type: string
@@ -90,7 +86,7 @@ jobs:
           deploy-script-name: ${{ inputs.DEPLOY_SCRIPT_NAME }}
           aws-region: us-east-1
           aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}
-        timeout-minutes: ${{ inputs.PULUMI_PREVIEW_TIMEOUT_MINUTES }}
+        timeout-minutes: 5 # apparently timeout-minutes only accepts literal values, it cannot evaluate expressions (e.g. workflow inputs)
 
       - name: Pulumi Up
         uses: ./.github/actions/pulumi_ephemeral_deploy
