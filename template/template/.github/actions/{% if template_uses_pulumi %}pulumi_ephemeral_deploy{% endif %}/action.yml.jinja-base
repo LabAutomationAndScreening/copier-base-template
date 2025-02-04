@@ -75,5 +75,5 @@ runs:
 
     - name: Run CLI
       working-directory: ${{ github.workspace }}/${{ inputs.project-dir }}
-      run: uv run python -m ${{ inputs.deploy-script-module-name }}.${{ inputs.deploy-script-name }} --stack=${{ inputs.stack-name }}
+      run: uv run python -m ${{ inputs.deploy-script-module-name }}.${{ inputs.deploy-script-name }} --stack=${{ inputs.stack-name }} ${{ inputs.cli-action }}
       shell: bash{% endraw %}

@@ -79,7 +79,7 @@ jobs:
         uses: ./.github/actions/pulumi_ephemeral_deploy
         if: ${{ inputs.PULUMI_PREVIEW }}
         with:
-          project-dir: ""
+          project-dir: "."
           deploy-script-module-name: ${{ inputs.DEPLOY_SCRIPT_MODULE_NAME }}
           stack-name: ${{ inputs.PULUMI_STACK_NAME }}
           aws-role-name: ${{ inputs.PREVIEW_ROLE_NAME }}
@@ -92,10 +92,11 @@ jobs:
         uses: ./.github/actions/pulumi_ephemeral_deploy
         if: ${{ inputs.PULUMI_UP }}
         with:
-          project-dir: ""
+          project-dir: "."
           deploy-script-module-name: ${{ inputs.DEPLOY_SCRIPT_MODULE_NAME }}
           stack-name: ${{ inputs.PULUMI_STACK_NAME }}
           aws-role-name: ${{ inputs.PULUMI_UP_ROLE_NAME }}
           deploy-script-name: ${{ inputs.DEPLOY_SCRIPT_NAME }}
           aws-region: us-east-1
           aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}{% endraw %}
+          cli-action: "--apply"
