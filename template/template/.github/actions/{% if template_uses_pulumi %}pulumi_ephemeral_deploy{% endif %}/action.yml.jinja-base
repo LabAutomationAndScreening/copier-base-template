@@ -36,6 +36,11 @@ inputs:
     description: What's the AWS region to assume the role in?
     required: false
     default: us-east-1
+  pulumi-timeout:
+    type: string
+    description: How many minutes should the timeout be on the pulumi actions?
+    default: 5
+
 
 
 
@@ -65,5 +70,6 @@ runs:
 
     - name: Run CLI
       working-directory: ${{ github.workspace }}/${{ inputs.project-dir }}
+      timeout-minutes: ${{ inputs.pulumi-timeout }}
       run: uv run python -m ${{ inputs.deploy-script-module-name }}.${{ inputs.deploy-script-name }} --stack=${{ inputs.stack-name }}
       shell: bash{% endraw %}
