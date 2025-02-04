@@ -81,7 +81,6 @@ jobs:
 
       - name: Preview
         uses: ./.github/actions/pulumi_ephemeral_deploy
-        timeout-minutes: ${{ inputs.PULUMI_PREVIEW_TIMEOUT_MINUTES }}
         if: ${{ inputs.PULUMI_PREVIEW }}
         with:
           project-dir: ""
@@ -91,6 +90,7 @@ jobs:
           deploy-script-name: ${{ inputs.DEPLOY_SCRIPT_NAME }}
           aws-region: us-east-1
           aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}
+        timeout-minutes: ${{ inputs.PULUMI_PREVIEW_TIMEOUT_MINUTES }}
 
       - name: Pulumi Up
         uses: ./.github/actions/pulumi_ephemeral_deploy
