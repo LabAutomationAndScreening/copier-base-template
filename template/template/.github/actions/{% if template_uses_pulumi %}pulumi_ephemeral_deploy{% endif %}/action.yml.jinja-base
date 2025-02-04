@@ -36,10 +36,11 @@ inputs:
     description: What's the AWS region to assume the role in?
     required: false
     default: us-east-1
-  pulumi-timeout:
-    type: string
-    description: How many minutes should the timeout be on the pulumi actions?
-    default: 5
+  install-pulumi:
+    type: boolean
+    default: true
+    required: false
+    description: Whether or not to install the Pulumi CLI
 
 
 
@@ -55,8 +56,12 @@ runs:
       shell: bash
 
     - name: Install Pulumi
+      if: ${{ inputs.install-pulumi }}
+      run: sh .devcontainer/install-pulumi-cli.sh ${{ github.workspace }}/${{ inputs.project-dir }}/uv.lock
+      shell: bash
+
+    - name: List Pulumi Info
       run: |
-        sh .devcontainer/install-pulumi-cli.sh ${{ github.workspace }}/${{ inputs.project-dir }}/uv.lock
         whereis pulumi
         pulumi version
         pulumi plugin ls
@@ -70,6 +75,5 @@ runs:
 
     - name: Run CLI
       working-directory: ${{ github.workspace }}/${{ inputs.project-dir }}
-      timeout-minutes: ${{ inputs.pulumi-timeout }}
       run: uv run python -m ${{ inputs.deploy-script-module-name }}.${{ inputs.deploy-script-name }} --stack=${{ inputs.stack-name }}
       shell: bash{% endraw %}

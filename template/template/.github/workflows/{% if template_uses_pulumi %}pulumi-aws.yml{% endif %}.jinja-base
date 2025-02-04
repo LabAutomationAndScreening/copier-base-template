@@ -7,19 +7,6 @@ on:
         required: false
         default: us-east-1
         type: string
-      INIT_TEST_STACK_USING_TARGET:
-        required: false
-        default: false
-        type: boolean
-      INIT_TEST_STACK_NAME:
-        required: false
-        default: main
-        type: string
-      SPECIFIED_BRANCH_NAME:
-        description: 'specify a branch name to run this workflow on that is different than the commit triggering it. this should be combined with setting the INIT_TEST_STACK_NAME to the same name and INIT_TEST_STACK_USING_TARGET to True...it is hacky for now but then that will result in just doing a single full run through on the branch specified here'
-        required: false
-        default: do-not-do-this
-        type: string
       PULUMI_PREVIEW:
         required: false
         default: false
@@ -27,6 +14,10 @@ on:
       PREVIEW_ROLE_NAME:
         required: false
         default: ''
+        type: string
+      PULUMI_PREVIEW_TIMEOUT_MINUTES:
+        required: false
+        default: 4
         type: string
       AWS_ACCOUNT_ID:
         required: true
@@ -90,6 +81,7 @@ jobs:
 
       - name: Preview
         uses: ./.github/actions/pulumi_ephemeral_deploy
+        timeout-minutes: ${{ inputs.PULUMI_PREVIEW_TIMEOUT_MINUTES }}
         if: ${{ inputs.PULUMI_PREVIEW }}
         with:
           project-dir: ""
