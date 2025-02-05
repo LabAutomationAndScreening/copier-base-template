@@ -5,6 +5,7 @@ ssh_port_number: 54321
 use_windows_in_ci: true
 {% endraw %}{% if template_uses_python %}{% raw %}
 aws_identity_center_id: d-9145c20053
+aws_org_home_region: us-east-1
 aws_production_account_id: 123456789012
 use_staging_environment: true
 aws_staging_account_id: 210987654321
