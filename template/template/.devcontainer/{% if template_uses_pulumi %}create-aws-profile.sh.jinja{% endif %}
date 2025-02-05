@@ -7,15 +7,15 @@ cat >> ~/.aws/config <<EOF
 sso_session = org
 sso_account_id = {% endraw %}{{ aws_development_account_id if use_staging_environment else aws_production_account_id }}{% raw %}
 sso_role_name = LowRiskAccountAdminAccess
-region = us-east-1
+region = {% endraw %}{{ aws_org_home_region }}{% raw %}
 
 [sso-session org]
 sso_start_url = https://{% endraw %}{{ aws_identity_center_id }}{% raw %}.awsapps.com/start
-sso_region = us-east-1
+sso_region = {% endraw %}{{ aws_org_home_region }}{% raw %}
 sso_registration_scopes = sso:account:access
 
 [profile localstack]
-region=us-east-1
+region={% endraw %}{{ aws_org_home_region }}{% raw %}
 output=json
 endpoint_url = http://localstack:4566
 EOF
