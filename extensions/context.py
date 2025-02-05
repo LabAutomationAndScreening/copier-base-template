@@ -44,4 +44,6 @@ class ContextUpdater(ContextHook):
         context["py313_version"] = "3.13.1"
         #######
         context["gha_windows_runner"] = "windows-2022"
+        # Kludge to allow for the same docker-compose file in child and grandchild templates
+        context["aws_region_for_stack"] = "us-east-1"
         return context
