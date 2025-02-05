@@ -13,3 +13,5 @@
 5. Run `uv lock` to generate the lock file
 6. Commit the changes (optional)
 7. Rebuild your new devcontainer
+
+If you are running into issues with the SSH port, confirm the randomly chosen port is not in the excluded ranges on your computer. On Windows you can run this in an elevated command prompt to check `netsh interface ipv4 show excludedportrange protocol=tcp`
