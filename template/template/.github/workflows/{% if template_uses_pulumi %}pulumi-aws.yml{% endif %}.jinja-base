@@ -85,7 +85,7 @@ jobs:
           aws-role-name: ${{ inputs.PULUMI_UP_ROLE_NAME }}
           deploy-script-name: ${{ inputs.DEPLOY_SCRIPT_NAME }}
           aws-region: ${{ inputs.AWS_REGION }}
-          aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}{% endraw %}
+          aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}
           cli-action: "--destroy"
 
       - name: Preview
@@ -111,7 +111,7 @@ jobs:
           aws-role-name: ${{ inputs.PULUMI_UP_ROLE_NAME }}
           deploy-script-name: ${{ inputs.DEPLOY_SCRIPT_NAME }}
           aws-region: ${{ inputs.AWS_REGION }}
-          aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}{% endraw %}
+          aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}
           cli-action: "--apply"
 
       - name: Pulumi Final Destroy
@@ -124,5 +124,5 @@ jobs:
           aws-role-name: ${{ inputs.PULUMI_UP_ROLE_NAME }}
           deploy-script-name: ${{ inputs.DEPLOY_SCRIPT_NAME }}
           aws-region: ${{ inputs.AWS_REGION }}
-          aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}{% endraw %}
-          cli-action: "--destroy"
+          aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}
+          cli-action: "--destroy"{% endraw %}
