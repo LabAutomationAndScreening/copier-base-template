@@ -24,12 +24,12 @@ class ContextUpdater(ContextHook):
         context["pytest_cov_version"] = "6.0.0"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.148.0"
+        context["pulumi_version"] = "3.149.0"
         context["pulumi_aws_version"] = "6.67.0"
         context["pulumi_aws_native_version"] = "1.25.0"
         context["pulumi_command_version"] = "1.0.1"
         context["boto3_version"] = "1.36.3"
-        context["ephemeral_pulumi_deploy_version"] = "0.0.1"
+        context["ephemeral_pulumi_deploy_version"] = "0.0.2"
         context["pydantic_version"] = "2.10.6"
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v4.2.2"
