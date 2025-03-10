@@ -9,6 +9,11 @@ inputs:
     default: true
     type: boolean
     description: Install the python packages with uv sync
+  project-dir:
+    type: string
+    description: What's the relative path to the project?
+    required: false
+    default: ./
 
 
 runs:
@@ -49,12 +54,14 @@ runs:
 
     - name: List Dependencies (Linux)
       if: ${{ inputs.uv-sync && runner.os == 'Linux' }}
+      working-directory: ${{ inputs.working-directory }}
       run: |
         uv pip list
       shell: bash
 
     - name: List Dependencies (Windows)
       if: ${{ inputs.uv-sync && runner.os == 'Windows' }}
+      working-directory: ${{ inputs.working-directory }}
       run: |
         & uv pip list
       shell: pwsh{% endraw %}

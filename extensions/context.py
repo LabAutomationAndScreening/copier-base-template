@@ -11,24 +11,27 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.sh script in this repository
-        context["uv_version"] = "0.5.21"
-        context["pre_commit_version"] = "4.0.1"
+        context["uv_version"] = "0.6.3"
+        context["pre_commit_version"] = "4.1.0"
         # These also in pyproject.toml
-        context["copier_version"] = "9.4.1"
+        context["copier_version"] = "9.5.0"
         context["copier_templates_extension_version"] = "0.3.0"
         #######
         # These are duplicated in the pyproject.toml of this repository
-        context["pyright_version"] = "1.1.391"
+        context["pyright_version"] = "1.1.396"
         context["pytest_version"] = "8.3.4"
         context["pytest_randomly_version"] = "3.16.0"
         context["pytest_cov_version"] = "6.0.0"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.147.0"
-        context["pulumi_aws_version"] = "6.66.3"
-        context["pulumi_aws_native_version"] = "1.24.0"
+        context["pulumi_version"] = "3.153.1"
+        context["pulumi_aws_version"] = "6.67.0"
+        context["pulumi_aws_native_version"] = "1.25.0"
         context["pulumi_command_version"] = "1.0.1"
         context["boto3_version"] = "1.36.3"
+        context["ephemeral_pulumi_deploy_version"] = "0.0.2"
+        context["pydantic_version"] = "2.10.6"
+        context["pyinstaller_version"] = "6.12.0"
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v4.2.2"
         context["gha_setup_python"] = "v5.3.0"
@@ -42,4 +45,6 @@ class ContextUpdater(ContextHook):
         context["py313_version"] = "3.13.1"
         #######
         context["gha_windows_runner"] = "windows-2022"
+        # Kludge to allow for the same docker-compose file in child and grandchild templates
+        context["aws_region_for_stack"] = "us-east-1"
         return context

@@ -14,12 +14,20 @@ if [ ! -f "$UV_LOCK_FILE" ]; then
   exit 1
 fi
 
-MATCH=$(grep -o 'pulumi-(\d+\.\d+\.\d+)-py3' "$UV_LOCK_FILE" | awk -F '-' '{print $2}' | xargs)
-# Check if there is exactly one match
-if [ "$(echo "$MATCH" | wc -l)" -ne 1 ]; then
-  echo "Error: Expected exactly one match, found $(echo "$MATCH" | wc -l)"
+# Extract matches into a list (preserving line breaks)
+MATCHES=$(grep -oE 'pulumi-([0-9]+\.[0-9]+\.[0-9]+)-py3' "$UV_LOCK_FILE" | awk -F '-' '{print $2}')
+
+# Count the number of matches accurately
+MATCH_COUNT=$(printf '%s\n' "$MATCHES" | grep -c .)
+
+# Check for exactly one match
+if [ "$MATCH_COUNT" -ne 1 ]; then
+  echo "Error: Expected exactly one match, found $MATCH_COUNT"
   exit 1
 fi
+
+# Assign the single match safely
+MATCH=$(printf '%s\n' "$MATCHES")
 
 # Check the current Pulumi version
 if ~/.pulumi/bin/pulumi version > /dev/null 2>&1; then
