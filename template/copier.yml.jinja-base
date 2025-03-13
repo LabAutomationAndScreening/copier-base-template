@@ -42,7 +42,7 @@ python_ci_versions:
       - "{{ py312_version }}"
       - "{{ py313_version }}"{% endif %}{% raw %}
 
-{% endraw %}{% if template_uses_pulumi or (template_uses_python and python_package_registry == "AWS CodeArtifact") %}{% raw %}
+{% endraw %}{% if template_uses_python %}{% raw %}
 aws_identity_center_id:
     type: str
     help: What's the ID of your Organization's AWS Identity center, e.g. d-9145c20053?
@@ -51,12 +51,11 @@ aws_org_home_region:
     type: str
     help: What is the home region of the AWS Organization (where all of the central infrastructure is deployed)?
     default: us-east-1
-{% endraw %}{% endif %}{% raw %}
 
-{% endraw %}{% if template_uses_python and python_package_registry == "AWS CodeArtifact" %}{% raw %}
 aws_central_infrastructure_account_id:
     type: str
     help: What's the ID of your Organization's AWS Account containing Central Infrastructure (e.g. CodeArtifact)?
+    when: "{{ python_package_registry == 'AWS CodeArtifact' }}"
 
 {% endraw %}{% endif %}{% raw %}
 
