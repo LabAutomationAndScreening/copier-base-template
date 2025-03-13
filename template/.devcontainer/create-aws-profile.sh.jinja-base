@@ -19,7 +19,7 @@ region = {% endraw %}{{ aws_org_home_region }}{% raw %}{% endraw %}{% endif %}{%
 {% endraw %}{% if aws_identity_center_id is defined and aws_identity_center_id != "" %}{% raw %}[sso-session org]
 sso_start_url = https://{% endraw %}{{ aws_identity_center_id }}{% raw %}.awsapps.com/start
 sso_region = {% endraw %}{{ aws_org_home_region }}{% raw %}
-sso_registration_scopes = sso:account:access{% raw %}{% endraw %}{% endif %}{% raw %}
+sso_registration_scopes = sso:account:access{% endraw %}{% endif %}{% raw %}
 
 [profile localstack]
 region={% endraw %}{{ aws_org_home_region if (aws_org_home_region is defined and aws_org_home_region != "") else "us-east-1" }}{% raw %}
