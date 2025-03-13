@@ -1,5 +1,5 @@
 {% if python_package_registry is defined and python_package_registry == "AWS CodeArtifact" %}{% raw %}#!/usr/bin/env bash
-set -e
+set -ex
 
 # If none of these are set we can't possibly continue and should fail so you can fix it
 if [ -z "$AWS_PROFILE" ] && [ -z "$AWS_ACCESS_KEY_ID" ] && [ -z "$CODEARTIFACT_AUTH_TOKEN" ]; then
@@ -29,19 +29,23 @@ else
             echo "Using existing AWS credentials: $caller_identity"
         fi
 
+        set +x
         export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token \
             --domain {% endraw %}{{ repo_org_name }}{% raw %} \
             --domain-owner {% endraw %}{{ aws_central_infrastructure_account_id }}{% raw %} \
             --region {% endraw %}{{ aws_org_home_region }}{% raw %} \
             --query authorizationToken \
             --output text $PROFILE_ARGS)
+        set -x
     fi
 
     export UV_INDEX_CODE_ARTIFACT_PRIMARY_USERNAME=aws
-    echo "::add-mask::$UV_INDEX_CODE_ARTIFACT_PRIMARY_PASSWORD" # ensure this doesn't show up in the CI logs
+    set +x
     export UV_INDEX_CODE_ARTIFACT_PRIMARY_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
+    set -x
     export UV_INDEX_CODE_ARTIFACT_STAGING_USERNAME=aws
-    echo "::add-mask::$UV_INDEX_CODE_ARTIFACT_STAGING_PASSWORD" # ensure this doesn't show up in the CI logs
+    set +x
     export UV_INDEX_CODE_ARTIFACT_STAGING_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
+    set -x
 
 fi{% endraw %}{% else %}{% raw %}# Placeholder file not being used by these copier template answers{% endraw %}{% endif %}
