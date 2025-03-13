@@ -26,6 +26,14 @@ python_version:
     help: What version of Python is used for development?
     default: "{{ python_version }}"
 
+python_package_registry:
+    type: str
+    help: What registry should Python Packgaes be installed from?
+    choices:
+        - PyPI
+        - AWS CodeArtifact
+    default: PyPI
+
 python_ci_versions:
     type: str
     help: What versions should Python run CI on the instantiated template?
