@@ -9,9 +9,32 @@ else
     # Only regenerate the token if it doesn't exist or wasn't already set as an environmental variable (e.g. during CI or passed into a docker image build)
     if [ -z "$CODEARTIFACT_AUTH_TOKEN" ]; then
         echo "Fetching CodeArtifact token"
-        # TODO: only re-login if the sso credentials have expired
-        aws sso login --profile={% endraw %}{{ core_infra_base_access_profile_name }}{% raw %}
-        export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain {% endraw %}{{ repo_org_name }}{% raw %} --domain-owner {% endraw %}{{ aws_central_infrastructure_account_id }}{% raw %} --region {% endraw %}{{ aws_org_home_region }}{% raw %} --query authorizationToken --output text --profile {% endraw %}{{ core_infra_base_access_profile_name }}{% raw %})
+        if [ -z "$CI" ]; then
+            PROFILE_ARGS="--profile={% endraw %}{{ core_infra_base_access_profile_name }}{% raw %}"
+        else
+            PROFILE_ARGS=""
+        fi
+
+        # Check if AWS credentials are valid by trying to retrieve the caller identity.
+        # If the ARN is not returned, assume credentials are expired or not set correctly.
+        caller_identity=$(aws sts get-caller-identity --region={% endraw %}{{ aws_org_home_region }}{% raw %} $PROFILE_ARGS --query Arn --output text 2>/dev/null || echo "")
+        if [ -z "$caller_identity" ]; then
+            if [ -n "$CI" ]; then
+                echo "Error: In CI environment, aws sso login should never be called...something is wrong with this script or your workflow...perhaps you did not OIDC Auth yet in CI?"
+                exit 1
+            fi
+            echo "SSO credentials not found or expired, logging in..."
+            aws sso login $PROFILE_ARGS
+        else
+            echo "Using existing AWS credentials: $caller_identity"
+        fi
+
+        export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token \
+            --domain {% endraw %}{{ repo_org_name }}{% raw %} \
+            --domain-owner {% endraw %}{{ aws_central_infrastructure_account_id }}{% raw %} \
+            --region {% endraw %}{{ aws_org_home_region }}{% raw %} \
+            --query authorizationToken \
+            --output text $PROFILE_ARGS)
     fi
 
     export UV_INDEX_CODE_ARTIFACT_PRIMARY_USERNAME=aws
