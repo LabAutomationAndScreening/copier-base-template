@@ -7,8 +7,6 @@ git config --global --add safe.directory /workspaces/{% endraw %}{{ repo_name }}
 
 sh .devcontainer/on-create-command-boilerplate.sh
 
-pre-commit install --install-hooks
+pre-commit install --install-hooks{% endraw %}{% if python_package_registry is not defined or python_package_registry == "PyPI" %}
 
-{% endraw %}{% if python_package_registry is not defined or python_package_registry == "PyPI" %}{% raw %}sh .devcontainer/manual-setup-deps.sh{% endraw %}{% endif %}{% raw %}
-
-{% endraw %}
+{% raw %}sh .devcontainer/manual-setup-deps.sh{% endraw %}{% endif %}
