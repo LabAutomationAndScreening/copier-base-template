@@ -14,7 +14,7 @@ description:
 python_version:
     type: str
     help: What version of Python?
-    default: "3.13.1"
+    default: "3.13.2"
 
 python_ci_versions:
     type: str
@@ -22,7 +22,7 @@ python_ci_versions:
     multiselect: true
     choices:
       - "3.12.7"
-      - "3.13.1"
+      - "3.13.2"
 
 ssh_port_number:
     type: int
