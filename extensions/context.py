@@ -39,11 +39,11 @@ class ContextUpdater(ContextHook):
         context["gha_cache"] = "v4.2.0"
         context["gha_upload_artifact"] = "v4.4.3"
         context["gha_configure_aws_credentials"] = "v4.0.2"
-        context["gha_mutex"] = "d3d5b354d460d4b6a1e3ee5b7951678658327812 # v1.0.0-alpha.9"
+        context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
         context["gha_linux_runner"] = "ubuntu-24.04"
         # These also in the tests/data.yml files in this repository and in copier.yaml
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
-        context["py313_version"] = "3.13.1"
+        context["py313_version"] = "3.13.2"
         #######
         context["gha_windows_runner"] = "windows-2022"
         # Kludge to allow for the same docker-compose file in child and grandchild templates
