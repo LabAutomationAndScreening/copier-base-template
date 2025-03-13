@@ -29,7 +29,7 @@ class ContextUpdater(ContextHook):
         context["pulumi_aws_native_version"] = "1.25.0"
         context["pulumi_command_version"] = "1.0.1"
         context["pulumi_github"] = "6.7.0"
-        context["boto3_version"] = "1.36.3"
+        context["boto3_version"] = "1.37.11"
         context["ephemeral_pulumi_deploy_version"] = "0.0.2"
         context["pydantic_version"] = "2.10.6"
         context["pyinstaller_version"] = "6.12.0"
