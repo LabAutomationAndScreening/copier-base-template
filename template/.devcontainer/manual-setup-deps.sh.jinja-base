@@ -42,7 +42,6 @@ if [ "$optionally_lock" = "true" ]; then
 fi
 
 {% endraw %}{% if python_package_registry is defined and python_package_registry == "AWS CodeArtifact" %}{% raw %}
-aws sso login --profile={% endraw %}{{ core_infra_base_access_profile_name }}{% raw %}
 . "$SCRIPT_DIR/code-artifact-auth.sh"{% endraw %}{% endif %}{% raw %}
 
 # Ensure that the lock file is in a good state

@@ -104,6 +104,8 @@ jobs:
 
 
       - name: install new dependencies
+        env:
+          CODEARTIFACT_AUTH_TOKEN=faketoken
         run: |
           sh .devcontainer/manual-setup-deps.sh ${{ matrix.python-version }} --skip-lock
           # Add everything to git so that pre-commit recognizes the files and runs on them
