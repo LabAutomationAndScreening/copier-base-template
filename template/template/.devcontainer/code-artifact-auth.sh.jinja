@@ -1,0 +1,20 @@
+{% if python_package_registry is defined and python_package_registry == "AWS CodeArtifact" %}{% raw %}#!/usr/bin/env bash
+set -e
+
+# If none of these are set we can't possibly continue and should fail so you can fix it
+if [ -z "$AWS_PROFILE" ] && [ -z "$AWS_ACCESS_KEY_ID" ] && [ -z "$CODEARTIFACT_AUTH_TOKEN" ]; then
+    echo "No AWS profile, access key, or auth token found, cannot proceed."
+    exit 1
+else
+    # Only regenerate the token if it doesn't exist or wasn't already set as an environmental variable (e.g. during CI or passed into a docker image build)
+    if [ -z "$CODEARTIFACT_AUTH_TOKEN" ]; then
+        echo "Fetching CodeArtifact token"
+        export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain {% endraw %}{{ repo_org_name }}{% raw %} --domain-owner {% endraw %}{{ aws_central_infrastructure_account_id }}{% raw %} --region {% endraw %}{{ aws_org_home_region }}{% raw %} --query authorizationToken --output text --profile {% endraw %}{{ core_infra_base_access_profile_name }}{% raw %})
+    fi
+
+    export UV_INDEX_CODE_ARTIFACT_PRIMARY_USERNAME=aws
+    export UV_INDEX_CODE_ARTIFACT_PRIMARY_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
+    export UV_INDEX_CODE_ARTIFACT_STAGING_USERNAME=aws
+    export UV_INDEX_CODE_ARTIFACT_STAGING_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
+
+fi{% endraw %}{% endif %}
