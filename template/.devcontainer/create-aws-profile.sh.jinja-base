@@ -10,7 +10,7 @@ else
 fi
 
 cat >> ~/.aws/config <<EOF
-{% endraw %}{% if aws_production_account_id is defined %}{% raw %}[profile development]
+{% endraw %}{% if aws_production_account_id is defined and aws_production_account_id != "" %}{% raw %}[profile development]
 sso_session = org
 sso_account_id = {% endraw %}{{ aws_development_account_id if use_staging_environment else aws_production_account_id }}{% raw %}
 sso_role_name = LowRiskAccountAdminAccess
@@ -22,7 +22,7 @@ sso_region = {% endraw %}{{ aws_org_home_region }}{% raw %}
 sso_registration_scopes = sso:account:access
 
 [profile localstack]
-region={% endraw %}{{ aws_org_home_region if aws_org_home_region is defined else "us-east-1" }}{% raw %}
+region={% endraw %}{{ aws_org_home_region if (aws_org_home_region is defined and aws_org_home_region != "") else "us-east-1" }}{% raw %}
 output=json
 endpoint_url = $LOCALSTACK_ENDPOINT_URL
 
