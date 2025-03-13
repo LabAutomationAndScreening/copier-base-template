@@ -38,8 +38,10 @@ else
     fi
 
     export UV_INDEX_CODE_ARTIFACT_PRIMARY_USERNAME=aws
+    echo "::add-mask::$UV_INDEX_CODE_ARTIFACT_PRIMARY_PASSWORD" # ensure this doesn't show up in the CI logs
     export UV_INDEX_CODE_ARTIFACT_PRIMARY_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
     export UV_INDEX_CODE_ARTIFACT_STAGING_USERNAME=aws
+    echo "::add-mask::$UV_INDEX_CODE_ARTIFACT_STAGING_PASSWORD" # ensure this doesn't show up in the CI logs
     export UV_INDEX_CODE_ARTIFACT_STAGING_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
 
 fi{% endraw %}{% else %}{% raw %}# Placeholder file not being used by these copier template answers{% endraw %}{% endif %}
