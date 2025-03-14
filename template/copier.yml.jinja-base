@@ -26,6 +26,14 @@ python_version:
     help: What version of Python is used for development?
     default: "{{ python_version }}"
 
+python_package_registry:
+    type: str
+    help: What registry should Python Packgaes be installed from?
+    choices:
+        - PyPI
+        - AWS CodeArtifact
+    default: PyPI
+
 python_ci_versions:
     type: str
     help: What versions should Python run CI on the instantiated template?
@@ -34,16 +42,32 @@ python_ci_versions:
       - "{{ py312_version }}"
       - "{{ py313_version }}"{% endif %}{% raw %}
 
-{% endraw %}{% if template_uses_pulumi %}{% raw %}
+{% endraw %}{% if template_uses_python %}{% raw %}
 aws_identity_center_id:
     type: str
     help: What's the ID of your Organization's AWS Identity center, e.g. d-9145c20053?
+    when: "{{ python_package_registry == 'AWS CodeArtifact' {% endraw %}{% if template_uses_pulumi %}{% raw %}or True {% endraw %}{% endif %}{% raw %}}}"
 
 aws_org_home_region:
     type: str
     help: What is the home region of the AWS Organization (where all of the central infrastructure is deployed)?
     default: us-east-1
+    when: "{{ python_package_registry == 'AWS CodeArtifact' {% endraw %}{% if template_uses_pulumi %}{% raw %}or True {% endraw %}{% endif %}{% raw %}}}"
 
+aws_central_infrastructure_account_id:
+    type: str
+    help: What's the ID of your Organization's AWS Account containing Central Infrastructure (e.g. CodeArtifact)?
+    when: "{{ python_package_registry == 'AWS CodeArtifact' }}"
+
+core_infra_base_access_profile_name:
+    type: str
+    help: What's the AWS Identity Center Profile name for base access to the Central Infrastructure account (i.e. to read from CodeArtifact)?
+    when: "{{ python_package_registry == 'AWS CodeArtifact' }}"
+    default: CoreInfraBaseAccess
+
+{% endraw %}{% endif %}{% raw %}
+
+{% endraw %}{% if template_uses_pulumi %}{% raw %}
 aws_production_account_id:
     type: str
     help: What's the AWS Account ID for the Production environment?

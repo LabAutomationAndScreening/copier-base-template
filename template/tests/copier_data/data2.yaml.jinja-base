@@ -5,6 +5,9 @@ description: Doing crazy things! So many things!
 ssh_port_number: 54321
 use_windows_in_ci: true
 {% endraw %}{% if template_uses_python %}{% raw %}
+python_package_registry: AWS CodeArtifact
+aws_central_infrastructure_account_id: 012321432543
+core_infra_base_access_profile_name: MyAccessRole
 aws_identity_center_id: d-9145c20053
 aws_org_home_region: us-east-1
 aws_production_account_id: 123456789012
