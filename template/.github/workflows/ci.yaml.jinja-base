@@ -75,7 +75,7 @@ jobs:
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
 
       - name: Move python script that replaces private package registry information to temp folder so it doesn't get deleted
-        run |
+        run: |
           mv .github/workflows/replace_private_package_registries.py $RUNNER_TEMP
 
       - name: Install python tooling
