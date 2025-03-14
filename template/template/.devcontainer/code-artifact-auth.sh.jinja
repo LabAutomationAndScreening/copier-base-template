@@ -38,12 +38,12 @@ else
             --output text $PROFILE_ARGS)
         set -x
     fi
-
+    # uv sometimes uses has better luck when setting the twine env vars
+    export TWINE_USERNAME=aws
     set +x
     export UV_INDEX_CODE_ARTIFACT_PRIMARY_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
-    export UV_INDEX_CODE_ARTIFACT_PRIMARY_PUBLISH_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
+    export TWINE_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
     export UV_INDEX_CODE_ARTIFACT_STAGING_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
-    export UV_INDEX_CODE_ARTIFACT_STAGING_PUBLISH_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
     set -x
 
 fi{% endraw %}{% else %}{% raw %}# Placeholder file not being used by these copier template answers{% endraw %}{% endif %}
