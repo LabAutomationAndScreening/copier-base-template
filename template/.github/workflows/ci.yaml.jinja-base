@@ -109,8 +109,8 @@ jobs:
 
       - name: install new dependencies
         env:
+          # Provide a fake token so it doesn't attempt to access AWS to generate a new one when the script is run if CodeArtifact is set as the registry
           CODEARTIFACT_AUTH_TOKEN: 'faketoken'
-          UV_NO_CACHE: 'true'
         run: |
           # Remove any specification of a Python repository having a default other than PyPI...because in this CI pipeline we can only install from PyPI
           python $RUNNER_TEMP/replace_private_package_registries.py
