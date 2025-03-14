@@ -28,6 +28,7 @@ class ContextUpdater(ContextHook):
         context["ephemeral_pulumi_deploy_version"] = "{{ ephemeral_pulumi_deploy_version }}"
         context["pydantic_version"] = "{{ pydantic_version }}"
         context["pyinstaller_version"] = "{{ pyinstaller_version }}"
+        context["setuptools_version"] = "{{ setuptools_version }}"
 
         context["gha_checkout"] = "{{ gha_checkout }}"
         context["gha_setup_python"] = "{{ gha_setup_python }}"
