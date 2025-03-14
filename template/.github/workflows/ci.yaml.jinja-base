@@ -110,7 +110,6 @@ jobs:
         run: |
           # Remove any specification of a Python repository having a default other than PyPI...because in this CI pipeline we can only install from PyPI
           find . -maxdepth 3 -type f -name "pyproject.toml" -exec sed -i '/^\[\[tool\.uv\.index\]\]/, /^\[\[/{s/^\(default = true\)$/\1\nname = "pypi"\nurl = "https:\/\/pypi.org\/simple\/"\n[[tool.uv.index]]/}' {} +
-          ls uv.* -a
           cat pyproject.toml
           sh .devcontainer/manual-setup-deps.sh ${{ matrix.python-version }} --skip-lock
           # Add everything to git so that pre-commit recognizes the files and runs on them
