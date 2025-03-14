@@ -6,7 +6,7 @@ if [ -z "$AWS_PROFILE" ] && [ -z "$AWS_ACCESS_KEY_ID" ] && [ -z "$CODEARTIFACT_A
     echo "No AWS profile, access key, or auth token found, cannot proceed."
     exit 1
 else
-    # Only regenerate the token if it doesn't exist or wasn't already set as an environmental variable (e.g. during CI or passed into a docker image build)
+    # Only regenerate the token if it wasn't already set as an environmental variable (e.g. during CI or passed into a docker image build)
     if [ -z "$CODEARTIFACT_AUTH_TOKEN" ]; then
         echo "Fetching CodeArtifact token"
         if [ -z "$CI" ]; then
@@ -30,7 +30,7 @@ else
         fi
 
         set +x
-        export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token \
+        CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token \
             --domain {% endraw %}{{ repo_org_name }}{% raw %} \
             --domain-owner {% endraw %}{{ aws_central_infrastructure_account_id }}{% raw %} \
             --region {% endraw %}{{ aws_org_home_region }}{% raw %} \
