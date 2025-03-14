@@ -106,6 +106,7 @@ jobs:
       - name: install new dependencies
         env:
           CODEARTIFACT_AUTH_TOKEN: 'faketoken'
+          UV_NO_CACHE: 'true'
         run: |
           # Remove any specification of a Python repository having a default other than PyPI...because in this CI pipeline we can only install from PyPI
           find . -maxdepth 3 -type f -name "pyproject.toml" -exec sed -i '/^\[\[tool\.uv\.index\]\]/, /^\[\[/{s/^\(default = true\)$/\1\nname = "pypi"\nurl = "https:\/\/pypi.org\/simple\/"\n[[tool.uv.index]]/}' {} +
