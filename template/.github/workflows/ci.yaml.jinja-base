@@ -57,7 +57,6 @@ jobs:
   lint-matrix:
     needs: [ pre-commit ]
     strategy:
-      fail-fast: false
       matrix:
         os:
           - "{% endraw %}{{ gha_linux_runner }}{% raw %}"
@@ -74,6 +73,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+
+      - name: Move python script that replaces private package registry information to temp folder so it doesn't get deleted
+        run |
+          mv .github/workflows/replace_private_package_registries.py $RUNNER_TEMP
 
       - name: Install python tooling
         uses: ./.github/actions/install_deps_uv
@@ -110,8 +113,7 @@ jobs:
           UV_NO_CACHE: 'true'
         run: |
           # Remove any specification of a Python repository having a default other than PyPI...because in this CI pipeline we can only install from PyPI
-          python .github/workflows/replace_private_package_registries.py
-          cat pyproject.toml
+          python $RUNNER_TEMP/replace_private_package_registries.py
           sh .devcontainer/manual-setup-deps.sh ${{ matrix.python-version }} --skip-lock
           # Add everything to git so that pre-commit recognizes the files and runs on them
           git add .
