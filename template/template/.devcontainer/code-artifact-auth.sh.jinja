@@ -39,12 +39,8 @@ else
         set -x
     fi
 
-    export UV_INDEX_CODE_ARTIFACT_PRIMARY_USERNAME=aws
     set +x
     export UV_INDEX_CODE_ARTIFACT_PRIMARY_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
-    set -x
-    export UV_INDEX_CODE_ARTIFACT_STAGING_USERNAME=aws
-    set +x
     export UV_INDEX_CODE_ARTIFACT_STAGING_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
     set -x
 
