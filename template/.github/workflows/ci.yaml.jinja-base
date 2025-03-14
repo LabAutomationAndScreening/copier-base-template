@@ -57,6 +57,7 @@ jobs:
   lint-matrix:
     needs: [ pre-commit ]
     strategy:
+      fail-fast: false
       matrix:
         os:
           - "{% endraw %}{{ gha_linux_runner }}{% raw %}"
