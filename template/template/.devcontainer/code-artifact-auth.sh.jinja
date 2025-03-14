@@ -41,7 +41,9 @@ else
 
     set +x
     export UV_INDEX_CODE_ARTIFACT_PRIMARY_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
+    export UV_INDEX_CODE_ARTIFACT_PRIMARY_PUBLISH_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
     export UV_INDEX_CODE_ARTIFACT_STAGING_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
+    export UV_INDEX_CODE_ARTIFACT_STAGING_PUBLISH_PASSWORD="$CODEARTIFACT_AUTH_TOKEN"
     set -x
 
 fi{% endraw %}{% else %}{% raw %}# Placeholder file not being used by these copier template answers{% endraw %}{% endif %}
