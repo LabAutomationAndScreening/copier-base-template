@@ -37,7 +37,7 @@
         "ms-vscode-remote.remote-containers@0.383.0",
         "charliermarsh.ruff@2024.54.0",
 
-{% endraw %}{% if template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}
+{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}
         // VueJS
         "vue.volar@2.2.0",
 {% endraw %}{% endif %}{% raw %}
