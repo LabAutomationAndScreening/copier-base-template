@@ -44,6 +44,12 @@ template_uses_javascript:
     help: Is this a template that will use Javascript within it?
     default: no
 
+template_uses_vuejs:
+    type: bool
+    help: Is this a template that will use VueJS within it?
+    default: no
+    when: "{{ template_uses_javascript }}"
+
 node_version:
     type: str
     help: What version of NodeJS is used for development?

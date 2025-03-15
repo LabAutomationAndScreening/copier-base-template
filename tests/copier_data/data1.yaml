@@ -7,5 +7,6 @@ template_uses_python: true
 template_uses_pulumi: true
 repo_org_name: theGreatestOrg
 template_uses_javascript: false
+template_uses_vuejs: false
 node_version: 22.13.0
 pnpm_version: 9.15.4
