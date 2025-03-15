@@ -49,4 +49,6 @@ class ContextUpdater(ContextHook):
         context["gha_windows_runner"] = "windows-2022"
         # Kludge to allow for the same docker-compose file in child and grandchild templates
         context["aws_region_for_stack"] = "us-east-1"
+        # Kludge to be able to stop symlinked jinja files from being updated in child templates when the variable is really meant for the instantiated grandchild template
+        context["is_child_of_copier_base_template"] = True
         return context

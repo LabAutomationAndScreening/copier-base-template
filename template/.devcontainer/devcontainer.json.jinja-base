@@ -13,7 +13,7 @@
       "installTools": false,
       "optimize": true
     },
-{% endraw %}{% if template_uses_javascript is defined and template_uses_javascript is sameas(true) %}{% raw %}
+{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_javascript is defined and template_uses_javascript is sameas(true) %}{% raw %}
     "ghcr.io/devcontainers/features/node:1.6.1": {
       // https://github.com/devcontainers/features/tree/main/src/node
       "version": "{% endraw %}{{ node_version }}{% raw %}",
