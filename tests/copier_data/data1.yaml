@@ -6,3 +6,4 @@ python_ci_versions:
 template_uses_python: true
 template_uses_pulumi: true
 repo_org_name: theGreatestOrg
+template_uses_javascript: false
