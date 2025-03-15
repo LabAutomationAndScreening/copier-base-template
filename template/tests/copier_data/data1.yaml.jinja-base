@@ -4,6 +4,10 @@ repo_org_name: great-company
 description: Doing amazing things
 ssh_port_number: 12345
 use_windows_in_ci: false
+{% endraw %}{% if template_uses_javascript %}{% raw %}
+node_version: 22.13.0
+pnpm_version: 9.15.4
+{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_python %}{% raw %}
 python_package_registry: PyPI
 aws_identity_center_id: d-9145c20053

@@ -50,18 +50,6 @@ template_uses_vuejs:
     default: no
     when: "{{ template_uses_javascript }}"
 
-node_version:
-    type: str
-    help: What version of NodeJS is used for development?
-    default: 22.14.0
-    when: "{{ template_uses_javascript }}"
-
-pnpm_version:
-    type: str
-    help: What version of pnpm is used for development?
-    default: 10.6.3
-    when: "{{ template_uses_javascript }}"
-
 
 _min_copier_version: "9.4"
 

@@ -4,6 +4,10 @@ repo_org_name: initech
 description: Doing crazy things! So many things!
 ssh_port_number: 54321
 use_windows_in_ci: true
+{% endraw %}{% if template_uses_javascript %}{% raw %}
+node_version: 22.14.0
+pnpm_version: 10.6.3
+{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_python %}{% raw %}
 python_package_registry: AWS CodeArtifact
 aws_central_infrastructure_account_id: 012321432543

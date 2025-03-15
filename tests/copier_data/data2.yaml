@@ -9,5 +9,3 @@ template_uses_pulumi: false
 repo_org_name: Initech
 template_uses_javascript: true
 template_uses_vuejs: true
-node_version: 22.14.0
-pnpm_version: 10.6.3
