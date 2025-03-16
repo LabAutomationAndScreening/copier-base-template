@@ -42,4 +42,8 @@ class ContextUpdater(ContextHook):
         context["py311_version"] = "{{ py311_version }}"
         context["py312_version"] = "{{ py312_version }}"
         context["py313_version"] = "{{ py313_version }}"
+
+        # Kludge to be able to help symlinked jinja files in the child and grandchild templates
+        context["template_uses_vuejs"] = {{ "True" if template_uses_vuejs else "False" }}
+        context["template_uses_javascript"] = {{ "True" if template_uses_javascript else "False" }}
         return context

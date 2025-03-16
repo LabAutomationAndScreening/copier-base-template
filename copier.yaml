@@ -39,6 +39,17 @@ template_uses_pulumi:
     help: Is this a template that will use Python Pulumi within it?
     default: no
 
+template_uses_javascript:
+    type: bool
+    help: Is this a template that will use Javascript within it?
+    default: no
+
+template_uses_vuejs:
+    type: bool
+    help: Is this a template that will use VueJS within it?
+    default: no
+    when: "{{ template_uses_javascript }}"
+
 
 _min_copier_version: "9.4"
 
