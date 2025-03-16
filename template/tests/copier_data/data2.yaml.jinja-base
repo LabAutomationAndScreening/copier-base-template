@@ -6,8 +6,7 @@ ssh_port_number: 54321
 use_windows_in_ci: true
 {% endraw %}{% if template_uses_javascript %}{% raw %}
 node_version: 22.14.0
-pnpm_version: 10.6.3
-{% endraw %}{% endif %}{% raw %}
+pnpm_version: 10.6.3{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_python %}{% raw %}
 python_package_registry: AWS CodeArtifact
 aws_central_infrastructure_account_id: 012321432543
@@ -20,7 +19,4 @@ aws_staging_account_id: 210987654321
 aws_test_account_id: 211735654321
 aws_development_account_id: 000321456870
 aws_region_for_stack: us-west-1
-{% endraw %}{% endif %}{% raw %}
-
-
-# Data added based on the specifics of this template{% endraw %}
+{% endraw %}{% endif %}{% raw %}# Data added based on the specifics of this template{% endraw %}
