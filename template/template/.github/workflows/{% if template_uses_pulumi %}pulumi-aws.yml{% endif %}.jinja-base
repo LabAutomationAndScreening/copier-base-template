@@ -23,7 +23,7 @@ on:
         required: false
         default: false
         type: boolean
-      PREVIEW_REFRESH_ROLE_NAME:
+      REFRESH_ROLE_NAME:
         required: false
         default: ''
         type: string
