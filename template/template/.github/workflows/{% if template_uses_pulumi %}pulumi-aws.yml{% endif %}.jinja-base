@@ -135,7 +135,6 @@ jobs:
           aws-region: ${{ inputs.AWS_REGION }}
           aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}
           cli-action: "--refresh"
-        timeout-minutes: 5 # apparently timeout-minutes only accepts literal values, it cannot evaluate expressions (e.g. workflow inputs)
 
       - name: Pulumi Up
         uses: ./.github/actions/pulumi_ephemeral_deploy
