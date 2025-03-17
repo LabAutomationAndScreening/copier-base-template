@@ -30,7 +30,7 @@ class ContextUpdater(ContextHook):
         context["pulumi_command_version"] = "1.0.2"
         context["pulumi_github"] = "6.7.0"
         context["boto3_version"] = "1.37.11"
-        context["ephemeral_pulumi_deploy_version"] = "0.0.3"
+        context["ephemeral_pulumi_deploy_version"] = "0.0.4"
         context["pydantic_version"] = "2.10.6"
         context["pyinstaller_version"] = "6.12.0"
         context["setuptools_version"] = "76.0.0"
@@ -39,7 +39,7 @@ class ContextUpdater(ContextHook):
         context["gha_setup_python"] = "v5.4.0"
         context["gha_cache"] = "v4.2.2"
         #######
-        context["gha_upload_artifact"] = "v4.4.3"
+        context["gha_upload_artifact"] = "v4.6.1"
         context["gha_configure_aws_credentials"] = "v4.1.0"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
         context["gha_linux_runner"] = "ubuntu-24.04"
