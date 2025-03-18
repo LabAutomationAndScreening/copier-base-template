@@ -17,6 +17,7 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "9.5.0"
         context["copier_templates_extension_version"] = "0.3.0"
         #######
+        context["pnpm_version"] = "10.6.3"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = "1.1.396"
         context["pytest_version"] = "8.3.4"
@@ -41,6 +42,7 @@ class ContextUpdater(ContextHook):
         #######
         context["gha_upload_artifact"] = "v4.6.1"
         context["gha_configure_aws_credentials"] = "v4.1.0"
+        context["gha_setup_node"] = "v4.2.2"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
         context["gha_linux_runner"] = "ubuntu-24.04"
         # These also in the tests/data.yml files in this repository and in copier.yaml

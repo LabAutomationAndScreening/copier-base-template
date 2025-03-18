@@ -22,12 +22,19 @@ jobs:
         os:
           - "{% endraw %}{{ gha_linux_runner }}{% raw %}"
         python-version:
-            - {% endraw %}{{ python_version }}{% raw %}
+            - {% endraw %}{{ python_version }}{% raw %}{% endraw %}{% if template_uses_javascript %}{% raw %}
+        node-version:
+            - 22.14.0{% endraw %}{% endif %}{% raw %}
     name: Pre-commit for Py${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+
+{% endraw %}{% if template_uses_javascript %}{% raw %}      - name: Setup node
+        uses: actions/setup-node@{% endraw %}{{ gha_setup_node }}{% raw %}
+        with:
+          node-version: ${{ matrix.node-version }}{% endraw %}{% endif %}{% raw %}
 
       - name: Install latest versions of python packages
         uses: ./.github/actions/install_deps_uv
