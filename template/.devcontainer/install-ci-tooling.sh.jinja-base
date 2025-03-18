@@ -4,7 +4,7 @@ set -ex
 
 {% endraw %}{% if template_uses_javascript is defined and template_uses_javascript is sameas(true) %}{% raw %}
 npm -v
-npm install -g pnpm@{% endraw %}{{ pnpm_version }}
+npm install -g pnpm@{% endraw %}{{ pnpm_version }}{% raw %}
 pnpm -v{% endraw %}{% endif %}{% raw %}
 
 curl -LsSf https://astral.sh/uv/{% endraw %}{{ uv_version }}{% raw %}/install.sh | sh
