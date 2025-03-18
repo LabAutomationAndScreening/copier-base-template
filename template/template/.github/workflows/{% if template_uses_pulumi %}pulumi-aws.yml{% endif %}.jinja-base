@@ -3,6 +3,10 @@
 on:
   workflow_call:
     inputs:
+      CHECKOUT_REF:
+        required: false
+        default: ''
+        type: string
       AWS_REGION:
         required: false
         default: us-east-1
@@ -12,6 +16,14 @@ on:
         default: false
         type: boolean
       PREVIEW_ROLE_NAME:
+        required: false
+        default: ''
+        type: string
+      PULUMI_REFRESH:
+        required: false
+        default: false
+        type: boolean
+      REFRESH_ROLE_NAME:
         required: false
         default: ''
         type: string
@@ -41,6 +53,14 @@ on:
         required: false
         default: false
         type: boolean
+      SKIP_INITIAL_PULUMI_DESTROY:
+        required: false
+        default: false
+        type: boolean
+      SKIP_FINAL_PULUMI_DESTROY:
+        required: false
+        default: false
+        type: boolean
       PULUMI_STACK_NAME:
         required: true
         type: string
@@ -63,6 +83,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+        with:
+          ref: ${{ inputs.CHECKOUT_REF }}
 
       - name: Install latest versions of python packages
         uses: ./.github/actions/install_deps_uv
@@ -77,7 +99,7 @@ jobs:
 
       - name: Pulumi Initial Destroy to cleanup any leftovers
         uses: ./.github/actions/pulumi_ephemeral_deploy
-        if: ${{ inputs.PULUMI_DESTROY }}
+        if: ${{ inputs.PULUMI_DESTROY && !inputs.SKIP_INITIAL_PULUMI_DESTROY }}
         with:
           project-dir: "."
           deploy-script-module-name: ${{ inputs.DEPLOY_SCRIPT_MODULE_NAME }}
@@ -101,6 +123,19 @@ jobs:
           aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}
         timeout-minutes: 5 # apparently timeout-minutes only accepts literal values, it cannot evaluate expressions (e.g. workflow inputs)
 
+      - name: Refresh
+        uses: ./.github/actions/pulumi_ephemeral_deploy
+        if: ${{ inputs.PULUMI_REFRESH }}
+        with:
+          project-dir: "."
+          deploy-script-module-name: ${{ inputs.DEPLOY_SCRIPT_MODULE_NAME }}
+          stack-name: ${{ inputs.PULUMI_STACK_NAME }}
+          aws-role-name: ${{ inputs.REFRESH_ROLE_NAME }}
+          deploy-script-name: ${{ inputs.DEPLOY_SCRIPT_NAME }}
+          aws-region: ${{ inputs.AWS_REGION }}
+          aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}
+          cli-action: "--refresh"
+
       - name: Pulumi Up
         uses: ./.github/actions/pulumi_ephemeral_deploy
         if: ${{ inputs.PULUMI_UP }}
@@ -116,7 +151,7 @@ jobs:
 
       - name: Pulumi Final Destroy
         uses: ./.github/actions/pulumi_ephemeral_deploy
-        if: ${{ inputs.PULUMI_DESTROY }}
+        if: ${{ inputs.PULUMI_DESTROY && !inputs.SKIP_FINAL_PULUMI_DESTROY }}
         with:
           project-dir: "."
           deploy-script-module-name: ${{ inputs.DEPLOY_SCRIPT_MODULE_NAME }}
