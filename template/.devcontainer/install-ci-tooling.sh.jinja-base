@@ -2,7 +2,7 @@
 # can pass in the full major.minor.patch version of python as an optional argument
 set -ex
 
-{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_javascript is defined and template_uses_javascript is sameas(true) %}{% raw %}
+{% endraw %}{% if template_uses_javascript is defined and template_uses_javascript is sameas(true) %}{% raw %}
 npm -v
 npm install -g pnpm@{% endraw %}{{ pnpm_version }}
 pnpm -v{% endraw %}{% endif %}{% raw %}
