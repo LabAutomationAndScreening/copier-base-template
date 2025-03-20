@@ -19,7 +19,7 @@ class ContextUpdater(ContextHook):
         #######
         context["pnpm_version"] = "10.6.3"
         # These are duplicated in the pyproject.toml of this repository
-        context["pyright_version"] = "1.1.396"
+        context["pyright_version"] = "1.1.397"
         context["pytest_version"] = "8.3.4"
         context["pytest_randomly_version"] = "3.16.0"
         context["pytest_cov_version"] = "6.0.0"
@@ -42,17 +42,23 @@ class ContextUpdater(ContextHook):
         context["gha_checkout"] = "v4.2.2"
         context["gha_setup_python"] = "v5.4.0"
         context["gha_cache"] = "v4.2.2"
+        context["gha_linux_runner"] = "ubuntu-24.04"
         #######
-        context["gha_upload_artifact"] = "v4.6.1"
+        context["gha_upload_artifact"] = "v4.6.2"
+        context["gha_download_artifact"] = "v4.2.1"
+        context["gha_setup_buildx"] = "v3.10.0"
+        context["gha_docker_build_push"] = "v6.15.0"
         context["gha_configure_aws_credentials"] = "v4.1.0"
         context["gha_setup_node"] = "v4.3.0"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
-        context["gha_linux_runner"] = "ubuntu-24.04"
+        context["gha_windows_runner"] = "windows-2022"
+        #######
+        context["debian_release_name"] = "bookworm"
+        context["alpine_image_version"] = "3.20"
         # These also in the tests/data.yml files in this repository and in copier.yaml
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
         context["py313_version"] = "3.13.2"
         #######
-        context["gha_windows_runner"] = "windows-2022"
         # Kludge to allow for the same docker-compose file in child and grandchild templates
         context["aws_region_for_stack"] = "us-east-1"
         # Kludge to be able to stop symlinked jinja files from being updated in child templates when the variable is really meant for the instantiated grandchild template
