@@ -40,6 +40,7 @@ class ContextUpdater(ContextHook):
         context["gha_upload_artifact"] = "{{ gha_upload_artifact }}"
         context["gha_download_artifact"] = "{{ gha_download_artifact }}"
         context["gha_setup_buildx"] = "{{ gha_setup_buildx }}"
+        context["buildx_version"] = "{{ buildx_version }}"
         context["gha_docker_build_push"] = "{{ gha_docker_build_push }}"
         context["gha_configure_aws_credentials"] = "{{ gha_configure_aws_credentials }}"
         context["gha_setup_node"] = "{{ gha_setup_node }}"
