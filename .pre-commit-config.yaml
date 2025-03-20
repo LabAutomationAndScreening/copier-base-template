@@ -175,6 +175,7 @@ repos:
     hooks:
       - id: hadolint-docker
         name: Lint Dockerfiles
+        exclude: .*\.jinja$
         description: Runs hadolint to lint Dockerfiles
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
