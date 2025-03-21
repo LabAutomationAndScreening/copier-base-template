@@ -34,6 +34,10 @@ class ContextUpdater(ContextHook):
         context["fastapi_version"] = "{{ fastapi_version }}"
         context["uvicorn_version"] = "{{ uvicorn_version }}"
 
+        context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"
+        context["nuxt_version"] = "{{ nuxt_version }}"
+        context["typescript_version"] = "{{ typescript_version }}"
+
         context["gha_checkout"] = "{{ gha_checkout }}"
         context["gha_setup_python"] = "{{ gha_setup_python }}"
         context["gha_cache"] = "{{ gha_cache }}"

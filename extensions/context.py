@@ -38,6 +38,11 @@ class ContextUpdater(ContextHook):
         context["strawberry_graphql_version"] = "0.262.5"
         context["fastapi_version"] = "0.115.11"
         context["uvicorn_version"] = "0.34.0"
+        #######
+        context["nuxt_ui_version"] = "^3.0.0"
+        context["nuxt_version"] = "^3.16.0"
+        context["typescript_version"] = "^5.8.2"
+        #######
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v4.2.2"
         context["gha_setup_python"] = "v5.4.0"
