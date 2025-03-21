@@ -40,6 +40,7 @@
 {% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}
         // VueJS
         "vue.volar@2.2.8",
+        "vitest.explorer@1.16.1",
 {% endraw %}{% endif %}{% raw %}{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_javascript is defined and template_uses_javascript is sameas(true) %}{% raw %}
         // All javascript
         "dbaeumer.vscode-eslint@3.0.13",
