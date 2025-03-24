@@ -5,6 +5,7 @@ is_open_source: true
 description: Doing amazing things
 ssh_port_number: 12345
 use_windows_in_ci: false
+{% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}install_aws_ssm_port_forwarding_plugin: true{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_javascript %}{% raw %}
 node_version: 22.13.0
 pnpm_version: 9.15.4{% endraw %}{% endif %}{% raw %}
