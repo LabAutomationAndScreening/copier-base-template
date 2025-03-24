@@ -50,6 +50,11 @@ template_uses_vuejs:
     default: no
     when: "{{ template_uses_javascript }}"
 
+install_aws_ssm_port_forwarding_plugin:
+    type: bool
+    help: Is this template for something that will want the AWS SSM Port Forwarding plugin be installed?
+    default: no
+
 
 _min_copier_version: "9.4"
 

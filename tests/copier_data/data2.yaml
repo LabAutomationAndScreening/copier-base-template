@@ -9,3 +9,4 @@ template_uses_pulumi: false
 repo_org_name: Initech
 template_uses_javascript: true
 template_uses_vuejs: true
+install_aws_ssm_port_forwarding_plugin: false
