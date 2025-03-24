@@ -36,7 +36,11 @@ pnpm_version:
     help: What version of pnpm is used for development?
     default: 10.6.3
 
-{% endraw %}{% endif %}{% raw %}
+{% endraw %}{% endif %}{% raw %}{% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}
+install_aws_ssm_port_forwarding_plugin:
+    type: bool
+    help: Should the AWS SSM Port Forwarding Plugin be installed?
+    default: no{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_python %}
 python_version:
     type: str
