@@ -19,14 +19,14 @@ class ContextUpdater(ContextHook):
         #######
         context["pnpm_version"] = "10.6.3"
         # These are duplicated in the pyproject.toml of this repository
-        context["pyright_version"] = "1.1.397"
-        context["pytest_version"] = "8.3.4"
+        context["pyright_version"] = "1.1.398"
+        context["pytest_version"] = "8.3.5"
         context["pytest_randomly_version"] = "3.16.0"
         context["pytest_cov_version"] = "6.0.0"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.156.0"
-        context["pulumi_aws_version"] = "6.72.0"
+        context["pulumi_version"] = "3.159.0"
+        context["pulumi_aws_version"] = "6.74.0"
         context["pulumi_aws_native_version"] = "1.26.0"
         context["pulumi_command_version"] = "1.0.2"
         context["pulumi_github"] = "6.7.0"
@@ -38,6 +38,7 @@ class ContextUpdater(ContextHook):
         context["strawberry_graphql_version"] = "0.262.5"
         context["fastapi_version"] = "0.115.11"
         context["uvicorn_version"] = "0.34.0"
+        context["lab_auto_pulumi_version"] = "0.1.0"
         #######
         context["nuxt_ui_version"] = "^3.0.0"
         context["nuxt_version"] = "^3.16.0"

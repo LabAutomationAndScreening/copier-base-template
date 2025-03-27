@@ -42,7 +42,7 @@ repos:
 
   # Reformatting (should generally come before any file format or other checks, because reformatting can change things)
   - repo: https://github.com/crate-ci/typos
-    rev: 2300ad1b6b5c37da54bcafb1a06211196503eac9 # frozen: v1
+    rev: 0ebd3e2da3cef03102eb36b1f930b7961c1adfd4  # frozen: v1
     hooks:
       - id: typos
   - repo: https://github.com/pre-commit/pre-commit-hooks
