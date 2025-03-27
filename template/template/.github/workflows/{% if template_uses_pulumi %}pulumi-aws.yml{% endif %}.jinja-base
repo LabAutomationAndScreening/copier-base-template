@@ -67,6 +67,10 @@ on:
       PYTHON_VERSION:
         required: true
         type: string
+      PROJECT_DIR:
+        required: false
+        default: '.'
+        type: string
 
 
 env:
@@ -101,7 +105,7 @@ jobs:
         uses: ./.github/actions/pulumi_ephemeral_deploy
         if: ${{ inputs.PULUMI_DESTROY && !inputs.SKIP_INITIAL_PULUMI_DESTROY }}
         with:
-          project-dir: "."
+          project-dir: ${{ inputs.PROJECT_DIR }}
           deploy-script-module-name: ${{ inputs.DEPLOY_SCRIPT_MODULE_NAME }}
           stack-name: ${{ inputs.PULUMI_STACK_NAME }}
           aws-role-name: ${{ inputs.PULUMI_UP_ROLE_NAME }}
@@ -114,7 +118,7 @@ jobs:
         uses: ./.github/actions/pulumi_ephemeral_deploy
         if: ${{ inputs.PULUMI_PREVIEW }}
         with:
-          project-dir: "."
+          project-dir: ${{ inputs.PROJECT_DIR }}
           deploy-script-module-name: ${{ inputs.DEPLOY_SCRIPT_MODULE_NAME }}
           stack-name: ${{ inputs.PULUMI_STACK_NAME }}
           aws-role-name: ${{ inputs.PREVIEW_ROLE_NAME }}
@@ -127,7 +131,7 @@ jobs:
         uses: ./.github/actions/pulumi_ephemeral_deploy
         if: ${{ inputs.PULUMI_REFRESH }}
         with:
-          project-dir: "."
+          project-dir: ${{ inputs.PROJECT_DIR }}
           deploy-script-module-name: ${{ inputs.DEPLOY_SCRIPT_MODULE_NAME }}
           stack-name: ${{ inputs.PULUMI_STACK_NAME }}
           aws-role-name: ${{ inputs.REFRESH_ROLE_NAME }}
@@ -140,7 +144,7 @@ jobs:
         uses: ./.github/actions/pulumi_ephemeral_deploy
         if: ${{ inputs.PULUMI_UP }}
         with:
-          project-dir: "."
+          project-dir: ${{ inputs.PROJECT_DIR }}
           deploy-script-module-name: ${{ inputs.DEPLOY_SCRIPT_MODULE_NAME }}
           stack-name: ${{ inputs.PULUMI_STACK_NAME }}
           aws-role-name: ${{ inputs.PULUMI_UP_ROLE_NAME }}
@@ -153,7 +157,7 @@ jobs:
         uses: ./.github/actions/pulumi_ephemeral_deploy
         if: ${{ inputs.PULUMI_DESTROY && !inputs.SKIP_FINAL_PULUMI_DESTROY }}
         with:
-          project-dir: "."
+          project-dir: ${{ inputs.PROJECT_DIR }}
           deploy-script-module-name: ${{ inputs.DEPLOY_SCRIPT_MODULE_NAME }}
           stack-name: ${{ inputs.PULUMI_STACK_NAME }}
           aws-role-name: ${{ inputs.PULUMI_UP_ROLE_NAME }}
