@@ -9,6 +9,6 @@ dependencies = [
     "pytest-cov>=6.0.0",
     "pytest-randomly>=3.16.0",
     "pyright[nodejs]>=1.1.398",
-    "copier>=9",
+    "copier>=9.6.0",
     "copier-templates-extensions>=0.3.0"
 ]
