@@ -38,7 +38,7 @@ class ContextUpdater(ContextHook):
         context["strawberry_graphql_version"] = "0.262.5"
         context["fastapi_version"] = "0.115.12"
         context["uvicorn_version"] = "0.34.0"
-        context["lab_auto_pulumi_version"] = "0.1.4"
+        context["lab_auto_pulumi_version"] = "0.1.6"
         #######
         context["nuxt_ui_version"] = "^3.0.0"
         context["nuxt_version"] = "^3.16.0"
@@ -57,6 +57,7 @@ class ContextUpdater(ContextHook):
         context["gha_docker_build_push"] = "v6.15.0"
         context["gha_configure_aws_credentials"] = "v4.1.0"
         context["gha_setup_node"] = "v4.3.0"
+        context["gha_action_gh_release"] = "v2.2.1"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
         context["gha_windows_runner"] = "windows-2022"
         #######
