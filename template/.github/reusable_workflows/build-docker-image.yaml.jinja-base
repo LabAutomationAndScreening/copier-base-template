@@ -82,6 +82,7 @@ jobs:
           python3 --version
           BUILD_HASH=$(python3 .github/workflows/hash_git_files.py ${{ inputs.context }})
           echo "build_context_tag=context-${BUILD_HASH}" >> "$GITHUB_OUTPUT"
+          echo "Calculated build context tag as: ${BUILD_HASH}"
 
           IMAGE_NAME_WITH_NAMESPACE=${{ inputs.image_name }}"
           IMAGE_NAME_NO_SLASHES="${IMAGE_NAME_WITH_NAMESPACE//\//-}"
