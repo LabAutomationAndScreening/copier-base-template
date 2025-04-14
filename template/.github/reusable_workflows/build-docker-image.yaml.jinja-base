@@ -108,7 +108,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@{% endraw %}{{ gha_amazon_ecr_login }}{% raw %}
 
       - name: Pull existing image to package as artifact
-        if: ${{ inputs.save-as-artifact && steps.check-if-exists.outputs.status != 'notfound' }}
+        if: ${{ inputs.save-as-artifact && steps.check-if-exists.outputs.status == 'found' }}
         run: |
           docker pull ${{ inputs.repository }}/${{ inputs.image_name }}:${{ steps.calculate-build-context-hash.outputs.build_context_tag }}
 
