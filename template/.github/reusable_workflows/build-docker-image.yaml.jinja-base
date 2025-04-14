@@ -113,13 +113,13 @@ jobs:
           docker pull ${{ inputs.repository }}/${{ inputs.image_name }}:${{ steps.calculate-build-context-hash.outputs.build_context_tag }}
 
       - name: Set up Docker Buildx
-        if: ${{ inputs.save-as-artifact || steps.check-if-exists.outputs.status == 'notfound' }}
+        if: ${{ (inputs.save-as-artifact && inputs.push-role-name == 'no-push') || steps.check-if-exists.outputs.status == 'notfound' }}
         uses: docker/setup-buildx-action@{% endraw %}{{ gha_setup_buildx }}{% raw %}
         with:
           version: {% endraw %}{{ buildx_version }}{% raw %}
 
       - name: Build Docker Image
-        if: ${{ inputs.save-as-artifact || steps.check-if-exists.outputs.status == 'notfound' }}
+        if: ${{ (inputs.save-as-artifact && inputs.push-role-name == 'no-push') || steps.check-if-exists.outputs.status == 'notfound' }}
         uses: docker/build-push-action@{% endraw %}{{ gha_docker_build_push }}{% raw %}
         with:
           context: ${{ inputs.context }}
