@@ -126,12 +126,12 @@ jobs:
 
       - name: Save Docker Image as tar
         if: ${{ inputs.save-as-artifact }}
-        run: docker save -o ${{ inputs.steps.calculate-build-context-hash.outputs.image_name_no_slashes }}.tar ${{ inputs.repository }}/${{ inputs.image_name }}:${{ steps.calculate-build-context-hash.outputs.build_context_tag }}
+        run: docker save -o ${{ steps.calculate-build-context-hash.outputs.image_name_no_slashes }}.tar ${{ inputs.repository }}/${{ inputs.image_name }}:${{ steps.calculate-build-context-hash.outputs.build_context_tag }}
 
       - name: Upload Docker Image Artifact
         if: ${{ inputs.save-as-artifact }}
         uses: actions/upload-artifact@{% endraw %}{{ gha_upload_artifact }}{% raw %}
         with:
-          name: ${{ inputs.steps.calculate-build-context-hash.outputs.image_name_no_slashes }}
-          path: ${{ inputs.steps.calculate-build-context-hash.outputs.image_name_no_slashes }}.tar
+          name: ${{ steps.calculate-build-context-hash.outputs.image_name_no_slashes }}
+          path: ${{ steps.calculate-build-context-hash.outputs.image_name_no_slashes }}.tar
           if-no-files-found: error{% endraw %}
