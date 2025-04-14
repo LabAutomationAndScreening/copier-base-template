@@ -7,8 +7,7 @@ ssh_port_number: 54321
 use_windows_in_ci: true
 {% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}install_aws_ssm_port_forwarding_plugin: false{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_javascript %}{% raw %}
-node_version: 22.14.0
-pnpm_version: 10.6.3{% endraw %}{% endif %}{% raw %}
+node_version: 22.14.0{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_python %}{% raw %}
 python_package_registry: AWS CodeArtifact
 aws_central_infrastructure_account_id: 012321432543
