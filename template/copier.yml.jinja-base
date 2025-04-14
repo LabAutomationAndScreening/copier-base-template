@@ -32,11 +32,6 @@ node_version:
     help: What version of NodeJS is used for development?
     default: 22.14.0
 
-pnpm_version:
-    type: str
-    help: What version of pnpm is used for development?
-    default: 10.6.3
-
 {% endraw %}{% endif %}{% raw %}{% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}
 install_aws_ssm_port_forwarding_plugin:
     type: bool
@@ -80,6 +75,7 @@ aws_central_infrastructure_account_id:
     type: str
     help: What's the ID of your Organization's AWS Account containing Central Infrastructure (e.g. CodeArtifact)?
     when: "{{ python_package_registry == 'AWS CodeArtifact' }}"
+    default: "000000000000"
 
 core_infra_base_access_profile_name:
     type: str

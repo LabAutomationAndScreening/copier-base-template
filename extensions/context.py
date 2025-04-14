@@ -17,17 +17,17 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "9.6.0"
         context["copier_templates_extension_version"] = "0.3.0"
         #######
-        context["pnpm_version"] = "10.7.0"
+        context["pnpm_version"] = "10.8.1"
         # These are duplicated in the pyproject.toml of this repository
-        context["pyright_version"] = "1.1.398"
+        context["pyright_version"] = "1.1.399"
         context["pytest_version"] = "8.3.5"
         context["pytest_randomly_version"] = "3.16.0"
         context["pytest_cov_version"] = "6.0.0"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.160.0"
-        context["pulumi_aws_version"] = "6.74.0"
-        context["pulumi_aws_native_version"] = "1.26.0"
+        context["pulumi_version"] = "3.162.0"
+        context["pulumi_aws_version"] = "6.77.0"
+        context["pulumi_aws_native_version"] = "1.27.0"
         context["pulumi_command_version"] = "1.0.2"
         context["pulumi_github"] = "6.7.0"
         context["boto3_version"] = "1.37.11"
@@ -35,13 +35,13 @@ class ContextUpdater(ContextHook):
         context["pydantic_version"] = "2.11.1"
         context["pyinstaller_version"] = "6.12.0"
         context["setuptools_version"] = "76.0.0"
-        context["strawberry_graphql_version"] = "0.262.5"
+        context["strawberry_graphql_version"] = "0.264.0"
         context["fastapi_version"] = "0.115.12"
         context["uvicorn_version"] = "0.34.0"
-        context["lab_auto_pulumi_version"] = "0.1.6"
+        context["lab_auto_pulumi_version"] = "0.1.8"
         #######
-        context["nuxt_ui_version"] = "^3.0.0"
-        context["nuxt_version"] = "^3.16.0"
+        context["nuxt_ui_version"] = "^3.0.2"
+        context["nuxt_version"] = "^3.16.2"
         context["typescript_version"] = "^5.8.2"
         #######
         # These are duplicated in the CI files for this repository
@@ -56,10 +56,11 @@ class ContextUpdater(ContextHook):
         context["buildx_version"] = "v0.22.0"
         context["gha_docker_build_push"] = "v6.15.0"
         context["gha_configure_aws_credentials"] = "v4.1.0"
+        context["gha_amazon_ecr_login"] = "v2.0.1"
         context["gha_setup_node"] = "v4.3.0"
         context["gha_action_gh_release"] = "v2.2.1"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
-        context["gha_windows_runner"] = "windows-2022"
+        context["gha_windows_runner"] = "windows-2025"
         #######
         context["debian_release_name"] = "bookworm"
         context["alpine_image_version"] = "3.20"
