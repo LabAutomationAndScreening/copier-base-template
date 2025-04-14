@@ -40,8 +40,8 @@ class ContextUpdater(ContextHook):
         context["uvicorn_version"] = "0.34.0"
         context["lab_auto_pulumi_version"] = "0.1.8"
         #######
-        context["nuxt_ui_version"] = "^3.0.0"
-        context["nuxt_version"] = "^3.16.0"
+        context["nuxt_ui_version"] = "^3.0.2"
+        context["nuxt_version"] = "^3.16.2"
         context["typescript_version"] = "^5.8.2"
         #######
         # These are duplicated in the CI files for this repository
