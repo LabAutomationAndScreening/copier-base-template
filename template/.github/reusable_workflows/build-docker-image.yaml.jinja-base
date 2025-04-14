@@ -81,15 +81,15 @@ jobs:
         run: |
           python3 --version
           BUILD_HASH=$(python3 .github/workflows/hash_git_files.py ${{ inputs.context }})
-          echo "build_context_hash=${BUILD_HASH}" >> "$GITHUB_OUTPUT"
+          echo "build_context_tag=context-${BUILD_HASH}" >> "$GITHUB_OUTPUT"
 
       - name: Test if docker image exists
         if: ${{ inputs.push-role-name != 'no-push' }}
         id: check-if-exists
         run: |
-          BUILD_HASH=${{ steps.calculate-build-context-hash.outputs.build_context_hash }}
+          BUILD_HASH=${{ steps.calculate-build-context-hash.outputs.build_context_tag }}
           echo Checking for : $BUILD_HASH
-          if aws ecr describe-images --region ${{ steps.parse_ecr_url.outputs.aws_region }} --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ needs.generate-hash.outputs.repo-name }} --registry-id=${{ needs.generate-hash.outputs.ecr-registry-id }} --image-ids=imageTag=$BUILD_HASH; then \
+          if aws ecr describe-images --region ${{ steps.parse_ecr_url.outputs.aws_region }} --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids=imageTag=$BUILD_HASH; then \
             echo "Image was found in ECR"; \
             echo "status=found" >> $GITHUB_OUTPUT
           else \
@@ -115,11 +115,13 @@ jobs:
           context: ${{ inputs.context }}
           push: ${{ inputs.push-role-name != 'no-push' }}
           load: ${{ inputs.save-as-artifact }} # make the image available later for the `docker save` step
-          tags: ${{ inputs.repository }}/${{ inputs.image_name }}:${{ steps.calculate-build-context-hash.outputs.build_context_hash }}
+          tags: ${{ inputs.repository }}/${{ inputs.image_name }}:${{ steps.calculate-build-context-hash.outputs.build_context_tag }}
+
+      - name: Add git sha tag
 
       - name: Save Docker Image as tar
         if: ${{ inputs.save-as-artifact }}
-        run: docker save -o ${{ inputs.image_name }}.tar ${{ inputs.repository }}/${{ inputs.image_name }}:${{ steps.calculate-build-context-hash.outputs.build_context_hash }}
+        run: docker save -o ${{ inputs.image_name }}.tar ${{ inputs.repository }}/${{ inputs.image_name }}:${{ steps.calculate-build-context-hash.outputs.build_context_tag }}
 
       - name: Upload Docker Image Artifact
         if: ${{ inputs.save-as-artifact }}
