@@ -84,7 +84,7 @@ jobs:
           echo "build_context_tag=context-${BUILD_HASH}" >> "$GITHUB_OUTPUT"
           echo "Calculated build context tag as: ${BUILD_HASH}"
 
-          IMAGE_NAME_WITH_NAMESPACE=${{ inputs.image_name }}"
+          IMAGE_NAME_WITH_NAMESPACE="${{ inputs.image_name }}"
           IMAGE_NAME_NO_SLASHES="${IMAGE_NAME_WITH_NAMESPACE//\//-}"
           echo "image_name_no_slashes=${IMAGE_NAME_NO_SLASHES}" >> "$GITHUB_OUTPUT"
           echo "Image name without slashes: ${IMAGE_NAME_NO_SLASHES}"
