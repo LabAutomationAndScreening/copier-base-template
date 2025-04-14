@@ -48,6 +48,7 @@ class ContextUpdater(ContextHook):
         context["buildx_version"] = "{{ buildx_version }}"
         context["gha_docker_build_push"] = "{{ gha_docker_build_push }}"
         context["gha_configure_aws_credentials"] = "{{ gha_configure_aws_credentials }}"
+        context["gha_amazon_ecr_login"] = "{{ gha_amazon_ecr_login }}"
         context["gha_setup_node"] = "{{ gha_setup_node }}"
         context["gha_action_gh_release"] = "{{ gha_action_gh_release }}"
         context["gha_mutex"] = "{{ gha_mutex }}"

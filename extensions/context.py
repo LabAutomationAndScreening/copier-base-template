@@ -56,10 +56,11 @@ class ContextUpdater(ContextHook):
         context["buildx_version"] = "v0.22.0"
         context["gha_docker_build_push"] = "v6.15.0"
         context["gha_configure_aws_credentials"] = "v4.1.0"
+        context["gha_amazon_ecr_login"] = "v2.0.1"
         context["gha_setup_node"] = "v4.3.0"
         context["gha_action_gh_release"] = "v2.2.1"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
-        context["gha_windows_runner"] = "windows-2022"
+        context["gha_windows_runner"] = "windows-2025"
         #######
         context["debian_release_name"] = "bookworm"
         context["alpine_image_version"] = "3.20"
