@@ -200,6 +200,7 @@ repos:
         args:
           - --rcfile=./pylintrc.toml
         verbose: true
+        exclude: ^template/.* # exclude the template files---duplication within them will be discovered during CI of that template instantiation
 
   - repo: local
     hooks:
