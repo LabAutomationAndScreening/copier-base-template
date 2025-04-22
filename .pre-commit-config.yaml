@@ -222,6 +222,6 @@ repos:
       - id: compute-devcontainer-context-hash
         name: compute devcontainer context hash
         entry: bash -c "python3 .github/reusable_workflows/hash_git_files.py . --for-devcontainer-config-update"
-        files: (.*.lock)|(.devcontainer/.*)
+        files: (.*.lock)|(.devcontainer/.*)|(\.pre-commit-config.yaml)
         pass_filenames: false
         language: system
