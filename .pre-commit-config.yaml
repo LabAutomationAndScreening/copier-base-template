@@ -90,6 +90,7 @@ repos:
               .*.yml|
               .*.md|
           )$
+        files: (.*.json)|(.*.ts)|(.*.jsx)|(.*.tsx)|(.*.yaml)|(.*.yml)|(.*.md)|(.*.html)|(.*.css)|(.*.scss)|(.*.less)|(.*.vue)|(.*.graphql)|(.*.gql)
 
   - repo: https://github.com/myint/docformatter
     # black seems to be working on formatting docstrings, but use this for now
