@@ -23,6 +23,22 @@ def get_tracked_files(repo_path: Path) -> list[str]:
         sys.exit(1)
 
 
+def filter_files_for_devcontainer_context(files: list[str]) -> tuple[list[str], Path]:
+    devcontainer_context: list[str] = []
+    devcontainer_json_file_path: str | None = None
+    for file in files:
+        if file.startswith(".devcontainer/"):
+            if file.endswith("devcontainer.json"):
+                devcontainer_json_file_path = file
+                continue
+            _ = devcontainer_context.append(file)
+        elif file.endswith(".lock") or file == ".pre-commit-config.yaml":
+            _ = devcontainer_context.append(file)
+    if devcontainer_json_file_path is None:
+        raise ValueError("No devcontainer.json file found in the tracked files.")  # noqa: TRY003 # not worth a custom exception for this
+    return devcontainer_context, Path(devcontainer_json_file_path)
+
+
 def compute_adler32(repo_path: Path, files: list[str]) -> int:
     """Compute an overall Adler-32 checksum of the provided files.
 
@@ -42,10 +58,60 @@ def compute_adler32(repo_path: Path, files: list[str]) -> int:
                         break
                     checksum = zlib.adler32(chunk, checksum)
         except Exception as e:
+            if "[Errno 21] Is a directory" in str(e):
+                # Ignore symlinks that on windows sometimes get confused as being directories
+                continue
             print(f"Error reading file {file}: {e}", file=sys.stderr)  # noqa: T201 # this just runs as a simple script, so using print instead of log
             raise
 
     return checksum
+
+
+def find_devcontainer_hash_line(lines: list[str]) -> tuple[int, str | None]:
+    """Find the line index and current hash in the devcontainer.json file."""
+    for i in range(len(lines) - 1, -1, -1):
+        if lines[i].strip() == "}":
+            # Check the line above it
+            if i > 0 and lines[i - 1].startswith("  // Devcontainer context hash (do not manually edit this): "):
+                current_hash = lines[i - 1].split(": ", 1)[1].strip()
+                return i - 1, current_hash
+            return i, None
+    return -1, None
+
+
+def extract_devcontainer_context_hash(devcontainer_json_file: Path) -> str | None:
+    """Extract the current devcontainer context hash from the given devcontainer.json file."""
+    try:
+        with devcontainer_json_file.open("r", encoding="utf-8") as file:
+            lines = file.readlines()
+    except Exception as e:
+        print(f"Error reading file {devcontainer_json_file}: {e}", file=sys.stderr)  # noqa: T201
+        raise
+    _, current_hash = find_devcontainer_hash_line(lines)
+    return current_hash
+
+
+def update_devcontainer_context_hash(devcontainer_json_file: Path, new_hash: str) -> None:
+    """Update the devcontainer.json file with the new context hash."""
+    try:
+        with devcontainer_json_file.open("r", encoding="utf-8") as file:
+            lines = file.readlines()
+
+        line_index, current_hash = find_devcontainer_hash_line(lines)
+        if current_hash is not None:
+            # Replace the old hash with the new hash
+            lines[line_index] = f"  // Devcontainer context hash (do not manually edit this): {new_hash}\n"
+        else:
+            # Insert the new hash line above the closing `}`
+            lines.insert(line_index, f"  // Devcontainer context hash (do not manually edit this): {new_hash}\n")
+
+        # Write the updated lines back to the file
+        with devcontainer_json_file.open("w", encoding="utf-8") as file:
+            file.writelines(lines)
+
+    except Exception as e:
+        print(f"Error updating file {devcontainer_json_file}: {e}", file=sys.stderr)  # noqa: T201
+        raise
 
 
 def main():
@@ -54,6 +120,11 @@ def main():
     )
     _ = parser.add_argument("folder", type=Path, help="Path to the Git repository folder")
     _ = parser.add_argument("--debug", action="store_true", help="Print all discovered Git-tracked files")
+    _ = parser.add_argument(
+        "--for-devcontainer-config-update",
+        action="store_true",
+        help="Update the hash in the devcontainer.json file based on all files relevant to devcontainer context",
+    )
     args = parser.parse_args()
 
     repo_path = args.folder
@@ -63,6 +134,9 @@ def main():
 
     # Retrieve the list of Git-tracked files.
     files = get_tracked_files(repo_path)
+    devcontainer_json_file: Path | None = None
+    if args.for_devcontainer_config_update:
+        files, devcontainer_json_file = filter_files_for_devcontainer_context(files)
 
     # If the debug flag is specified, print out all discovered files.
     if args.debug:
@@ -70,10 +144,22 @@ def main():
         for file in files:
             print(file)  # noqa: T201 # this just runs as a simple script, so using print instead of log
 
-    # Compute and print the overall Adler-32 checksum.
+    # Compute the overall Adler-32 checksum.
     overall_checksum = compute_adler32(repo_path, files)
-    # Format the checksum as an 8-digit hexadecimal value.
-    print(f"{overall_checksum:08x}")  # noqa: T201 # need to print this so that the value can be picked up via STDOUT when calling this in a CI pipeline or as a subprocess
+    overall_checksum_str = f"{overall_checksum:08x}"  # Format the checksum as an 8-digit hexadecimal value.
+    if args.for_devcontainer_config_update:
+        assert devcontainer_json_file is not None, (
+            "this should have been set earlier in a similar conditional statement"
+        )
+        current_hash = extract_devcontainer_context_hash(devcontainer_json_file)
+        if current_hash != overall_checksum_str:
+            update_devcontainer_context_hash(devcontainer_json_file, overall_checksum_str)
+            print(  # noqa: T201
+                f"Updated {devcontainer_json_file} with the new hash: {overall_checksum_str}"
+            )
+            sys.exit(1)  # Exit with non-zero code to indicate changes were made
+    else:
+        print(overall_checksum_str)  # noqa: T201 # print this so that the value can be picked up via STDOUT when calling this in a CI pipeline or as a subprocess
 
 
 if __name__ == "__main__":

@@ -214,3 +214,13 @@ repos:
         require_serial: true
         # print the number of files as a sanity-check
         verbose: true
+
+  # Devcontainer context --- this makes Github's "prebuild codespaces" feature work more intelligently for the "Configuration Change" trigger
+  - repo: local
+    hooks:
+      - id: compute-devcontainer-context-hash
+        name: compute devcontainer context hash
+        entry: bash -c "python3 .github/reusable_workflows/hash_git_files.py . --for-devcontainer-config-update"
+        files: (.*.lock)|(.devcontainer/.*)
+        pass_filenames: false
+        language: system
