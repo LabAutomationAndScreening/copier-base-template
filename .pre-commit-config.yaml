@@ -42,7 +42,7 @@ repos:
 
   # Reformatting (should generally come before any file format or other checks, because reformatting can change things)
   - repo: https://github.com/crate-ci/typos
-    rev: a6d2f47d4902ee6df75b9392dd3f7a120fdf3619  # frozen: v1
+    rev: 15ff058881549e16b0edb975a9b0b0d0cccd612c  # frozen: v1
     hooks:
       - id: typos
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -73,6 +73,15 @@ repos:
               .*tsconfig.json|
           )$
         args: [--autofix, --no-sort-keys]
+
+  - repo: https://github.com/biomejs/pre-commit
+    rev: 748e40d32e076a6aaaf3353a2564c8fe43764f79  # frozen: v2.0.0-beta.1
+    hooks:
+      - id: biome-check
+        exclude: |
+          (?x)^(
+              .*generated/graphql.ts|
+          )$
 
   - repo: https://github.com/pre-commit/mirrors-prettier # TODO: switch to a different approach...this was archived in 2024
     rev: f12edd9c7be1c20cfa42420fd0e6df71e42b51ea # frozen: v4.0.0-alpha.8
@@ -180,7 +189,7 @@ repos:
         description: Runs hadolint to lint Dockerfiles
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: d119aaff6891558b6eaf52518386871d1d267131  # frozen: v0.11.6
+    rev: e84319e627902e1b348574ecf3238dc511933dc7  # frozen: v0.11.7
     hooks:
       - id: ruff
         name: ruff-src
@@ -223,6 +232,6 @@ repos:
       - id: compute-devcontainer-context-hash
         name: compute devcontainer context hash
         entry: bash -c "python3 .github/workflows/hash_git_files.py . --for-devcontainer-config-update"
-        files: (.*.lock)|(.devcontainer/.*)|(\.pre-commit-config.yaml)
+        files: (.*.lock)|(.*pnpm-lock.yaml)|(.*hash_git_files.py)|(.devcontainer/.*)|(\.pre-commit-config.yaml)
         pass_filenames: false
         language: system
