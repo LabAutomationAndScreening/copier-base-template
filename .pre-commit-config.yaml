@@ -228,6 +228,6 @@ repos:
       - id: compute-devcontainer-context-hash
         name: compute devcontainer context hash
         entry: bash -c "python3 .github/workflows/hash_git_files.py . --for-devcontainer-config-update"
-        files: (.*.lock)|(.*pnpm-lock.yaml)|(.github/workflows/hash_git_files.py)|(.devcontainer/.*)|(\.pre-commit-config.yaml)
+        files: (.*.lock)|(.*pnpm-lock.yaml)|(.*hash_git_files.py)|(.devcontainer/.*)|(\.pre-commit-config.yaml)
         pass_filenames: false
         language: system
