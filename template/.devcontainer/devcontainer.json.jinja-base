@@ -17,8 +17,7 @@
       // https://github.com/devcontainers/features/tree/main/src/node
       "version": "{% endraw %}{{ node_version }}{% raw %}",
       "pnpmVersion": "{% endraw %}{{ pnpm_version }}{% raw %}"
-    }
-{% endraw %}{% endif %}{% raw %}
+    }{% endraw %}{% endif %}{% raw %}
   },
   "customizations": {
     "vscode": {
@@ -36,7 +35,6 @@
         "ms-python.vscode-pylance@2024.9.2",
         "ms-vscode-remote.remote-containers@0.383.0",
         "charliermarsh.ruff@2024.54.0",
-
 {% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}
         // VueJS
         "vue.volar@2.2.8",
@@ -45,7 +43,6 @@
         // All javascript
         "dbaeumer.vscode-eslint@3.0.13",
 {% endraw %}{% endif %}{% raw %}
-
         // Misc file formats
         "bierner.markdown-mermaid@1.28.0",
         "samuelcolvin.jinjahtml@0.20.0",

@@ -11,15 +11,15 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.sh script in this repository
-        context["uv_version"] = "0.6.11"
+        context["uv_version"] = "0.6.17"
         context["pre_commit_version"] = "4.2.0"
         # These also in pyproject.toml
         context["copier_version"] = "9.6.0"
         context["copier_templates_extension_version"] = "0.3.0"
         #######
-        context["pnpm_version"] = "10.8.1"
+        context["pnpm_version"] = "10.10.0"
         # These are duplicated in the pyproject.toml of this repository
-        context["pyright_version"] = "1.1.399"
+        context["pyright_version"] = "1.1.400"
         context["pytest_version"] = "8.3.5"
         context["pytest_randomly_version"] = "3.16.0"
         context["pytest_cov_version"] = "6.0.0"
