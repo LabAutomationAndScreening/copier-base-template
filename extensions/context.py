@@ -60,6 +60,8 @@ class ContextUpdater(ContextHook):
         context["gha_setup_node"] = "v4.3.0"
         context["gha_action_gh_release"] = "v2.2.1"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
+        context["gha_pypi_publish"] = "v1.12.4"
+        context["gha_sleep"] = "v2.0.3"
         context["gha_windows_runner"] = "windows-2025"
         #######
         context["debian_release_name"] = "bookworm"

@@ -52,6 +52,8 @@ class ContextUpdater(ContextHook):
         context["gha_setup_node"] = "{{ gha_setup_node }}"
         context["gha_action_gh_release"] = "{{ gha_action_gh_release }}"
         context["gha_mutex"] = "{{ gha_mutex }}"
+        context["gha_pypi_publish"] = {{ gha_pypi_publish }}"
+        context["gha_sleep"] = "{{ gha_sleep }}"
         context["gha_linux_runner"] = "{{ gha_linux_runner }}"
         context["gha_windows_runner"] = "{{ gha_windows_runner }}"
 
