@@ -10,6 +10,10 @@ DEVCONTAINER_COMMENT_LINE_PREFIX = (
     "  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): "
 )
 
+DEVCONTAINER_COMMENT_LINE_SUFFIX = (
+    " # spellchecker:disable-line"  # the typos hook can sometimes mess with the hash without this
+)
+
 
 def get_tracked_files(repo_path: Path) -> list[str]:
     """Return a list of files tracked by Git in the given repository folder, using the 'git ls-files' command."""
@@ -76,9 +80,13 @@ def find_devcontainer_hash_line(lines: list[str]) -> tuple[int, str | None]:
     for i in range(len(lines) - 1, -1, -1):
         if lines[i].strip() == "}":
             # Check the line above it
-            if i > 0 and lines[i - 1].startswith(DEVCONTAINER_COMMENT_LINE_PREFIX):
-                current_hash = lines[i - 1].split(": ", 1)[1].strip()
-                return i - 1, current_hash
+            if i > 0:
+                above_line = lines[i - 1]
+                if above_line.startswith(DEVCONTAINER_COMMENT_LINE_PREFIX):
+                    part_after_prefix = above_line.split(": ", 1)[1]
+                    part_before_suffix = part_after_prefix.split("#")[0]
+                    current_hash = part_before_suffix.strip()
+                    return i - 1, current_hash
             return i, None
     return -1, None
 
@@ -102,12 +110,13 @@ def update_devcontainer_context_hash(devcontainer_json_file: Path, new_hash: str
             lines = file.readlines()
 
         line_index, current_hash = find_devcontainer_hash_line(lines)
+        new_hash_line = f"{DEVCONTAINER_COMMENT_LINE_PREFIX}{new_hash}{DEVCONTAINER_COMMENT_LINE_SUFFIX}\n"
         if current_hash is not None:
             # Replace the old hash with the new hash
-            lines[line_index] = f"{DEVCONTAINER_COMMENT_LINE_PREFIX}{new_hash}\n"
+            lines[line_index] = new_hash_line
         else:
             # Insert the new hash line above the closing `}`
-            lines.insert(line_index, f"{DEVCONTAINER_COMMENT_LINE_PREFIX}{new_hash}\n")
+            lines.insert(line_index, new_hash_line)
 
         # Write the updated lines back to the file
         with devcontainer_json_file.open("w", encoding="utf-8") as file:
