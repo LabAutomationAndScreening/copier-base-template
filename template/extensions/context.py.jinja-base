@@ -67,4 +67,30 @@ class ContextUpdater(ContextHook):
         # Kludge to be able to help symlinked jinja files in the child and grandchild templates
         context["template_uses_vuejs"] = {{ "True" if template_uses_vuejs else "False" }}
         context["template_uses_javascript"] = {{ "True" if template_uses_javascript else "False" }}
+        context["random_ssh_port"] = (
+            random.choice(  # Pick a random port, but ensure it's not in the excluded port range on Windows (powershell: `netsh int ipv4 show excludedportrange protocol=tcp`)
+                [
+                    p
+                    for p in range(49152, 65536)
+                    if not any(
+                        start <= p <= end
+                        for start, end in [
+                            (49752, 49851),
+                            (50000, 50059),
+                            (50060, 50159),
+                            (50160, 50259),
+                            (50260, 50359),
+                            (50914, 51013),
+                            (51114, 51213),
+                            (51214, 51313),
+                            (51314, 51413),
+                            (51623, 51722),
+                            (51723, 51822),
+                            (65269, 65368),
+                            (65369, 65468),
+                        ]
+                    )
+                ]
+            )
+        )
         return context
