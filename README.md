@@ -7,7 +7,7 @@
 
 # Instantiating a new repository using this template
 1. Use the file `.devcontainer/devcontainer-to-instantiate-template.json` to create a devcontainer (or just use the default Codespace devcontainer)
-1. Inside that devcontainer, run `sh .devcontainer/install-ci-tooling.sh` to install `copier` and `uv` (you can copy/paste the script from this repo...and you can paste it in the root of the repo if you want)
+1. Inside that devcontainer, run `sh .devcontainer/install-ci-tooling.sh` to install necessary tooling to instantiate the template (you can copy/paste the script from this repo...and you can paste it in the root of the repo if you want)
 1. Delete all files currently in the repository. Optional...but makes it easiest to avoid git conflicts.
 1. Run copier to instantiate the template: `copier copy --trust gh:LabAutomationAndScreening/copier-base-template.git .`
 1. Run `uv lock` to generate the lock file
