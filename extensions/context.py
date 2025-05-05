@@ -26,7 +26,7 @@ class ContextUpdater(ContextHook):
         context["pytest_cov_version"] = "6.0.0"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.163.0"
+        context["pulumi_version"] = "3.167.0"
         context["pulumi_aws_version"] = "6.77.0"
         context["pulumi_aws_native_version"] = "1.27.0"
         context["pulumi_command_version"] = "1.0.2"

@@ -1,4 +1,5 @@
 {% raw %}# adapted from https://github.com/copier-org/copier-templates-extensions#context-hook-extension
+import random
 from typing import Any
 from typing import override
 
