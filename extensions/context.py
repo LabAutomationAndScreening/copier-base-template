@@ -25,11 +25,11 @@ class ContextUpdater(ContextHook):
         context["pytest_cov_version"] = "6.0.0"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.163.0"
+        context["pulumi_version"] = "3.167.0"
         context["pulumi_aws_version"] = "6.77.0"
         context["pulumi_aws_native_version"] = "1.27.0"
         context["pulumi_command_version"] = "1.0.2"
-        context["pulumi_github"] = "6.7.0"
+        context["pulumi_github"] = "6.7.2"
         context["boto3_version"] = "1.37.11"
         context["ephemeral_pulumi_deploy_version"] = "0.0.4"
         context["pydantic_version"] = "2.11.1"
@@ -38,10 +38,10 @@ class ContextUpdater(ContextHook):
         context["strawberry_graphql_version"] = "0.264.0"
         context["fastapi_version"] = "0.115.12"
         context["uvicorn_version"] = "0.34.0"
-        context["lab_auto_pulumi_version"] = "0.1.11"
+        context["lab_auto_pulumi_version"] = "0.1.12"
         #######
-        context["nuxt_ui_version"] = "^3.0.2"
-        context["nuxt_version"] = "^3.16.2"
+        context["nuxt_ui_version"] = "^3.1.1"
+        context["nuxt_version"] = "^3.17.2"
         context["typescript_version"] = "^5.8.2"
         #######
         # These are duplicated in the CI files for this repository

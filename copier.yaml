@@ -28,8 +28,7 @@ ssh_port_number:
     type: int
     help: What port should the devcontainer bind SSH to?
     # Pick a random port, but ensure it's not in the excluded port range on Windows (powershell: `netsh int ipv4 show excludedportrange protocol=tcp`)
-    default: "{{ ([p for p in range(49152, 65536) if not (49752 <= p <= 49851 or 50000 <= p <= 50059 or 50060 <= p <= 50159 or 50160 <= p <= 50259 or 50260 <= p <= 50359 or 50914 <= p <= 51013 or 51114 <= p <= 51213 or 51214 <= p <= 51313 or 51314 <= p <= 51413 or 51623 <= p <= 51722 or 51723 <= p <= 51822 or 65269 <= p <= 65368 or 65369 <= p <= 65468))] | random }}"
-
+    default: "{{ ( (range(49152, 49752)   | list) + (range(49852, 50000)   | list) + (range(50060, 50160)   | list) + (range(50160, 50260)   | list) + (range(50260, 50360)   | list) + (range(50914, 51014)   | list) + (range(51114, 51214)   | list) + (range(51214, 51314)   | list) + (range(51314, 51414)   | list) + (range(51623, 51723)   | list) + (range(51723, 51823)   | list) + (range(65269, 65369)   | list) + (range(65369, 65469)   | list) ) | random }}"
 template_uses_python:
     type: bool
     help: Is this a template that will use Python within it?
