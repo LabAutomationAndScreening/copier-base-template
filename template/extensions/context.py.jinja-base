@@ -38,6 +38,11 @@ class ContextUpdater(ContextHook):
         context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"
         context["nuxt_version"] = "{{ nuxt_version }}"
         context["typescript_version"] = "{{ typescript_version }}"
+        context["vue_version"] = "^3.5.13"
+        context["vue_router_version"] = "^4.5.0"
+        context["faker_version"] = "^9.7.0"
+        context["graphql_codegen_cli_version"] = "^5.0.5"
+        context["graphql_codegen_typescript_version"] = "^4.1.6"
 
         context["gha_checkout"] = "{{ gha_checkout }}"
         context["gha_setup_python"] = "{{ gha_setup_python }}"
