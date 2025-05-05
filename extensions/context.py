@@ -1,5 +1,4 @@
 # adapted from https://github.com/copier-org/copier-templates-extensions#context-hook-extension
-import random
 from typing import Any
 from typing import override
 
@@ -75,31 +74,4 @@ class ContextUpdater(ContextHook):
         context["aws_region_for_stack"] = "us-east-1"
         # Kludge to be able to stop symlinked jinja files from being updated in child templates when the variable is really meant for the instantiated grandchild template
         context["is_child_of_copier_base_template"] = True
-        # this `random_ssh_port` code is copied into the template's context.py.jinja
-        context["random_ssh_port"] = (
-            random.choice(  # Pick a random port, but ensure it's not in the excluded port range on Windows (powershell: `netsh int ipv4 show excludedportrange protocol=tcp`)
-                [
-                    p
-                    for p in range(49152, 65536)
-                    if not any(
-                        start <= p <= end
-                        for start, end in [
-                            (49752, 49851),
-                            (50000, 50059),
-                            (50060, 50159),
-                            (50160, 50259),
-                            (50260, 50359),
-                            (50914, 51013),
-                            (51114, 51213),
-                            (51214, 51313),
-                            (51314, 51413),
-                            (51623, 51722),
-                            (51723, 51822),
-                            (65269, 65368),
-                            (65369, 65468),
-                        ]
-                    )
-                ]
-            )
-        )
         return context
