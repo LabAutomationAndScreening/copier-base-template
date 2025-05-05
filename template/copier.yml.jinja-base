@@ -20,7 +20,7 @@ ssh_port_number:
     type: int
     help: What port should the devcontainer bind SSH to?
     # Pick a random port, but ensure it's not in the excluded port range on Windows (powershell: `netsh int ipv4 show excludedportrange protocol=tcp`)
-    default: "{{ [p for p in range(49152, 65536) if not (49752 <= p <= 49851 or 50000 <= p <= 50059 or 50060 <= p <= 50159 or 50160 <= p <= 50259 or 50260 <= p <= 50359 or 50914 <= p <= 51013 or 51114 <= p <= 51213 or 51214 <= p <= 51313 or 51314 <= p <= 51413 or 51623 <= p <= 51722 or 51723 <= p <= 51822 or 65269 <= p <= 65368 or 65369 <= p <= 65468)] | random }}"
+    default: "{{ ([p for p in range(49152, 65536) if not (49752 <= p <= 49851 or 50000 <= p <= 50059 or 50060 <= p <= 50159 or 50160 <= p <= 50259 or 50260 <= p <= 50359 or 50914 <= p <= 51013 or 51114 <= p <= 51213 or 51214 <= p <= 51313 or 51314 <= p <= 51413 or 51623 <= p <= 51722 or 51723 <= p <= 51822 or 65269 <= p <= 65368 or 65369 <= p <= 65468)]) | random }}"
 
 use_windows_in_ci:
     type: bool
