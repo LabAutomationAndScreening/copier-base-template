@@ -6,12 +6,13 @@
 [![Open in Dev Containers](https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/LabAutomationAndScreening/copier-base-template)
 
 # Instantiating a new repository using this template
-1. Use the file `.devcontainer/devcontainer-to-instantiate-template.json` to create a devcontainer
-2. Inside that devcontainer, run the `.devcontainer/install-ci-tooling.sh` script
-3. Delete all files currently in the repository. Optional...but makes it easiest to avoid git conflicts.
-4. Run copier to instantiate the template: `copier copy --trust gh:LabAutomationAndScreening/copier-base-template.git .`
-5. Run `uv lock` to generate the lock file
-6. Commit the changes (optional)
-7. Rebuild your new devcontainer
+1. Use the file `.devcontainer/devcontainer-to-instantiate-template.json` to create a devcontainer (or just use the default Codespace devcontainer)
+1. Inside that devcontainer, run `sh .devcontainer/install-ci-tooling.sh` to install necessary tooling to instantiate the template (you can copy/paste the script from this repo...and you can paste it in the root of the repo if you want)
+1. Delete all files currently in the repository. Optional...but makes it easiest to avoid git conflicts.
+1. Run copier to instantiate the template: `copier copy --trust gh:LabAutomationAndScreening/copier-base-template.git .`
+1. Run `uv lock` to generate the lock file
+1. Run `python3 .github/workflows/hash_git_files.py . --for-devcontainer-config-update` to update the hash for your devcontainer file
+1. Commit the changes (optional)
+1. Rebuild your new devcontainer
 
 If you are running into issues with the SSH port, confirm the randomly chosen port is not in the excluded ranges on your computer. On Windows you can run this in an elevated command prompt to check `netsh interface ipv4 show excludedportrange protocol=tcp`
