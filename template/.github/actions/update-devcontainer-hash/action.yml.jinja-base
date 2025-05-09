@@ -17,6 +17,7 @@ runs:
       run: |
         echo "Action can only be run by dependabot[bot], but was invoked by ${GITHUB_ACTOR}." >&2
         exit 1
+      shell: bash
 
     - name: Checkout code
       uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
@@ -29,10 +30,12 @@ runs:
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
+      shell: bash
 
     - name: Update devcontainer hash
       run: |
         python3 .github/workflows/hash_git_files.py . --for-devcontainer-config-update --exit-zero
+      shell: bash
 
     - name: Commit & push changes
       run: |
@@ -43,3 +46,4 @@ runs:
         else
           echo "No changes to commit"
         fi{% endraw %}
+      shell: bash
