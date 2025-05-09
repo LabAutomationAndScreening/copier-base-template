@@ -10,7 +10,7 @@ on:
 jobs:
   post-update:
     if: ${{ github.actor == 'dependabot[bot]' }}
-    runs-on: ubuntu-latest
+    runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
 
     steps:
       - name: Checkout code
@@ -24,7 +24,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Update devcontainer hash
-        run: python3 .github/workflows/hash_git_files.py . --for-devcontainer-config-update
+        run: python3 .github/workflows/hash_git_files.py . --for-devcontainer-config-update --exit-zero
 
       - name: Commit & push changes
         run: |
