@@ -51,7 +51,7 @@ jobs:
             if (!pr) {
               throw new Error("No pull_request found in payload; aborting dispatch.");
             }
-            await github.actions.createWorkflowDispatch({
+            await github.rest.actions.createWorkflowDispatch({
               owner:       context.repo.owner,
               repo:        context.repo.repo,
               workflow_id: "ci.yaml",
