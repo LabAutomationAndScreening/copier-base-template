@@ -1,5 +1,4 @@
 {% raw %}name: Update Devcontainer hash
-name: Update Devcontainer Hash
 on:
   workflow_call:
     inputs:
