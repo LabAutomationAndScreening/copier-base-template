@@ -17,6 +17,8 @@ jobs:
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
         with:
           persist-credentials: true   # (default) makes GITHUB_TOKEN available for git push
+          fetch-depth: 1 # Fetch tip commit so we can push back
+          ref: ${{ github.event.pull_request.head.ref }} # Check out the head ref of the PR instead of detached HEAD
 
       - name: Configure Git author
         run: |
@@ -32,7 +34,7 @@ jobs:
           if ! git diff --quiet; then
             git add .
             git commit -m "chore: apply post-Dependabot script changes"
-            git push
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
           else
             echo "No changes to commit"
           fi{% endraw %}
