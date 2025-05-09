@@ -1,6 +1,7 @@
 {% raw %}name: Dependabot Post-Update
 permissions:
-  contents: write        # grant write access so we can push commits
+  contents: write  # so the commit can be pushed
+  actions: write   # so createWorkflowDispatch can be invoked
 on:
   pull_request:
     types: [opened, synchronize]
