@@ -186,6 +186,8 @@ jobs:
           exit 1
       - name: Make updated dependabot hash commit as succeeded
         if: needs.get-values.outputs.dependabot-commit-created == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh api \
             -X POST \
