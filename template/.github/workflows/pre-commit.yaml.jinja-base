@@ -31,7 +31,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
         with:
-          ref: ${{ github.ref_name }} # explicitly get the head of
+          ref: ${{ github.ref_name }} # explicitly get the head of the branch, which will include any new commits pushed if this is a dependabot branch
 
       - name: Setup node
         uses: actions/setup-node@{% endraw %}{{ gha_setup_node }}{% raw %}
