@@ -5,7 +5,6 @@ on:
     branches-ignore:
       - 'gh-readonly-queue/**' # don't run (again) when on these special branches created during merge groups; the `on: merge_group` already triggers it.
   merge_group:
-  workflow_dispatch:
 
 env:
   PYTHONUNBUFFERED: True
@@ -16,7 +15,14 @@ permissions:
     contents: write # needed for mutex
 
 jobs:
+  update-devcontainer-hash:
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    uses: ./.github/workflows/update-devcontainer-hash.yaml
+    with:
+      branch: ${{ github.event.pull_request.head.ref }}
+
   pre-commit:
+    needs: [ update-devcontainer-hash ]
     strategy:
       fail-fast: false
       matrix:
