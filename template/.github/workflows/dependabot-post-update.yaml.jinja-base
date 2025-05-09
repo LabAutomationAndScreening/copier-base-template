@@ -48,8 +48,7 @@ jobs:
             const run = context.payload.workflow_run;
             const pr = run.pull_requests[0];
             if (!pr) {
-              console.log("No PR linked to this run, skipping.");
-              return;
+              throw new Error("No pull request linked to this workflow_run event; aborting dispatch.");
             }
             await github.actions.createWorkflowDispatch({
               owner: context.repo.owner,
