@@ -19,4 +19,9 @@
       groupName: "all python dependencies",
     },
   ],
+
+  postUpgradeTasks: {
+    commands: ["pre-commit run -a"],
+    executionMode: "update",
+  },
 }
