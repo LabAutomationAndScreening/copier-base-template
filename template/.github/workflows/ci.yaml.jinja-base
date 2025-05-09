@@ -21,52 +21,9 @@ jobs:
 
   pre-commit:
     needs: [ get-values ]
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - "{% endraw %}{{ gha_linux_runner }}{% raw %}"
-        python-version:
-            - {% endraw %}{{ python_version }}{% raw %}{% endraw %}{% if template_uses_javascript %}{% raw %}
-        node-version:
-            - 22.14.0{% endraw %}{% endif %}{% raw %}
-    name: Pre-commit for Py${{ matrix.python-version }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
-        with:
-          ref: ${{ github.ref_name }} # explicitly get the head of
-
-{% endraw %}{% if template_uses_javascript %}{% raw %}      - name: Setup node
-        uses: actions/setup-node@{% endraw %}{{ gha_setup_node }}{% raw %}
-        with:
-          node-version: ${{ matrix.node-version }}{% endraw %}{% endif %}{% raw %}
-
-      - name: Install latest versions of python packages
-        uses: ./.github/actions/install_deps_uv
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Set up mutex # Github concurrency management is horrible, things get arbitrarily cancelled if queued up. So using mutex until github fixes itself. When multiple jobs are modifying cache at once, weird things can happen.  possible issue is https://github.com/actions/toolkit/issues/658
-        if: ${{ runner.os != 'Windows' }} # we're just gonna have to YOLO on Windows, because this action doesn't support it yet https://github.com/ben-z/gh-action-mutex/issues/14
-        uses: ben-z/gh-action-mutex@{% endraw %}{{ gha_mutex }}{% raw %}
-        with:
-          branch: mutex-venv-${{ matrix.os }}-${{ matrix.python-version }}
-        timeout-minutes: 30 # this is the amount of time this action will wait to attempt to acquire the mutex lock before failing, e.g. if other jobs are queued up in front of it
-
-      - name: Cache Pre-commit hooks
-        uses: actions/cache@{% endraw %}{{ gha_cache }}{% raw %}
-        env:
-          cache-name: cache-pre-commit-hooks
-        with:
-          path: ${{ env.PRE_COMMIT_HOME }}
-          key: ${{ matrix.os }}-${{ matrix.python-version }}-build-${{ env.cache-name }}-${{ hashFiles('.pre-commit-config.yaml') }}
-          restore-keys: |
-            ${{ matrix.os }}-${{ matrix.python-version }}-build-${{ env.cache-name }}-
-
-      - name: Run pre-commit
-        run:  pre-commit run -a
+    uses: ./.github/workflows/pre-commit.yaml
+    with:
+      python-version: {% endraw %}{{ python_version }}{% raw %}
 
   lint-matrix:
     needs: [ pre-commit ]
