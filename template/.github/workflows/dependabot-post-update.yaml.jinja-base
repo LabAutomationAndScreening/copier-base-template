@@ -40,7 +40,7 @@ jobs:
             echo "No changes to commit"
           fi
 
-      - name: Dispatch CI on PR branch # pushes done by GITHUB_TOKEN don't trigger workflows, so we have to restart the CI job manually
+      - name: Dispatch CI on PR branch # pushes done by GITHUB_TOKEN don't trigger workflows, so we have to restart the CI job manually, see https://docs.github.com/en/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow
         uses: actions/github-script@{% endraw %}{{ gha_github_script }}{% raw %}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
