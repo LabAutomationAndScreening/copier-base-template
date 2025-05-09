@@ -3,4 +3,5 @@
   lockFileMaintenance: {
     enabled: true,
   },
+  logLevel: "debug",
 }
