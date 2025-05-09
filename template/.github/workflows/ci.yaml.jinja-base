@@ -19,7 +19,7 @@ jobs:
     if: ${{ github.actor == 'dependabot[bot]' }}
     uses: ./.github/workflows/update-devcontainer-hash.yaml
     with:
-      branch: ${{ github.event.pull_request.head.ref }}
+      branch: ${{ github.ref_name }}
 
   pre-commit:
     needs: [ update-devcontainer-hash ]
@@ -38,6 +38,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+        with:
+          ref: ${{ github.ref_name }} # explicitly get the head of
 
 {% endraw %}{% if template_uses_javascript %}{% raw %}      - name: Setup node
         uses: actions/setup-node@{% endraw %}{{ gha_setup_node }}{% raw %}
