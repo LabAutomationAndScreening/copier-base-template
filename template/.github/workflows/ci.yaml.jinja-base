@@ -15,15 +15,17 @@ permissions:
     contents: write # needed for mutex
 
 jobs:
-  update-devcontainer-hash:
-    if: ${{ github.actor == 'dependabot[bot]' }}
-    uses: ./.github/workflows/update-devcontainer-hash.yaml
-    with:
-      branch: ${{ github.ref_name }}
+  get-values:
+    runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
+    steps:
+      - name: Update Devcontainer Hash
+        if: ${{ github.actor == 'dependabot[bot]' }}
+        uses: ./.github/actions/update-devcontainer-hash
+        with:
+          branch: ${{ github.ref_name }}
 
   pre-commit:
-    needs: [ update-devcontainer-hash ]
-    if: always() # needs.update-devcontainer-hash.result != 'failure'   # proceed when update job succeeded or was skipped
+    needs: [ get-values ]
     strategy:
       fail-fast: false
       matrix:

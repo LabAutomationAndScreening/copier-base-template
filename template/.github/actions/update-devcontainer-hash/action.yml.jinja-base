@@ -1,0 +1,45 @@
+{% raw %}name: Update Devcontainer Hash
+
+inputs:
+  branch:
+    description: 'Branch to checkout and update'
+    required: true
+
+permissions:
+  contents: write
+
+
+runs:
+  using: composite
+  steps:
+    - name: Verify Dependabot actor
+      if: ${{ github.actor != 'dependabot[bot]' }}
+      run: |
+        echo "Action can only be run by dependabot[bot], but was invoked by ${GITHUB_ACTOR}." >&2
+        exit 1
+
+    - name: Checkout code
+      uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+      with:
+        persist-credentials: true
+        fetch-depth: 1
+        ref: ${{ inputs.branch }}
+
+    - name: Configure Git author
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Update devcontainer hash
+      run: |
+        python3 .github/workflows/hash_git_files.py . --for-devcontainer-config-update --exit-zero
+
+    - name: Commit & push changes
+      run: |
+        if ! git diff --quiet; then
+          git add .
+          git commit -m "chore: update devcontainer hash [dependabot skip]"
+          git push origin HEAD:${{ inputs.branch }}
+        else
+          echo "No changes to commit"
+        fi{% endraw %}
