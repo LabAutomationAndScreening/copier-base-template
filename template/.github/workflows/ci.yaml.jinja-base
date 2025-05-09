@@ -186,5 +186,12 @@ jobs:
           exit 1
       - name: Make updated dependabot hash commit as succeeded
         if: needs.get-values.outputs.dependabot-commit-created == 'true'
-        run |
-          gh api -X POST -H "Accept: application/vnd.github.v3+json" "/repos/${{ github.repository }}/statuses/${{ needs.get-values.outputs.new-dependabot-sha }}" -f state=success -f context="required-check" -f description="Initial CI run passed" -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"{% endraw %}
+        run: |
+          gh api \
+            -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            "/repos/${{ github.repository }}/statuses/${{ needs.get-values.outputs.new-dependabot-sha }}" \
+            -f state=success \
+            -f context="required-check" \
+            -f description="Initial CI run passed" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"{% endraw %}
