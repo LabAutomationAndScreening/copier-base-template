@@ -21,7 +21,7 @@
   ],
 
   postUpgradeTasks: {
-    commands: ["pre-commit run -a"],
+    commands: ["echo $RENOVATE_ALLOWED_COMMANDS", "pre-commit run -a"],
     executionMode: "update",
   },
 }
