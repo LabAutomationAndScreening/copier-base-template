@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
         with:
           persist-credentials: true   # (default) makes GITHUB_TOKEN available for git push
-          fetch-depth: 0 # Fetch full history so we can push back
+          fetch-depth: 1 # Fetch tip commit so we can push back
           ref: ${{ github.event.pull_request.head.ref }} # Check out the head ref of the PR instead of detached HEAD
 
       - name: Configure Git author
