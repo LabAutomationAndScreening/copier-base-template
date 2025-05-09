@@ -26,8 +26,7 @@ permissions:
 jobs:
   pre-commit:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
-    name: Pre-commit for Py${{ matrix.python-version }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Pre-commit
     steps:
       - name: Checkout code
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
