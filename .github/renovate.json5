@@ -3,7 +3,6 @@
   lockFileMaintenance: {
     enabled: true,
   },
-  logLevel: "debug",
   // Only run the PEP 621 manager (disable all others)
   enabledManagers: ["pep621"],
 
