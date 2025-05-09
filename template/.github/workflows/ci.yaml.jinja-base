@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   get-values:
-    uses: uses: ./.github/workflows/get-values.yaml
+    uses: ./.github/workflows/get-values.yaml
 
   pre-commit:
     needs: [ get-values ]
