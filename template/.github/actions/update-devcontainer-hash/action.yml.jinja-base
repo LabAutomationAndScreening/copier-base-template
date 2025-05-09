@@ -8,6 +8,13 @@ inputs:
 permissions:
   contents: write
 
+outputs:
+  new-sha:
+    description: 'The SHA of the branch tip after update'
+    value: ${{ steps.commit-and-push.outputs.new-sha }}
+  commit-created:
+    description: 'Whether a new commit was created and pushed'
+    value: ${{ steps.commit-and-push.outputs.commit-created }}
 
 runs:
   using: composite
@@ -38,12 +45,16 @@ runs:
       shell: bash
 
     - name: Commit & push changes
+      id: commit-and-push
       run: |
         if ! git diff --quiet; then
           git add .
           git commit -m "chore: update devcontainer hash [dependabot skip]"
           git push origin HEAD:${{ inputs.branch }}
+          echo "commit-created=true" >> $GITHUB_OUTPUT
+          echo "new-sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
         else
           echo "No changes to commit"
-        fi{% endraw %}
-      shell: bash
+          echo "commit-created=false" >> $GITHUB_OUTPUT
+        fi
+      shell: bash{% endraw %}
