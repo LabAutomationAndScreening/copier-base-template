@@ -172,9 +172,9 @@ def main():
                 f"Updated {devcontainer_json_file} with the new hash: {overall_checksum_str}"
             )
             if args.exit_zero:
-                sys.exit(0)  # Exit with code 0 as changes are suppressed
+                sys.exit(0)
             else:
-                sys.exit(1)  # Exit with non-zero code to indicate changes were made
+                sys.exit(1)
 
     else:
         print(overall_checksum_str)  # noqa: T201 # print this so that the value can be picked up via STDOUT when calling this in a CI pipeline or as a subprocess
