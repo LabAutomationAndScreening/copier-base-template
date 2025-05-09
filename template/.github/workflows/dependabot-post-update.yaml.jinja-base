@@ -30,29 +30,30 @@ jobs:
         run: python3 .github/workflows/hash_git_files.py . --for-devcontainer-config-update --exit-zero
 
       - name: Commit & push changes
+        id: commit
         run: |
-          # only commit if there are changes
           if ! git diff --quiet; then
             git add .
             git commit -m "chore: apply post-Dependabot script changes [dependabot skip]"
             git push origin HEAD:${{ github.event.pull_request.head.ref }}
+            echo "pushed=true" >> $GITHUB_OUTPUT
           else
-            echo "No changes to commit"
+            echo "pushed=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Dispatch CI on PR branch # pushes done by GITHUB_TOKEN don't trigger workflows, so we have to restart the CI job manually, see https://docs.github.com/en/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow
+        if: steps.commit.outputs.pushed == 'true'
         uses: actions/github-script@{% endraw %}{{ gha_github_script }}{% raw %}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const run = context.payload.workflow_run;
-            const pr = run.pull_requests[0];
+            const pr = context.payload.pull_request;
             if (!pr) {
-              throw new Error("No pull request linked to this workflow_run event; aborting dispatch.");
+              throw new Error("No pull_request found in payload; aborting dispatch.");
             }
             await github.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              owner:       context.repo.owner,
+              repo:        context.repo.repo,
               workflow_id: "ci.yaml",
-              ref: run.head_branch,
+              ref:         pr.head.ref,
             });{% endraw %}
