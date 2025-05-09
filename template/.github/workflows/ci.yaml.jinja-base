@@ -23,7 +23,7 @@ jobs:
 
   pre-commit:
     needs: [ update-devcontainer-hash ]
-    if: needs.update-devcontainer-hash.result != 'failure'   # proceed when update job succeeded or was skipped
+    if: always() # needs.update-devcontainer-hash.result != 'failure'   # proceed when update job succeeded or was skipped
     strategy:
       fail-fast: false
       matrix:
