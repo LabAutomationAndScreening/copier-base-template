@@ -52,6 +52,7 @@ class ContextUpdater(ContextHook):
         #######
         context["gha_upload_artifact"] = "v4.6.2"
         context["gha_download_artifact"] = "v4.2.1"
+        context["gha_github_script"] = "v7.0.1"
         context["gha_setup_buildx"] = "v3.10.0"
         context["buildx_version"] = "v0.22.0"
         context["gha_docker_build_push"] = "v6.15.0"

@@ -1,6 +1,7 @@
 {% raw %}name: Dependabot Post-Update
 permissions:
-  contents: write        # grant write access so we can push commits
+  contents: write  # so the commit can be pushed
+  actions: write   # so createWorkflowDispatch can be invoked
 on:
   pull_request:
     types: [opened, synchronize]
@@ -33,8 +34,25 @@ jobs:
           # only commit if there are changes
           if ! git diff --quiet; then
             git add .
-            git commit -m "chore: apply post-Dependabot script changes"
+            git commit -m "chore: apply post-Dependabot script changes [dependabot skip]"
             git push origin HEAD:${{ github.event.pull_request.head.ref }}
           else
             echo "No changes to commit"
-          fi{% endraw %}
+          fi
+
+      - name: Dispatch CI on PR branch # pushes done by GITHUB_TOKEN don't trigger workflows, so we have to restart the CI job manually, see https://docs.github.com/en/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow
+        uses: actions/github-script@{% endraw %}{{ gha_github_script }}{% raw %}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const run = context.payload.workflow_run;
+            const pr = run.pull_requests[0];
+            if (!pr) {
+              throw new Error("No pull request linked to this workflow_run event; aborting dispatch.");
+            }
+            await github.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "ci.yaml",
+              ref: run.head_branch,
+            });{% endraw %}
