@@ -3,12 +3,13 @@
   "service": "devcontainer",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "features": {
-    "ghcr.io/devcontainers/features/aws-cli:1": {
+    "ghcr.io/devcontainers/features/aws-cli:1.1.1": {
+      // https://github.com/devcontainers/features/blob/main/src/aws-cli/devcontainer-feature.json
       // view latest version https://raw.githubusercontent.com/aws/aws-cli/v2/CHANGELOG.rst
-      "version": "2.19.3"
+      "version": "2.27.12"
     },
-    "ghcr.io/devcontainers/features/python:1": {
-      // https://github.com/devcontainers/features/tree/main/src/python
+    "ghcr.io/devcontainers/features/python:1.7.1": {
+      // https://github.com/devcontainers/features/blob/main/src/python/devcontainer-feature.json
       "version": "3.12.7",
       "installTools": false,
       "optimize": true
