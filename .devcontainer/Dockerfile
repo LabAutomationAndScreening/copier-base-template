@@ -1,4 +1,5 @@
-FROM mcr.microsoft.com/vscode/devcontainers/universal:2.9.0-focal
+# base image tags available at https://mcr.microsoft.com/v2/devcontainers/universal/tags/list
+FROM mcr.microsoft.com/vscode/devcontainers/universal:2.13.1-focal
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 

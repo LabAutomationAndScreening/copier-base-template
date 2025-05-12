@@ -42,7 +42,7 @@ repos:
 
   # Reformatting (should generally come before any file format or other checks, because reformatting can change things)
   - repo: https://github.com/crate-ci/typos
-    rev: 6cb49915af2e93e61f5f0d0a82216e28ad5c7c18  # frozen: v1
+    rev: 0f0ccba9ed1df83948f0c15026e4f5ccfce46109  # frozen: v1.32.0
     hooks:
       - id: typos
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -103,7 +103,7 @@ repos:
 
   - repo: https://github.com/myint/docformatter
     # black seems to be working on formatting docstrings, but use this for now
-    rev: eb1df347edd128b30cd3368dddc3aa65edcfac38 # tip of main that is compatible with pre-commit v4
+    rev: e73b8ba0c1316be565983236c72e653ad44e6b66  # frozen: v1.7.7
     hooks:
       - id: docformatter
         exclude: (tests*)|(exceptions\.py)|(warnings\.py)
@@ -189,7 +189,7 @@ repos:
         description: Runs hadolint to lint Dockerfiles
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: f0fe93c067104b76ffb58852abe79673a8429bd1  # frozen: v0.11.8
+    rev: 24e02b24b8ab2b7c76225602d13fa60e12d114e6  # frozen: v0.11.9
     hooks:
       - id: ruff
         name: ruff-src
