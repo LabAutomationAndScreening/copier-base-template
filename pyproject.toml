@@ -3,12 +3,12 @@ name = "copier-base-template"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12.7"
 dependencies = [
     "pytest>=8.3.5",
-    "pytest-cov>=6.0.0",
+    "pytest-cov>=6.1.1",
     "pytest-randomly>=3.16.0",
     "pyright[nodejs]>=1.1.400",
-    "copier>=9.6.0",
-    "copier-templates-extensions>=0.3.0"
+    "copier>=9.7.1",
+    "copier-templates-extensions>=0.3.1"
 ]
