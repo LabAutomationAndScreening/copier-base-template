@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/vscode/devcontainers/universal:2.9.0-focal
+FROM mcr.microsoft.com/vscode/devcontainers/universal:2.13.1-focal
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
