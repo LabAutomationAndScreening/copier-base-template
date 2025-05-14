@@ -6,7 +6,7 @@
     "ghcr.io/devcontainers/features/aws-cli:1.1.1": {
       // https://github.com/devcontainers/features/blob/main/src/aws-cli/devcontainer-feature.json
       // view latest version https://raw.githubusercontent.com/aws/aws-cli/v2/CHANGELOG.rst
-      "version": "2.27.12"
+      "version": "2.27.14"
     },
     "ghcr.io/devcontainers/features/python:1.7.1": {
       // https://github.com/devcontainers/features/blob/main/src/python/devcontainer-feature.json
@@ -26,7 +26,7 @@
       "extensions": [
         // basic tooling
         "eamodio.gitlens@15.5.1",
-        "ms-vscode.live-server@0.5.2024091601",
+        "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.320.1564",
         "github.copilot-chat@0.28.2025051402",
@@ -55,6 +55,7 @@
         "editor.accessibilitySupport": "off", // turn off sounds
         "extensions.autoUpdate": false,
         "extensions.autoCheckUpdates": false,
+        "livePreview.portNumber": 3025, // arbitrary not to conflict with default 3000 Nuxt port number
         "[python]": {
           "editor.formatOnSave": true,
           "editor.defaultFormatter": "charliermarsh.ruff"
