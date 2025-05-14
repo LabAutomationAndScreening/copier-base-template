@@ -29,10 +29,15 @@ jobs:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
     name: Pre-commit
     steps:
-      - name: Checkout code
+      - name: Checkout code during push
+        if: ${{ github.event_name == 'push' }}
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
         with:
           ref: ${{ github.ref_name }} # explicitly get the head of the branch, which will include any new commits pushed if this is a dependabot branch
+
+      - name: Checkout code not during push
+        if: ${{ github.event_name != 'push' }}
+        uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
 
       - name: Setup node
         uses: actions/setup-node@{% endraw %}{{ gha_setup_node }}{% raw %}

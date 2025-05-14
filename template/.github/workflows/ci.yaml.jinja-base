@@ -53,7 +53,7 @@ jobs:
         uses: ./.github/actions/install_deps_uv
         with:
           python-version: ${{ matrix.python-version }}
-          uv-sync: false
+          install-deps: false
 
       - name: Instantiate copier template
         run: |
