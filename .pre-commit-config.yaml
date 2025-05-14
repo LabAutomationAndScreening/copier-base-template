@@ -119,6 +119,7 @@ repos:
         exclude: |
           (?x)^(
               .*/__snapshots__/.*|
+              .*/vendor_files/.*|
           )$
 
   # Invalid File Checks

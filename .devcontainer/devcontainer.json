@@ -23,13 +23,13 @@
         "eamodio.gitlens@15.5.1",
         "ms-vscode.live-server@0.5.2024091601",
         "MS-vsliveshare.vsliveshare@1.0.5905",
-        "github.copilot@1.304.1523",
-        "github.copilot-chat@0.27.2025042301",
+        "github.copilot@1.320.1564",
+        "github.copilot-chat@0.28.2025051402",
         // Python
-        "ms-python.python@2024.14.1",
-        "ms-python.vscode-pylance@2024.9.2",
-        "ms-vscode-remote.remote-containers@0.383.0",
-        "charliermarsh.ruff@2024.54.0",
+        "ms-python.python@2025.7.2025051401",
+        "ms-python.vscode-pylance@2025.4.104",
+        "ms-vscode-remote.remote-containers@0.414.0",
+        "charliermarsh.ruff@2025.22.0",
         // Misc file formats
         "bierner.markdown-mermaid@1.28.0",
         "samuelcolvin.jinjahtml@0.20.0",
@@ -58,5 +58,5 @@
   "initializeCommand": "sh .devcontainer/initialize-command.sh",
   "onCreateCommand": "sh .devcontainer/on-create-command.sh",
   "postStartCommand": "sh .devcontainer/post-start-command.sh"
-  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): 49899af4 # spellchecker:disable-line
+  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): 3858a348 # spellchecker:disable-line
 }
