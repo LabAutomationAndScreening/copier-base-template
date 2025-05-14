@@ -34,7 +34,7 @@ jobs:
         with:
           branch: ${{ github.ref_name }}
       - name: Get the PR number
-        if ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         id: find-pr-num
         # Based on https://github.com/actions/checkout/issues/58#issuecomment-847922894
         run: |
