@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
 
       - name: Update Devcontainer Hash
-        if: ${{ github.actor == 'dependabot[bot]' }}
+        if: ${{ github.actor == 'dependabot[bot]' && github.event_name == 'push' }}
         id: update-hash
         uses: ./.github/actions/update-devcontainer-hash
         with:
