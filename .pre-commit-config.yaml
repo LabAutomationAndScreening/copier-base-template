@@ -49,6 +49,11 @@ repos:
     rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b # frozen: v5.0.0
     hooks:
       - id: trailing-whitespace
+        exclude:
+          |
+          (?x)^(
+              .*/vendor_files/.*|
+          )$
       - id: end-of-file-fixer
         # the XML formatter hook doesn't leave a blank line at the end, so excluding XML files from this hook to avoid conflicts
         exclude:
@@ -62,6 +67,7 @@ repos:
               .devcontainer/devcontainer-lock.json|
               .copier-answers.yml|
               .*\.xml|
+              .*/vendor_files/.*|
           )$
       - id: pretty-format-json
         exclude: |
@@ -71,6 +77,7 @@ repos:
               .*devcontainer.json|
               .*pyrightconfig.json|
               .*tsconfig.json|
+              .*/vendor_files/.*|
           )$
         args: [--autofix, --no-sort-keys]
 
@@ -98,6 +105,7 @@ repos:
               .*.yaml|
               .*.yml|
               .*.md|
+              .*/vendor_files/.*|
           )$
         files: (.*.json)|(.*.ts)|(.*.jsx)|(.*.tsx)|(.*.yaml)|(.*.yml)|(.*.md)|(.*.html)|(.*.css)|(.*.scss)|(.*.less)|(.*.vue)|(.*.graphql)|(.*.gql)
 
