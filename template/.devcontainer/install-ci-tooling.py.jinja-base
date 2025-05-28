@@ -1,0 +1,72 @@
+{% raw %}import argparse
+import os
+import platform
+import subprocess
+import sys
+
+UV_VERSION = "{% endraw %}{{ uv_version }}{% raw %}"
+PNPM_VERSION = "{% endraw %}{{ pnpm_version }}{% raw %}"
+COPIER_VERSION = "{% endraw %}{{ copier_version }}{% raw %}"
+COPIER_TEMPLATES_EXTENSION_VERSION = "{% endraw %}{{ copier_templates_extension_version }}{% raw %}"
+PRE_COMMIT_VERSION = "{% endraw %}{{ pre_commit_version }}{% raw %}"
+parser = argparse.ArgumentParser(description="Install CI tooling for the repo")
+_ = parser.add_argument(
+    "--no-python",
+    default=False,
+    action="store_true",
+    help="Do not process any environments using python package managers",
+)
+_ = parser.add_argument(
+    "--python-version",
+    default=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+    type=str,
+    help="What version to install.",
+)
+_ = parser.add_argument(
+    "--no-node", action="store_true", default={% endraw %}{% if template_uses_javascript is defined and template_uses_javascript is sameas(true) %}{% raw %}False{% endraw %}{% else %}True{% endif %}{% raw %}, help="Do not process any environments using node package managers"
+)
+
+
+def main():
+    args = parser.parse_args(sys.argv[1:])
+    uv_env = dict(os.environ)
+    uv_env.update({"UV_PYTHON_PREFERENCE": "only-system", "UV_PYTHON": args.python_version})
+    if not args.no_python:
+        if platform.system() == "Windows":
+            uv_env.update({"PATH": rf"C:\Users\runneradmin\.local\bin;{uv_env['PATH']}"})
+            _ = subprocess.run(
+                f"irm https://astral.sh/uv/{UV_VERSION}/install.ps1 | iex",
+                check=True,
+                shell=True,
+                env=uv_env,
+                executable="pwsh",
+            )
+        else:
+            _ = subprocess.run(
+                f"curl -fsSL https://astral.sh/uv/{UV_VERSION}/install.sh | sh",
+                check=True,
+                shell=True,
+                env=uv_env,
+            )
+            # TODO: add uv autocompletion to the shell https://docs.astral.sh/uv/getting-started/installation/#shell-autocompletion
+        _ = subprocess.run(
+            [
+                "uv",
+                "tool",
+                "install",
+                f"copier=={COPIER_VERSION}",
+                "--with",
+                f"copier-templates-extensions=={COPIER_TEMPLATES_EXTENSION_VERSION}",
+            ],
+            check=True,
+            env=uv_env,
+        )
+        _ = subprocess.run(["uv", "tool", "install", f"pre-commit=={PRE_COMMIT_VERSION}"], check=True, env=uv_env)
+    if not args.no_node:
+        _ = subprocess.run(["npm", "-v"], check=True)
+        _ = subprocess.run(["npm", "install", "-g", f"pnpm@{PNPM_VERSION}"], check=True)
+        _ = subprocess.run(["pnpm", "-v"], check=True)
+
+
+if __name__ == "__main__":
+    main(){% endraw %}
