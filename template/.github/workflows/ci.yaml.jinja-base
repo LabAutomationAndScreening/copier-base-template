@@ -50,7 +50,7 @@ jobs:
           mv .github/workflows/replace_private_package_registries.py $RUNNER_TEMP
 
       - name: Install python tooling
-        uses: ./.github/actions/install_deps_uv
+        uses: ./.github/actions/install_deps
         with:
           python-version: ${{ matrix.python-version }}
           install-deps: false
