@@ -34,7 +34,7 @@ def main():
     is_windows = platform.system() == "Windows"
     uv_env = dict(os.environ)
     uv_env.update({"UV_PYTHON_PREFERENCE": "only-system", "UV_PYTHON": args.python_version})
-    uv_path = f"{(GITHUB_WINDOWS_RUNNER_BIN_PATH + '\\') if is_windows else ''}uv"
+    uv_path = ((GITHUB_WINDOWS_RUNNER_BIN_PATH + "\\") if is_windows else "") + "uv"
     if not args.no_python:
         if is_windows:
             uv_env.update({"PATH": rf"{GITHUB_WINDOWS_RUNNER_BIN_PATH};{uv_env['PATH']}"})
