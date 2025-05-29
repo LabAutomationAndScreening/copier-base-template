@@ -49,10 +49,11 @@ jobs:
         run: |
           mv .github/workflows/replace_private_package_registries.py $RUNNER_TEMP
 
-      - name: Install python tooling
-        uses: ./.github/actions/install_deps_uv
+      - name: Install tooling
+        uses: ./.github/actions/install_deps
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}{% endraw %}{% if template_uses_javascript is defined and template_uses_javascript is sameas(true) %}{% raw %}
+          node-version: 22.14.0 # TODO: don't hardcode this{% endraw %}{% endif %}{% raw %}
           install-deps: false
 
       - name: Instantiate copier template
@@ -85,7 +86,7 @@ jobs:
         run: |
           # Remove any specification of a Python repository having a default other than PyPI...because in this CI pipeline we can only install from PyPI
           python $RUNNER_TEMP/replace_private_package_registries.py
-          sh .devcontainer/manual-setup-deps.sh ${{ matrix.python-version }} --skip-lock
+          python .devcontainer/manual-setup-deps.py --skip-check-lock
           # Add everything to git so that pre-commit recognizes the files and runs on them
           git add .
           git status

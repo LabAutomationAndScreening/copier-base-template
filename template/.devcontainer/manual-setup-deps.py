@@ -1,0 +1,1 @@
+../../.devcontainer/manual-setup-deps.py
