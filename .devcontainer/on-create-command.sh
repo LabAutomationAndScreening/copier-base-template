@@ -7,6 +7,6 @@ git config --global --add safe.directory /workspaces/copier-base-template
 
 sh .devcontainer/on-create-command-boilerplate.sh
 
-sh .devcontainer/manual-setup-deps.sh
+python .devcontainer/manual-setup-deps.py --optionally-check-lock
 
 pre-commit install --install-hooks

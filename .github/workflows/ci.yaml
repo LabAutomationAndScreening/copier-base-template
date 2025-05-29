@@ -34,7 +34,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Tooling
-        run: sh .devcontainer/install-ci-tooling.sh ${{ matrix.python-version }}
+        run: python .devcontainer/install-ci-tooling.py
 
       - name: Install Dependencies
         run: |
@@ -85,7 +85,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Tooling
-        run: sh .devcontainer/install-ci-tooling.sh ${{ matrix.python-version }}
+        run: python .devcontainer/install-ci-tooling.py
 
       - name: Instantiate copier template
         run: |
