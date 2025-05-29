@@ -78,14 +78,20 @@ def main():
             else:
                 raise NotImplementedError(f"Package manager {env.package_manager} does not support lock file checking")
         if env.package_manager == PackageManager.UV:
+            sync_command = ["uv", "sync", "--directory", str(env.path)]
+            if not env_skip_check_lock:
+                sync_command.append("--frozen")
             _ = subprocess.run(
-                ["uv", "sync", "--directory", str(env.path), "--frozen" if not env_skip_check_lock else ""],
+                sync_command,
                 check=True,
                 env=uv_env,
             )
         elif env.package_manager == PackageManager.PNPM:
+            pnpm_command = ["pnpm", "install", "--dir", str(env.path)]
+            if not env_skip_check_lock:
+                pnpm_command.append("--frozen-lockfile")
             _ = subprocess.run(
-                ["pnpm", "install", "--dir", str(env.path), "--frozen-lockfile" if not env_skip_check_lock else ""],
+                pnpm_command,
                 check=True,
             )
         else:
