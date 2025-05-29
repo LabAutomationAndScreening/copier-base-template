@@ -1,7 +1,13 @@
-import argparse, sys, json, subprocess, enum, os
+import argparse
+import enum
+import json
+import os
+import platform
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
-
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
 ENVS_CONFIG = REPO_ROOT_DIR / ".devcontainer" / "envs.json"
@@ -49,6 +55,7 @@ class EnvConfig:
 
 def main():
     args = parser.parse_args(sys.argv[1:])
+    is_windows = platform.system() == "Windows"
     uv_env = dict(os.environ)
     uv_env.update({"UV_PYTHON_PREFERENCE": "only-system", "UV_PYTHON": args.python_version})
     skip_check_lock = args.skip_check_lock
@@ -90,6 +97,17 @@ def main():
             pnpm_command = ["pnpm", "install", "--dir", str(env.path)]
             if not env_skip_check_lock:
                 pnpm_command.append("--frozen-lockfile")
+            if is_windows:
+                pwsh = shutil.which("pwsh") or shutil.which("powershell")
+                if not pwsh:
+                    raise FileNotFoundError("Neither 'pwsh' nor 'powershell' found on PATH")
+                pnpm_command = [
+                    pwsh,
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    " ".join(pnpm_command),
+                ]
             _ = subprocess.run(
                 pnpm_command,
                 check=True,
