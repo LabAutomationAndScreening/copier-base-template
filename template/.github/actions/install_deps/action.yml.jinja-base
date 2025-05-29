@@ -58,14 +58,9 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
 
-    - name: Install Tooling (Linux)
-      if: runner.os == 'Linux'
-      run: sh .devcontainer/install-ci-tooling.sh ${{ env.PYTHON_VERSION }}
-      shell: bash
-
-    - name: Install Tooling (Windows)
-      if: runner.os == 'Windows'
-      run: .github/actions/install_deps_uv/install-ci-tooling.ps1 ${{ env.PYTHON_VERSION }}
+    - name: Install tooling
+      # the funky syntax is github action ternary
+      run: python .devcontainer/install-ci-tooling.py ${{ inputs.python-version == 'notUsing' && '--no-python' || '' }} ${{ inputs.node-version == 'notUsing' && '--no-node' || '' }}
       shell: pwsh
 
     - name: OIDC Auth for CodeArtifact
