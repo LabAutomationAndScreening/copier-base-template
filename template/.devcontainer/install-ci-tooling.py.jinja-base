@@ -35,16 +35,17 @@ def main():
     uv_env = dict(os.environ)
     uv_env.update({"UV_PYTHON_PREFERENCE": "only-system", "UV_PYTHON": args.python_version})
     uv_path = ((GITHUB_WINDOWS_RUNNER_BIN_PATH + "\\") if is_windows else "") + "uv"
+    if is_windows:
+        pwsh = shutil.which("pwsh") or shutil.which("powershell")
+        if not pwsh:
+            raise FileNotFoundError("Neither 'pwsh' nor 'powershell' found on PATH")
     if not args.no_python:
         if is_windows:
             uv_env.update({"PATH": rf"{GITHUB_WINDOWS_RUNNER_BIN_PATH};{uv_env['PATH']}"})
-            pwsh = shutil.which("pwsh") or shutil.which("powershell")
-            if not pwsh:
-                raise FileNotFoundError("Neither 'pwsh' nor 'powershell' found on PATH")
             # invoke installer in a pwsh process
             _ = subprocess.run(
                 [
-                    pwsh,
+                    pwsh,  # type: ignore[reportPossiblyUnboundVariable] # this matches the conditional above that defines pwsh
                     "-NoProfile",
                     "-NonInteractive",
                     "-Command",
@@ -93,9 +94,20 @@ def main():
             env=uv_env,
         )
     if not args.no_node:
-        _ = subprocess.run(["npm", "-v"], check=True)
-        _ = subprocess.run(["npm", "install", "-g", f"pnpm@{PNPM_VERSION}"], check=True)
-        _ = subprocess.run(["pnpm", "-v"], check=True)
+        pnpm_install_sequence = ["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"]
+        for cmd in pnpm_install_sequence:
+            cmd = (
+                [
+                    pwsh,  # type: ignore[reportPossiblyUnboundVariable] # this matches the conditional above that defines pwsh
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    cmd,
+                ]
+                if is_windows
+                else [cmd]
+            )
+            _ = subprocess.run(cmd, shell=True, check=True)
 
 
 if __name__ == "__main__":
