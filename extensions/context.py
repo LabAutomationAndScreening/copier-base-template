@@ -11,13 +11,13 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.sh script in this repository
-        context["uv_version"] = "0.7.3"
+        context["uv_version"] = "0.7.8"
         context["pre_commit_version"] = "4.2.0"
         # These also in pyproject.toml
         context["copier_version"] = "9.7.1"
         context["copier_templates_extension_version"] = "0.3.1"
         #######
-        context["pnpm_version"] = "10.10.0"
+        context["pnpm_version"] = "10.11.0"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = "1.1.400"
         context["pytest_version"] = "8.3.5"
@@ -25,20 +25,20 @@ class ContextUpdater(ContextHook):
         context["pytest_cov_version"] = "6.1.1"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.170.0"
-        context["pulumi_aws_version"] = "6.80.0"
+        context["pulumi_version"] = "3.171.0"
+        context["pulumi_aws_version"] = "6.81.0"
         context["pulumi_aws_native_version"] = "1.27.0"
-        context["pulumi_command_version"] = "1.0.4"
+        context["pulumi_command_version"] = "1.1.0"
         context["pulumi_github_version"] = "6.7.2"
         context["pulumi_okta_version"] = "4.18.0"
         context["boto3_version"] = "1.38.18"
         context["ephemeral_pulumi_deploy_version"] = "0.0.4"
-        context["pydantic_version"] = "2.11.4"
-        context["pyinstaller_version"] = "6.12.0"
+        context["pydantic_version"] = "2.11.5"
+        context["pyinstaller_version"] = "6.13.0"
         context["setuptools_version"] = "80.7.1"
-        context["strawberry_graphql_version"] = "0.264.0"
+        context["strawberry_graphql_version"] = "0.270.4"
         context["fastapi_version"] = "0.115.12"
-        context["uvicorn_version"] = "0.34.0"
+        context["uvicorn_version"] = "0.34.2"
         context["lab_auto_pulumi_version"] = "0.1.12"
         #######
         context["nuxt_ui_version"] = "^3.1.2"
