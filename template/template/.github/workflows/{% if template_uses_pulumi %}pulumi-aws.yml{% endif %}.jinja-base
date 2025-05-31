@@ -91,7 +91,7 @@ jobs:
           ref: ${{ inputs.CHECKOUT_REF }}
 
       - name: Install latest versions of python packages
-        uses: ./.github/actions/install_deps_uv
+        uses: ./.github/actions/install_deps
         with:
           python-version: ${{ inputs.PYTHON_VERSION }}
 
