@@ -90,7 +90,7 @@ jobs:
   pulumi:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
     env:
-      GITHUB_IAC_API_TOKEN: ${{ secrets.GITHUB_IAC_API_TOKEN }} # only used in non-enterprise situations when not using full fledged Secrets Manager
+      IAC_GITHUB_API_TOKENS: ${{ secrets.IAC_GITHUB_API_TOKENS }} # only used in non-enterprise situations when not using full fledged Secrets Manager
     steps:
       - name: Checkout code
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
