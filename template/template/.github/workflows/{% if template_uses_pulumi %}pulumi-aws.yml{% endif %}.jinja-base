@@ -71,6 +71,11 @@ on:
         required: false
         default: '.'
         type: string
+      ADDITIONAL_MUTEX_SUFFIX:
+        required: false
+        default: ''
+        type: string
+        description: additional text to add on to the mutex branch name to determine more specific locking beyond just the stack name
 
 
 env:
@@ -98,7 +103,7 @@ jobs:
       - name: Set up mutex # Github concurrency management is horrible, things get arbitrarily cancelled if queued up. So using mutex until github fixes itself. When multiple jobs are modifying cache at once, weird things can happen.  possible issue is https://github.com/actions/toolkit/issues/658
         uses: ben-z/gh-action-mutex@{% endraw %}{{ gha_mutex }}{% raw %}
         with:
-          branch: mutex-pulumi-${{ inputs.PULUMI_STACK_NAME }}
+          branch: mutex-pulumi-${{ inputs.PULUMI_STACK_NAME }}-${{ ADDITIONAL_MUTEX_SUFFIX }}
         timeout-minutes: 30 # this is the amount of time this action will wait to attempt to acquire the mutex lock before failing, e.g. if other jobs are queued up in front of it
 
       - name: Pulumi Initial Destroy to cleanup any leftovers
