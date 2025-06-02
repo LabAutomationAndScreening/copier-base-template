@@ -76,6 +76,12 @@ on:
         required: false
         default: ''
         type: string
+    secrets:
+      iac-github-api-tokens:
+        description: 'API tokens to use for Github IaC deployment when not using AWS Secrets Manager'
+        required: false
+        default: ''
+        type: string
 
 
 env:
@@ -90,7 +96,7 @@ jobs:
   pulumi:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
     env:
-      IAC_GITHUB_API_TOKENS: ${{ secrets.IAC_GITHUB_API_TOKENS }} # only used in non-enterprise situations when not using full fledged Secrets Manager
+      IAC_GITHUB_API_TOKENS: ${{ secrets.iac-github-api-tokens }} # only used in non-enterprise situations when not using full fledged Secrets Manager
     steps:
       - name: Checkout code
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
