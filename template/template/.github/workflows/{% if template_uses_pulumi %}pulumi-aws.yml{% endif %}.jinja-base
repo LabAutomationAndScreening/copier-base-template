@@ -80,8 +80,6 @@ on:
       iac-github-api-tokens:
         description: 'API tokens to use for Github IaC deployment when not using AWS Secrets Manager'
         required: false
-        default: ''
-        type: string
 
 
 env:
