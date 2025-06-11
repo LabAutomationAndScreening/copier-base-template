@@ -4,6 +4,8 @@ import platform
 import shutil
 import subprocess
 import sys
+import tempfile
+from pathlib import Path
 
 UV_VERSION = "{% endraw %}{{ uv_version }}{% raw %}"
 PNPM_VERSION = "{% endraw %}{{ pnpm_version }}{% raw %}"
@@ -11,6 +13,7 @@ COPIER_VERSION = "{% endraw %}{{ copier_version }}{% raw %}"
 COPIER_TEMPLATES_EXTENSION_VERSION = "{% endraw %}{{ copier_templates_extension_version }}{% raw %}"
 PRE_COMMIT_VERSION = "{% endraw %}{{ pre_commit_version }}{% raw %}"
 GITHUB_WINDOWS_RUNNER_BIN_PATH = r"C:\Users\runneradmin\.local\bin"
+INSTALL_SSM_PLUGIN_BY_DEFAULT = {% endraw %}{% if is_child_of_copier_base_template is not defined and install_aws_ssm_port_forwarding_plugin is defined and install_aws_ssm_port_forwarding_plugin is sameas(true) %}True{% else %}False{% endif %}{% raw %}
 parser = argparse.ArgumentParser(description="Install CI tooling for the repo")
 _ = parser.add_argument(
     "--no-python",
@@ -26,6 +29,12 @@ _ = parser.add_argument(
 )
 _ = parser.add_argument(
     "--no-node", action="store_true", default=False, help="Do not process any environments using node package managers"
+)
+_ = parser.add_argument(
+    "--install-ssm-plugin",
+    action="store_true",
+    default=INSTALL_SSM_PLUGIN_BY_DEFAULT,
+    help="Install the SSM plugin for AWS CLI",
 )
 
 
@@ -108,6 +117,30 @@ def main():
                 else [cmd]
             )
             _ = subprocess.run(cmd, shell=True, check=True)
+    if args.install_ssm_plugin:
+        if is_windows:
+            raise NotImplementedError("SSM plugin installation is not implemented for Windows")
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            local_package_path = Path(tmp_dir) / "session-manager-plugin.deb"
+            # Based on https://docs.aws.amazon.com/systems-manager/latest/userguide/install-plugin-debian-and-ubuntu.html
+            # TODO: figure out how to pin this
+            _ = subprocess.run(
+                [
+                    "curl",
+                    "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb",
+                    "-o",
+                    f"{local_package_path}",
+                ],
+                check=True,
+            )
+            _ = subprocess.run(
+                ["sudo", "dpkg", "-i", str(local_package_path)],
+                check=True,
+            )
+            _ = subprocess.run(
+                ["session-manager-plugin", "--version"],
+                check=True,
+            )
 
 
 if __name__ == "__main__":
