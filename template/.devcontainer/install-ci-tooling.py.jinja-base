@@ -123,11 +123,11 @@ def main():
         with tempfile.TemporaryDirectory() as tmp_dir:
             local_package_path = Path(tmp_dir) / "session-manager-plugin.deb"
             # Based on https://docs.aws.amazon.com/systems-manager/latest/userguide/install-plugin-debian-and-ubuntu.html
-            # TODO: figure out how to pin this
+            # no specific reason for that version, just pinning it for best practice
             _ = subprocess.run(
                 [
                     "curl",
-                    "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb",
+                    "https://s3.amazonaws.com/session-manager-downloads/plugin/1.2.707.0/ubuntu_64bit/session-manager-plugin.deb",
                     "-o",
                     f"{local_package_path}",
                 ],
