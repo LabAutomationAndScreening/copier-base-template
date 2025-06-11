@@ -11,16 +11,16 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.7.8"
+        context["uv_version"] = "0.7.12"
         context["pre_commit_version"] = "4.2.0"
         # These also in pyproject.toml
         context["copier_version"] = "9.7.1"
         context["copier_templates_extension_version"] = "0.3.1"
         #######
-        context["pnpm_version"] = "10.11.0"
+        context["pnpm_version"] = "10.12.1"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = "1.1.400"
-        context["pytest_version"] = "8.3.5"
+        context["pytest_version"] = "8.4.0"
         context["pytest_randomly_version"] = "3.16.0"
         context["pytest_cov_version"] = "6.1.1"
         #######
@@ -44,6 +44,11 @@ class ContextUpdater(ContextHook):
         context["nuxt_ui_version"] = "^3.1.2"
         context["nuxt_version"] = "^3.17.3"
         context["typescript_version"] = "^5.8.2"
+        context["vue_version"] = "^3.5.13"
+        context["vue_router_version"] = "^4.5.0"
+        context["faker_version"] = "^9.8.0"
+        context["graphql_codegen_cli_version"] = "^5.0.5"
+        context["graphql_codegen_typescript_version"] = "^4.1.6"
         #######
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v4.2.2"
@@ -67,7 +72,8 @@ class ContextUpdater(ContextHook):
         context["gha_windows_runner"] = "windows-2025"
         #######
         context["debian_release_name"] = "bookworm"
-        context["alpine_image_version"] = "3.20"
+        context["alpine_image_version"] = "3.21"
+        context["nginx_image_version"] = "1.28.0"
         # These also in the tests/data.yml files in this repository and in copier.yaml
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
         context["py313_version"] = "3.13.2"
