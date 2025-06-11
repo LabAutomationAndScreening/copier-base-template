@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import sys
 
-UV_VERSION = "0.7.8"
+UV_VERSION = "0.7.12"
 COPIER_VERSION = "9.7.1"
 COPIER_TEMPLATES_EXTENSION_VERSION = "0.3.1"
 PRE_COMMIT_VERSION = "4.2.0"
