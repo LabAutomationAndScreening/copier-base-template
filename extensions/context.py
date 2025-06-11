@@ -44,6 +44,11 @@ class ContextUpdater(ContextHook):
         context["nuxt_ui_version"] = "^3.1.2"
         context["nuxt_version"] = "^3.17.3"
         context["typescript_version"] = "^5.8.2"
+        context["vue_version"] = "^3.5.13"
+        context["vue_router_version"] = "^4.5.0"
+        context["faker_version"] = "^9.8.0"
+        context["graphql_codegen_cli_version"] = "^5.0.5"
+        context["graphql_codegen_typescript_version"] = "^4.1.6"
         #######
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v4.2.2"
