@@ -67,7 +67,8 @@ class ContextUpdater(ContextHook):
         context["gha_windows_runner"] = "windows-2025"
         #######
         context["debian_release_name"] = "bookworm"
-        context["alpine_image_version"] = "3.20"
+        context["alpine_image_version"] = "3.21"
+        context["nginx_image_version"] = "1.28.0"
         # These also in the tests/data.yml files in this repository and in copier.yaml
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
         context["py313_version"] = "3.13.2"

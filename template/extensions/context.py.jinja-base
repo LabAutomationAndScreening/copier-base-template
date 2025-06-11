@@ -70,6 +70,7 @@ class ContextUpdater(ContextHook):
 
         context["debian_release_name"] = "{{ debian_release_name }}"
         context["alpine_image_version"] = "{{ alpine_image_version }}"
+        context["nginx_image_version"] = "{{ nginx_image_version }}"
 
         # Kludge to be able to help symlinked jinja files in the child and grandchild templates
         context["template_uses_vuejs"] = {{ "True" if template_uses_vuejs else "False" }}
