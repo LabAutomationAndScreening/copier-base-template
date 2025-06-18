@@ -9,7 +9,7 @@ dependencies = [
     "pytest>={% endraw %}{{ pytest_version }}{% raw %}",
     "pytest-cov>={% endraw %}{{ pytest_cov_version }}{% raw %}",
     "pytest-randomly>={% endraw %}{{ pytest_randomly_version }}{% raw %}",
-    "pyright[nodejs]=={% endraw %}{{ pyright_version }}{% raw %}", # temporarily pin due to bug in 1.1.401 https://github.com/microsoft/pyright/issues/10487
+    "pyright[nodejs]>={% endraw %}{{ pyright_version }}{% raw %}",
     "copier>={% endraw %}{{ copier_version }}{% raw %}",
     "copier-templates-extensions>={% endraw %}{{ copier_templates_extension_version }}{% raw %}"
 
