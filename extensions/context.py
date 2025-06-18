@@ -39,7 +39,7 @@ class ContextUpdater(ContextHook):
         context["strawberry_graphql_version"] = "0.270.4"
         context["fastapi_version"] = "0.115.12"
         context["uvicorn_version"] = "0.34.2"
-        context["lab_auto_pulumi_version"] = "0.1.13"
+        context["lab_auto_pulumi_version"] = "0.1.14"
         #######
         context["nuxt_ui_version"] = "^3.1.2"
         context["nuxt_version"] = "^3.17.3"
