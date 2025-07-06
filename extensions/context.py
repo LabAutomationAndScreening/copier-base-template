@@ -17,7 +17,7 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "9.7.1"
         context["copier_templates_extension_version"] = "0.3.1"
         #######
-        context["pnpm_version"] = "10.12.1"
+        context["pnpm_version"] = "10.12.4"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = "1.1.402"
         context["pytest_version"] = "8.4.0"
@@ -25,7 +25,7 @@ class ContextUpdater(ContextHook):
         context["pytest_cov_version"] = "6.2.1"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.177.0"
+        context["pulumi_version"] = "3.181.0"
         context["pulumi_aws_version"] = "6.83.0"
         context["pulumi_aws_native_version"] = "1.30.0"
         context["pulumi_command_version"] = "1.1.0"
@@ -33,13 +33,13 @@ class ContextUpdater(ContextHook):
         context["pulumi_okta_version"] = "4.20.0"
         context["boto3_version"] = "1.38.38"
         context["ephemeral_pulumi_deploy_version"] = "0.0.4"
-        context["pydantic_version"] = "2.11.5"
+        context["pydantic_version"] = "2.11.7"
         context["pyinstaller_version"] = "6.13.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = "0.270.4"
-        context["fastapi_version"] = "0.115.12"
-        context["uvicorn_version"] = "0.34.2"
-        context["lab_auto_pulumi_version"] = "0.1.14"
+        context["fastapi_version"] = "0.115.14"
+        context["uvicorn_version"] = "0.35.0"
+        context["lab_auto_pulumi_version"] = "0.1.15"
         #######
         context["nuxt_ui_version"] = "^3.1.2"
         context["nuxt_version"] = "^3.17.3"
