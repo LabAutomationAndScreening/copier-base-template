@@ -42,7 +42,7 @@ repos:
 
   # Reformatting (should generally come before any file format or other checks, because reformatting can change things)
   - repo: https://github.com/crate-ci/typos
-    rev: 0f0ccba9ed1df83948f0c15026e4f5ccfce46109  # frozen: v1.32.0
+    rev: 3d97dc5b9833a60a62e70d5b56af2cc7ddd522f6  # frozen: v1
     hooks:
       - id: typos
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -82,7 +82,7 @@ repos:
         args: [--autofix, --no-sort-keys]
 
   - repo: https://github.com/biomejs/pre-commit
-    rev: 748e40d32e076a6aaaf3353a2564c8fe43764f79  # frozen: v2.0.0-beta.1
+    rev: a450e9c04887b1305951c298db5999cd30155f74  # frozen: v2.1.1
     hooks:
       - id: biome-check
         exclude: |
@@ -211,7 +211,7 @@ repos:
         description: Runs hadolint to lint Dockerfiles
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 24e02b24b8ab2b7c76225602d13fa60e12d114e6  # frozen: v0.11.9
+    rev: 3d44372123ca5e8617fdb65d9f11facd159b9e95  # frozen: v0.12.3
     hooks:
       - id: ruff
         name: ruff-src
