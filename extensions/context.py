@@ -17,9 +17,9 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "9.7.1"
         context["copier_templates_extension_version"] = "0.3.1"
         #######
-        context["pnpm_version"] = "10.12.4"
+        context["pnpm_version"] = "10.13.1"
         # These are duplicated in the pyproject.toml of this repository
-        context["pyright_version"] = "1.1.402"
+        context["pyright_version"] = "1.1.403"
         context["pytest_version"] = "8.4.0"
         context["pytest_randomly_version"] = "3.16.0"
         context["pytest_cov_version"] = "6.2.1"
