@@ -88,6 +88,7 @@ repos:
         exclude: |
           (?x)^(
               .*generated/graphql.ts|
+              .*/schema.graphql|
           )$
 
   - repo: https://github.com/pre-commit/mirrors-prettier # TODO: switch to a different approach...this was archived in 2024
@@ -102,10 +103,16 @@ repos:
               .*devcontainer.json|
               .*pyrightconfig.json|
               .*tsconfig.json|
+              .*/__snapshots__/.*|
+              .*.min.js|
+              .*.min.css|
+              .*.umd.js|
               .*.yaml|
               .*.yml|
               .*.md|
               .*/vendor_files/.*|
+              .*/schema.graphql|
+              .*generated/graphql.ts|
           )$
         files: (.*.json)|(.*.ts)|(.*.jsx)|(.*.tsx)|(.*.yaml)|(.*.yml)|(.*.md)|(.*.html)|(.*.css)|(.*.scss)|(.*.less)|(.*.vue)|(.*.graphql)|(.*.gql)
 
