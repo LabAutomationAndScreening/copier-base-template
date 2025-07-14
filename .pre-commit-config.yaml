@@ -96,6 +96,7 @@ repos:
           (?x)^(
               .*generated/graphql.ts|
               .*/schema.graphql|
+              pyrightconfig\.json|
           )$
 
   - repo: https://github.com/pre-commit/mirrors-prettier # TODO: switch to a different approach...this was archived in 2024
