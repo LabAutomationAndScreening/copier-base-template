@@ -42,7 +42,7 @@ repos:
 
   # Reformatting (should generally come before any file format or other checks, because reformatting can change things)
   - repo: https://github.com/crate-ci/typos
-    rev: 3d97dc5b9833a60a62e70d5b56af2cc7ddd522f6  # frozen: v1
+    rev: 392b78fe18a52790c53f42456e46124f77346842  # frozen: v1.34.0
     hooks:
       - id: typos
         exclude:
