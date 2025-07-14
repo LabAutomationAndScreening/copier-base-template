@@ -163,6 +163,7 @@ repos:
               .devcontainer/devcontainer-lock.json|
               .*devcontainer.json|
               .*pyrightconfig.json|
+              template/pyrightconfig.json|
               .*tsconfig.json|
           )$
       - id: check-yaml
