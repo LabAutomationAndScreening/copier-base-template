@@ -1,0 +1,11 @@
+{
+  "formatter": {
+    "enabled": false,
+  },
+  "linter": {
+    "enabled": false,
+  },
+  "files": {
+    "includes": ["**", "!template/template/biome.jsonc", "!template/biome.jsonc"],
+  },
+}

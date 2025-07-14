@@ -84,6 +84,7 @@ repos:
               .*devcontainer.json|
               .*pyrightconfig.json|
               .*tsconfig.json|
+              .*biome.jsonc|
               .*/vendor_files/.*|
           )$
         args: [--autofix, --no-sort-keys]
@@ -92,6 +93,7 @@ repos:
     rev: a450e9c04887b1305951c298db5999cd30155f74  # frozen: v2.1.1
     hooks:
       - id: biome-check
+        # exclude generated files from codegen and strawberry
         exclude: |
           (?x)^(
               .*generated/graphql.ts|
@@ -118,6 +120,7 @@ repos:
               .*.yaml|
               .*.yml|
               .*.md|
+              .*.jsonc|
               .*/vendor_files/.*|
               .*/schema.graphql|
               .*generated/graphql.ts|
