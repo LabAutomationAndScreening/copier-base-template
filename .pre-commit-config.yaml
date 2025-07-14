@@ -98,7 +98,7 @@ repos:
           (?x)^(
               .*generated/graphql.ts|
               .*/schema.graphql|
-              pyrightconfig\.json|
+              .*pyrightconfig\.json|
           )$
 
   - repo: https://github.com/pre-commit/mirrors-prettier # TODO: switch to a different approach...this was archived in 2024
@@ -163,7 +163,6 @@ repos:
               .devcontainer/devcontainer-lock.json|
               .*devcontainer.json|
               .*pyrightconfig.json|
-              template/pyrightconfig.json|
               .*tsconfig.json|
           )$
       - id: check-yaml
