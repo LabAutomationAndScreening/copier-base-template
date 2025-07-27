@@ -10,7 +10,7 @@ from pathlib import Path
 UV_VERSION = "{% endraw %}{{ uv_version }}{% raw %}"
 PNPM_VERSION = "{% endraw %}{{ pnpm_version }}{% raw %}"
 COPIER_VERSION = "{% endraw %}{{ copier_version }}{% raw %}"
-COPIER_TEMPLATES_EXTENSION_VERSION = "{% endraw %}{{ copier_templates_extension_version }}{% raw %}"
+COPIER_TEMPLATE_EXTENSIONS_VERSION = "{% endraw %}{{ copier_template_extensions_version }}{% raw %}"
 PRE_COMMIT_VERSION = "{% endraw %}{{ pre_commit_version }}{% raw %}"
 GITHUB_WINDOWS_RUNNER_BIN_PATH = r"C:\Users\runneradmin\.local\bin"
 INSTALL_SSM_PLUGIN_BY_DEFAULT = {% endraw %}{% if is_child_of_copier_base_template is not defined and install_aws_ssm_port_forwarding_plugin is defined and install_aws_ssm_port_forwarding_plugin is sameas(true) %}True{% else %}False{% endif %}{% raw %}
@@ -78,7 +78,7 @@ def main():
                 "install",
                 f"copier=={COPIER_VERSION}",
                 "--with",
-                f"copier-templates-extensions=={COPIER_TEMPLATES_EXTENSION_VERSION}",
+                f"copier-template-extensions=={COPIER_TEMPLATE_EXTENSIONS_VERSION}",
             ],
             check=True,
             env=uv_env,

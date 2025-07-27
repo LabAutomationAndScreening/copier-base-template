@@ -5,9 +5,9 @@ import shutil
 import subprocess
 import sys
 
-UV_VERSION = "0.7.12"
-COPIER_VERSION = "9.7.1"
-COPIER_TEMPLATES_EXTENSION_VERSION = "0.3.1"
+UV_VERSION = "0.8.3"
+COPIER_VERSION = "9.8.0"
+COPIER_TEMPLATE_EXTENSIONS_VERSION = "0.3.2"
 PRE_COMMIT_VERSION = "4.2.0"
 GITHUB_WINDOWS_RUNNER_BIN_PATH = r"C:\Users\runneradmin\.local\bin"
 parser = argparse.ArgumentParser(description="Install CI tooling for the repo")
@@ -65,7 +65,7 @@ def main():
                 "install",
                 f"copier=={COPIER_VERSION}",
                 "--with",
-                f"copier-templates-extensions=={COPIER_TEMPLATES_EXTENSION_VERSION}",
+                f"copier-template-extensions=={COPIER_TEMPLATE_EXTENSIONS_VERSION}",
             ],
             check=True,
             env=uv_env,

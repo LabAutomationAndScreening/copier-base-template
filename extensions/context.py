@@ -1,8 +1,8 @@
-# adapted from https://github.com/copier-org/copier-templates-extensions#context-hook-extension
+# adapted from https://github.com/copier-org/copier-template-extensions#context-hook-extension
 from typing import Any
 from typing import override
 
-from copier_templates_extensions import ContextHook
+from copier_template_extensions import ContextHook
 
 
 class ContextUpdater(ContextHook):
@@ -11,27 +11,27 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.7.12"
+        context["uv_version"] = "0.8.3"
         context["pre_commit_version"] = "4.2.0"
         # These also in pyproject.toml
-        context["copier_version"] = "9.7.1"
-        context["copier_templates_extension_version"] = "0.3.1"
+        context["copier_version"] = "9.8.0"
+        context["copier_template_extensions_version"] = "0.3.2"
         #######
         context["pnpm_version"] = "10.13.1"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = "1.1.403"
-        context["pytest_version"] = "8.4.0"
+        context["pytest_version"] = "8.4.1"
         context["pytest_randomly_version"] = "3.16.0"
         context["pytest_cov_version"] = "6.2.1"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.181.0"
-        context["pulumi_aws_version"] = "6.83.0"
-        context["pulumi_aws_native_version"] = "1.30.0"
+        context["pulumi_version"] = "3.186.0"
+        context["pulumi_aws_version"] = "7.1.0"
+        context["pulumi_aws_native_version"] = "1.31.0"
         context["pulumi_command_version"] = "1.1.0"
-        context["pulumi_github_version"] = "6.7.2"
+        context["pulumi_github_version"] = "6.7.3"
         context["pulumi_okta_version"] = "4.20.0"
-        context["boto3_version"] = "1.38.38"
+        context["boto3_version"] = "1.39.14"
         context["ephemeral_pulumi_deploy_version"] = "0.0.4"
         context["pydantic_version"] = "2.11.7"
         context["pyinstaller_version"] = "6.13.0"
