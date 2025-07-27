@@ -65,7 +65,7 @@ _templates_suffix: .jinja-base
 _exclude:
     - "copier.yaml"
 
-# adapted from https://github.com/copier-org/copier-templates-extensions#context-hook-extension
+# adapted from https://github.com/copier-org/copier-template-extensions#context-hook-extension
 _jinja_extensions:
 - copier_template_extensions.TemplateExtensionLoader
 - extensions/context.py:ContextUpdater

@@ -1,4 +1,4 @@
-# adapted from https://github.com/copier-org/copier-templates-extensions#context-hook-extension
+# adapted from https://github.com/copier-org/copier-template-extensions#context-hook-extension
 from typing import Any
 from typing import override
 
