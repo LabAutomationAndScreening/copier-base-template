@@ -11,6 +11,7 @@
 1. Delete all files currently in the repository. Optional...but makes it easiest to avoid git conflicts.
 1. Run copier to instantiate the template: `copier copy --trust gh:LabAutomationAndScreening/copier-base-template.git .`
 1. Run `uv lock` to generate the lock file
+1. Stages all files to prepare for commit (`git add .`)
 1. Run `python3 .github/workflows/hash_git_files.py . --for-devcontainer-config-update` to update the hash for your devcontainer file
 1. Commit the changes (optional)
 1. Rebuild your new devcontainer
