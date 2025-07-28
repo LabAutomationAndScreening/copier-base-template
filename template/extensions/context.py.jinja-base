@@ -40,6 +40,7 @@ class ContextUpdater(ContextHook):
         context["nuxt_version"] = "{{ nuxt_version }}"
         context["typescript_version"] = "{{ typescript_version }}"
         context["dot_env_cli_version"] = "{{ dot_env_cli_version }}"
+        context["playwright_version"] = "{{ playwright_version }}"
         context["vue_version"] = "{{ vue_version }}"
         context["vue_router_version"] = "{{ vue_router_version }}"
         context["faker_version"] = "{{ faker_version }}"
