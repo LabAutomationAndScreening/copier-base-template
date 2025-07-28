@@ -41,12 +41,12 @@ class ContextUpdater(ContextHook):
         context["uvicorn_version"] = "0.35.0"
         context["lab_auto_pulumi_version"] = "0.1.15"
         #######
-        context["nuxt_ui_version"] = "^3.1.2"
-        context["nuxt_version"] = "^3.17.3"
+        context["nuxt_ui_version"] = "^3.3.0"
+        context["nuxt_version"] = "^4.0.1"
         context["typescript_version"] = "^5.8.2"
-        context["vue_version"] = "^3.5.13"
-        context["vue_router_version"] = "^4.5.0"
-        context["faker_version"] = "^9.8.0"
+        context["vue_version"] = "^3.5.18"
+        context["vue_router_version"] = "^4.5.1"
+        context["faker_version"] = "^9.9.0"
         context["graphql_codegen_cli_version"] = "^5.0.5"
         context["graphql_codegen_typescript_version"] = "^4.1.6"
         #######
