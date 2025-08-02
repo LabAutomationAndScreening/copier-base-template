@@ -17,7 +17,7 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "9.8.0"
         context["copier_template_extensions_version"] = "0.3.2"
         #######
-        context["pnpm_version"] = "10.13.1"
+        context["pnpm_version"] = "10.14.0"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = "1.1.403"
         context["pytest_version"] = "8.4.1"
@@ -42,7 +42,7 @@ class ContextUpdater(ContextHook):
         context["lab_auto_pulumi_version"] = "0.1.15"
         #######
         context["nuxt_ui_version"] = "^3.3.0"
-        context["nuxt_version"] = "^3.17.7"
+        context["nuxt_version"] = "^3.18.0"
         context["typescript_version"] = "^5.8.2"
         context["dot_env_cli_version"] = "^9.0.0"
         context["playwright_version"] = "^1.52.0"
