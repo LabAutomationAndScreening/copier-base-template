@@ -13,8 +13,6 @@ env:
 
 permissions:
   id-token: write # needed to assume OIDC roles (e.g. for downloading from CodeArtifact)
-  contents: write # needed for mutex, and updating dependabot branches
-  statuses: write # needed for updating status on Dependabot PRs
 
 jobs:
   get-values:
