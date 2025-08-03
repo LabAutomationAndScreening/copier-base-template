@@ -10,12 +10,10 @@ env:
   PYTHONUNBUFFERED: True
   PRE_COMMIT_HOME: ${{ github.workspace }}/.precommit_cache
 
-permissions:
-    id-token: write
-    contents: write # needed for mutex
-
 jobs:
   pre-commit:
+    permissions:
+      contents: write # needed for mutex
     strategy:
       fail-fast: false
       matrix:
@@ -75,6 +73,10 @@ jobs:
           '--data-file tests/copier_data/data2.yaml',
           ]
     runs-on: ${{ matrix.os }}
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
+    permissions:
+      contents: write # needed for mutex
 
     steps:
       - uses: actions/checkout@v4.2.2
