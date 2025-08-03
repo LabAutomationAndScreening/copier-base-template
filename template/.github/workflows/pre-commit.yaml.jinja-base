@@ -22,7 +22,7 @@ env:
   PRE_COMMIT_HOME: ${{ github.workspace }}/.precommit_cache
 
 permissions:
-    contents: write # needed for mutex
+  contents: write # needed for mutex
 
 jobs:
   pre-commit:
