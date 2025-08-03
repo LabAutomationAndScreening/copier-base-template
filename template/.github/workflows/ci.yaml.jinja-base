@@ -9,19 +9,23 @@ on:
 env:
   PYTHONUNBUFFERED: True
   PRE_COMMIT_HOME: ${{ github.workspace }}/.precommit_cache
+  UV_PYTHON_PREFERENCE: only-system
 
 permissions:
-    id-token: write
     contents: write # needed for mutex, and updating dependabot branches
     statuses: write # needed for updating status on Dependabot PRs
 
 jobs:
   get-values:
     uses: ./.github/workflows/get-values.yaml
+    permissions:
+      contents: write # needed for updating dependabot branches
 
   pre-commit:
     needs: [ get-values ]
     uses: ./.github/workflows/pre-commit.yaml
+    permissions:
+      contents: write # needed for mutex, and updating dependabot branches
     with:
       python-version: {% endraw %}{{ python_version }}{% raw %}
 
@@ -123,6 +127,8 @@ jobs:
   required-check:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
     needs: [ lint-matrix, get-values ]
+    permissions:
+      statuses: write # needed for updating status on Dependabot PRs
     if: always()
     steps:
       - name: fail if prior job failure
