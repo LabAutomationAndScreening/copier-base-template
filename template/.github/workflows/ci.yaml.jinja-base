@@ -9,7 +9,6 @@ on:
 env:
   PYTHONUNBUFFERED: True
   PRE_COMMIT_HOME: ${{ github.workspace }}/.precommit_cache
-  UV_PYTHON_PREFERENCE: only-system
 
 permissions:
   id-token: write # needed to assume OIDC roles (e.g. for downloading from CodeArtifact)
@@ -43,6 +42,8 @@ jobs:
           '--data-file tests/copier_data/data2.yaml',
           ]
     runs-on: ${{ matrix.os }}
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
 
     steps:
       - name: Checkout code
