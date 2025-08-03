@@ -75,6 +75,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       UV_PYTHON: ${{ matrix.python-version }}
+    permissions:
+      contents: write # needed for mutex
 
     steps:
       - uses: actions/checkout@v4.2.2

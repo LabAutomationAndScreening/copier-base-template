@@ -23,7 +23,7 @@ jobs:
     needs: [ get-values ]
     uses: ./.github/workflows/pre-commit.yaml
     permissions:
-      contents: write # needed for mutex, and updating dependabot branches
+      contents: write # needed for mutex
       id-token: write # needed to assume OIDC roles (e.g. for downloading from CodeArtifact)
     with:
       python-version: {% endraw %}{{ python_version }}{% raw %}
@@ -45,6 +45,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       UV_PYTHON: ${{ matrix.python-version }}
+    permissions:
+      contents: write # needed for mutex
 
     steps:
       - name: Checkout code
