@@ -9,7 +9,6 @@ on:
 env:
   PYTHONUNBUFFERED: True
   PRE_COMMIT_HOME: ${{ github.workspace }}/.precommit_cache
-  UV_PYTHON_PREFERENCE: only-system
 
 jobs:
   pre-commit:
@@ -74,6 +73,8 @@ jobs:
           '--data-file tests/copier_data/data2.yaml',
           ]
     runs-on: ${{ matrix.os }}
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
 
     steps:
       - uses: actions/checkout@v4.2.2
