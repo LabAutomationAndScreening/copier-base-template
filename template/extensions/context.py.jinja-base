@@ -38,6 +38,7 @@ class ContextUpdater(ContextHook):
 
         context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"
         context["nuxt_version"] = "{{ nuxt_version }}"
+        context["nuxt_icon_version"] = "{{ nuxt_icon_version }}"
         context["typescript_version"] = "{{ typescript_version }}"
         context["dot_env_cli_version"] = "{{ dot_env_cli_version }}"
         context["playwright_version"] = "{{ playwright_version }}"
