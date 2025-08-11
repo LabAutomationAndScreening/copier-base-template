@@ -44,6 +44,8 @@ class ContextUpdater(ContextHook):
         context["vue_version"] = "{{ vue_version }}"
         context["vue_router_version"] = "{{ vue_router_version }}"
         context["faker_version"] = "{{ faker_version }}"
+        context["zod_version"] = "{{ zod_version }}"
+        context["nuxt_apollo_version"] = "{{ nuxt_apollo_version }}"
         context["graphql_codegen_cli_version"] = "{{ graphql_codegen_cli_version }}"
         context["graphql_codegen_typescript_version"] = "{{ graphql_codegen_typescript_version }}"
 
