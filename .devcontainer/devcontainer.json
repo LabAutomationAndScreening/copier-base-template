@@ -48,7 +48,7 @@
         },
         "ruff.nativeServer": "on",
         // TODO: see if there's a way to specify different configurations for different folders
-        "ruff.configuration": "/workspaces/copier-base-template/ruff-test.toml", // use the test configuration since it's less restrictive and won't show false positives and underline things
+        "ruff.configuration": "${workspaceFolder}/ruff-test.toml", // use the test configuration since it's less restrictive and won't show false positives and underline things
         "[jsonc][json]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode",
           "editor.formatOnSave": true
