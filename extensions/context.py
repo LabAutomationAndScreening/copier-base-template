@@ -49,6 +49,7 @@ class ContextUpdater(ContextHook):
         context["vue_version"] = "^3.5.18"
         context["vue_router_version"] = "^4.5.1"
         context["faker_version"] = "^9.9.0"
+        context["eslint_version"] = "^9.33.0"
         context["zod_version"] = "^4.0.17"
         context["nuxt_apollo_version"] = "5.0.0-alpha.15"
         context["graphql_codegen_cli_version"] = "^5.0.5"
