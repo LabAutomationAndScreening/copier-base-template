@@ -60,6 +60,7 @@ repos:
           |
           (?x)^(
               .*/vendor_files/.*|
+              .*tests/.*/__snapshots__/.*|
           )$
       - id: end-of-file-fixer
         # the XML formatter hook doesn't leave a blank line at the end, so excluding XML files from this hook to avoid conflicts
@@ -72,6 +73,7 @@ repos:
               template/template/.copier-answers.yml.jinja|
               template/.copier-answers.yml.jinja|
               .*generated/graphql.ts|
+              .*tests/.*/__snapshots__/.*|
               .devcontainer/devcontainer-lock.json|
               .copier-answers.yml|
               .*\.xml|
@@ -86,6 +88,7 @@ repos:
               .*pyrightconfig.json|
               .*tsconfig.json|
               .*biome.jsonc|
+              .*tests/.*/__snapshots__/.*|
               .*/vendor_files/.*|
           )$
         args: [--autofix, --no-sort-keys]
