@@ -62,7 +62,7 @@
         },
         "ruff.nativeServer": "on",
         // TODO: see if there's a way to specify different configurations for different folders
-        "ruff.configuration": "${workspaceFolder}/ruff-test.toml", // use the test configuration since it's less restrictive and won't show false positives and underline things
+        "ruff.configuration": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/ruff-test.toml", // use the test configuration since it's less restrictive and won't show false positives and underline things
         "[jsonc][json][javascript][typescript][graphql][css][scss][html][vue]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode",
           "editor.formatOnSave": true
