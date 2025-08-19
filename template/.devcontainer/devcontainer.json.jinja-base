@@ -35,7 +35,7 @@
         "ms-python.python@2025.7.2025051401",
         "ms-python.vscode-pylance@2025.4.104",
         "ms-vscode-remote.remote-containers@0.414.0",
-        "charliermarsh.ruff@2025.22.0",
+        "charliermarsh.ruff@2025.24.0",
 {% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}
         // VueJS
         "vue.volar@2.2.8",
@@ -62,7 +62,7 @@
         },
         "ruff.nativeServer": "on",
         // TODO: see if there's a way to specify different configurations for different folders
-        "ruff.configuration": "${workspaceFolder}/ruff-test.toml", // use the test configuration since it's less restrictive and won't show false positives and underline things
+        "ruff.configuration": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/ruff-test.toml", // use the test configuration since it's less restrictive and won't show false positives and underline things
         "[jsonc][json][javascript][typescript][graphql][css][scss][html][vue]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode",
           "editor.formatOnSave": true

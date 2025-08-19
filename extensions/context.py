@@ -12,9 +12,9 @@ class ContextUpdater(ContextHook):
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
         context["uv_version"] = "0.8.4"
-        context["pre_commit_version"] = "4.2.0"
+        context["pre_commit_version"] = "4.3.0"
         # These also in pyproject.toml
-        context["copier_version"] = "9.8.0"
+        context["copier_version"] = "9.9.1"
         context["copier_template_extensions_version"] = "0.3.2"
         #######
         context["pnpm_version"] = "10.14.0"
@@ -25,7 +25,7 @@ class ContextUpdater(ContextHook):
         context["pytest_cov_version"] = "6.2.1"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.189.0"
+        context["pulumi_version"] = "3.190.0"
         context["pulumi_aws_version"] = "7.4.0"
         context["pulumi_aws_native_version"] = "1.32.0"
         context["pulumi_command_version"] = "1.1.0"
