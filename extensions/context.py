@@ -19,7 +19,7 @@ class ContextUpdater(ContextHook):
         #######
         context["pnpm_version"] = "10.14.0"
         # These are duplicated in the pyproject.toml of this repository
-        context["pyright_version"] = "1.1.403"
+        context["pyright_version"] = "1.1.404"
         context["pytest_version"] = "8.4.1"
         context["pytest_randomly_version"] = "3.16.0"
         context["pytest_cov_version"] = "6.2.1"
@@ -50,6 +50,7 @@ class ContextUpdater(ContextHook):
         context["vue_version"] = "^3.5.18"
         context["vue_router_version"] = "^4.5.1"
         context["faker_version"] = "^9.9.0"
+        context["vitest_version"] = "^3.2.4"
         context["eslint_version"] = "^9.33.0"
         context["zod_version"] = "^4.0.17"
         context["nuxt_apollo_version"] = "5.0.0-alpha.15"

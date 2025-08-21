@@ -31,6 +31,10 @@ on:
         description: 'Should the image be saved as an artifact?'
         required: false
         default: false
+    outputs:
+      artifact-name:
+        description: 'The name of the uploaded artifact of the image tarball'
+        value: ${{ jobs.build-image.outputs.artifact-name }}
 
 permissions:
     id-token: write
@@ -40,6 +44,8 @@ jobs:
   build-image:
     name: Build Docker Image
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
+    outputs:
+      artifact-name: ${{ steps.calculate-build-context-hash.outputs.image_name_no_slashes }}
     steps:
       - name: Parse ECR URL
         if: ${{ inputs.push-role-name != 'no-push' }}
