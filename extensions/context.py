@@ -17,7 +17,7 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "9.9.1"
         context["copier_template_extensions_version"] = "0.3.2"
         #######
-        context["pnpm_version"] = "10.14.0"
+        context["pnpm_version"] = "10.15.0"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = "1.1.404"
         context["pytest_version"] = "8.4.1"
@@ -67,8 +67,8 @@ class ContextUpdater(ContextHook):
         context["gha_upload_artifact"] = "v4.6.2"
         context["gha_download_artifact"] = "v4.3.0"
         context["gha_github_script"] = "v7.0.1"
-        context["gha_setup_buildx"] = "v3.10.0"
-        context["buildx_version"] = "v0.22.0"
+        context["gha_setup_buildx"] = "v3.11.1"
+        context["buildx_version"] = "v0.27.0"
         context["gha_docker_build_push"] = "v6.16.0"
         context["gha_configure_aws_credentials"] = "v4.3.1"
         context["gha_amazon_ecr_login"] = "v2.0.1"
