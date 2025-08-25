@@ -70,7 +70,7 @@ class ContextUpdater(ContextHook):
         context["gha_setup_buildx"] = "v3.10.0"
         context["buildx_version"] = "v0.22.0"
         context["gha_docker_build_push"] = "v6.16.0"
-        context["gha_configure_aws_credentials"] = "v4.2.0"
+        context["gha_configure_aws_credentials"] = "v4.3.1"
         context["gha_amazon_ecr_login"] = "v2.0.1"
         context["gha_setup_node"] = "v4.4.0"
         context["gha_action_gh_release"] = "v2.2.1"
