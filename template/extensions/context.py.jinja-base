@@ -44,7 +44,6 @@ class ContextUpdater(ContextHook):
         context["dot_env_cli_version"] = "{{ dot_env_cli_version }}"
         context["playwright_version"] = "{{ playwright_version }}"
         context["vue_version"] = "{{ vue_version }}"
-        context["vue_router_version"] = "{{ vue_router_version }}"
         context["vue_tsc_version"] = "{{ vue_tsc_version }}"
         context["vue_devtools_api_version"] = "{{ vue_devtools_api_version }}"
         context["vue_router_version"] = "{{ vue_router_version }}"
