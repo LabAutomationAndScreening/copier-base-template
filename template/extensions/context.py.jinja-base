@@ -52,6 +52,7 @@ class ContextUpdater(ContextHook):
         context["faker_version"] = "{{ faker_version }}"
         context["vitest_version"] = "{{ vitest_version }}"
         context["eslint_version"] = "{{ eslint_version }}"
+        context["nuxt_eslint_version"] = "{{ nuxt_eslint_version }}"
         context["zod_version"] = "{{ zod_version }}"
         context["nuxt_apollo_version"] = "{{ nuxt_apollo_version }}"
         context["graphql_codegen_cli_version"] = "{{ graphql_codegen_cli_version }}"
