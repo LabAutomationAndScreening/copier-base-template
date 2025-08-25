@@ -153,10 +153,7 @@ def main():
                     ["sudo", "dpkg", "-i", str(local_package_path)],
                     check=True,
                 )
-            _ = subprocess.run(
-                ["echo", "SSM Plugin Manager Version:"],
-                check=True,
-            )
+            print("SSM Plugin Manager Version: ")
             _ = subprocess.run(
                 ["session-manager-plugin", "--version"],
                 check=True,
