@@ -23,11 +23,11 @@
         "eamodio.gitlens@15.5.1",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
-        "github.copilot@1.320.1564",
-        "github.copilot-chat@0.28.2025051402",
+        "github.copilot@1.366.1775",
+        "github.copilot-chat@0.31.2025090401",
         // Python
-        "ms-python.python@2025.7.2025051401",
-        "ms-python.vscode-pylance@2025.4.104",
+        "ms-python.python@2025.13.2025090201",
+        "ms-python.vscode-pylance@2025.7.102",
         "ms-vscode-remote.remote-containers@0.414.0",
         "charliermarsh.ruff@2025.24.0",
         // Misc file formats
