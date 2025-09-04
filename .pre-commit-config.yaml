@@ -94,7 +94,7 @@ repos:
         args: [--autofix, --no-sort-keys]
 
   - repo: https://github.com/biomejs/pre-commit
-    rev: a68ac261178400d43218fff2885194048cdfc722  # frozen: v2.2.2
+    rev: a450e9c04887b1305951c298db5999cd30155f74  # frozen: v2.1.1
     hooks:
       - id: biome-check
         # exclude generated files from codegen and strawberry
