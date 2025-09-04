@@ -54,6 +54,7 @@ class ContextUpdater(ContextHook):
         context["nuxt_eslint_version"] = "{{ nuxt_eslint_version }}"
         context["zod_version"] = "{{ zod_version }}"
         context["zod_from_json_schema_version"] = "{{ zod_from_json_schema_version}}"
+        context["types_node_version"] = "{{ types_node_version }}"
         context["nuxt_apollo_version"] = "{{ nuxt_apollo_version }}"
         context["graphql_codegen_cli_version"] = "{{ graphql_codegen_cli_version }}"
         context["graphql_codegen_typescript_version"] = "{{ graphql_codegen_typescript_version }}"
