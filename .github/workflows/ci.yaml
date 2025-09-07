@@ -24,7 +24,7 @@ jobs:
     name: Pre-commit for Py${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v5.0.0
 
       - name: Setup Python
         uses: actions/setup-python@v5.6.0
@@ -79,7 +79,7 @@ jobs:
       contents: write # needed for mutex
 
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v5.0.0
 
       - name: Setup Python
         uses: actions/setup-python@v5.6.0

@@ -31,12 +31,12 @@ class ContextUpdater(ContextHook):
         context["pulumi_command_version"] = "1.1.0"
         context["pulumi_github_version"] = "6.7.3"
         context["pulumi_okta_version"] = "5.2.0"
-        context["boto3_version"] = "1.40.23"
+        context["boto3_version"] = "1.40.25"
         context["ephemeral_pulumi_deploy_version"] = "0.0.5"
         context["pydantic_version"] = "2.11.7"
         context["pyinstaller_version"] = "6.13.0"
         context["setuptools_version"] = "80.7.1"
-        context["strawberry_graphql_version"] = "0.280.0"
+        context["strawberry_graphql_version"] = "0.282.0"
         context["fastapi_version"] = "0.116.1"
         context["fastapi_offline_version"] = "1.7.4"
         context["uvicorn_version"] = "0.35.0"
@@ -65,7 +65,7 @@ class ContextUpdater(ContextHook):
         context["graphql_codegen_typescript_version"] = "^4.1.6"
         #######
         # These are duplicated in the CI files for this repository
-        context["gha_checkout"] = "v4.2.2"
+        context["gha_checkout"] = "v5.0.0"
         context["gha_setup_python"] = "v5.6.0"
         context["gha_cache"] = "v4.2.3"
         context["gha_linux_runner"] = "ubuntu-24.04"
