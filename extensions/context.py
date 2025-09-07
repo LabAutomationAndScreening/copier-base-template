@@ -78,7 +78,7 @@ class ContextUpdater(ContextHook):
         context["gha_docker_build_push"] = "v6.16.0"
         context["gha_configure_aws_credentials"] = "v4.3.1"
         context["gha_amazon_ecr_login"] = "v2.0.1"
-        context["gha_setup_node"] = "v4.4.0"
+        context["gha_setup_node"] = "v5.0.0"
         context["gha_action_gh_release"] = "v2.2.1"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
         context["gha_pypi_publish"] = "v1.12.4"
@@ -86,8 +86,8 @@ class ContextUpdater(ContextHook):
         context["gha_windows_runner"] = "windows-2025"
         #######
         context["debian_release_name"] = "bookworm"
-        context["alpine_image_version"] = "3.21"
-        context["nginx_image_version"] = "1.28.0"
+        context["alpine_image_version"] = "3.22"
+        context["nginx_image_version"] = "1.29.1"
         # These also in the tests/data.yml files in this repository and in copier.yaml
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
         context["py313_version"] = "3.13.2"

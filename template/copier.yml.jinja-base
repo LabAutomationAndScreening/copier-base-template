@@ -30,7 +30,7 @@ use_windows_in_ci:
 node_version:
     type: str
     help: What version of NodeJS is used for development?
-    default: 22.14.0
+    default: 24.7.0
 
 {% endraw %}{% endif %}{% raw %}{% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}
 install_aws_ssm_port_forwarding_plugin:
