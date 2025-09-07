@@ -42,6 +42,7 @@ class ContextUpdater(ContextHook):
         context["uvicorn_version"] = "0.35.0"
         context["lab_auto_pulumi_version"] = "0.1.16"
         #######
+        context["node_version"] = "24.7.0"
         context["nuxt_ui_version"] = "^3.3.2"
         context["nuxt_version"] = "^4.1.0"
         context["nuxt_icon_version"] = "^2.0.0"

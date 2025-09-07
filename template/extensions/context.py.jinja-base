@@ -37,6 +37,7 @@ class ContextUpdater(ContextHook):
         context["uvicorn_version"] = "{{ uvicorn_version }}"
         context["lab_auto_pulumi_version"] = "{{ lab_auto_pulumi_version }}"
 
+        context["node_version"] = "{{ node_version }}"
         context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"
         context["nuxt_version"] = "{{ nuxt_version }}"
         context["nuxt_icon_version"] = "{{ nuxt_icon_version }}"
