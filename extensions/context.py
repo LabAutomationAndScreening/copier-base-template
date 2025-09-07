@@ -72,7 +72,7 @@ class ContextUpdater(ContextHook):
         context["gha_linux_runner"] = "ubuntu-24.04"
         #######
         context["gha_upload_artifact"] = "v4.6.2"
-        context["gha_download_artifact"] = "v4.3.0"
+        context["gha_download_artifact"] = "v5.0.0"
         context["gha_github_script"] = "v7.0.1"
         context["gha_setup_buildx"] = "v3.11.1"
         context["buildx_version"] = "v0.27.0"
