@@ -67,7 +67,7 @@ class ContextUpdater(ContextHook):
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v5.0.0"
         context["gha_setup_python"] = "v6.0.0"
-        context["gha_cache"] = "v4.2.3"
+        context["gha_cache"] = "v4.2.4"
         context["gha_linux_runner"] = "ubuntu-24.04"
         #######
         context["gha_upload_artifact"] = "v4.6.2"
@@ -81,7 +81,7 @@ class ContextUpdater(ContextHook):
         context["gha_setup_node"] = "v5.0.0"
         context["gha_action_gh_release"] = "v2.2.1"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
-        context["gha_pypi_publish"] = "v1.12.4"
+        context["gha_pypi_publish"] = "v1.13.0"
         context["gha_sleep"] = "v2.0.3"
         context["gha_windows_runner"] = "windows-2025"
         #######
