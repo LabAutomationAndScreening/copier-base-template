@@ -36,6 +36,7 @@ class ContextUpdater(ContextHook):
         context["fastapi_offline_version"] = "{{ fastapi_offline_version }}"
         context["uvicorn_version"] = "{{ uvicorn_version }}"
         context["lab_auto_pulumi_version"] = "{{ lab_auto_pulumi_version }}"
+        context["ariadne_codegen_version"] = "{{ ariadne_codegen_version }}"
 
         context["node_version"] = "{{ node_version }}"
         context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"
@@ -59,6 +60,7 @@ class ContextUpdater(ContextHook):
         context["nuxt_apollo_version"] = "{{ nuxt_apollo_version }}"
         context["graphql_codegen_cli_version"] = "{{ graphql_codegen_cli_version }}"
         context["graphql_codegen_typescript_version"] = "{{ graphql_codegen_typescript_version }}"
+        context["graphql_codegen_typescript_operations_version"] = "{{ graphql_codegen_typescript_operations_version }}"
 
         context["gha_checkout"] = "{{ gha_checkout }}"
         context["gha_setup_python"] = "{{ gha_setup_python }}"
