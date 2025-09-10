@@ -44,7 +44,7 @@ class ContextUpdater(ContextHook):
         context["ariadne_codegen_version"] = "0.15.2"
         #######
         context["node_version"] = "24.7.0"
-        context["nuxt_ui_version"] = "^3.3.2"
+        context["nuxt_ui_version"] = "^3.3.3"
         context["nuxt_version"] = "^4.1.0"
         context["nuxt_icon_version"] = "^2.0.0"
         context["typescript_version"] = "^5.8.2"
@@ -57,14 +57,15 @@ class ContextUpdater(ContextHook):
         context["dotenv_cli_version"] = "^10.0.0"
         context["faker_version"] = "^10.0.0"
         context["vitest_version"] = "^3.2.4"
-        context["eslint_version"] = "^9.34.0"
+        context["eslint_version"] = "^9.35.0"
         context["nuxt_eslint_version"] = "^1.9.0"
         context["zod_version"] = "^4.1.5"
         context["zod_from_json_schema_version"] = "^0.5.0"
         context["types_node_version"] = "^24.3.1"
         context["nuxt_apollo_version"] = "5.0.0-alpha.15"
-        context["graphql_codegen_cli_version"] = "^5.0.5"
-        context["graphql_codegen_typescript_version"] = "^4.1.6"
+        context["graphql_codegen_cli_version"] = "^6.0.0"
+        context["graphql_codegen_typescript_version"] = "^5.0.0"
+        context["graphql_codegen_typescript_operations_version"] = "^5.0.0"
         #######
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v5.0.0"

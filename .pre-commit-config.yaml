@@ -232,21 +232,42 @@ repos:
         name: ruff-src
         args: [--fix, --config=./ruff.toml]
         files: src/.+\.py$
+        exclude: |
+          (?x)^(
+              .*/graphql_codegen/.*|
+              .*/openapi_codegen/.*|
+          )$
       - id: ruff
         name: ruff-tests
         args: [--fix, --config=./ruff-test.toml]
         files: tests?/.+\.py$
+        exclude: |
+          (?x)^(
+              .*/graphql_codegen/.*|
+              .*/openapi_codegen/.*|
+          )$
       - id: ruff-format
+        exclude: |
+          (?x)^(
+              .*/graphql_codegen/.*|
+              .*/openapi_codegen/.*|
+          )$
 
   - repo: https://github.com/pylint-dev/pylint
     rev: 98942ba4126a6fe1657bad77027bcc11016d16da  # frozen: v3.3.8
     hooks:
       - id: pylint
         name: pylint
+        # exclude the template files---duplication within them will be discovered during CI of that template instantiation
+        exclude: |
+          (?x)^(
+              .*/graphql_codegen/.*|
+              .*/openapi_codegen/.*|
+              template/.|
+          )$
         args:
           - --rcfile=./pylintrc.toml
         verbose: true
-        exclude: ^template/.* # exclude the template files---duplication within them will be discovered during CI of that template instantiation
 
   - repo: local
     hooks:
@@ -254,6 +275,11 @@ repos:
         name: pyright
         entry: bash -c "uv run pyright"
         files: '.+\.py$'
+        exclude: |
+          (?x)^(
+              .*/graphql_codegen/.*|
+              .*/openapi_codegen/.*|
+          )$
         # don't pass filenames else the command line sees them twice
         pass_filenames: false
         language: system
