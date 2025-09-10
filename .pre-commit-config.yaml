@@ -45,8 +45,7 @@ repos:
     rev: 65a25783d8705c6a72d9fead19c44d87b4ff03c3  # frozen: v1
     hooks:
       - id: typos
-        exclude:
-          |
+        exclude: |
           (?x)^(
               .*\.min.js|
               .*\.min.css|
@@ -56,16 +55,14 @@ repos:
     rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
     hooks:
       - id: trailing-whitespace
-        exclude:
-          |
+        exclude: |
           (?x)^(
               .*/vendor_files/.*|
               .*tests/.*/__snapshots__/.*|
           )$
       - id: end-of-file-fixer
         # the XML formatter hook doesn't leave a blank line at the end, so excluding XML files from this hook to avoid conflicts
-        exclude:
-          | # the extra trailing newline in the pull request template makes it easier to click there in the github console. The CLI that programmatically generates devcontainer-lock.json always ends the file incompatible with this hook.
+        exclude: | # the extra trailing newline in the pull request template makes it easier to click there in the github console. The CLI that programmatically generates devcontainer-lock.json always ends the file incompatible with this hook.
           (?x)^(
               .github/pull_request_template.md|
               template/.github/pull_request_template.md|
