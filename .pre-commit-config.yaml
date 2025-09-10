@@ -260,7 +260,7 @@ repos:
           (?x)^(
               .*/graphql_codegen/.*|
               .*/openapi_codegen/.*|
-              template/.|
+              template/.*|
           )$
         args:
           - --rcfile=./pylintrc.toml
