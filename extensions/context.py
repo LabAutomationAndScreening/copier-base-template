@@ -66,6 +66,7 @@ class ContextUpdater(ContextHook):
         context["graphql_codegen_cli_version"] = "^6.0.0"
         context["graphql_codegen_typescript_version"] = "^5.0.0"
         context["graphql_codegen_typescript_operations_version"] = "^5.0.0"
+        context["tailwindcss_version"] = "^4.1.11"
         #######
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v5.0.0"
