@@ -42,7 +42,7 @@ repos:
 
   # Reformatting (should generally come before any file format or other checks, because reformatting can change things)
   - repo: https://github.com/crate-ci/typos
-    rev: 65a25783d8705c6a72d9fead19c44d87b4ff03c3  # frozen: v1
+    rev: edb4e206047e89b93ebe08f1a2ccc3d581a70cc7  # frozen: v1
     hooks:
       - id: typos
         exclude: |
@@ -223,7 +223,7 @@ repos:
         description: Runs hadolint to lint Dockerfiles
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: db90487f48a9dd992d243ef63c156eaffddeaf28  # frozen: v0.12.11
+    rev: 13a6bda8ea7612b3aec844ded16569d424b9a1ab  # frozen: v0.13.0
     hooks:
       - id: ruff
         name: ruff-src
