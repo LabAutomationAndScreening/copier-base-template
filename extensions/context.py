@@ -11,30 +11,30 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.8.15"
+        context["uv_version"] = "0.8.17"
         context["pre_commit_version"] = "4.3.0"
         # These also in pyproject.toml
-        context["copier_version"] = "9.10.1"
+        context["copier_version"] = "9.10.2"
         context["copier_template_extensions_version"] = "0.3.3"
         #######
-        context["pnpm_version"] = "10.15.1"
+        context["pnpm_version"] = "10.16.1"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = "1.1.405"
         context["pytest_version"] = "8.4.2"
-        context["pytest_randomly_version"] = "3.16.0"
-        context["pytest_cov_version"] = "6.3.0"
+        context["pytest_randomly_version"] = "4.0.1"
+        context["pytest_cov_version"] = "7.0.0"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.193.0"
+        context["pulumi_version"] = "3.196.0"
         context["pulumi_aws_version"] = "7.7.0"
         context["pulumi_aws_native_version"] = "1.33.0"
         context["pulumi_command_version"] = "1.1.0"
         context["pulumi_github_version"] = "6.7.3"
         context["pulumi_okta_version"] = "5.2.0"
-        context["boto3_version"] = "1.40.25"
+        context["boto3_version"] = "1.40.30"
         context["ephemeral_pulumi_deploy_version"] = "0.0.5"
         context["pydantic_version"] = "2.11.7"
-        context["pyinstaller_version"] = "6.15.0"
+        context["pyinstaller_version"] = "6.16.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = "0.282.0"
         context["fastapi_version"] = "0.116.1"
@@ -42,13 +42,13 @@ class ContextUpdater(ContextHook):
         context["uvicorn_version"] = "0.35.0"
         context["lab_auto_pulumi_version"] = "0.1.16"
         context["ariadne_codegen_version"] = "0.15.2"
+        context["pytest_mock_version"] = "3.15.0"
         #######
         context["node_version"] = "24.7.0"
         context["nuxt_ui_version"] = "^3.3.3"
         context["nuxt_version"] = "^4.1.0"
         context["nuxt_icon_version"] = "^2.0.0"
         context["typescript_version"] = "^5.8.2"
-        context["dot_env_cli_version"] = "^9.0.0"
         context["playwright_version"] = "^1.55.0"
         context["vue_version"] = "^3.5.21"
         context["vue_tsc_version"] = "^3.0.6"
@@ -66,6 +66,7 @@ class ContextUpdater(ContextHook):
         context["graphql_codegen_cli_version"] = "^6.0.0"
         context["graphql_codegen_typescript_version"] = "^5.0.0"
         context["graphql_codegen_typescript_operations_version"] = "^5.0.0"
+        context["tailwindcss_version"] = "^4.1.11"
         #######
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v5.0.0"
