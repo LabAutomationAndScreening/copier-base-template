@@ -52,7 +52,7 @@ def main():
             )
         else:
             _ = subprocess.run(
-                f"curl -fsSL --connect-timeout 20 --max-time 40 --retry 3 --retry-delay 5 https://astral.sh/uv/{UV_VERSION}/install.sh | sh",
+                f"curl -fsSL --connect-timeout 20 --max-time 40 --retry 3 --retry-delay 5 --retry-connrefused --proto '=https' https://astral.sh/uv/{UV_VERSION}/install.sh | sh",
                 check=True,
                 shell=True,
                 env=uv_env,
