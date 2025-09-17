@@ -68,6 +68,7 @@ class ContextUpdater(ContextHook):
         context["nuxt_fonts_version"] = "{{ nuxt_fonts_version }}"
         context["nuxtjs_color_mode_version"] = "{{ nuxtjs_color_mode_version }}"
         context["vue_test_utils_version"] = "{{ vue_test_utils_version }}"
+        context["nuxt_test_utils_version"] = "{{ nuxt_test_utils_version }}"
 
         context["gha_checkout"] = "{{ gha_checkout }}"
         context["gha_setup_python"] = "{{ gha_setup_python }}"
