@@ -24,6 +24,9 @@ jobs:
       dependabot-commit-created: ${{ steps.update-hash.outputs.commit-created }}
       pr-short-num: ${{ steps.find-pr-num.outputs.number }}
     steps:
+      - name: Display full GitHub context
+        run: echo '${{ toJSON(github) }}'
+
       - name: Checkout code
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
 
