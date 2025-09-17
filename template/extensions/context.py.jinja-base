@@ -38,6 +38,7 @@ class ContextUpdater(ContextHook):
         context["lab_auto_pulumi_version"] = "{{ lab_auto_pulumi_version }}"
         context["ariadne_codegen_version"] = "{{ ariadne_codegen_version }}"
         context["pytest_mock_version"] = "{{ pytest_mock_version }}"
+        context["uuid_utils_version"] = "{{ uuid_utils_version }}"
 
         context["node_version"] = "{{ node_version }}"
         context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"

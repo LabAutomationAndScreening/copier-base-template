@@ -43,6 +43,7 @@ class ContextUpdater(ContextHook):
         context["lab_auto_pulumi_version"] = "0.1.16"
         context["ariadne_codegen_version"] = "0.15.2"
         context["pytest_mock_version"] = "3.15.0"
+        context["uuid_utils_version"] = "0.11.0"
         #######
         context["node_version"] = "24.7.0"
         context["nuxt_ui_version"] = "^3.3.3"
@@ -61,7 +62,7 @@ class ContextUpdater(ContextHook):
         context["nuxt_eslint_version"] = "^1.9.0"
         context["zod_version"] = "^4.1.5"
         context["zod_from_json_schema_version"] = "^0.5.0"
-        context["types_node_version"] = "^24.3.1"
+        context["types_node_version"] = "^24.5.1"
         context["nuxt_apollo_version"] = "5.0.0-alpha.15"
         context["graphql_codegen_cli_version"] = "^6.0.0"
         context["graphql_codegen_typescript_version"] = "^5.0.0"
