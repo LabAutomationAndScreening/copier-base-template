@@ -63,6 +63,11 @@ class ContextUpdater(ContextHook):
         context["graphql_codegen_typescript_version"] = "{{ graphql_codegen_typescript_version }}"
         context["graphql_codegen_typescript_operations_version"] = "{{ graphql_codegen_typescript_operations_version }}"
         context["tailwindcss_version"] = "{{ tailwindcss_version }}"
+        context["iconify_vue_version"] = "{{ iconify_vue_version }}"
+        context["iconify_json_lucide_version"] = "{{ iconify_json_lucide_version }}"
+        context["nuxt_fonts_version"] = "{{ nuxt_fonts_version }}"
+        context["nuxtjs_color_mode_version"] = "{{ nuxtjs_color_mode_version }}"
+        context["vue_test_utils_version"] = "{{ vue_test_utils_version }}"
 
         context["gha_checkout"] = "{{ gha_checkout }}"
         context["gha_setup_python"] = "{{ gha_setup_python }}"
