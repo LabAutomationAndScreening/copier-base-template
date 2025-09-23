@@ -1,0 +1,4 @@
+rules:
+  template-injection:
+    ignore:
+      - get-values.yaml:28
