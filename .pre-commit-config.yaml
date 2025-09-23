@@ -178,6 +178,11 @@ repos:
       - id: check-merge-conflict
       - id: check-case-conflict
 
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 83987cd6ad8943c7f029b500b14aaf82c00a01fa  # frozen: 0.34.0
+    hooks:
+      - id: check-github-workflows
+
   - repo: https://github.com/maresb/check-json5
     rev: 893a2b5a0a27c3540bd8fcafe2968ccc05237179 # 1.0
     hooks:
@@ -206,7 +211,7 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.13.0
+    rev: b933184438555436e38621f46ceb0c417cbed400  # frozen: v1.13.0
     hooks:
       - id: zizmor
 
