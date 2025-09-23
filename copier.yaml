@@ -9,7 +9,7 @@ repo_org_name:
 
 repo_org_name_for_copyright:
     type: str
-    help: What's the human-readable organization or username that should be set for the Copyright?
+    help: What's the human-readable organization or username that should be set for the copyright?
     default: "{{ repo_org_name }}"
 
 description:
