@@ -125,6 +125,7 @@ repos:
               .*/vendor_files/.*|
               .*/schema.graphql|
               .*generated/graphql.ts|
+              template/.*|
           )$
         files: (.*.json)|(.*.ts)|(.*.jsx)|(.*.tsx)|(.*.yaml)|(.*.yml)|(.*.md)|(.*.html)|(.*.css)|(.*.scss)|(.*.less)|(.*.vue)|(.*.graphql)|(.*.gql)
 
