@@ -6,6 +6,7 @@ python_ci_versions:
 template_uses_python: true
 template_uses_pulumi: true
 repo_org_name: theGreatestOrg
+repo_org_name_for_copyright: The Greatest Org
 template_uses_javascript: false
 template_uses_vuejs: false
 template_might_want_to_install_aws_ssm_port_forwarding_plugin: true

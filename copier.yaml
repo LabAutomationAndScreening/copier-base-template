@@ -7,6 +7,11 @@ repo_org_name:
     type: str
     help: What's the organization or username that owns this repository (look in the URL)?
 
+repo_org_name_for_copyright:
+    type: str
+    help: What's the human-readable organization or username that should be set for the copyright?
+    default: "{{ repo_org_name }}"
+
 description:
     type: str
     help: What is this copier template used for?

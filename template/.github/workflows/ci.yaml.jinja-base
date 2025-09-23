@@ -51,6 +51,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+        with:
+          persist-credentials: false
 
       - name: Move python script that replaces private package registry information to temp folder so it doesn't get deleted
         run: |

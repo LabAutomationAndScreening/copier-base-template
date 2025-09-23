@@ -45,6 +45,7 @@ ignore = [
     "D102", # Docstrings are not always necessary for public methods
     "D103", # Docstrings are not always necessary for public functions
     "D104", # Docstrings are not always necessary for public packages
+    "D105", # Docstrings are not always necessary for magic methods
     "D106", # Nested classes are usually library-specific and don't always require its own docstring
     "D107", # Init shouldn't need its own docstring, those arguments can be captured in the class level docstring
     "D203", # Ignore D203 because it's a bug https://github.com/PyCQA/pydocstyle/issues/141

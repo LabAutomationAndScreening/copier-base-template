@@ -25,6 +25,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Setup Python
         uses: actions/setup-python@v6.0.0
@@ -80,6 +82,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Setup Python
         uses: actions/setup-python@v6.0.0
@@ -153,6 +157,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [ lint-matrix ]
     if: always()
+    permissions: {}
     steps:
       - name: fail if prior job failure
         if: needs.lint-matrix.result != 'success'
