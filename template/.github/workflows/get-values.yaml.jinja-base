@@ -25,7 +25,10 @@ jobs:
       pr-short-num: ${{ steps.find-pr-num.outputs.number }}
     steps:
       - name: Display full GitHub context
-        run: echo '${{ toJSON(github) }}'
+        run: |
+          jq . <<'JSON'
+          ${{ toJSON(github) }}
+          JSON
 
       - name: Checkout code
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
