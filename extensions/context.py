@@ -73,7 +73,8 @@ class ContextUpdater(ContextHook):
         context["nuxt_fonts_version"] = "^0.11.4"
         context["nuxtjs_color_mode_version"] = "^3.5.2"
         context["vue_test_utils_version"] = "^2.4.6"
-        context["nuxt_test_utils_version"] = "^3.17.2"
+        context["nuxt_test_utils_version"] = "3.18.0"
+        context["vue_eslint_parser_version"] = "^10.1.3"
         #######
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v5.0.0"
