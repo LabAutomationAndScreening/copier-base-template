@@ -18,7 +18,8 @@
       // https://github.com/devcontainers/features/tree/main/src/node
       "version": "{% endraw %}{{ node_version }}{% raw %}",
       "pnpmVersion": "{% endraw %}{{ pnpm_version }}{% raw %}"
-    }{% endraw %}{% endif %}{% raw %}
+    }{% endraw %}{% endif %}{% raw %}{% endraw %}{% if install_claude_cli %}{% raw %},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0.5": {}{% endraw %}{% endif %}{% raw %}
   },
   "customizations": {
     "vscode": {
@@ -49,7 +50,8 @@
         "samuelcolvin.jinjahtml@0.20.0",
         "tamasfe.even-better-toml@0.19.2",
         "emilast.LogFileHighlighter@3.3.3",
-        "esbenp.prettier-vscode@11.0.0"
+        "esbenp.prettier-vscode@11.0.0"{% endraw %}{% if install_claude_cli %}{% raw %},
+        "anthropic.claude-code@2.0.10"{% endraw %}{% endif %}{% raw %}
       ],
       "settings": {
         "editor.accessibilitySupport": "off", // turn off sounds
