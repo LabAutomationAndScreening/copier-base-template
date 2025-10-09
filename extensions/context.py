@@ -46,7 +46,7 @@ class ContextUpdater(ContextHook):
         context["uuid_utils_version"] = "0.11.0"
         #######
         context["node_version"] = "24.7.0"
-        context["nuxt_ui_version"] = "^4.0.0"
+        context["nuxt_ui_version"] = "^4.0.1"
         context["nuxt_version"] = "^4.1.0"
         context["nuxt_icon_version"] = "^2.0.0"
         context["typescript_version"] = "^5.9.3"
