@@ -29,14 +29,14 @@
         "eamodio.gitlens@15.5.1",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
-        "github.copilot@1.366.1775",
-        "github.copilot-chat@0.31.2025090401",
+        "github.copilot@1.378.1798",
+        "github.copilot-chat@0.32.2025100703",
 
         // Python
         "ms-python.python@2025.13.2025090201",
         "ms-python.vscode-pylance@2025.7.102",
         "ms-vscode-remote.remote-containers@0.414.0",
-        "charliermarsh.ruff@2025.24.0",
+        "charliermarsh.ruff@2025.28.0",
 {% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}
         // VueJS
         "vue.volar@3.0.6",
