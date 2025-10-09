@@ -74,6 +74,7 @@ repos:
               .devcontainer/devcontainer-lock.json|
               .copier-answers.yml|
               .*\.xml|
+              .*\.svg|
               .*/vendor_files/.*|
           )$
       - id: pretty-format-json
@@ -148,6 +149,7 @@ repos:
           (?x)^(
               .*/__snapshots__/.*|
               .*/vendor_files/.*|
+              .*\.svg|
           )$
 
   # Invalid File Checks
