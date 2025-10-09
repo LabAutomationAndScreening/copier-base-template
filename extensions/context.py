@@ -11,15 +11,15 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.8.22"
+        context["uv_version"] = "0.9.0"
         context["pre_commit_version"] = "4.3.0"
         # These also in pyproject.toml
         context["copier_version"] = "9.10.2"
         context["copier_template_extensions_version"] = "0.3.3"
         #######
-        context["pnpm_version"] = "10.17.1"
+        context["pnpm_version"] = "10.18.1"
         # These are duplicated in the pyproject.toml of this repository
-        context["pyright_version"] = "1.1.405"
+        context["pyright_version"] = "1.1.406"
         context["pytest_version"] = "8.4.2"
         context["pytest_randomly_version"] = "4.0.1"
         context["pytest_cov_version"] = "7.0.0"
@@ -33,7 +33,7 @@ class ContextUpdater(ContextHook):
         context["pulumi_okta_version"] = "5.2.0"
         context["boto3_version"] = "1.40.41"
         context["ephemeral_pulumi_deploy_version"] = "0.0.5"
-        context["pydantic_version"] = "2.11.7"
+        context["pydantic_version"] = "2.12.0"
         context["pyinstaller_version"] = "6.16.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = "0.282.0"
@@ -49,10 +49,10 @@ class ContextUpdater(ContextHook):
         context["nuxt_ui_version"] = "^4.0.0"
         context["nuxt_version"] = "^4.1.0"
         context["nuxt_icon_version"] = "^2.0.0"
-        context["typescript_version"] = "^5.8.2"
+        context["typescript_version"] = "^5.9.3"
         context["playwright_version"] = "^1.55.0"
         context["vue_version"] = "^3.5.21"
-        context["vue_tsc_version"] = "^3.1.0"
+        context["vue_tsc_version"] = "^3.1.1"
         context["vue_devtools_api_version"] = "^8.0.0"
         context["vue_router_version"] = "^4.5.1"
         context["dotenv_cli_version"] = "^10.0.0"
