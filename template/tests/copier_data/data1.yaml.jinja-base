@@ -3,6 +3,7 @@ repo_name: the_best_repo
 repo_org_name: great-company
 is_open_source: true
 description: Doing amazing things
+install_claude_cli: false
 ssh_port_number: 12345
 use_windows_in_ci: false
 {% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}install_aws_ssm_port_forwarding_plugin: true{% endraw %}{% endif %}{% raw %}

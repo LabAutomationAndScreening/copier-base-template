@@ -11,6 +11,11 @@ description:
     type: str
     help: What is the description of this repository?
 
+install_claude_cli:
+    type: bool
+    help: Should the Claude CLI be installed in the devcontainer?
+    default: no
+
 is_open_source:
     type: bool
     help: Is this library open source?

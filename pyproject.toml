@@ -8,7 +8,7 @@ dependencies = [
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
     "pytest-randomly>=4.0.1",
-    "pyright[nodejs]>=1.1.405",
+    "pyright[nodejs]>=1.1.406",
     "copier>=9.10.2",
     "copier-template-extensions>=0.3.3"
 ]

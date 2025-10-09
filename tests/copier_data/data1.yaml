@@ -1,5 +1,6 @@
 repo_name: the_best_repo
 description: Doing amazing things
+install_claude_cli: true
 ssh_port_number: 12345
 python_ci_versions:
   - 3.13.2

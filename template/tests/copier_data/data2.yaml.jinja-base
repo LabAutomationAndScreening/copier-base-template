@@ -3,6 +3,7 @@ repo_name: another_repo
 repo_org_name: initech
 is_open_source: false
 description: Doing crazy things! So many things!
+install_claude_cli: true
 ssh_port_number: 54321
 use_windows_in_ci: true
 {% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}install_aws_ssm_port_forwarding_plugin: false{% endraw %}{% endif %}{% raw %}
