@@ -17,7 +17,7 @@
     environment:
       - AWS_PROFILE=localstack
       - AWS_DEFAULT_REGION={% endraw %}{{ aws_region_for_stack if (aws_region_for_stack is defined and aws_region_for_stack != "") else "us-east-1" }}{% raw %}{% endraw %}{% if install_claude_cli %}{% raw %}
-      - ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}{% endraw %}{% endif %}{% raw %}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}{% endraw %}{% endif %}{% raw %}
 
 
 volumes:
