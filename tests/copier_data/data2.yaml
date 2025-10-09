@@ -1,5 +1,6 @@
 repo_name: another_repo
 description: Doing terrible things!
+install_claude_cli: false
 ssh_port_number: 54321
 python_ci_versions:
   - "3.12.7"
