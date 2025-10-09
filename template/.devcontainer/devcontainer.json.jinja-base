@@ -33,8 +33,8 @@
         "github.copilot-chat@0.32.2025100703",
 
         // Python
-        "ms-python.python@2025.13.2025090201",
-        "ms-python.vscode-pylance@2025.7.102",
+        "ms-python.python@2025.17.2025100201",
+        "ms-python.vscode-pylance@2025.8.3",
         "ms-vscode-remote.remote-containers@0.414.0",
         "charliermarsh.ruff@2025.28.0",
 {% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}
