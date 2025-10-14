@@ -20,7 +20,7 @@
       // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
         // basic tooling
-        //"eamodio.gitlens@15.5.1",
+        // "eamodio.gitlens@15.5.1",
         "coderabbit.coderabbit-vscode@0.15.2",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
