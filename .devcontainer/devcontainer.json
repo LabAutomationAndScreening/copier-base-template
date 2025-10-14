@@ -20,11 +20,12 @@
       // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
         // basic tooling
-        "eamodio.gitlens@15.5.1",
+        // "eamodio.gitlens@15.5.1",
+        "coderabbit.coderabbit-vscode@0.15.2",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
-        "github.copilot@1.366.1775",
-        "github.copilot-chat@0.31.2025090401",
+        "github.copilot@1.380.1802",
+        "github.copilot-chat@0.33.2025101401",
         // Python
         "ms-python.python@2025.13.2025090201",
         "ms-python.vscode-pylance@2025.7.102",
@@ -59,5 +60,5 @@
   "initializeCommand": "sh .devcontainer/initialize-command.sh",
   "onCreateCommand": "sh .devcontainer/on-create-command.sh",
   "postStartCommand": "sh .devcontainer/post-start-command.sh"
-  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): 77217583 # spellchecker:disable-line
+  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): 91cfa9eb # spellchecker:disable-line
 }

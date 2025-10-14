@@ -26,11 +26,12 @@
       // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
         // basic tooling
-        "eamodio.gitlens@15.5.1",
+        // "eamodio.gitlens@15.5.1",
+        "coderabbit.coderabbit-vscode@0.15.2",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
-        "github.copilot@1.378.1798",
-        "github.copilot-chat@0.32.2025100703",
+        "github.copilot@1.380.1802",
+        "github.copilot-chat@0.33.2025101401",
 
         // Python
         "ms-python.python@2025.17.2025100201",
