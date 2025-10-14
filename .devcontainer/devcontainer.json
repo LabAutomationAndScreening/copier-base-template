@@ -24,8 +24,8 @@
         "coderabbit.coderabbit-vscode@0.15.2",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
-        "github.copilot@1.366.1775",
-        "github.copilot-chat@0.31.2025090401",
+        "github.copilot@1.380.1802",
+        "github.copilot-chat@0.33.2025101401",
         // Python
         "ms-python.python@2025.13.2025090201",
         "ms-python.vscode-pylance@2025.7.102",
