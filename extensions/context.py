@@ -37,7 +37,7 @@ class ContextUpdater(ContextHook):
         context["pyinstaller_version"] = "6.16.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = "0.282.0"
-        context["fastapi_version"] = "0.118.0"
+        context["fastapi_version"] = "0.119.0"
         context["fastapi_offline_version"] = "1.7.4"
         context["uvicorn_version"] = "0.37.0"
         context["lab_auto_pulumi_version"] = "0.1.16"
