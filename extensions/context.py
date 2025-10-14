@@ -36,7 +36,7 @@ class ContextUpdater(ContextHook):
         context["pydantic_version"] = "2.12.0"
         context["pyinstaller_version"] = "6.16.0"
         context["setuptools_version"] = "80.7.1"
-        context["strawberry_graphql_version"] = "0.283.3    "
+        context["strawberry_graphql_version"] = "0.283.3"
         context["fastapi_version"] = "0.119.0"
         context["fastapi_offline_version"] = "1.7.4"
         context["uvicorn_version"] = "0.37.0"
