@@ -42,7 +42,7 @@ repos:
 
   # Reformatting (should generally come before any file format or other checks, because reformatting can change things)
   - repo: https://github.com/crate-ci/typos
-    rev: edb4e206047e89b93ebe08f1a2ccc3d581a70cc7  # frozen: v1
+    rev: 6573587991823ef75e4d6ca97fe895f45e9f14e4  # frozen: v1
     hooks:
       - id: typos
         exclude: |
@@ -184,7 +184,7 @@ repos:
       - id: check-case-conflict
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 83987cd6ad8943c7f029b500b14aaf82c00a01fa  # frozen: 0.34.0
+    rev: 83b816d020105076daac266dbf6bfed199a2da93  # frozen: 0.34.1
     hooks:
       - id: check-github-workflows
 
@@ -238,7 +238,7 @@ repos:
         description: Runs hadolint to lint Dockerfiles
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: a113f03edeabb71305f025e6e14bd2cd68660e29  # frozen: v0.13.1
+    rev: f9351c924055bf6c7b4a4670237d3ce141e9f57c  # frozen: v0.14.0
     hooks:
       - id: ruff
         name: ruff-src
@@ -266,7 +266,7 @@ repos:
           )$
 
   - repo: https://github.com/pylint-dev/pylint
-    rev: 98942ba4126a6fe1657bad77027bcc11016d16da  # frozen: v3.3.8
+    rev: 9a3035053154ba0c3ca3b300d6bc9fa72b95d552  # frozen: v4.0.1
     hooks:
       - id: pylint
         name: pylint
