@@ -39,6 +39,7 @@ class ContextUpdater(ContextHook):
         context["ariadne_codegen_version"] = "{{ ariadne_codegen_version }}"
         context["pytest_mock_version"] = "{{ pytest_mock_version }}"
         context["uuid_utils_version"] = "{{ uuid_utils_version }}"
+        context["syrupy_version"] = "{{ syrupy_version }}"
 
         context["node_version"] = "{{ node_version }}"
         context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"
@@ -71,6 +72,7 @@ class ContextUpdater(ContextHook):
         context["nuxt_test_utils_version"] = "{{ nuxt_test_utils_version }}"
         context["vue_eslint_parser_version"] = "{{ vue_eslint_parser_version }}"
         context["happy_dom_version"] = "{{ happy_dom_version }}"
+        context["node_kiota_bundle_version"] = "{{ node_kiota_bundle_version }}"
 
         context["gha_checkout"] = "{{ gha_checkout }}"
         context["gha_setup_python"] = "{{ gha_setup_python }}"
