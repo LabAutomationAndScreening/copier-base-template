@@ -253,6 +253,7 @@ repos:
           (?x)^(
               .*/graphql_codegen/.*|
               .*/openapi_codegen/.*|
+              template/.*|
           )$
       - id: ruff
         name: ruff-tests
@@ -262,6 +263,7 @@ repos:
           (?x)^(
               .*/graphql_codegen/.*|
               .*/openapi_codegen/.*|
+              template/.*|
           )$
       - id: ruff-format
         exclude: |
