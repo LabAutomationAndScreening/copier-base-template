@@ -44,6 +44,7 @@ class ContextUpdater(ContextHook):
         context["ariadne_codegen_version"] = "0.15.2"
         context["pytest_mock_version"] = "3.15.0"
         context["uuid_utils_version"] = "0.11.0"
+        context["syrupy_version"] = "5.0.0"
         #######
         context["node_version"] = "24.7.0"
         context["nuxt_ui_version"] = "^4.0.1"
