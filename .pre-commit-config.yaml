@@ -59,6 +59,7 @@ repos:
           (?x)^(
               .*/vendor_files/.*|
               .*tests/.*/__snapshots__/.*|
+              .*/openapi_codegen/.*|
           )$
       - id: end-of-file-fixer
         # the XML formatter hook doesn't leave a blank line at the end, so excluding XML files from this hook to avoid conflicts
@@ -70,6 +71,7 @@ repos:
               template/template/.copier-answers.yml.jinja|
               template/.copier-answers.yml.jinja|
               .*generated/graphql.ts|
+              .*/openapi_codegen/.*|
               .*tests/.*/__snapshots__/.*|
               .devcontainer/devcontainer-lock.json|
               .copier-answers.yml|
@@ -86,6 +88,7 @@ repos:
               .*pyrightconfig.json|
               .*tsconfig.json|
               .*biome.jsonc|
+              .*/openapi_codegen/.*|
               .*tests/.*/__snapshots__/.*|
               .*/vendor_files/.*|
           )$
@@ -99,6 +102,7 @@ repos:
         exclude: |
           (?x)^(
               .*generated/graphql.ts|
+              .*/openapi_codegen/.*|
               .*/schema.graphql|
               .*pyrightconfig\.json|
           )$
@@ -125,6 +129,7 @@ repos:
               .*.jsonc|
               .*/vendor_files/.*|
               .*/schema.graphql|
+              .*/openapi_codegen/.*|
               .*generated/graphql.ts|
               template/.*|
           )$
