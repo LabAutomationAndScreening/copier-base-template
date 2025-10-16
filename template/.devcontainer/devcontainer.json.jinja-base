@@ -31,7 +31,8 @@
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.380.1802",
-        "github.copilot-chat@0.33.2025101401",
+        "github.copilot-chat@0.33.2025101401"{% endraw %}{% if install_claude_cli %}{% raw %},
+        "anthropic.claude-code@2.0.10"{% endraw %}{% endif %}{% raw %}
 
         // Python
         "ms-python.python@2025.17.2025100201",
@@ -51,14 +52,14 @@
         "samuelcolvin.jinjahtml@0.20.0",
         "tamasfe.even-better-toml@0.19.2",
         "emilast.LogFileHighlighter@3.3.3",
-        "esbenp.prettier-vscode@11.0.0"{% endraw %}{% if install_claude_cli %}{% raw %},
-        "anthropic.claude-code@2.0.10"{% endraw %}{% endif %}{% raw %}
+        "esbenp.prettier-vscode@11.0.0"
       ],
       "settings": {
         "editor.accessibilitySupport": "off", // turn off sounds
         "extensions.autoUpdate": false,
         "extensions.autoCheckUpdates": false,
         "livePreview.portNumber": 3025, // arbitrary not to conflict with default 3000 Nuxt port number
+        "github.copilot.nextEditSuggestions.allowWhitespaceOnlyChanges": false,
         "[python]": {
           "editor.formatOnSave": true,
           "editor.defaultFormatter": "charliermarsh.ruff"

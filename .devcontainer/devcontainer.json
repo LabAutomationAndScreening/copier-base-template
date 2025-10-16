@@ -43,6 +43,7 @@
         "extensions.autoUpdate": false,
         "extensions.autoCheckUpdates": false,
         "livePreview.portNumber": 3025, // arbitrary not to conflict with default 3000 Nuxt port number
+        "github.copilot.nextEditSuggestions.allowWhitespaceOnlyChanges": false,
         "[python]": {
           "editor.formatOnSave": true,
           "editor.defaultFormatter": "charliermarsh.ruff"
