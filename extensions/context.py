@@ -54,9 +54,9 @@ class ContextUpdater(ContextHook):
         context["vue_version"] = "^3.5.21"
         context["vue_tsc_version"] = "^3.1.1"
         context["vue_devtools_api_version"] = "^8.0.0"
-        context["vue_router_version"] = "^4.5.1"
+        context["vue_router_version"] = "^4.6.0"
         context["dotenv_cli_version"] = "^10.0.0"
-        context["faker_version"] = "^10.0.0"
+        context["faker_version"] = "^10.1.0"
         context["vitest_version"] = "^3.2.4"
         context["eslint_version"] = "^9.37.0"
         context["nuxt_eslint_version"] = "^1.9.0"
@@ -75,7 +75,7 @@ class ContextUpdater(ContextHook):
         context["vue_test_utils_version"] = "^2.4.6"
         context["nuxt_test_utils_version"] = "3.19.1"
         context["vue_eslint_parser_version"] = "^10.1.3"
-        context["happy_dom_version"] = "^20.0.0"
+        context["happy_dom_version"] = "^20.0.2"
         #######
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v5.0.0"
