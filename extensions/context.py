@@ -42,7 +42,7 @@ class ContextUpdater(ContextHook):
         context["uvicorn_version"] = "0.37.0"
         context["lab_auto_pulumi_version"] = "0.1.17"
         context["ariadne_codegen_version"] = "0.15.2"
-        context["pytest_mock_version"] = "3.15.0"
+        context["pytest_mock_version"] = "3.15.1"
         context["uuid_utils_version"] = "0.11.0"
         context["syrupy_version"] = "5.0.0"
         #######
