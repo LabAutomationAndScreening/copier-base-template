@@ -59,7 +59,7 @@ repos:
           (?x)^(
               .*/vendor_files/.*|
               .*tests/.*/__snapshots__/.*|
-              .*/openapi_codegen/.*|
+              .*/generated/open[-_]api/.*|
           )$
       - id: end-of-file-fixer
         # the XML formatter hook doesn't leave a blank line at the end, so excluding XML files from this hook to avoid conflicts
@@ -71,7 +71,7 @@ repos:
               template/template/.copier-answers.yml.jinja|
               template/.copier-answers.yml.jinja|
               .*generated/graphql.ts|
-              .*/openapi_codegen/.*|
+              .*/generated/open[-_]api/.*|
               .*tests/.*/__snapshots__/.*|
               .devcontainer/devcontainer-lock.json|
               .copier-answers.yml|
@@ -88,7 +88,7 @@ repos:
               .*pyrightconfig.json|
               .*tsconfig.json|
               .*biome.jsonc|
-              .*/openapi_codegen/.*|
+              .*/generated/open[-_]api/.*|
               .*tests/.*/__snapshots__/.*|
               .*/vendor_files/.*|
           )$
@@ -102,7 +102,7 @@ repos:
         exclude: |
           (?x)^(
               .*generated/graphql.ts|
-              .*/openapi_codegen/.*|
+              .*/generated/open[-_]api/.*|
               .*/schema.graphql|
               .*pyrightconfig\.json|
           )$
@@ -129,7 +129,7 @@ repos:
               .*.jsonc|
               .*/vendor_files/.*|
               .*/schema.graphql|
-              .*/openapi_codegen/.*|
+              .*/generated/open[-_]api/.*|
               .*generated/graphql.ts|
               template/.*|
           )$
@@ -243,7 +243,7 @@ repos:
         description: Runs hadolint to lint Dockerfiles
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: f9351c924055bf6c7b4a4670237d3ce141e9f57c  # frozen: v0.14.0
+    rev: 3db93a2be6f214ed722bf7bce095ec1b1715422a  # frozen: v0.14.2
     hooks:
       - id: ruff
         name: ruff-src
@@ -252,7 +252,7 @@ repos:
         exclude: |
           (?x)^(
               .*/graphql_codegen/.*|
-              .*/openapi_codegen/.*|
+              .*/generated/open[-_]api/.*|
               template/.*|
           )$
       - id: ruff
@@ -262,18 +262,18 @@ repos:
         exclude: |
           (?x)^(
               .*/graphql_codegen/.*|
-              .*/openapi_codegen/.*|
+              .*/generated/open[-_]api/.*|
               template/.*|
           )$
       - id: ruff-format
         exclude: |
           (?x)^(
               .*/graphql_codegen/.*|
-              .*/openapi_codegen/.*|
+              .*/generated/open[-_]api/.*|
           )$
 
   - repo: https://github.com/pylint-dev/pylint
-    rev: 9a3035053154ba0c3ca3b300d6bc9fa72b95d552  # frozen: v4.0.1
+    rev: 0eb92d25fd38ba5bad2f8d2ea7df63ad23e18ae3  # frozen: v4.0.2
     hooks:
       - id: pylint
         name: pylint
@@ -281,7 +281,7 @@ repos:
         exclude: |
           (?x)^(
               .*/graphql_codegen/.*|
-              .*/openapi_codegen/.*|
+              .*/generated/open[-_]api/.*|
               template/.*|
           )$
         args:
@@ -297,7 +297,7 @@ repos:
         exclude: |
           (?x)^(
               .*/graphql_codegen/.*|
-              .*/openapi_codegen/.*|
+              .*/generated/open[-_]api/.*|
           )$
         # don't pass filenames else the command line sees them twice
         pass_filenames: false
