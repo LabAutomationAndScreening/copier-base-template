@@ -11,21 +11,21 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.9.2"
+        context["uv_version"] = "0.9.5"
         context["pre_commit_version"] = "4.3.0"
         # These also in pyproject.toml
-        context["copier_version"] = "9.10.2"
+        context["copier_version"] = "9.10.3"
         context["copier_template_extensions_version"] = "0.3.3"
         #######
-        context["pnpm_version"] = "10.18.3"
+        context["pnpm_version"] = "10.19.0"
         # These are duplicated in the pyproject.toml of this repository
-        context["pyright_version"] = "1.1.406"
+        context["pyright_version"] = "1.1.407"
         context["pytest_version"] = "8.4.2"
         context["pytest_randomly_version"] = "4.0.1"
         context["pytest_cov_version"] = "7.0.0"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.203.0"
+        context["pulumi_version"] = "3.204.0"
         context["pulumi_aws_version"] = "7.8.0"
         context["pulumi_aws_native_version"] = "1.37.0"
         context["pulumi_command_version"] = "1.1.3"
@@ -37,9 +37,9 @@ class ContextUpdater(ContextHook):
         context["pyinstaller_version"] = "6.16.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = "0.283.3"
-        context["fastapi_version"] = "0.119.0"
+        context["fastapi_version"] = "0.120.1"
         context["fastapi_offline_version"] = "1.7.4"
-        context["uvicorn_version"] = "0.37.0"
+        context["uvicorn_version"] = "0.38.0"
         context["lab_auto_pulumi_version"] = "0.1.17"
         context["ariadne_codegen_version"] = "0.15.2"
         context["pytest_mock_version"] = "3.15.1"
@@ -93,7 +93,7 @@ class ContextUpdater(ContextHook):
         context["gha_docker_build_push"] = "v6.16.0"
         context["gha_configure_aws_credentials"] = "v5.0.0"
         context["gha_amazon_ecr_login"] = "v2.0.1"
-        context["gha_setup_node"] = "v5.0.0"
+        context["gha_setup_node"] = "v6.0.0"
         context["gha_action_gh_release"] = "v2.2.1"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
         context["gha_pypi_publish"] = "v1.13.0"

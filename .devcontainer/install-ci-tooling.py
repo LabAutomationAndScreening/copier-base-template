@@ -5,8 +5,8 @@ import shutil
 import subprocess
 import sys
 
-UV_VERSION = "0.9.2"
-COPIER_VERSION = "9.10.2"
+UV_VERSION = "0.9.5"
+COPIER_VERSION = "9.10.3"
 COPIER_TEMPLATE_EXTENSIONS_VERSION = "0.3.3"
 PRE_COMMIT_VERSION = "4.3.0"
 GITHUB_WINDOWS_RUNNER_BIN_PATH = r"C:\Users\runneradmin\.local\bin"
