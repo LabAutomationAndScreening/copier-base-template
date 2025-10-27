@@ -70,7 +70,7 @@ class ContextUpdater(ContextHook):
         context["graphql_codegen_typescript_operations_version"] = "^5.0.0"
         context["tailwindcss_version"] = "^4.1.11"
         context["iconify_vue_version"] = "^5.0.0"
-        context["iconify_json_lucide_version"] = "^1.2.68"
+        context["iconify_json_lucide_version"] = "^1.2.71"
         context["nuxt_fonts_version"] = "^0.11.4"
         context["nuxtjs_color_mode_version"] = "^3.5.2"
         context["vue_test_utils_version"] = "^2.4.6"
