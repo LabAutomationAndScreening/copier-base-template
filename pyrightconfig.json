@@ -99,7 +99,6 @@
   "reportUnnecessaryTypeIgnoreComment": true,
   "reportMatchNotExhaustive": true,
   "reportImplicitOverride": true,
-  "reportShadowedImports": true,
   "pythonPlatform": "Linux",
   "executionEnvironments": [
     {
