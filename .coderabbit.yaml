@@ -19,3 +19,4 @@ reviews:
       enabled: false
     flake8: # we use ruff instead (when we use Python)
       enabled: false
+  poem: false
