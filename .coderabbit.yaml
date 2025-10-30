@@ -10,12 +10,11 @@ reviews:
     - path: "**/vendor_files/**"
       instructions: "These files came from a vendor and we're not allowed to change them. Refer to it if you need to understand how the main code interacts with it, but do not make comments about it."
   tools:
-    # these are already run by pre-commit, and coderabbit often generates false positives
-    eslint:
+    eslint: # when the code contains typescript, eslint will be run by pre-commit, and coderabbit often generates false positives
       enabled: false
-    ruff:
+    ruff: # when the code contains python, ruff will be run by pre-commit, and coderabbit often generates false positives
       enabled: false
-    pylint:
+    pylint: # when the code contains python, pylint will be run by pre-commit, and coderabbit often generates false positives
       enabled: false
-    flake8:
+    flake8: # we use ruff instead (when we use Python)
       enabled: false
