@@ -40,6 +40,7 @@ class ContextUpdater(ContextHook):
         context["pytest_mock_version"] = "{{ pytest_mock_version }}"
         context["uuid_utils_version"] = "{{ uuid_utils_version }}"
         context["syrupy_version"] = "{{ syrupy_version }}"
+        context["structlog_version"] = "{{ structlog_version }}"
 
         context["node_version"] = "{{ node_version }}"
         context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"
