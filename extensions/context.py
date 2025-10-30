@@ -11,13 +11,13 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.9.5"
+        context["uv_version"] = "0.9.6"
         context["pre_commit_version"] = "4.3.0"
         # These also in pyproject.toml
         context["copier_version"] = "9.10.3"
         context["copier_template_extensions_version"] = "0.3.3"
         #######
-        context["pnpm_version"] = "10.19.0"
+        context["pnpm_version"] = "10.20.0"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = "1.1.407"
         context["pytest_version"] = "8.4.2"
@@ -37,7 +37,7 @@ class ContextUpdater(ContextHook):
         context["pyinstaller_version"] = "6.16.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = "0.284.1"
-        context["fastapi_version"] = "0.120.1"
+        context["fastapi_version"] = "0.120.2"
         context["fastapi_offline_version"] = "1.7.4"
         context["uvicorn_version"] = "0.38.0"
         context["lab_auto_pulumi_version"] = "0.1.17"
@@ -47,8 +47,8 @@ class ContextUpdater(ContextHook):
         context["syrupy_version"] = "5.0.0"
         #######
         context["node_version"] = "24.7.0"
-        context["nuxt_ui_version"] = "^4.0.1"
-        context["nuxt_version"] = "^4.1.0"
+        context["nuxt_ui_version"] = "^4.1.0"
+        context["nuxt_version"] = "^4.2.0"
         context["nuxt_icon_version"] = "^2.1.0"
         context["typescript_version"] = "^5.9.3"
         context["playwright_version"] = "^1.56.0"
@@ -56,14 +56,14 @@ class ContextUpdater(ContextHook):
         context["vue_tsc_version"] = "^3.1.2"
         context["vue_devtools_api_version"] = "^8.0.0"
         context["vue_router_version"] = "^4.6.0"
-        context["dotenv_cli_version"] = "^10.0.0"
+        context["dotenv_cli_version"] = "^11.0.0"
         context["faker_version"] = "^10.1.0"
         context["vitest_version"] = "^3.2.4"
         context["eslint_version"] = "^9.38.0"
-        context["nuxt_eslint_version"] = "^1.9.0"
-        context["zod_version"] = "^4.1.5"
-        context["zod_from_json_schema_version"] = "^0.5.0"
-        context["types_node_version"] = "^24.9.1"
+        context["nuxt_eslint_version"] = "^1.10.0"
+        context["zod_version"] = "^4.1.12"
+        context["zod_from_json_schema_version"] = "^0.5.1"
+        context["types_node_version"] = "^24.9.2"
         context["nuxt_apollo_version"] = "5.0.0-alpha.15"
         context["graphql_codegen_cli_version"] = "^6.0.0"
         context["graphql_codegen_typescript_version"] = "^5.0.0"
