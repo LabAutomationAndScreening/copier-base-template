@@ -2,13 +2,13 @@ reviews:
   profile: assertive
   path_instructions:
     - path: "**/generated/open-api/**"
-      instruction: "This is generated client code for the API. Refer to it if you need to understand how the main code interacts with it, but do not make comments about it."
+      instructions: "This is generated client code for the API. Refer to it if you need to understand how the main code interacts with it, but do not make comments about it."
     - path: "**/generated/open_api/**"
-      instruction: "This is generated client code for the API. Refer to it if you need to understand how the main code interacts with it, but do not make comments about it."
+      instructions: "This is generated client code for the API. Refer to it if you need to understand how the main code interacts with it, but do not make comments about it."
     - path: "**/generated/graphql.ts"
-      instruction: "This is generated client code for the API. Refer to it if you need to understand how the main code interacts with it, but do not make comments about it."
+      instructions: "This is generated client code for the API. Refer to it if you need to understand how the main code interacts with it, but do not make comments about it."
     - path: "**/vendor_files/**"
-      instruction: "These files came from a vendor and we're not allowed to change them. Refer to it if you need to understand how the main code interacts with it, but do not make comments about it."
+      instructions: "These files came from a vendor and we're not allowed to change them. Refer to it if you need to understand how the main code interacts with it, but do not make comments about it."
   tools:
     # these are already run by pre-commit, and coderabbit often generates false positives
     eslint:
