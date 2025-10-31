@@ -27,6 +27,6 @@ reviews:
     - drafts: true
   finishing_touches:
     - docstrings:
-      - enabled: false # if we wanted AI to generate something, it would be via CLI, not in the GitHub interface
+      - enabled: false # if we wanted AI to generate docstrings, it would be via CLI, not in the GitHub interface
     - unit_tests:
       - enabled: false # Quis custodiet ipsos custodes? not something we want AI doing, especially not via the GitHub interface
