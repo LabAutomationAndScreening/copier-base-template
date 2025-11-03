@@ -151,7 +151,7 @@ def main():
     if args.skip_updating_devcontainer_hash:
         return
     result = subprocess.run(  # update the devcontainer hash after changing lock files
-        ["python3", ".github/workflows/hash_git_files.py", ".", "--for-devcontainer-config-update", "--exit-zero"],
+        [sys.executable, ".github/workflows/hash_git_files.py", ".", "--for-devcontainer-config-update", "--exit-zero"],
         capture_output=True,
         text=True,
         check=True,
