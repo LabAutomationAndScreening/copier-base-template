@@ -15,8 +15,8 @@ parser = argparse.ArgumentParser(description="Manual setup for dependencies in t
 _ = parser.add_argument(
     "--python-version",
     type=str,
-    default=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-    help="What version to install.",
+    default=None,
+    help="What version to install. This will override anything in .python-version files.",
 )
 _ = parser.add_argument("--skip-check-lock", action="store_true", default=False, help="Skip the lock file check step")
 _ = parser.add_argument(
@@ -69,7 +69,6 @@ def main():
     args = parser.parse_args(sys.argv[1:])
     is_windows = platform.system() == "Windows"
     uv_env = dict(os.environ)
-    uv_env.update({"UV_PYTHON": args.python_version})
     if not args.allow_uv_to_install_python:
         uv_env.update({"UV_PYTHON_PREFERENCE": "only-system"})
     generate_lock_file_only = args.only_create_lock
@@ -89,6 +88,17 @@ def main():
         if args.no_node and env.package_manager == PackageManager.PNPM:
             print(f"Skipping environment {env.path} as it uses a Node package manager and --no-node is set")
             continue
+        if env.package_manager == PackageManager.UV:
+            if args.python_version is not None:
+                uv_env.update({"UV_PYTHON": args.python_version})
+            else:
+                python_version_path = env.lock_file.parent / ".python-version"
+                python_version_path_in_repo_root = REPO_ROOT_DIR / ".python-version"
+                if python_version_path.exists():
+                    uv_env.update({"UV_PYTHON": python_version_path.read_text().strip()})
+                elif python_version_path_in_repo_root.exists():
+                    uv_env.update({"UV_PYTHON": python_version_path_in_repo_root.read_text().strip()})
+
         env_check_lock = check_lock_file
         if args.optionally_check_lock and env.lock_file.exists():
             env_check_lock = True
