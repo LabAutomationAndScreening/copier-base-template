@@ -95,7 +95,7 @@ jobs:
         run: |
           # Remove any specification of a Python repository having a default other than PyPI...because in this CI pipeline we can only install from PyPI
           python $RUNNER_TEMP/replace_private_package_registries.py
-          python .devcontainer/manual-setup-deps.py --skip-check-lock
+          python .devcontainer/manual-setup-deps.py --skip-check-lock --skip-updating-devcontainer-hash
           # Add everything to git so that pre-commit recognizes the files and runs on them
           git add .
           git status
