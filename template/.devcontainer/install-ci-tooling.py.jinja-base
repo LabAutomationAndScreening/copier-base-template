@@ -36,21 +36,13 @@ _ = parser.add_argument(
     default=False,
     help="Skip installing the SSM plugin for AWS CLI",
 )
-_ = parser.add_argument(
-    "--allow-uv-to-install-python",
-    action="store_true",
-    default=False,
-    help="Allow uv to install new versions of Python on the fly. This is typically only needed when instantiating the copier template.",
-)
 
 
 def main():
     args = parser.parse_args(sys.argv[1:])
     is_windows = platform.system() == "Windows"
     uv_env = dict(os.environ)
-    uv_env.update({"UV_PYTHON": args.python_version})
-    if not args.allow_uv_to_install_python:
-        uv_env.update({"UV_PYTHON_PREFERENCE": "only-system"})
+    uv_env.update({"UV_PYTHON": args.python_version, "UV_PYTHON_PREFERENCE": "only-system"})
     uv_path = ((GITHUB_WINDOWS_RUNNER_BIN_PATH + "\\") if is_windows else "") + "uv"
     if is_windows:
         pwsh = shutil.which("pwsh") or shutil.which("powershell")
