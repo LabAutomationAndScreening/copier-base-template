@@ -37,6 +37,12 @@ _ = parser.add_argument(
 _ = parser.add_argument(
     "--skip-updating-devcontainer-hash", action="store_true", default=False, help="Do not update the devcontainer hash"
 )
+_ = parser.add_argument(
+    "--allow-uv-to-install-python",
+    action="store_true",
+    default=False,
+    help="Allow uv to install new versions of Python on the fly. This is typically only needed when instantiating the copier template.",
+)
 
 
 class PackageManager(str, enum.Enum):
@@ -63,7 +69,9 @@ def main():
     args = parser.parse_args(sys.argv[1:])
     is_windows = platform.system() == "Windows"
     uv_env = dict(os.environ)
-    uv_env.update({"UV_PYTHON_PREFERENCE": "only-system", "UV_PYTHON": args.python_version})
+    uv_env.update({"UV_PYTHON": args.python_version})
+    if not args.allow_uv_to_install_python:
+        uv_env.update({"UV_PYTHON_PREFERENCE": "only-system"})
     generate_lock_file_only = args.only_create_lock
     check_lock_file = not (args.skip_check_lock or args.optionally_check_lock or generate_lock_file_only)
     if args.skip_check_lock and args.optionally_check_lock:
