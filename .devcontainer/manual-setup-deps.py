@@ -34,6 +34,9 @@ _ = parser.add_argument(
 _ = parser.add_argument(
     "--no-node", action="store_true", default=False, help="Do not process any environments using node package managers"
 )
+_ = parser.add_argument(
+    "--skip-updating-devcontainer-hash", action="store_true", default=False, help="Do not update the devcontainer hash"
+)
 
 
 class PackageManager(str, enum.Enum):
@@ -126,7 +129,8 @@ def main():
             )
         else:
             raise NotImplementedError(f"Package manager {env.package_manager} is not supported for installation")
-
+    if args.skip_updating_devcontainer_hash:
+        return
     result = subprocess.run(  # update the devcontainer hash after changing lock files
         ["python3", ".github/workflows/hash_git_files.py", ".", "--for-devcontainer-config-update", "--exit-zero"],
         capture_output=True,
