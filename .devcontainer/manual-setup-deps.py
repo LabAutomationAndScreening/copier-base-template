@@ -11,12 +11,13 @@ from typing import Any
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
 ENVS_CONFIG = REPO_ROOT_DIR / ".devcontainer" / "envs.json"
+UV_PYTHON_ALREADY_CONFIGURED = "UV_PYTHON" in os.environ
 parser = argparse.ArgumentParser(description="Manual setup for dependencies in the repo")
 _ = parser.add_argument(
     "--python-version",
     type=str,
     default=None,
-    help="What version to install. This will override anything in .python-version files.",
+    help="What version to install. This will override anything in .python-version files. But if the UV_PYTHON envvar is set prior to starting the script, that will take precedence over everything.",
 )
 _ = parser.add_argument("--skip-check-lock", action="store_true", default=False, help="Skip the lock file check step")
 _ = parser.add_argument(
@@ -88,7 +89,7 @@ def main():
         if args.no_node and env.package_manager == PackageManager.PNPM:
             print(f"Skipping environment {env.path} as it uses a Node package manager and --no-node is set")
             continue
-        if env.package_manager == PackageManager.UV:
+        if env.package_manager == PackageManager.UV and not UV_PYTHON_ALREADY_CONFIGURED:
             if args.python_version is not None:
                 uv_env.update({"UV_PYTHON": args.python_version})
             else:
