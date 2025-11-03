@@ -11,7 +11,7 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.9.6"
+        context["uv_version"] = "0.9.7"
         context["pre_commit_version"] = "4.3.0"
         # These also in pyproject.toml
         context["copier_version"] = "9.10.3"
@@ -37,7 +37,7 @@ class ContextUpdater(ContextHook):
         context["pyinstaller_version"] = "6.16.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = "0.284.1"
-        context["fastapi_version"] = "0.120.2"
+        context["fastapi_version"] = "0.121.0"
         context["fastapi_offline_version"] = "1.7.4"
         context["uvicorn_version"] = "0.38.0"
         context["lab_auto_pulumi_version"] = "0.1.17"
@@ -60,7 +60,7 @@ class ContextUpdater(ContextHook):
         context["dotenv_cli_version"] = "^11.0.0"
         context["faker_version"] = "^10.1.0"
         context["vitest_version"] = "^3.2.4"
-        context["eslint_version"] = "^9.38.0"
+        context["eslint_version"] = "~9.38.0"
         context["nuxt_eslint_version"] = "^1.10.0"
         context["zod_version"] = "^4.1.12"
         context["zod_from_json_schema_version"] = "^0.5.1"
