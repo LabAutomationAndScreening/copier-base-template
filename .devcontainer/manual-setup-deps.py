@@ -127,6 +127,15 @@ def main():
         else:
             raise NotImplementedError(f"Package manager {env.package_manager} is not supported for installation")
 
+    result = subprocess.run(  # update the devcontainer hash after changing lock files
+        ["python3", ".github/workflows/hash_git_files.py", ".", "--for-devcontainer-config-update", "--exit-zero"],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=REPO_ROOT_DIR,
+    )
+    print(result.stdout)
+
 
 if __name__ == "__main__":
     main()
