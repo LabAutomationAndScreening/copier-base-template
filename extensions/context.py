@@ -46,6 +46,8 @@ class ContextUpdater(ContextHook):
         context["uuid_utils_version"] = "0.11.0"
         context["syrupy_version"] = "5.0.0"
         context["structlog_version"] = "25.5.0"
+        context["httpx_version"] = "0.28.1"
+        context["python_kiota_bundle_version"] = "1.9.7"
         #######
         context["node_version"] = "24.7.0"
         context["nuxt_ui_version"] = "^4.1.0"
