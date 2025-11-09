@@ -140,7 +140,13 @@ repos:
     rev: e73b8ba0c1316be565983236c72e653ad44e6b66  # frozen: v1.7.7
     hooks:
       - id: docformatter
-        exclude: (tests*)|(exceptions\.py)|(warnings\.py)
+        exclude: |
+          (?x)^(
+              .*/tests/.*|
+              exceptions\.py|
+              warnings\.py|
+              .*/generated/open[-_]api/.*|
+          )$
         args:
           - --in-place
           - --wrap-summaries=150
