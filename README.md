@@ -4,6 +4,7 @@
 [![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 [![Actions status](https://github.com/LabAutomationAndScreening/copier-base-template/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/LabAutomationAndScreening/copier-base-template/actions)
 [![Open in Dev Containers](https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/LabAutomationAndScreening/copier-base-template)
+[![OpenIssues](http://isitmaintained.com/badge/open/LabAutomationAndScreening/copier-base-template.svg)](http://isitmaintained.com/project/LabAutomationAndScreening/copier-base-template)
 
 # Instantiating a new repository using this template
 1. Use the file `.devcontainer/devcontainer-to-instantiate-template.json` to create a devcontainer (or just use the default Codespace devcontainer)
