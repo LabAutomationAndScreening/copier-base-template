@@ -109,6 +109,7 @@ class ContextUpdater(ContextHook):
         # These also in the tests/data.yml files in this repository and in copier.yaml
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
         context["py313_version"] = "3.13.2"
+        context["py314_version"] = "3.14.0"
         #######
         # Kludge to allow for the same docker-compose file in child and grandchild templates
         context["aws_region_for_stack"] = "us-east-1"
