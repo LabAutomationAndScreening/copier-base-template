@@ -3,6 +3,8 @@ branch = True
 omit =
     # omit anything supplied by vendors
     */vendor_files/*
+    # omit any auto-generated API client code
+    */generated/open_api/*
 
 [report]
 # Regexes for lines to exclude from consideration
