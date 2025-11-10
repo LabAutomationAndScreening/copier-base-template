@@ -17,10 +17,10 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "9.10.3"
         context["copier_template_extensions_version"] = "0.3.3"
         #######
-        context["pnpm_version"] = "10.20.0"
+        context["pnpm_version"] = "10.21.0"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = "1.1.407"
-        context["pytest_version"] = "8.4.2"
+        context["pytest_version"] = "9.0.0"
         context["pytest_randomly_version"] = "4.0.1"
         context["pytest_cov_version"] = "7.0.0"
         #######
@@ -109,6 +109,7 @@ class ContextUpdater(ContextHook):
         # These also in the tests/data.yml files in this repository and in copier.yaml
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
         context["py313_version"] = "3.13.2"
+        context["py314_version"] = "3.14.0"
         #######
         # Kludge to allow for the same docker-compose file in child and grandchild templates
         context["aws_region_for_stack"] = "us-east-1"

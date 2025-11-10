@@ -33,6 +33,7 @@ python_ci_versions:
     choices:
       - "3.12.7"
       - "3.13.2"
+      - "3.14.0"
 
 ssh_port_number:
     type: int
