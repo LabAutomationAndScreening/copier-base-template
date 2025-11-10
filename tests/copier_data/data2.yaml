@@ -5,6 +5,7 @@ ssh_port_number: 54321
 python_ci_versions:
   - "3.12.7"
   - "3.13.2"
+  - "3.14.0"
 template_uses_python: true
 template_uses_pulumi: false
 repo_org_name: Initech
