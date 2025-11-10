@@ -62,7 +62,8 @@ python_ci_versions:
     multiselect: true
     choices:
       - "{{ py312_version }}"
-      - "{{ py313_version }}"{% endif %}{% raw %}
+      - "{{ py313_version }}"
+      - "{{ py314_version }}"{% endif %}{% raw %}
 
 {% endraw %}{% if template_uses_python %}{% raw %}
 aws_identity_center_id:
