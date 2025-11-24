@@ -19,6 +19,7 @@ permissions:
 jobs:
   get-values:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
+    timeout-minutes: {% endraw %}{{ gha_short_timeout_minutes }}{% raw %}
     outputs:
       new-dependabot-sha: ${{ steps.update-hash.outputs.new-sha }}
       dependabot-commit-created: ${{ steps.update-hash.outputs.commit-created }}

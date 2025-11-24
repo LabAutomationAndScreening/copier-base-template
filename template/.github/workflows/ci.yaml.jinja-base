@@ -43,6 +43,7 @@ jobs:
           '--data-file tests/copier_data/data2.yaml',
           ]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: {% endraw %}{{ gha_medium_timeout_minutes }}{% raw %}
     env:
       UV_PYTHON: ${{ matrix.python-version }}
     permissions:
@@ -131,6 +132,7 @@ jobs:
 
   required-check:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
+    timeout-minutes: {% endraw %}{{ gha_short_timeout_minutes }}{% raw %}
     needs: [ lint-matrix, get-values ]
     permissions:
       statuses: write # needed for updating status on Dependabot PRs

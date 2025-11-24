@@ -28,6 +28,7 @@ permissions:
 jobs:
   pre-commit:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
+    timeout-minutes: {% endraw %}{{ gha_medium_timeout_minutes }}{% raw %}
     name: Pre-commit
     steps:
       - name: Checkout code during push
