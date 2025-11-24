@@ -105,6 +105,7 @@ class ContextUpdater(ContextHook):
         context["gha_short_timeout_minutes"] = "2"
         context["gha_medium_timeout_minutes"] = "8"
         context["gha_long_timeout_minutes"] = "15"
+        context["gha_xlong_timeout_minutes"] = "45"
         #######
         context["debian_release_name"] = "bookworm"
         context["alpine_image_version"] = "3.22"
