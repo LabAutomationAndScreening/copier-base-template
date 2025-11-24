@@ -106,7 +106,7 @@ jobs:
         uses: ben-z/gh-action-mutex@{% endraw %}{{ gha_mutex }}{% raw %}
         with:
           branch: mutex-venv-${{ matrix.os }}-${{ matrix.python-version }}
-        timeout-minutes: 30 # this is the amount of time this action will wait to attempt to acquire the mutex lock before failing, e.g. if other jobs are queued up in front of it
+        timeout-minutes: {% endraw %}{{ gha_medium_timeout_minutes }}{% raw %} # this is the amount of time this action will wait to attempt to acquire the mutex lock before failing, e.g. if other jobs are queued up in front of it
 
       - name: Cache Pre-commit hooks
         uses: actions/cache@{% endraw %}{{ gha_cache }}{% raw %}
