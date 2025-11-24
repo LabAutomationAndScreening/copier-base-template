@@ -20,13 +20,13 @@ class ContextUpdater(ContextHook):
         context["pnpm_version"] = "10.21.0"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = "1.1.407"
-        context["pytest_version"] = "9.0.0"
+        context["pytest_version"] = "9.0.1"
         context["pytest_randomly_version"] = "4.0.1"
         context["pytest_cov_version"] = "7.0.0"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.206.0"
-        context["pulumi_aws_version"] = "7.11.0"
+        context["pulumi_version"] = "3.208.0"
+        context["pulumi_aws_version"] = "7.12.0"
         context["pulumi_aws_native_version"] = "1.38.0"
         context["pulumi_command_version"] = "1.1.3"
         context["pulumi_github_version"] = "6.8.0"
