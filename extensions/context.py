@@ -33,7 +33,7 @@ class ContextUpdater(ContextHook):
         context["pulumi_okta_version"] = "6.1.0"
         context["boto3_version"] = "1.40.57"
         context["ephemeral_pulumi_deploy_version"] = "0.0.5"
-        context["pydantic_version"] = "2.12.3"
+        context["pydantic_version"] = "2.12.4"
         context["pyinstaller_version"] = "6.16.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = "0.284.1"
