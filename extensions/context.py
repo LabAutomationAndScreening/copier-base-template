@@ -102,6 +102,9 @@ class ContextUpdater(ContextHook):
         context["gha_pypi_publish"] = "v1.13.0"
         context["gha_sleep"] = "v2.0.3"
         context["gha_windows_runner"] = "windows-2025"
+        context["gha_short_timeout_minutes"] = "2"
+        context["gha_medium_timeout_minutes"] = "8"
+        context["gha_long_timeout_minutes"] = "15"
         #######
         context["debian_release_name"] = "bookworm"
         context["alpine_image_version"] = "3.22"
