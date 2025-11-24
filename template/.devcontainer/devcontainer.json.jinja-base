@@ -27,11 +27,11 @@
       "extensions": [
         // basic tooling
         // "eamodio.gitlens@15.5.1",
-        "coderabbit.coderabbit-vscode@0.15.2",
+        "coderabbit.coderabbit-vscode@0.16.0",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.388.0",
-        "github.copilot-chat@0.33.2025102701",{% endraw %}{% if install_claude_cli %}{% raw %}
+        "github.copilot-chat@0.34.2025112401",{% endraw %}{% if install_claude_cli %}{% raw %}
         "anthropic.claude-code@2.0.27",{% endraw %}{% endif %}{% raw %}
 
         // Python

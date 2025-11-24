@@ -22,6 +22,7 @@ jobs:
         python-version:
             - 3.12.7
     name: Pre-commit for Py${{ matrix.python-version }} on ${{ matrix.os }}
+    timeout-minutes: 8
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5.0.0
@@ -75,6 +76,7 @@ jobs:
           '--data-file tests/copier_data/data2.yaml',
           ]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
     env:
       UV_PYTHON: ${{ matrix.python-version }}
     permissions:
@@ -155,6 +157,7 @@ jobs:
 
   required-check:
     runs-on: ubuntu-24.04
+    timeout-minutes: 2
     needs: [ lint-matrix ]
     if: always()
     permissions: {}

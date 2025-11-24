@@ -11,29 +11,29 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.9.7"
-        context["pre_commit_version"] = "4.3.0"
+        context["uv_version"] = "0.9.11"
+        context["pre_commit_version"] = "4.5.0"
         # These also in pyproject.toml
-        context["copier_version"] = "9.10.3"
+        context["copier_version"] = "9.11.0"
         context["copier_template_extensions_version"] = "0.3.3"
         #######
-        context["pnpm_version"] = "10.21.0"
+        context["pnpm_version"] = "10.23.0"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = "1.1.407"
-        context["pytest_version"] = "9.0.0"
+        context["pytest_version"] = "9.0.1"
         context["pytest_randomly_version"] = "4.0.1"
         context["pytest_cov_version"] = "7.0.0"
         #######
         context["sphinx_version"] = "8.1.3"
-        context["pulumi_version"] = "3.206.0"
-        context["pulumi_aws_version"] = "7.11.0"
+        context["pulumi_version"] = "3.208.0"
+        context["pulumi_aws_version"] = "7.12.0"
         context["pulumi_aws_native_version"] = "1.38.0"
         context["pulumi_command_version"] = "1.1.3"
         context["pulumi_github_version"] = "6.8.0"
         context["pulumi_okta_version"] = "6.1.0"
-        context["boto3_version"] = "1.40.57"
+        context["boto3_version"] = "1.41.2"
         context["ephemeral_pulumi_deploy_version"] = "0.0.5"
-        context["pydantic_version"] = "2.12.3"
+        context["pydantic_version"] = "2.12.4"
         context["pyinstaller_version"] = "6.16.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = "0.284.1"
@@ -102,6 +102,10 @@ class ContextUpdater(ContextHook):
         context["gha_pypi_publish"] = "v1.13.0"
         context["gha_sleep"] = "v2.0.3"
         context["gha_windows_runner"] = "windows-2025"
+        context["gha_short_timeout_minutes"] = "2"
+        context["gha_medium_timeout_minutes"] = "8"
+        context["gha_long_timeout_minutes"] = "15"
+        context["gha_xlong_timeout_minutes"] = "45"
         #######
         context["debian_release_name"] = "bookworm"
         context["alpine_image_version"] = "3.22"
