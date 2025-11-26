@@ -104,6 +104,8 @@ class ContextUpdater(ContextHook):
         context["py313_version"] = "{{ py313_version }}"
         context["py314_version"] = "{{ py314_version }}"
 
+        context["kiota_cli_version"] = "{{ kiota_cli_version }}"
+
         context["debian_release_name"] = "{{ debian_release_name }}"
         context["alpine_image_version"] = "{{ alpine_image_version }}"
         context["nginx_image_version"] = "{{ nginx_image_version }}"
