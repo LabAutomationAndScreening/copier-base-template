@@ -2,7 +2,7 @@
 [![Copier](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/copier-org/copier/master/img/badge/badge-black.json)](https://github.com/copier-org/copier)
 [![Actions status](https://www.github.com/{% endraw %}{{ repo_org_name }}/{{ repo_name }}{% raw %}/actions/workflows/ci.yaml/badge.svg?branch=main)](https://www.github.com/{% endraw %}{{ repo_org_name }}/{{ repo_name }}{% raw %}/actions)
 [![Open in Dev Containers](https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://www.github.com/{% endraw %}{{ repo_org_name }}/{{ repo_name }}{% raw %})
-[![OpenIssues](http://isitmaintained.com/badge/open/{% endraw %}{{ repo_org_name }}/{{ repo_name }}{% raw %}.svg)](http://isitmaintained.com/project/{% endraw %}{{ repo_org_name }}/{{ repo_name }}{% raw %})
+[![OpenIssues](https://isitmaintained.com/badge/open/{% endraw %}{{ repo_org_name }}/{{ repo_name }}{% raw %}.svg)](https://isitmaintained.com/project/{% endraw %}{{ repo_org_name }}/{{ repo_name }}{% raw %})
 
 # Usage
 To create a new repository using this template:
