@@ -5,7 +5,7 @@ omit =
     */vendor_files/*
     # omit any auto-generated API client code
     */generated/open_api/*
-    # omit circuit python firmware
+    # omit CircuitPython firmware
     */firmware/code.py
     */firmware/boot.py
 
