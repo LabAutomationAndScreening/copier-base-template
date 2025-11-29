@@ -69,4 +69,4 @@ jobs:
             {% endraw %}{{ gha_linux_runner }}{% raw %}-py${{ inputs.python-version }}-node-${{ inputs.node-version}}-${{ env.cache-name }}-
 
       - name: Run pre-commit
-        run:  pre-commit run -a{% endraw %}
+        run: pre-commit run -a{% endraw %}
