@@ -7,7 +7,7 @@
 
 # If you're still having issues, make sure in Windows Developer Settings that you enabled Developer Mode, and also that you set your git config to have `core.autocrlf=false` and `core.symlinks=true` globally
 
-set -euo pipefail  # Exit immediately on error
+set -e  # Exit immediately on error
 
 if [ -z "$BASH_VERSION" ]; then
   echo "Error: This script must be run with bash (e.g., 'bash windows-host-helper.sh')." >&2
@@ -28,8 +28,24 @@ repoName=$(basename "$gitUrl" .git)
 echo "Repo name extracted as '$repoName'"
 
 # Remove any existing subfolder with the repository name and recreate it
-rm -rf "./$repoName" || true # sometimes deleting the .venv folder fails
-rm -rf "./$repoName/*.md" # for some reason, sometimes md files are left behind
+# Save mount information before unmounting (only for specific mount types)
+mountInfoFile=$(mktemp)
+mount | grep -E "$repoName/(\.pnpm-store|node_modules|\.venv)" > "$mountInfoFile" || true
+
+# Unmount only specific directories (.pnpm-store, node_modules, .venv)
+echo "Checking for mounted directories..."
+if [ -s "$mountInfoFile" ]; then
+    while IFS= read -r line; do
+        mountPath=$(echo "$line" | awk '{print $3}')
+        echo "Unmounting $mountPath..."
+        sudo umount "$mountPath" 2>/dev/null || sudo umount -l "$mountPath" 2>/dev/null || echo "Warning: Could not unmount $mountPath"
+    done < "$mountInfoFile"
+else
+    echo "No specific mounts found to unmount."
+fi
+
+sudo rm -rf "./$repoName" || true # sometimes deleting the .venv folder fails
+sudo rm -rf "./$repoName/*.md" # for some reason, sometimes md files are left behind
 mkdir -p "./$repoName"
 
 # Create a temporary directory for cloning
@@ -39,26 +55,32 @@ tmpdir=$(mktemp -d)
 # This creates "$tmpdir/$repoName" with the repository's contents.
 git clone "$gitUrl" "$tmpdir/$repoName"
 
+# Enable dotglob so that '*' includes hidden files
+shopt -s dotglob
 
-SRC="$(realpath "$tmpdir/$repoName")"
-DST="$(realpath "./$repoName")"
+# Move all contents (including hidden files) from the cloned repo to the target folder
+mv "$tmpdir/$repoName"/* "./$repoName/"
 
-# 1) Recreate directory tree under $DST
-while IFS= read -r -d '' dir; do
-  rel="${dir#$SRC/}"             # strip leading $SRC/ → e.g. "sub/dir"
-  mkdir -p "$DST/$rel"
-done < <(find "$SRC" -type d -print0)
-
-# 2) Move all files into that mirror
-while IFS= read -r -d '' file; do
-  rel="${file#$SRC/}"            # e.g. "sub/dir/file.txt"
-  # ensure parent exists (though step 1 already did)
-  mkdir -p "$(dirname "$DST/$rel")"
-  mv "$file" "$DST/$rel"
-done < <(find "$SRC" -type f -print0)
-
-# 3) Clean up now‑empty dirs and the tmp clone
-find "$SRC" -depth -type d -empty -delete
+# Clean up: remove the temporary directory
 rm -rf "$tmpdir"
 
-echo "Repository '$repoName' has been synced into '$DST'."
+# Remount directories using saved mount information
+echo "Remounting previously mounted directories..."
+while IFS= read -r line; do
+    device=$(echo "$line" | awk '{print $1}')
+    mountPath=$(echo "$line" | awk '{print $3}')
+    fsType=$(echo "$line" | awk '{print $5}')
+
+    if [ -d "$mountPath" ]; then
+        echo "Remounting $mountPath from $device..."
+        sudo mount -t "$fsType" "$device" "$mountPath" || echo "Warning: Failed to remount $mountPath"
+    else
+        echo "Creating and remounting $mountPath from $device..."
+        mkdir -p "$mountPath"
+        sudo mount -t "$fsType" "$device" "$mountPath" || echo "Warning: Failed to remount $mountPath"
+    fi
+done < "$mountInfoFile"
+
+rm -f "$mountInfoFile"
+
+echo "Repository '$repoName' has been updated."
