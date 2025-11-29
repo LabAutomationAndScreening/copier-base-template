@@ -2,12 +2,17 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "devcontainer",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-  "features": {
+  "features": {{% endraw %}{% if is_child_of_copier_base_template is not defined %}{% raw %}
     "ghcr.io/devcontainers/features/aws-cli:1.1.2": {
       // https://github.com/devcontainers/features/blob/main/src/aws-cli/devcontainer-feature.json
       // view latest version https://raw.githubusercontent.com/aws/aws-cli/v2/CHANGELOG.rst
-      "version": "2.31.11"
-    },
+      "version": "2.32.6",
+      "customizations": {
+        "vscode": {
+          "extensions": [] // the AWS Toolkit extension seems to cause errors
+        }
+      }
+    },{% endraw %}{% endif %}{% raw %}
     "ghcr.io/devcontainers/features/python:1.7.1": {
       // https://github.com/devcontainers/features/blob/main/src/python/devcontainer-feature.json
       "version": "{% endraw %}{{ python_version }}{% raw %}",
