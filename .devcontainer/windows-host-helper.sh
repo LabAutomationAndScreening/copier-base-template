@@ -30,7 +30,8 @@ echo "Repo name extracted as '$repoName'"
 # Remove any existing subfolder with the repository name and recreate it
 # Save mount information before unmounting (only for specific mount types)
 mountInfoFile=$(mktemp)
-mount | grep -E "$repoName/(\.pnpm-store|node_modules|\.venv)" > "$mountInfoFile" || true
+mount | grep -E "$repoName/(.*/)?(\.pnpm-store|node_modules|\.venv)" > "$mountInfoFile" || true
+echo "Saved mount information to $mountInfoFile"
 
 # Unmount only specific directories (.pnpm-store, node_modules, .venv)
 echo "Checking for mounted directories..."
