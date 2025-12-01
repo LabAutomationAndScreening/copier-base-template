@@ -30,6 +30,7 @@ echo "Repo name extracted as '$repoName'"
 sudo rm -rf "./$repoName" || true
 sudo rm -rf "./$repoName/*.md"
 mkdir -p "./$repoName"
+sudo chown -R "$(whoami):$(whoami)" "./$repoName" # TODO: see if this alone is enough to fix everything
 
 # Create a temporary directory for cloning
 tmpdir=$(mktemp -d)
