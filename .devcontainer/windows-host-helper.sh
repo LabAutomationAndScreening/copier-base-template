@@ -27,33 +27,33 @@ repoName=$(basename "$gitUrl" .git)
 
 echo "Repo name extracted as '$repoName'"
 
-# Remove any existing subfolder with the repository name and recreate it
-# Save mount information before unmounting (only for specific mount types)
+# Save mount information (device, mount point, and filesystem type)
 mountInfoFile=$(mktemp)
-mount | grep -E "$repoName/(.*/)?(\.pnpm-store|node_modules|\.venv)" > "$mountInfoFile" || true
-echo "Saved mount information to $mountInfoFile"
+mount | grep -E "$repoName/(.*/)?(\.pnpm-store|node_modules|\.venv)" | awk '{print $1 "|" $3 "|" $5}' > "$mountInfoFile" || true
+echo "Saved mount information:"
+cat "$mountInfoFile"
 
-# Unmount only specific directories (.pnpm-store, node_modules, .venv)
-echo "Checking for mounted directories..."
+# Unmount specific directories (.pnpm-store, node_modules, .venv)
+echo "Unmounting directories..."
 if [ -s "$mountInfoFile" ]; then
-    while IFS= read -r line; do
-        mountPath=$(echo "$line" | awk '{print $3}')
-        echo "Unmounting $mountPath..."
-        sudo umount "$mountPath" 2>/dev/null || sudo umount -l "$mountPath" 2>/dev/null || echo "Warning: Could not unmount $mountPath"
+    while IFS='|' read -r device mountPath fsType; do
+        if [ -n "$mountPath" ] && [ -d "$mountPath" ]; then
+            echo "Unmounting $mountPath..."
+            sudo umount "$mountPath" 2>/dev/null || sudo umount -l "$mountPath" 2>/dev/null || echo "Warning: Could not unmount $mountPath"
+        fi
     done < "$mountInfoFile"
 else
-    echo "No specific mounts found to unmount."
+    echo "No mounts found to unmount."
 fi
 
-sudo rm -rf "./$repoName" || true # sometimes deleting the .venv folder fails
-sudo rm -rf "./$repoName/*.md" # for some reason, sometimes md files are left behind
+sudo rm -rf "./$repoName" || true
+sudo rm -rf "./$repoName/*.md"
 mkdir -p "./$repoName"
 
 # Create a temporary directory for cloning
 tmpdir=$(mktemp -d)
 
-# Clone the repository into a subfolder inside the temporary directory.
-# This creates "$tmpdir/$repoName" with the repository's contents.
+# Clone the repository
 git clone "$gitUrl" "$tmpdir/$repoName"
 
 # Enable dotglob so that '*' includes hidden files
@@ -66,22 +66,31 @@ mv "$tmpdir/$repoName"/* "./$repoName/"
 rm -rf "$tmpdir"
 
 # Remount directories using saved mount information
-echo "Remounting previously mounted directories..."
-while IFS= read -r line; do
-    device=$(echo "$line" | awk '{print $1}')
-    mountPath=$(echo "$line" | awk '{print $3}')
-    fsType=$(echo "$line" | awk '{print $5}')
-
-    if [ -d "$mountPath" ]; then
-        echo "Remounting $mountPath from $device..."
-        sudo mount -t "$fsType" "$device" "$mountPath" || echo "Warning: Failed to remount $mountPath"
-    else
-        echo "Creating and remounting $mountPath from $device..."
+echo "Remounting directories..."
+while IFS='|' read -r device mountPath fsType; do
+    if [ -n "$mountPath" ] && [ -n "$device" ]; then
+        echo "Recreating directory $mountPath..."
         mkdir -p "$mountPath"
-        sudo mount -t "$fsType" "$device" "$mountPath" || echo "Warning: Failed to remount $mountPath"
+
+        echo "Remounting $device to $mountPath..."
+        sudo mount -t "$fsType" "$device" "$mountPath" && echo "Successfully remounted $mountPath" || echo "Warning: Failed to remount $mountPath"
+
+        # Verify the mount worked correctly
+        if mount | grep -q "$mountPath"; then
+            echo "✓ Mount verified for $mountPath"
+            # Check if it has the wrong content (system folders instead of actual content)
+            if [ -d "$mountPath/data" ] && [ -d "$mountPath/isocache" ] && [ -d "$mountPath/lost+found" ]; then
+                echo "⚠ WARNING: $mountPath contains system folders (data/isocache/lost+found) - wrong volume mounted!"
+                echo "   Device: $device"
+                echo "   This volume may need to be deleted and recreated."
+            fi
+        else
+            echo "✗ Mount verification failed for $mountPath"
+        fi
     fi
 done < "$mountInfoFile"
 
 rm -f "$mountInfoFile"
 
+echo ""
 echo "Repository '$repoName' has been updated."
