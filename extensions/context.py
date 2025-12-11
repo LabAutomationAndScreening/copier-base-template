@@ -51,6 +51,7 @@ class ContextUpdater(ContextHook):
         context["vcrpy_version"] = "8.1.0"
         context["pytest_recording_version"] = "0.13.4"
         context["pytest_asyncio_version"] = "1.3.0"
+        context["ariadne_codegen_version"] = "0.17.0"
         #######
         context["node_version"] = "24.7.0"
         context["nuxt_ui_version"] = "^4.2.1"

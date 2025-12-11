@@ -46,6 +46,7 @@ class ContextUpdater(ContextHook):
         context["vcrpy_version"] = "{{ vcrpy_version }}"
         context["pytest_recording_version"] = "{{ pytest_recording_version }}"
         context["pytest_asyncio_version"] = "{{ pytest_asyncio_version }}"
+        context["ariadne_codegen_version"] = "{{ ariadne_codegen_version }}"
 
         context["node_version"] = "{{ node_version }}"
         context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"
