@@ -42,7 +42,7 @@ install_aws_ssm_port_forwarding_plugin:
     type: bool
     help: Should the AWS SSM Port Forwarding Plugin be installed?
     default: no{% endraw %}{% endif %}{% raw %}
-{% endraw %}{% if template_uses_python %}{% endraw %}{% endif %}{% raw %}{% endraw %}{% if template_might_want_to_use_vcrpy %}{% raw %}
+{% endraw %}{% if template_uses_python %}{% if template_might_want_to_use_vcrpy %}{% raw %}
 configure_vcrpy:
     type: bool
     help: Should VCRpy be configured for use during unit testing in Python?
