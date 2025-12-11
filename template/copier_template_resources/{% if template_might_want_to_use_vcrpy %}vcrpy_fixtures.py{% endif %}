@@ -6,15 +6,20 @@ from pydantic import JsonValue
 from vcr import VCR
 from vcr.request import Request
 
+ALLOWED_HOSTS = ["testserver"]  # Skip recording any requests to our own server - let them run live
+
+CUSTOM_ALLOWED_HOSTS: tuple[str, ...] = ()
+
+ALLOWED_HOSTS.extend(CUSTOM_ALLOWED_HOSTS)
+if (
+    os.name == "nt"
+):  # on Windows (in CI), the network calls happen at a lower level socket connection even to our FastAPI test client, and can get automatically blocked. This disables that automatic network guard, which isn't great...but since it's still in place on Linux, any actual problems would hopefully get caught before pushing to CI.
+    ALLOWED_HOSTS.extend(["127.0.0.1", "localhost", "::1"])
+
 
 @pytest.fixture(autouse=True)
 def vcr_config() -> dict[str, list[str]]:
-    allowed_hosts: list[str] = []
-    if (
-        os.name == "nt"
-    ):  # on Windows (in CI), the network calls happen at a lower level socket connection even to our FastAPI test client, and can get automatically blocked. This disables that automatic network guard, which isn't great...but since it's still in place on Linux, any actual problems would hopefully get caught before pushing to CI.
-        allowed_hosts.extend(["127.0.0.1", "localhost", "::1"])
-    return {"allowed_hosts": allowed_hosts}
+    return {"allowed_hosts": ALLOWED_HOSTS}
 
 
 def pytest_recording_configure(
@@ -28,10 +33,6 @@ def pytest_recording_configure(
     vcr.match_on += ("body",)  # body is not included by default, but it seems relevant
 
     def before_record_request(request: Request) -> Request | None:
-        # Skip recording any requests to our own server - let them run live
-        if request.host == "testserver":  # pyright: ignore[reportUnknownMemberType] # new version of VCRpy has worse typing
-            return None
-
         request_headers_to_filter = ("User-Agent",)
         for header in request_headers_to_filter:
             if header in request.headers:
