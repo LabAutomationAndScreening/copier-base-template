@@ -95,9 +95,9 @@ class ContextUpdater(ContextHook):
         context["gha_setup_buildx"] = "v3.11.1"
         context["buildx_version"] = "v0.27.0"
         context["gha_docker_build_push"] = "v6.18.0"
-        context["gha_configure_aws_credentials"] = "v5.1.0"
+        context["gha_configure_aws_credentials"] = "v5.1.1"
         context["gha_amazon_ecr_login"] = "v2.0.1"
-        context["gha_setup_node"] = "v6.0.0"
+        context["gha_setup_node"] = "v6.1.0"
         context["gha_action_gh_release"] = "v2.2.1"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
         context["gha_pypi_publish"] = "v1.13.0"
@@ -109,8 +109,8 @@ class ContextUpdater(ContextHook):
         context["gha_xlong_timeout_minutes"] = "45"
         #######
         context["debian_release_name"] = "bookworm"
-        context["alpine_image_version"] = "3.22"
-        context["nginx_image_version"] = "1.29.1"
+        context["alpine_image_version"] = "3.23"
+        context["nginx_image_version"] = "1.29.4"
         #######
         context["kiota_cli_version"] = "1.29.0"
         # These also in the tests/data.yml files in this repository and in copier.yaml
