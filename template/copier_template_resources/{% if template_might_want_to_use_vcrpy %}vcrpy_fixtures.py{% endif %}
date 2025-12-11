@@ -4,7 +4,6 @@ from typing import cast
 import pytest
 from pydantic import JsonValue
 from vcr import VCR
-from vcr.request import Request
 
 ALLOWED_HOSTS = ["testserver"]  # Skip recording any requests to our own server - let them run live
 
@@ -19,7 +18,7 @@ if (
 
 @pytest.fixture(autouse=True)
 def vcr_config() -> dict[str, list[str]]:
-    return {"allowed_hosts": ALLOWED_HOSTS}
+    return {"allowed_hosts": ALLOWED_HOSTS, "filter_headers": ["User-Agent"]}
 
 
 def pytest_recording_configure(
@@ -31,16 +30,6 @@ def pytest_recording_configure(
         f"vcr.match_on is not a tuple, it is a {type(vcr.match_on)} with value {vcr.match_on}"
     )
     vcr.match_on += ("body",)  # body is not included by default, but it seems relevant
-
-    def before_record_request(request: Request) -> Request | None:
-        request_headers_to_filter = ("User-Agent",)
-        for header in request_headers_to_filter:
-            if header in request.headers:
-                del request.headers[header]
-
-        return request
-
-    vcr.before_record_request = before_record_request
 
     def before_record_response(response: dict[str, JsonValue]) -> dict[str, JsonValue]:
         headers_to_filter = (
