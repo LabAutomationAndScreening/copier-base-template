@@ -52,7 +52,7 @@ class ContextUpdater(ContextHook):
         context["pytest_recording_version"] = ">=0.13.4"
         context["pytest_asyncio_version"] = ">=1.3.0"
         #######
-        context["node_version"] = "24.7.0"
+        context["node_version"] = "24.11.1"
         context["nuxt_ui_version"] = "^4.2.1"
         context["nuxt_version"] = "^4.2.2"
         context["nuxt_icon_version"] = "^2.1.0"
