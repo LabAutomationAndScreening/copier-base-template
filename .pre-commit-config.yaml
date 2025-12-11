@@ -257,7 +257,7 @@ repos:
         files: src/.+\.py$
         exclude: |
           (?x)^(
-              .*/graphql_codegen/.*|
+              .*/generated/graphql/.*|
               .*/generated/open[-_]api/.*|
               template/.*|
           )$
@@ -267,14 +267,14 @@ repos:
         files: tests?/.+\.py$
         exclude: |
           (?x)^(
-              .*/graphql_codegen/.*|
+              .*/generated/graphql/.*|
               .*/generated/open[-_]api/.*|
               template/.*|
           )$
       - id: ruff-format
         exclude: |
           (?x)^(
-              .*/graphql_codegen/.*|
+              .*/generated/graphql/.*|
               .*/generated/open[-_]api/.*|
           )$
 
@@ -286,7 +286,7 @@ repos:
         # exclude the template files---duplication within them will be discovered during CI of that template instantiation
         exclude: |
           (?x)^(
-              .*/graphql_codegen/.*|
+              .*/generated/graphql/.*|
               .*/generated/open[-_]api/.*|
               template/.*|
           )$
@@ -302,7 +302,7 @@ repos:
         files: '.+\.py$'
         exclude: |
           (?x)^(
-              .*/graphql_codegen/.*|
+              .*/generated/graphql/.*|
               .*/generated/open[-_]api/.*|
           )$
         # don't pass filenames else the command line sees them twice
