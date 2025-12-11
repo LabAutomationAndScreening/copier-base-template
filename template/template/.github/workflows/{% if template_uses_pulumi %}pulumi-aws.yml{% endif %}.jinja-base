@@ -76,6 +76,16 @@ on:
         required: false
         default: ''
         type: string
+      DOWNLOAD_ARTIFACT_NAME:
+        description: 'Name of the artifact to download from the build job'
+        required: false
+        default: ''
+        type: string
+      DOWNLOAD_ARTIFACT_PATH:
+        description: 'Path to extract the downloaded artifact to'
+        required: false
+        default: ''
+        type: string
     secrets:
       iac-github-api-tokens:
         description: 'API tokens to use for Github IaC deployment when not using AWS Secrets Manager'
@@ -106,6 +116,13 @@ jobs:
         uses: ./.github/actions/install_deps
         with:
           python-version: ${{ inputs.PYTHON_VERSION }}
+
+      - name: Download Artifact
+        uses: actions/download-artifact@{% endraw %}{{ gha_download_artifact }}{% raw %}
+        if: ${{ inputs.DOWNLOAD_ARTIFACT_NAME != '' }}
+        with:
+          name: ${{ inputs.DOWNLOAD_ARTIFACT_NAME }}
+          path: ${{ inputs.DOWNLOAD_ARTIFACT_PATH }}
 
       - name: Set up mutex # Github concurrency management is horrible, things get arbitrarily cancelled if queued up. So using mutex until github fixes itself. When multiple jobs are modifying cache at once, weird things can happen.  possible issue is https://github.com/actions/toolkit/issues/658
         uses: ben-z/gh-action-mutex@{% endraw %}{{ gha_mutex }}{% raw %}
