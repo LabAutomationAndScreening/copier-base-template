@@ -7,7 +7,7 @@
 
 # If you're still having issues, make sure in Windows Developer Settings that you enabled Developer Mode, and also that you set your git config to have `core.autocrlf=false` and `core.symlinks=true` globally
 
-set -e  # Exit immediately on error
+set -euo pipefail  # Exit immediately on error
 
 if [ -z "$BASH_VERSION" ]; then
   echo "Error: This script must be run with bash (e.g., 'bash windows-host-helper.sh')." >&2

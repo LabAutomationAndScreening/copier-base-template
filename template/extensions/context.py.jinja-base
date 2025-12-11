@@ -43,6 +43,9 @@ class ContextUpdater(ContextHook):
         context["structlog_version"] = "{{ structlog_version }}"
         context["httpx_version"] = "{{ httpx_version }}"
         context["python_kiota_bundle_version"] = "{{ python_kiota_bundle_version }}"
+        context["vcrpy_version"] = "{{ vcrpy_version }}"
+        context["pytest_recording_version"] = "{{ pytest_recording_version }}"
+        context["pytest_asyncio_version"] = "{{ pytest_asyncio_version }}"
 
         context["node_version"] = "{{ node_version }}"
         context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"
@@ -66,6 +69,7 @@ class ContextUpdater(ContextHook):
         context["graphql_codegen_cli_version"] = "{{ graphql_codegen_cli_version }}"
         context["graphql_codegen_typescript_version"] = "{{ graphql_codegen_typescript_version }}"
         context["graphql_codegen_typescript_operations_version"] = "{{ graphql_codegen_typescript_operations_version }}"
+        context["graphql_tools_mock_version"] = "{{ graphql_tools_mock_version }}"
         context["tailwindcss_version"] = "{{ tailwindcss_version }}"
         context["iconify_vue_version"] = "{{ iconify_vue_version }}"
         context["iconify_json_lucide_version"] = "{{ iconify_json_lucide_version }}"

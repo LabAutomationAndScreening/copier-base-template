@@ -13,3 +13,4 @@ repo_org_name_for_copyright: Initech Corporation
 template_uses_javascript: true
 template_uses_vuejs: true
 template_might_want_to_install_aws_ssm_port_forwarding_plugin: false
+template_might_want_to_use_vcrpy: true

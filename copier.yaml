@@ -66,6 +66,12 @@ template_might_want_to_install_aws_ssm_port_forwarding_plugin:
     help: Is this template for something that might want the AWS SSM Port Forwarding plugin be installed?
     default: no
 
+template_might_want_to_use_vcrpy:
+    type: bool
+    help: Is this template for something that might want to use VCRpy during unit testing?
+    default: no
+    when: "{{ template_uses_python }}"
+
 
 _min_copier_version: "9.4"
 
