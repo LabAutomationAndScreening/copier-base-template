@@ -54,6 +54,10 @@ def pytest_recording_configure(
         for header in headers_to_filter:
             if header in headers:
                 del headers[header]
+            if (
+                header.lower() in headers
+            ):  # some headers are lowercased by the server in the response (e.g. Date, Server)
+                del headers[header.lower()]
         return response
 
     vcr.before_record_response = before_record_response
