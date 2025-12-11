@@ -44,6 +44,8 @@ class ContextUpdater(ContextHook):
         context["httpx_version"] = "{{ httpx_version }}"
         context["python_kiota_bundle_version"] = "{{ python_kiota_bundle_version }}"
         context["vcrpy_version"] = "{{ vcrpy_version }}"
+        context["pytest_recording_version"] = "{{ pytest_recording_version }}"
+        context["pytest_asyncio_version"] = "{{ pytest_asyncio_version }}"
 
         context["node_version"] = "{{ node_version }}"
         context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"
