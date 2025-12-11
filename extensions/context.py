@@ -74,6 +74,7 @@ class ContextUpdater(ContextHook):
         context["graphql_codegen_cli_version"] = "^6.0.0"
         context["graphql_codegen_typescript_version"] = "^5.0.0"
         context["graphql_codegen_typescript_operations_version"] = "^5.0.0"
+        context["graphql_tools_mock_version"] = "^9.1.0"
         context["tailwindcss_version"] = "^4.1.11"
         context["iconify_vue_version"] = "^5.0.0"
         context["iconify_json_lucide_version"] = "^1.2.71"
