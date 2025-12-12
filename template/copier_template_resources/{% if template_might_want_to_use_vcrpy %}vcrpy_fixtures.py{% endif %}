@@ -7,7 +7,7 @@ from vcr import VCR
 
 IGNORED_HOSTS = ["testserver"]  # Skip recording any requests to our own server - let them run live
 
-CUSTOM_IGNORED_HOSTS: tuple[str, ...] = (UNREACHABLE_IP_ADDRESS_FOR_BRIDGES,)
+CUSTOM_IGNORED_HOSTS: tuple[str, ...] = ()
 
 IGNORED_HOSTS.extend(CUSTOM_IGNORED_HOSTS)
 if (
