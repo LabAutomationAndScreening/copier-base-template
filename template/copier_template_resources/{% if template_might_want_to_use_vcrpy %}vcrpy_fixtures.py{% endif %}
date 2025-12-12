@@ -10,7 +10,7 @@ IGNORED_HOSTS = [
     "testserver",  # Skip recording any requests to our own server - let them run live
     UNREACHABLE_IP_ADDRESS,  # allow this through VCR in order to be able to test network failure handling
 ]
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS: list[str] = []
 
 CUSTOM_IGNORED_HOSTS: tuple[str, ...] = ()
 
@@ -23,11 +23,13 @@ if (
 
 @pytest.fixture(autouse=True)
 def vcr_config() -> dict[str, list[str]]:
-    return {
+    cfg: dict[str, list[str]] = {
         "ignore_hosts": IGNORED_HOSTS,
         "filter_headers": ["User-Agent"],
-        "allowed_hosts": ALLOWED_HOSTS,  # without also "allowing" these hosts, we get "network blocked" errors in Windows CI
     }
+    if ALLOWED_HOSTS:
+        cfg["allowed_hosts"] = ALLOWED_HOSTS
+    return cfg
 
 
 def pytest_recording_configure(
