@@ -20,7 +20,8 @@ jobs:
       contents: write # needed for updating dependabot branches
 
   pre-commit:
-    needs: [ get-values ]
+    needs:
+      - get-values
     uses: ./.github/workflows/pre-commit.yaml
     permissions:
       contents: write # needed for mutex
@@ -29,7 +30,8 @@ jobs:
       python-version: {% endraw %}{{ python_version }}{% raw %}
 
   lint-matrix:
-    needs: [ pre-commit ]
+    needs:
+      - pre-commit
     strategy:
       matrix:
         os:
@@ -133,7 +135,9 @@ jobs:
   required-check:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
     timeout-minutes: {% endraw %}{{ gha_short_timeout_minutes }}{% raw %}
-    needs: [ lint-matrix, get-values ]
+    needs:
+      - lint-matrix
+      - get-values
     permissions:
       statuses: write # needed for updating status on Dependabot PRs
     if: always()
