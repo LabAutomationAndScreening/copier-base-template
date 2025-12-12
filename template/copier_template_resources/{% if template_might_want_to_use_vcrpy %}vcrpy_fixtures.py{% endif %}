@@ -18,7 +18,11 @@ if (
 
 @pytest.fixture(autouse=True)
 def vcr_config() -> dict[str, list[str]]:
-    return {"ignore_hosts": IGNORED_HOSTS, "filter_headers": ["User-Agent"]}
+    return {
+        "ignore_hosts": IGNORED_HOSTS,
+        "filter_headers": ["User-Agent"],
+        "allowed_hosts": IGNORED_HOSTS,  # without also "allowing" these hosts, we get "network blocked" errors in Windows CI
+    }
 
 
 def pytest_recording_configure(
