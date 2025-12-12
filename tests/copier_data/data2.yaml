@@ -14,3 +14,4 @@ template_uses_javascript: true
 template_uses_vuejs: true
 template_might_want_to_install_aws_ssm_port_forwarding_plugin: false
 template_might_want_to_use_vcrpy: true
+template_might_want_to_use_python_asyncio: false

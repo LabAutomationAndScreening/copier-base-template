@@ -72,6 +72,12 @@ template_might_want_to_use_vcrpy:
     default: no
     when: "{{ template_uses_python }}"
 
+template_might_want_to_use_python_asyncio:
+    type: bool
+    help: Is this template for something that might want to use Python asyncio?
+    default: no
+    when: "{{ template_uses_python }}"
+
 
 _min_copier_version: "9.4"
 
