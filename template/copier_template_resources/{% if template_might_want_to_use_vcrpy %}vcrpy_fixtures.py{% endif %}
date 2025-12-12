@@ -6,6 +6,7 @@ from pydantic import JsonValue
 from vcr import VCR
 
 IGNORED_HOSTS = ["testserver"]  # Skip recording any requests to our own server - let them run live
+ALLOWED_HOSTS = []
 
 CUSTOM_IGNORED_HOSTS: tuple[str, ...] = ()
 
@@ -13,7 +14,7 @@ IGNORED_HOSTS.extend(CUSTOM_IGNORED_HOSTS)
 if (
     os.name == "nt"
 ):  # on Windows (in CI), the network calls happen at a lower level socket connection even to our FastAPI test client, and can get automatically blocked. This disables that automatic network guard, which isn't great...but since it's still in place on Linux, any actual problems would hopefully get caught before pushing to CI.
-    IGNORED_HOSTS.extend(["127.0.0.1", "localhost", "::1"])
+    ALLOWED_HOSTS.extend(["127.0.0.1", "localhost", "::1"])
 
 
 @pytest.fixture(autouse=True)
@@ -21,7 +22,7 @@ def vcr_config() -> dict[str, list[str]]:
     return {
         "ignore_hosts": IGNORED_HOSTS,
         "filter_headers": ["User-Agent"],
-        "allowed_hosts": IGNORED_HOSTS,  # without also "allowing" these hosts, we get "network blocked" errors in Windows CI
+        "allowed_hosts": ALLOWED_HOSTS,  # without also "allowing" these hosts, we get "network blocked" errors in Windows CI
     }
 
 
