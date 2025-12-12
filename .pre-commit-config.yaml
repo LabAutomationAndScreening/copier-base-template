@@ -253,7 +253,7 @@ repos:
     hooks:
       - id: ruff
         name: ruff-src
-        args: [--fix, --config=./ruff.toml]
+        args: [--fix, --diff, --config=./ruff.toml]
         files: src/.+\.py$
         exclude: |
           (?x)^(
@@ -263,7 +263,7 @@ repos:
           )$
       - id: ruff
         name: ruff-tests
-        args: [--fix, --config=./ruff-test.toml]
+        args: [--fix, --diff, --config=./ruff-test.toml]
         files: tests?/.+\.py$
         exclude: |
           (?x)^(
@@ -272,6 +272,7 @@ repos:
               template/.*|
           )$
       - id: ruff-format
+        args: [--diff]
         exclude: |
           (?x)^(
               .*/generated/graphql/.*|
