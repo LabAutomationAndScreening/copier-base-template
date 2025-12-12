@@ -5,7 +5,11 @@ import pytest
 from pydantic import JsonValue
 from vcr import VCR
 
-IGNORED_HOSTS = ["testserver"]  # Skip recording any requests to our own server - let them run live
+UNREACHABLE_IP_ADDRESS = "192.0.2.1"  # RFC 5737 TEST-NET-1
+IGNORED_HOSTS = [
+    "testserver",  # Skip recording any requests to our own server - let them run live
+    UNREACHABLE_IP_ADDRESS,  # allow this through VCR in order to be able to test network failure handling
+]
 ALLOWED_HOSTS = []
 
 CUSTOM_IGNORED_HOSTS: tuple[str, ...] = ()
