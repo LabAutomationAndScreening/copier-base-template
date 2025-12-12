@@ -27,8 +27,8 @@ def vcr_config() -> dict[str, list[str]]:
 
 
 def pytest_recording_configure(
-    vcr: VCR,
     config: pytest.Config,  # noqa: ARG001 # the config argument MUST be present (even when unused) or pytest-recording throws an error
+    vcr: VCR,
 ):
     vcr.match_on = cast(tuple[str, ...], vcr.match_on)  # pyright: ignore[reportUnknownMemberType] # I know vcr.match_on is unknown, that's why I'm casting and isinstance-ing it...not sure if there's a different approach pyright prefers
     assert isinstance(vcr.match_on, tuple), (
