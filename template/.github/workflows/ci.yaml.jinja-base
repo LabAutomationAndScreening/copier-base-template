@@ -123,7 +123,13 @@ jobs:
       - name: Run pre-commit
         run: |
           # skip devcontainer context hash because the template instantiation may make it different every time
-          SKIP=git-dirty,compute-devcontainer-context-hash pre-commit run -a
+          SKIP=git-dirty,compute-devcontainer-context-hash pre-commit run -a || PRE_COMMIT_EXIT_CODE=$?
+          if [ -n "$PRE_COMMIT_EXIT_CODE" ]; then
+            echo "Pre-commit failed with exit code $PRE_COMMIT_EXIT_CODE"
+            echo "Showing git diff:"
+            git --no-pager diff
+            exit $PRE_COMMIT_EXIT_CODE
+          fi
 
       - name: Upload pre-commit log if failure
         if: ${{ failure() }}
