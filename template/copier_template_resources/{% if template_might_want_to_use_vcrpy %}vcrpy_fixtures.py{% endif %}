@@ -1,8 +1,8 @@
 import os
+from typing import Any
 from typing import cast
 
 import pytest
-from pydantic import JsonValue
 from vcr import VCR
 
 UNREACHABLE_IP_ADDRESS = "192.0.2.1"  # RFC 5737 TEST-NET-1
@@ -42,7 +42,7 @@ def pytest_recording_configure(
     )
     vcr.match_on += ("body",)  # body is not included by default, but it seems relevant
 
-    def before_record_response(response: dict[str, JsonValue]) -> dict[str, JsonValue]:
+    def before_record_response(response: dict[str, str | dict[str, Any]]) -> dict[str, str | dict[str, Any]]:
         headers_to_filter = (
             "Transfer-Encoding",
             "Date",
