@@ -5,15 +5,15 @@ description = "{% endraw %}{{ description }}{% raw %}"
 readme = "README.md"
 requires-python = ">={% endraw %}{{ python_version }}{% raw %}"
 dependencies = [
+    # Specific to this template
+
+
     # Managed by upstream template
     "pytest>={% endraw %}{{ pytest_version }}{% raw %}",
     "pytest-cov>={% endraw %}{{ pytest_cov_version }}{% raw %}",
     "pytest-randomly>={% endraw %}{{ pytest_randomly_version }}{% raw %}",
     "pyright[nodejs]>={% endraw %}{{ pyright_version }}{% raw %}",
+    "ty>={% endraw %}{{ ty_version }}{% raw %}",
     "copier>={% endraw %}{{ copier_version }}{% raw %}",
     "copier-template-extensions>={% endraw %}{{ copier_template_extensions_version }}{% raw %}"
-
-    # Specific to this template
-
-
 ]{% endraw %}

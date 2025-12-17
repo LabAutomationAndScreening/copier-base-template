@@ -23,6 +23,7 @@ class ContextUpdater(ContextHook):
         context["pytest_version"] = "9.0.2"
         context["pytest_randomly_version"] = "4.0.1"
         context["pytest_cov_version"] = "7.0.0"
+        context["ty_version"] = "0.0.2"
         #######
         context["sphinx_version"] = "9.0.4"
         context["pulumi_version"] = "3.208.0"
