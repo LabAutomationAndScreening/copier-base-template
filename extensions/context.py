@@ -14,8 +14,8 @@ class ContextUpdater(ContextHook):
         context["uv_version"] = "0.9.17"
         context["pre_commit_version"] = "4.5.0"
         # These also in pyproject.toml
-        context["copier_version"] = ">=9.11.0"
-        context["copier_template_extensions_version"] = ">=0.3.3"
+        context["copier_version"] = "==9.11.0"
+        context["copier_template_extensions_version"] = "==0.3.3"
         #######
         context["pnpm_version"] = "10.25.0"
         # These are duplicated in the pyproject.toml of this repository
