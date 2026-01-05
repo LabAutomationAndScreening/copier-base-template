@@ -83,7 +83,7 @@ class ContextUpdater(ContextHook):
         context["vue_test_utils_version"] = "^2.4.6"
         context["nuxt_test_utils_version"] = "3.19.1"
         context["vue_eslint_parser_version"] = "^10.1.3"
-        context["happy_dom_version"] = "^20.0.2"
+        context["happy_dom_version"] = "^20.0.11"
         context["node_kiota_bundle_version"] = "1.0.0-preview.99"
         #######
         # These are duplicated in the CI files for this repository
