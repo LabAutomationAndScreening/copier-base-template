@@ -10,7 +10,7 @@ use_windows_in_ci: false
 {% endraw %}{% if template_might_want_to_use_vcrpy %}{% raw %}configure_vcrpy: true{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_might_want_to_use_python_asyncio %}{% raw %}configure_python_asyncio: true{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_javascript %}{% raw %}
-node_version: {% endraw %}{{ node_version }}{% endif %}{% raw %}
+node_version: {% endraw %}{{ default_node_version }}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_python %}{% raw %}
 python_package_registry: PyPI
 aws_identity_center_id: d-9145c20053
