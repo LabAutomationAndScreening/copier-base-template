@@ -42,7 +42,7 @@ repos:
 
   # Reformatting (should generally come before any file format or other checks, because reformatting can change things)
   - repo: https://github.com/crate-ci/typos
-    rev: 802d5794ff9cf7b15610c47eca99cd1ab757d8d4  # frozen: v1
+    rev: b31d3aa6e8e43e6a9cf7a1d137baf189dec0922b  # frozen: v1
     hooks:
       - id: typos
         exclude: |
@@ -195,12 +195,12 @@ repos:
       - id: check-case-conflict
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 16a6ad2fead09286ee6eb6b0a3fab55655a6c22a  # frozen: 0.35.0
+    rev: b035497fb64e3f9faa91e833331688cc185891e6  # frozen: 0.36.0
     hooks:
       - id: check-github-workflows
 
   - repo: https://github.com/maresb/check-json5
-    rev: 893a2b5a0a27c3540bd8fcafe2968ccc05237179 # 1.0
+    rev: bd4737432a2175617a9eeaa510ab369cbc1cbd3d  # frozen: v1.0.1
     hooks:
       - id: check-json5
         files: |
@@ -249,7 +249,7 @@ repos:
         description: Runs hadolint to lint Dockerfiles
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 1a1f58ba4c35362efe8fed2279715a905baee93d  # frozen: v0.14.8
+    rev: 5ba58aca0bd5bc7c0e1c0fc45af2e88d6a2bde83  # frozen: v0.14.10
     hooks:
       - id: ruff
         name: ruff-src
