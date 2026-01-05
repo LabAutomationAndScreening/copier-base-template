@@ -28,32 +28,32 @@
         "-AmazonWebServices.aws-toolkit-vscode", // the AWS CLI feature installs this automatically, but it's causing problems in VS Code{% endraw %}{% endif %}{% raw %}
         // basic tooling
         // "eamodio.gitlens@15.5.1",
-        "coderabbit.coderabbit-vscode@0.16.1",
+        "coderabbit.coderabbit-vscode@0.16.4",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.388.0",
-        "github.copilot-chat@0.34.2025112401",{% endraw %}{% if install_claude_cli %}{% raw %}
-        "anthropic.claude-code@2.0.27",{% endraw %}{% endif %}{% raw %}
+        "github.copilot-chat@0.36.2026010502",{% endraw %}{% if install_claude_cli %}{% raw %}
+        "anthropic.claude-code@2.0.75",{% endraw %}{% endif %}{% raw %}
 
         // Python
-        "ms-python.python@2025.17.2025100201",
-        "ms-python.vscode-pylance@2025.8.3",
+        "ms-python.python@2025.21.2026010501",
+        "ms-python.vscode-pylance@2025.10.100",
         "ms-vscode-remote.remote-containers@0.414.0",
-        "charliermarsh.ruff@2025.28.0",
+        "charliermarsh.ruff@2025.32.0",
 {% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}
         // VueJS
-        "vue.volar@3.0.6",
-        "vitest.explorer@1.16.1",
+        "vue.volar@3.2.1",
+        "vitest.explorer@1.36.0",
 {% endraw %}{% endif %}{% raw %}{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_javascript is defined and template_uses_javascript is sameas(true) %}{% raw %}
         // All javascript
-        "dbaeumer.vscode-eslint@3.0.19",
+        "dbaeumer.vscode-eslint@3.0.21",
 {% endraw %}{% endif %}{% raw %}
         // Misc file formats
-        "bierner.markdown-mermaid@1.28.0",
+        "bierner.markdown-mermaid@1.29.0",
         "samuelcolvin.jinjahtml@0.20.0",
         "tamasfe.even-better-toml@0.19.2",
         "emilast.LogFileHighlighter@3.3.3",
-        "esbenp.prettier-vscode@11.0.0"
+        "esbenp.prettier-vscode@11.0.2"
       ],
       "settings": {
         "editor.accessibilitySupport": "off", // turn off sounds

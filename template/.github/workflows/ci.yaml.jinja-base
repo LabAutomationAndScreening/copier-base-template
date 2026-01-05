@@ -65,7 +65,7 @@ jobs:
         uses: ./.github/actions/install_deps
         with:
           python-version: ${{ matrix.python-version }}{% endraw %}{% if template_uses_javascript is defined and template_uses_javascript is sameas(true) %}{% raw %}
-          node-version: {% endraw %}{{ node_version }}{% raw %}{% endraw %}{% endif %}{% raw %}
+          node-version: {% endraw %}{{ default_node_version }}{% raw %}{% endraw %}{% endif %}{% raw %}
           install-deps: false
 
       - name: Instantiate copier template
