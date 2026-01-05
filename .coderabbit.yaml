@@ -6,7 +6,7 @@ reviews:
     - path: "**/vendor_files/**"
       instructions: "These files came from a vendor and we're not allowed to change them. Refer to it if you need to understand how the main code interacts with it, but do not make comments about it."
     - path: "**/*.py"
-      instructions: "Do not express concerns about assert statements being removed by using the -o python flag; we never use the -o flag. Do not express concerns about ruff rules; a pre-commit hook already runs a ruff check."
+      instructions: "Do not express concerns about assert statements being removed by using the -O python flag; we never use that flag. Do not express concerns about ruff rules; a pre-commit hook already runs a ruff check."
   tools:
     eslint: # when the code contains typescript, eslint will be run by pre-commit, and coderabbit often generates false positives
       enabled: false
