@@ -26,7 +26,7 @@ class ContextUpdater(ContextHook):
         context["ty_version"] = ">=0.0.9"
         #######
         context["sphinx_version"] = "9.0.4"
-        context["pulumi_version"] = ">=3.214.4"
+        context["pulumi_version"] = ">=3.214.1"
         context["pulumi_aws_version"] = ">=7.15.0"
         context["pulumi_aws_native_version"] = ">=1.47.0"
         context["pulumi_command_version"] = ">=1.1.3"
