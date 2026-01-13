@@ -21,6 +21,7 @@ runs:
       id: check
       env:
         GH_TOKEN: ${{ github.token }}
+      shell: bash
       run: |
         # For non-push events, always run
         if [ "${{ github.event_name }}" != "push" ]; then
