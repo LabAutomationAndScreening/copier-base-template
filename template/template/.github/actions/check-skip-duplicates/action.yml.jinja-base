@@ -1,5 +1,5 @@
 {% raw %}name: Check Skip Duplicates
-description: 'Check that will output a variable to allow you to skip duplicate runs. Example: If you have both push and pull_request triggers enabled and you don't want to run 2 jobs for the same commit if a PR is already open you can add this to your jobs to skip that extra execution.'
+description: 'Check that will output a variable to allow you to skip duplicate runs. Example: If you have both push and pull_request triggers enabled and you dont want to run 2 jobs for the same commit if a PR is already open you can add this to your jobs to skip that extra execution.'
 
 outputs:
   should-run:
