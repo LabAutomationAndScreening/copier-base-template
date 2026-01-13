@@ -86,6 +86,11 @@ on:
         required: false
         default: ''
         type: string
+      SHOW_PREVIEW_COMMENT_ON_PR:
+        description: 'Shows the pulumi preview details on the PR, note this is dependent on the pull_request event'
+        required: false
+        default: false
+        type: boolean
     secrets:
       iac-github-api-tokens:
         description: 'API tokens to use for Github IaC deployment when not using AWS Secrets Manager'
@@ -99,6 +104,7 @@ env:
 permissions:
   id-token: write # needed to assume OIDC roles (e.g. for downloading from CodeArtifact)
   contents: write # needed for mutex
+  pull-requests: write # needed to post the preview on the PR as a comment
 
 jobs:
   pulumi:
@@ -154,6 +160,7 @@ jobs:
           deploy-script-name: ${{ inputs.DEPLOY_SCRIPT_NAME }}
           aws-region: ${{ inputs.AWS_REGION }}
           aws-account-id: ${{ inputs.AWS_ACCOUNT_ID }}
+          show-preview-comment-on-pr: ${{ inputs.SHOW_PREVIEW_COMMENT_ON_PR }}
         timeout-minutes: 5 # apparently timeout-minutes only accepts literal values, it cannot evaluate expressions (e.g. workflow inputs)
 
       - name: Refresh
