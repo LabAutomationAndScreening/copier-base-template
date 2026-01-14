@@ -6,17 +6,9 @@ outputs:
     description: 'Flag that determines if this execution should run or not'
     value: ${{ steps.check.outputs.should_run }}
 
-permissions:
-  pull-requests: read # needed to check if PR exists for current branch
-
 runs:
   using: composite
   steps:
-    - name: Checkout code
-      uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
-      with:
-        persist-credentials: false
-
     - name: Check if push has associated open PR
       id: check
       env:
