@@ -13,19 +13,22 @@ runs:
       id: check
       env:
         GH_TOKEN: ${{ github.token }}
+        REF_NAME: ${{ github.ref_name }}
+        REPO_NAME: ${{ github.repository }}
+        EVENT_NAME: ${{ github.event_name }}
       shell: bash
       run: |
         # For non-push events, always run
-        if [ "${{ github.event_name }}" != "push" ]; then
+        if [ "$EVENT_NAME" != "push" ]; then
           echo "should_run=true" >> $GITHUB_OUTPUT
-          echo "Event is ${{ github.event_name }}, will run CI"
+          echo "Event is $EVENT_NAME, will run CI"
           exit 0
         fi
 
         # For push events, check if there's an open PR for this branch
         pr_json=$(gh pr list \
-          --repo "${{ github.repository }}" \
-          --head "${{ github.ref_name }}" \
+          --repo "$REPO_NAME" \
+          --head "$REF_NAME" \
           --state open \
           --json number \
           --limit 1)
