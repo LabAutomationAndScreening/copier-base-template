@@ -11,19 +11,19 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.9.21"
+        context["uv_version"] = "0.9.26"
         context["pre_commit_version"] = "4.5.0"
         # These also in pyproject.toml
         context["copier_version"] = "==9.11.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
-        context["pnpm_version"] = "10.27.0"
+        context["pnpm_version"] = "10.28.1"
         # These are duplicated in the pyproject.toml of this repository
-        context["pyright_version"] = ">=1.1.407"
+        context["pyright_version"] = ">=1.1.408"
         context["pytest_version"] = ">=9.0.2"
         context["pytest_randomly_version"] = ">=4.0.1"
         context["pytest_cov_version"] = ">=7.0.0"
-        context["ty_version"] = ">=0.0.9"
+        context["ty_version"] = ">=0.0.13"
         #######
         context["sphinx_version"] = "9.0.4"
         context["pulumi_version"] = ">=3.214.1"
@@ -111,7 +111,7 @@ class ContextUpdater(ContextHook):
         context["gha_long_timeout_minutes"] = "15"
         context["gha_xlong_timeout_minutes"] = "45"
         #######
-        context["debian_release_name"] = "bookworm"
+        context["debian_release_name"] = "trixie"
         context["alpine_image_version"] = "3.23"
         context["nginx_image_version"] = "1.29.4"
         #######
