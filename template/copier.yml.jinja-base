@@ -1,4 +1,10 @@
-{% raw %}# Questions managed by upstream template
+{% raw %}# Questions specific to this template
+
+
+
+
+
+# Questions managed by upstream template
 repo_name:
     type: str
     help: What is the name of the repository?
