@@ -5,7 +5,7 @@ FROM --platform=linux/amd64 mcr.microsoft.com/devcontainers/universal:5.1.1-nobl
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# temporary hack until yarn updates its GBG key
+# temporary hack until yarn updates its GPG key
 RUN rm /etc/apt/sources.list.d/yarn.list || true
 
 RUN apt-get update -y && apt-get install -y \
