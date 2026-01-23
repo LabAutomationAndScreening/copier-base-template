@@ -22,7 +22,7 @@
         "-AmazonWebServices.aws-toolkit-vscode", // the AWS CLI feature installs this automatically, but it's causing problems in VS Code
         // basic tooling
         // "eamodio.gitlens@15.5.1",
-        "coderabbit.coderabbit-vscode@0.16.4",
+        "coderabbit.coderabbit-vscode@0.16.6",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.388.0",
@@ -62,5 +62,5 @@
   "initializeCommand": "sh .devcontainer/initialize-command.sh",
   "onCreateCommand": "sh .devcontainer/on-create-command.sh",
   "postStartCommand": "sh .devcontainer/post-start-command.sh"
-  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): dae258e8 # spellchecker:disable-line
+  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): 5e192817 # spellchecker:disable-line
 }
