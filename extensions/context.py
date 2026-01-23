@@ -89,7 +89,7 @@ class ContextUpdater(ContextHook):
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v6.0.1"
         context["gha_setup_python"] = "v6.1.0"
-        context["gha_cache"] = "v4.3.0"
+        context["gha_cache"] = "v5.0.2"
         context["gha_linux_runner"] = "ubuntu-24.04"
         #######
         context["gha_upload_artifact"] = "v5.0.0"
