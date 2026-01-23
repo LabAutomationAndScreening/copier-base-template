@@ -12,9 +12,9 @@ class ContextUpdater(ContextHook):
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
         context["uv_version"] = "0.9.26"
-        context["pre_commit_version"] = "4.5.0"
+        context["pre_commit_version"] = "4.5.1"
         # These also in pyproject.toml
-        context["copier_version"] = "==9.11.0"
+        context["copier_version"] = "==9.11.2"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
         context["pnpm_version"] = "10.28.1"
@@ -37,14 +37,14 @@ class ContextUpdater(ContextHook):
         context["pydantic_version"] = ">=2.12.5"
         context["pyinstaller_version"] = ">=6.17.0"
         context["setuptools_version"] = "80.7.1"
-        context["strawberry_graphql_version"] = ">=0.287.0"
+        context["strawberry_graphql_version"] = ">=0.289.2"
         context["fastapi_version"] = ">=0.128.0"
         context["fastapi_offline_version"] = ">=1.7.4"
         context["uvicorn_version"] = ">=0.40.0"
         context["lab_auto_pulumi_version"] = ">=0.1.18"
         context["ariadne_codegen_version"] = ">=0.17.0"
         context["pytest_mock_version"] = ">=3.15.1"
-        context["uuid_utils_version"] = ">=0.12.0"
+        context["uuid_utils_version"] = ">=0.14.0"
         context["syrupy_version"] = ">=5.0.0"
         context["structlog_version"] = ">=25.5.0"
         context["httpx_version"] = "0.28.1"
