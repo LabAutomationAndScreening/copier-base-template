@@ -5,6 +5,7 @@ is_open_source: true
 description: Doing amazing things
 install_claude_cli: false
 ssh_port_number: 12345
+pull_from_ecr: true
 use_windows_in_ci: false
 {% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}install_aws_ssm_port_forwarding_plugin: true{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_might_want_to_use_vcrpy %}{% raw %}configure_vcrpy: true{% endraw %}{% endif %}{% raw %}
