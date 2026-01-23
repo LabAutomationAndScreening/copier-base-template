@@ -9,7 +9,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN rm /etc/apt/sources.list.d/yarn.list || true
 
 RUN apt-get update -y && apt-get install -y \
-    "bash-completion=$(apt-cache madison bash-completion | awk '{print $3}' | grep '^1:2.10' | head -n 1)" --no-install-recommends \
+    "bash-completion=$(apt-cache madison bash-completion | awk '{print $3}' | grep '^1:2.17' | head -n 1)" --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
