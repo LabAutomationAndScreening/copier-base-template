@@ -75,7 +75,8 @@ dist
 *.log
 *.log.*
 **/logs/log*.txt
-**/logs/*.log.*
+*.log.*
+**/logs/log*.txt
 
 # macOS dev cleanliness
 **/.DS_Store
