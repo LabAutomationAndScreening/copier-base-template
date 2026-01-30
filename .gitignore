@@ -73,6 +73,7 @@ dist
 
 # Logs
 *.log
+*.log.*
 **/logs/log*.txt
 **/logs/*.log.*
 
