@@ -3,6 +3,12 @@
   "service": "devcontainer",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "features": {{% endraw %}{% if is_child_of_copier_base_template is not defined %}{% raw %}
+    "ghcr.io/devcontainers/features/git-lfs:1.2.5": {
+      // we are not using git-lfs right now, but its a transitive dep elsewhere. We want to configure auto pull to off since the feature will by default also try to install the git hook
+      // and it breaks creation of the devcontainer since pre-commit hooks are already in place. Probably a better way to fix this but until we use git-lfs we can leave it like this.
+      // https://github.com/devcontainers/features/blob/main/src/git-lfs/README.md
+      "autoPull": false
+    },
     "ghcr.io/devcontainers/features/aws-cli:1.1.2": {
       // https://github.com/devcontainers/features/blob/main/src/aws-cli/devcontainer-feature.json
       // view latest version https://raw.githubusercontent.com/aws/aws-cli/v2/CHANGELOG.rst
