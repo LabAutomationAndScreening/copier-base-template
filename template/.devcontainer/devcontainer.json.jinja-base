@@ -25,6 +25,7 @@
       "version": "{% endraw %}{{ node_version }}{% raw %}",
       "pnpmVersion": "{% endraw %}{{ pnpm_version }}{% raw %}"
     }{% endraw %}{% endif %}{% raw %}{% endraw %}{% if install_claude_cli %}{% raw %},
+      // https://github.com/anthropics/devcontainer-features/blob/main/src/claude-code/devcontainer-feature.json
     "ghcr.io/anthropics/devcontainer-features/claude-code:1.0.5": {}{% endraw %}{% endif %}{% raw %}
   },
   "customizations": {
@@ -39,11 +40,11 @@
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.388.0",
         "github.copilot-chat@0.38.2026022001",{% endraw %}{% if install_claude_cli %}{% raw %}
-        "anthropic.claude-code@2.0.75",{% endraw %}{% endif %}{% raw %}
+        "anthropic.claude-code@2.1.49",{% endraw %}{% endif %}{% raw %}
 
         // Python
-        "ms-python.python@2025.21.2026010501",
-        "ms-python.vscode-pylance@2025.10.100",
+        "ms-python.python@2026.2.2026021801",
+        "ms-python.vscode-pylance@2026.1.1",
         "ms-vscode-remote.remote-containers@0.414.0",
         "charliermarsh.ruff@2026.36.0",
 {% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}

@@ -34,8 +34,8 @@
         "github.copilot@1.388.0",
         "github.copilot-chat@0.38.2026022001",
         // Python
-        "ms-python.python@2025.21.2026010501",
-        "ms-python.vscode-pylance@2025.10.100",
+        "ms-python.python@2026.2.2026021801",
+        "ms-python.vscode-pylance@2026.1.1",
         "ms-vscode-remote.remote-containers@0.414.0",
         "charliermarsh.ruff@2026.36.0",
         // Misc file formats
