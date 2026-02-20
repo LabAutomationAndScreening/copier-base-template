@@ -14,7 +14,7 @@
       // view latest version https://raw.githubusercontent.com/aws/aws-cli/v2/CHANGELOG.rst
       "version": "2.32.6",
     },{% endraw %}{% endif %}{% raw %}
-    "ghcr.io/devcontainers/features/python:1.7.1": {
+    "ghcr.io/devcontainers/features/python:1.8.0": {
       // https://github.com/devcontainers/features/blob/main/src/python/devcontainer-feature.json
       "version": "{% endraw %}{{ python_version }}{% raw %}",
       "installTools": false,
@@ -34,11 +34,11 @@
         "-AmazonWebServices.aws-toolkit-vscode", // the AWS CLI feature installs this automatically, but it's causing problems in VS Code{% endraw %}{% endif %}{% raw %}
         // basic tooling
         // "eamodio.gitlens@15.5.1",
-        "coderabbit.coderabbit-vscode@0.16.6",
+        "coderabbit.coderabbit-vscode@0.17.0",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.388.0",
-        "github.copilot-chat@0.36.2026010502",{% endraw %}{% if install_claude_cli %}{% raw %}
+        "github.copilot-chat@0.38.2026022001",{% endraw %}{% if install_claude_cli %}{% raw %}
         "anthropic.claude-code@2.0.75",{% endraw %}{% endif %}{% raw %}
 
         // Python
