@@ -14,7 +14,7 @@
       // view latest version https://raw.githubusercontent.com/aws/aws-cli/v2/CHANGELOG.rst
       "version": "2.32.6"
     },
-    "ghcr.io/devcontainers/features/python:1.7.1": {
+    "ghcr.io/devcontainers/features/python:1.8.0": {
       // https://github.com/devcontainers/features/blob/main/src/python/devcontainer-feature.json
       "version": "3.12.7",
       "installTools": false,
@@ -28,22 +28,22 @@
         "-AmazonWebServices.aws-toolkit-vscode", // the AWS CLI feature installs this automatically, but it's causing problems in VS Code
         // basic tooling
         // "eamodio.gitlens@15.5.1",
-        "coderabbit.coderabbit-vscode@0.16.6",
+        "coderabbit.coderabbit-vscode@0.17.0",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.388.0",
-        "github.copilot-chat@0.36.2026010502",
+        "github.copilot-chat@0.38.2026022001",
         // Python
-        "ms-python.python@2025.21.2026010501",
-        "ms-python.vscode-pylance@2025.10.100",
+        "ms-python.python@2026.2.2026021801",
+        "ms-python.vscode-pylance@2026.1.1",
         "ms-vscode-remote.remote-containers@0.414.0",
-        "charliermarsh.ruff@2025.32.0",
+        "charliermarsh.ruff@2026.36.0",
         // Misc file formats
         "bierner.markdown-mermaid@1.29.0",
         "samuelcolvin.jinjahtml@0.20.0",
         "tamasfe.even-better-toml@0.19.2",
         "emilast.LogFileHighlighter@3.3.3",
-        "esbenp.prettier-vscode@11.0.2"
+        "esbenp.prettier-vscode@12.3.0"
       ],
       "settings": {
         "editor.accessibilitySupport": "off", // turn off sounds
@@ -68,5 +68,5 @@
   "initializeCommand": "sh .devcontainer/initialize-command.sh",
   "onCreateCommand": "sh .devcontainer/on-create-command.sh",
   "postStartCommand": "sh .devcontainer/post-start-command.sh"
-  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): 5e192817 # spellchecker:disable-line
+  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): b4b25459 # spellchecker:disable-line
 }

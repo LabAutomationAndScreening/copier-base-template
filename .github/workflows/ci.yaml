@@ -170,6 +170,11 @@ jobs:
     permissions: {}
     steps:
       - name: fail if prior job failure
-        if: needs.lint-matrix.result != 'success'
         run: |
-          exit 1
+          success_pattern="^(skipped|success)$" # these are the possibilities: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#needs-context
+
+          if [[ ! "${{ needs.lint-matrix.result }}" =~ $success_pattern ]]; then
+            echo "❌ One or more jobs did not finish with skipped or success"
+            exit 1
+          fi
+          echo "✅ All jobs finished with skipped or success"
