@@ -32,7 +32,7 @@ python_ci_versions:
     multiselect: true
     choices:
       - "3.12.7"
-      - "3.13.2"
+      - "3.13.9"
       - "3.14.0"
 
 ssh_port_number:
@@ -77,6 +77,17 @@ template_might_want_to_use_python_asyncio:
     help: Is this template for something that might want to use Python asyncio?
     default: no
     when: "{{ template_uses_python }}"
+
+_tasks:
+  - command: |
+        if [ -f ruff.toml ]; then
+            echo "Updating ruff target-version from python_version..."
+            py_major_minor="$(printf '%s' '{{ python_version }}' | cut -d. -f1,2)"
+            py_tag="py$(printf '%s' "$py_major_minor" | tr -d '.')"
+            sed -i -E 's/^target-version = "py[0-9]+"/target-version = "py'"$py_tag"'"/' ruff.toml
+        else
+            echo "ruff.toml not found; skipping Ruff target-version update."
+        fi
 
 
 _min_copier_version: "9.4"

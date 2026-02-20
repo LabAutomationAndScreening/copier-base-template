@@ -48,6 +48,7 @@ class ContextUpdater(ContextHook):
         context["pytest_recording_version"] = "{{ pytest_recording_version }}"
         context["pytest_asyncio_version"] = "{{ pytest_asyncio_version }}"
         context["pytest_reserial_version"] = "{{ pytest_reserial_version }}"
+        context["python_faker_version"] = "{{ python_faker_version }}"
 
         context["default_node_version"] = "{{ default_node_version }}"
         context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"
