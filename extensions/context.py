@@ -69,7 +69,7 @@ class ContextUpdater(ContextHook):
         context["faker_version"] = "^10.3.0"
         context["vitest_version"] = "^3.2.4"
         context["eslint_version"] = "~9.38.0"
-        context["nuxt_eslint_version"] = "^1.12.1"
+        context["nuxt_eslint_version"] = "^1.15.1"
         context["zod_version"] = "^4.3.6"
         context["zod_from_json_schema_version"] = "^0.5.1"
         context["nuxt_apollo_version"] = "5.0.0-alpha.15"
@@ -83,7 +83,7 @@ class ContextUpdater(ContextHook):
         context["nuxtjs_color_mode_version"] = "^3.5.2"
         context["vue_test_utils_version"] = "^2.4.6"
         context["nuxt_test_utils_version"] = "3.19.1"
-        context["vue_eslint_parser_version"] = "^10.1.3"
+        context["vue_eslint_parser_version"] = "^10.4.0"
         context["happy_dom_version"] = "^20.6.3"
         context["node_kiota_bundle_version"] = "1.0.0-preview.99"
         #######
