@@ -64,7 +64,7 @@ class ContextUpdater(ContextHook):
         context["vue_version"] = "^3.5.28"
         context["vue_tsc_version"] = "^3.2.4"
         context["vue_devtools_api_version"] = "^8.0.0"
-        context["vue_router_version"] = "^4.6.4"
+        context["vue_router_version"] = "^5.0.3"
         context["dotenv_cli_version"] = "^11.0.0"
         context["faker_version"] = "^10.3.0"
         context["vitest_version"] = "^3.2.4"
