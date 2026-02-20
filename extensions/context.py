@@ -70,7 +70,7 @@ class ContextUpdater(ContextHook):
         context["vitest_version"] = "^3.2.4"
         context["eslint_version"] = "~9.38.0"
         context["nuxt_eslint_version"] = "^1.12.1"
-        context["zod_version"] = "^4.3.5"
+        context["zod_version"] = "^4.3.6"
         context["zod_from_json_schema_version"] = "^0.5.1"
         context["nuxt_apollo_version"] = "5.0.0-alpha.15"
         context["graphql_codegen_cli_version"] = "^6.1.0"
