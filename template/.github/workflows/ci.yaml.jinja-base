@@ -150,13 +150,13 @@ jobs:
     steps:
       - name: fail if prior job failure
         run: |
-          success_pattern="^(skipped|completed|success)$"
+          success_pattern="^(skipped|success)$" # these are the possibilities: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#needs-context
 
           if [[ ! "${{ needs.lint-matrix.result }}" =~ $success_pattern ]]; then
-            echo "❌ One or more jobs did not finish with skipped, completed, or success"
+            echo "❌ One or more jobs did not finish with skipped or success"
             exit 1
           fi
-          echo "✅ All jobs finished with skipped, completed, or success"
+          echo "✅ All jobs finished with skipped or success"
       - name: Mark updated dependabot hash commit as succeeded
         if: needs.get-values.outputs.dependabot-commit-created == 'true'
         env:
