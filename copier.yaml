@@ -24,7 +24,7 @@ install_claude_cli:
 python_version:
     type: str
     help: What version of Python?
-    default: "3.13.2"
+    default: "3.13.9"
 
 python_ci_versions:
     type: str
