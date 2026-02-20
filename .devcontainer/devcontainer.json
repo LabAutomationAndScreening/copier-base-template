@@ -37,13 +37,13 @@
         "ms-python.python@2025.21.2026010501",
         "ms-python.vscode-pylance@2025.10.100",
         "ms-vscode-remote.remote-containers@0.414.0",
-        "charliermarsh.ruff@2025.32.0",
+        "charliermarsh.ruff@2026.36.0",
         // Misc file formats
         "bierner.markdown-mermaid@1.29.0",
         "samuelcolvin.jinjahtml@0.20.0",
         "tamasfe.even-better-toml@0.19.2",
         "emilast.LogFileHighlighter@3.3.3",
-        "esbenp.prettier-vscode@11.0.2"
+        "esbenp.prettier-vscode@12.3.0"
       ],
       "settings": {
         "editor.accessibilitySupport": "off", // turn off sounds
