@@ -153,7 +153,7 @@ jobs:
           success_pattern="^(skipped|completed|success)$"
 
           if [[ ! "${{ needs.lint-matrix.result }}" =~ $success_pattern ]]; then
-              echo "❌ One or more jobs did not finish with skipped, completed, or success"
+            echo "❌ One or more jobs did not finish with skipped, completed, or success"
             exit 1
           fi
           echo "✅ All jobs finished with skipped, completed, or success"
