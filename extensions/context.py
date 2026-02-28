@@ -17,19 +17,19 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "==9.12.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
-        context["pnpm_version"] = "10.30.0"
+        context["pnpm_version"] = "10.30.3"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = ">=1.1.408"
         context["pytest_version"] = ">=9.0.2"
         context["pytest_randomly_version"] = ">=4.0.1"
         context["pytest_cov_version"] = ">=7.0.0"
-        context["ty_version"] = ">=0.0.17"
+        context["ty_version"] = ">=0.0.19"
         #######
         context["sphinx_version"] = "9.0.4"
         context["pulumi_version"] = ">=3.223.0"
         context["pulumi_aws_version"] = ">=7.20.0"
         context["pulumi_aws_native_version"] = ">=1.54.0"
-        context["pulumi_command_version"] = ">=1.1.3"
+        context["pulumi_command_version"] = ">=1.2.0"
         context["pulumi_github_version"] = ">=6.12.1"
         context["pulumi_okta_version"] = ">=6.2.3"
         context["boto3_version"] = ">=1.42.53"
