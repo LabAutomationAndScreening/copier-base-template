@@ -199,7 +199,10 @@ jobs:
   required-check:
     runs-on: ubuntu-24.04
     timeout-minutes: 2
-    needs: [ lint-matrix ]
+    needs:
+      - pre-commit
+      - lint-matrix
+      - unit-test
     if: always()
     permissions: {}
     steps:
@@ -207,7 +210,9 @@ jobs:
         run: |
           success_pattern="^(skipped|success)$" # these are the possibilities: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#needs-context
 
-          if [[ ! "${{ needs.lint-matrix.result }}" =~ $success_pattern ]]; then
+          if [[ ! "${{ needs.pre-commit.result }}" =~ $success_pattern ]] ||
+            [[ ! "${{ needs.lint-matrix.result }}" =~ $success_pattern ]] ||
+            [[ ! "${{ needs.unit-test.result }}" =~ $success_pattern ]]; then
             echo "❌ One or more jobs did not finish with skipped or success"
             exit 1
           fi
