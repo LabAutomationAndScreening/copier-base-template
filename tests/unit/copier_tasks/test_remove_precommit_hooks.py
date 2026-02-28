@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 
-class RemovePrecommitHooksViaSubprocess:
+class TestRemovePrecommitHooksViaSubprocess:
     def test_When_run_with_matching_hook__Then_hook_removed(self, tmp_path: Path) -> None:
         project_root = Path(__file__).resolve().parents[3]
         source_config = project_root / ".pre-commit-config.yaml"
