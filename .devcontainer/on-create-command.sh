@@ -6,6 +6,13 @@ set -ex
 git config --global --add safe.directory /workspaces/copier-base-template
 
 sh .devcontainer/on-create-command-boilerplate.sh
+# install json5 for merging claude settings.  TODO: consider if we can install json5 globally...or somehow eliminate this dependency
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+repo_root="$(CDPATH= cd -- "$script_dir/.." && pwd)"
+mkdir -p "$repo_root/.claude"
+chmod -R ug+rwX "$repo_root/.claude"
+chgrp -R 0 "$repo_root/.claude" || true
+npm --prefix "$repo_root/.claude" install json5@2.2.3 --save-exact
 
 python .devcontainer/manual-setup-deps.py --optionally-check-lock
 
