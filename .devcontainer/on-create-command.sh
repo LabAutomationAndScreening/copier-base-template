@@ -12,7 +12,7 @@ repo_root="$(CDPATH= cd -- "$script_dir/.." && pwd)"
 mkdir -p "$repo_root/.claude"
 chmod -R ug+rwX "$repo_root/.claude"
 chgrp -R 0 "$repo_root/.claude" || true
-npm --prefix "$repo_root/.claude" install json5@2.2.3 --save-exact
+npm --prefix "$repo_root/.claude" install
 
 python .devcontainer/manual-setup-deps.py --optionally-check-lock
 
