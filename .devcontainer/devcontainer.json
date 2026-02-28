@@ -19,7 +19,9 @@
       "version": "3.12.7",
       "installTools": false,
       "optimize": true
-    }
+    },
+    // https://github.com/anthropics/devcontainer-features/blob/main/src/claude-code/devcontainer-feature.json
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0.5": {}
   },
   "customizations": {
     "vscode": {
@@ -32,7 +34,8 @@
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.388.0",
-        "github.copilot-chat@0.38.2026022001",
+        "github.copilot-chat@0.38.2026022704",
+        "anthropic.claude-code@2.1.61",
         // Python
         "ms-python.python@2026.2.2026021801",
         "ms-python.vscode-pylance@2026.1.1",
