@@ -314,7 +314,7 @@ repos:
         # print the number of files as a sanity-check
         verbose: true
 
-  # Updating repo files
+  # Updating repo config/tooling files
   - repo: local
     hooks:
       - id: compute-devcontainer-context-hash
