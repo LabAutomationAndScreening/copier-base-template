@@ -12,7 +12,10 @@ repo_root="$(CDPATH= cd -- "$script_dir/.." && pwd)"
 mkdir -p "$repo_root/.claude"
 chmod -R ug+rwX "$repo_root/.claude"
 chgrp -R 0 "$repo_root/.claude" || true
-npm --prefix "$repo_root/.claude" install{% endraw %}{% endif %}{% raw %}
+npm --prefix "$repo_root/.claude" install
+
+# Install beads for use in Claude planning
+npm install -g @beads/bd@0.56.1{% endraw %}{% endif %}{% raw %}
 
 pre-commit install --install-hooks{% endraw %}{% if python_package_registry is not defined or python_package_registry == "PyPI" %}
 

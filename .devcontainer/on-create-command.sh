@@ -14,6 +14,9 @@ chmod -R ug+rwX "$repo_root/.claude"
 chgrp -R 0 "$repo_root/.claude" || true
 npm --prefix "$repo_root/.claude" install
 
+# Install beads for use in Claude planning
+npm install -g @beads/bd@0.56.1
+
 python .devcontainer/manual-setup-deps.py --optionally-check-lock
 
 pre-commit install --install-hooks
