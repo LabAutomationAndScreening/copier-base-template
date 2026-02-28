@@ -1,9 +1,8 @@
-from __future__ import annotations
-
 import argparse
 import re
 from pathlib import Path
 
+# ruff: noqa: T201 # the hooks need to print to stdout to show anything
 
 HOOK_ID_LINE = re.compile(r"^-\s+id:\s")
 
@@ -65,13 +64,15 @@ def _parse_args() -> argparse.Namespace:
         description="Remove matching hook blocks from a pre-commit config file.",
     )
     _ = parser.add_argument(
-        "hook_id_regex",
+        "--hook-id-regex",
+        required=True,
+        dest="hook_id_regex",
         help="Regex to match a hook id line (e.g. '^\\s*-\\s+id:\\s+.*graphql[_-]lambda').",
     )
     _ = parser.add_argument(
-        "target_file",
-        nargs="?",
+        "--target-file",
         default=".pre-commit-config.yaml",
+        dest="target_file",
         help="Path to the pre-commit config file (default: .pre-commit-config.yaml).",
     )
     return parser.parse_args()
