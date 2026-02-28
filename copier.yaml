@@ -88,6 +88,12 @@ _tasks:
         else
             echo "ruff.toml not found; skipping Ruff target-version update."
         fi
+  - command: |
+        python3 src/copier_tasks/remove_precommit_hooks.py \
+            --hook-id-regex '^\s*-\s+id:\s+merge-claude-settings\s*$' \
+            --target-file .pre-commit-config.yaml
+
+    when: "{{ not install_claude_cli }}"
 
 
 _min_copier_version: "9.4"
