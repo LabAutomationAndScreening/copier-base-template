@@ -89,7 +89,7 @@ _tasks:
             echo "ruff.toml not found; skipping Ruff target-version update."
         fi
   - command: |
-        python3 src/copier_tasks/remove_precommit_hooks.py \
+        python3 '{{ _copier_conf.src_path }}/src/copier_tasks/remove_precommit_hooks.py' \
             --hook-id-regex '^\s*-\s+id:\s+merge-claude-settings\s*$' \
             --target-file .pre-commit-config.yaml
 
