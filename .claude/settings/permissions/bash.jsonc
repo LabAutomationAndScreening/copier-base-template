@@ -38,7 +38,11 @@
       "Bash(tree *)",
       // Git & Version Control
       //   "Bash(gh:*)",
-      //   "Bash(git:*)",
+      "Bash(git diff *)",
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git rev-parse *)",
+      "Bash(git branch *)",
       // Misc
       "Bash(amp *)",
       "Bash(atuin *)",

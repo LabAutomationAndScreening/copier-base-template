@@ -1,4 +1,5 @@
 {
+  "_current_claude_instructions_cli": "npx claude-instructions --scope=project --flags=beads,gh-cli,no-plan-files --commands=spike.md,tdd.md,red.md,green.md,refactor.md,simplify.md,tdd-review.md,issue.md,create-issues.md,commit.md,summarize.md,gap.md,polish.md,add-command.md,create-adr.md,research.md",
   "devDependencies": {
     "@wbern/claude-instructions": "^2.11.0"
   }
