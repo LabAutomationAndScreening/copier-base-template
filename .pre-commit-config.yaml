@@ -323,3 +323,13 @@ repos:
         files: (.*.lock)|(.*pnpm-lock.yaml)|(.*hash_git_files.py)|(.devcontainer/.*)|(\.pre-commit-config.yaml)
         pass_filenames: false
         language: system
+
+  # Keep Claude's settings.json synced with the JSON5 files. It's only for local development, so don't run it in CI
+  - repo: local
+    hooks:
+      - id: merge-claude-settings
+        name: merge Claude settings
+        entry: bash -c '[[ "${GITHUB_ACTIONS:-}" == "true" || "${CI:-}" == "true" ]] && exit 0; bash .devcontainer/merge-claude-settings.sh'
+        files: .claude/settings/.*\.(json|jsonc)$
+        pass_filenames: false
+        language: system
