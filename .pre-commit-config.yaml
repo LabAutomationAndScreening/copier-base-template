@@ -317,18 +317,18 @@ repos:
   # Updating repo config/tooling files
   - repo: local
     hooks:
-      - id: compute-devcontainer-context-hash
-        # Devcontainer context --- this makes Github's "prebuild codespaces" feature work more intelligently for the "Configuration Change" trigger
-        name: compute devcontainer context hash
-        entry: bash -c "python3 .github/workflows/hash_git_files.py . --for-devcontainer-config-update"
-        files: (.*.lock)|(.*pnpm-lock.yaml)|(.*hash_git_files.py)|(.devcontainer/.*)|(\.pre-commit-config.yaml)
-        pass_filenames: false
-        language: system
-
       - id: merge-claude-settings
         # Keep Claude's settings.json synced with the JSON5 files. It's only for local development, so don't run it in CI
         name: merge Claude settings
         entry: bash -c '[[ "${GITHUB_ACTIONS:-}" == "true" || "${CI:-}" == "true" ]] && exit 0; bash .devcontainer/merge-claude-settings.sh'
         files: .claude/settings/.*\.(json|jsonc)$
+        pass_filenames: false
+        language: system
+
+      - id: compute-devcontainer-context-hash
+        # Devcontainer context --- this makes Github's "prebuild codespaces" feature work more intelligently for the "Configuration Change" trigger
+        name: compute devcontainer context hash
+        entry: bash -c "python3 .github/workflows/hash_git_files.py . --for-devcontainer-config-update"
+        files: (.*.lock)|(.*pnpm-lock.yaml)|(.*hash_git_files.py)|(.devcontainer/.*)|(\.pre-commit-config.yaml)
         pass_filenames: false
         language: system
