@@ -1,0 +1,2 @@
+- Comments should be used very rarely. Generally the code should speak for itself.
+- Never create a single-line docstring. Either the function should clearly describe what it does, or it is something with very complex behavior that requires a detailed docstring.
