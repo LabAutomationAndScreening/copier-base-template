@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 8
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6.0.1
+      - uses: actions/checkout@v6.0.2
         with:
           persist-credentials: false
 
@@ -69,6 +69,39 @@ jobs:
             exit $PRE_COMMIT_EXIT_CODE
           fi
 
+  unit-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - "ubuntu-24.04"
+        python-version:
+            - 3.12.7
+    name: Unit Test for Py${{ matrix.python-version }} on ${{ matrix.os }}
+    timeout-minutes: 8
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Tooling
+        run: python .devcontainer/install-ci-tooling.py
+
+      - name: Install Dependencies
+        run: |
+          uv sync --frozen
+          uv pip list
+
+      - name: Run Unit Tests
+        # TODO: figure out what to do about tests of copier task scripts that don't actually get detected by code coverage
+        run: uv run pytest tests/unit --durations=5 --no-cov
+
   lint-matrix:
     needs: [ pre-commit ]
     strategy:
@@ -90,7 +123,7 @@ jobs:
       contents: write # needed for mutex
 
     steps:
-      - uses: actions/checkout@v6.0.1
+      - uses: actions/checkout@v6.0.2
         with:
           persist-credentials: false
 
