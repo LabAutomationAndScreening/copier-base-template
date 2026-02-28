@@ -78,6 +78,8 @@ jobs:
         python-version:
             - 3.12.7
     name: Unit Test for Py${{ matrix.python-version }} on ${{ matrix.os }}
+    needs:
+      - pre-commit
     timeout-minutes: 8
     runs-on: ${{ matrix.os }}
     steps:

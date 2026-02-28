@@ -29,6 +29,38 @@ jobs:
     with:
       python-version: {% endraw %}{{ python_version }}{% raw %}
 
+  unit-test:
+    needs:
+      - pre-commit
+    strategy:
+      matrix:
+        os:
+          - "{% endraw %}{{ gha_linux_runner }}{% raw %}"
+        python-version:
+{% endraw %}{% for item in python_ci_versions %}
+          - {{ item }}
+{% endfor %}{% raw %}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: {% endraw %}{{ gha_medium_timeout_minutes }}{% raw %}
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+        with:
+          persist-credentials: false
+
+      - name: Install tooling
+        uses: ./.github/actions/install_deps
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run Unit Tests
+        # TODO: figure out what to do about tests of copier task scripts that don't actually get detected by code coverage
+        run: uv run pytest tests/unit --durations=5 --no-cov
+
+
   lint-matrix:
     needs:
       - pre-commit
@@ -143,8 +175,10 @@ jobs:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
     timeout-minutes: {% endraw %}{{ gha_short_timeout_minutes }}{% raw %}
     needs:
-      - lint-matrix
       - get-values
+      - pre-commit
+      - unit-test
+      - lint-matrix
     permissions:
       statuses: write # needed for updating status on Dependabot PRs
     if: always()
@@ -153,7 +187,10 @@ jobs:
         run: |
           success_pattern="^(skipped|success)$" # these are the possibilities: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#needs-context
 
-          if [[ ! "${{ needs.lint-matrix.result }}" =~ $success_pattern ]]; then
+          if [[ ! "${{ needs.get-values.result }}" =~ $success_pattern ]] ||
+            [[ ! "${{ needs.pre-commit.result }}" =~ $success_pattern ]] ||
+            [[ ! "${{ needs.unit-test.result }}" =~ $success_pattern ]] ||
+            [[ ! "${{ needs.lint-matrix.result }}" =~ $success_pattern ]]; then
             echo "❌ One or more jobs did not finish with skipped or success"
             exit 1
           fi
