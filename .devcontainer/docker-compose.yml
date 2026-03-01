@@ -13,6 +13,7 @@ services:
       - "14343:2222"
     environment:
       - AWS_PROFILE=localstack
+      - BEADS_DIR=/workspaces/copier-base-template/.claude/.beads
 
 volumes:
   python_venv: {}
