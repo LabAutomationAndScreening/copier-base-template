@@ -2,3 +2,4 @@
 - Never create a single-line docstring. Either the function should clearly describe what it does, or it is something with very complex behavior that requires a detailed docstring.
 - Don't spend time sorting or removing imports within code files. The pre-commit hooks will do that.
 - Always include type hints for pyright in Python
+- Always use `uv run python` instead of `python3` or `python` when running Python commands.
