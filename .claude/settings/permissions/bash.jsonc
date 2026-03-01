@@ -76,6 +76,8 @@
       "Bash(rg *)",
     ],
     "deny": [
+      // Exceptions to generally allowed AI tooling
+      "Bash(bd init*)", // we need to control the init process, don't let AI do that in the background
       // Destructive File Operations
       "Bash(chmod -R *)",
       "Bash(chown -R *)",
