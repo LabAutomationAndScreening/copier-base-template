@@ -20,7 +20,7 @@ services:
       - BEADS_DOLT_PORT=3306
 
   beads-dolt:
-    image: dolthub/dolt-sql-server:1.83.0
+    image: dolthub/dolt-sql-server:1.83.0 # no explicit reason for this version, just pinning for best practice
     volumes:
       - beads_dolt_data:/var/lib/dolt
     environment:
