@@ -3,5 +3,6 @@
   "jsonl_export": "issues.jsonl",
   "backend": "dolt",
   "dolt_mode": "server",
-  "dolt_database": "beads"
+  "dolt_server_host": "beads-dolt",
+  "dolt_database": "beads_work"
 }

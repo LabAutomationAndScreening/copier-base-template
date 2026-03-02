@@ -35,5 +35,5 @@
 
 
 volumes:{% endraw %}{% if install_claude_cli %}{% raw %}
-  beads_dolt_data: {}{% endraw }{% endif %}{% raw %}
+  beads_dolt_data: {}{% endraw %}{% endif %}{% raw %}
   python_venv: {}{% endraw %}
