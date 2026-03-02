@@ -105,9 +105,9 @@
       // Node.js
       "Bash(npm publish *)",
       // System Administration
-      "Bash(doas:*)",
-      "Bash(passwd:*)",
-      "Bash(su:*)",
+      "Bash(doas *)",
+      "Bash(passwd *)",
+      "Bash(su *)",
       "Bash(sudo *)",
       "Bash(systemctl *)",
       "Bash(userdel *)",
