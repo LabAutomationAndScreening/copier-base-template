@@ -14,6 +14,8 @@ services:
     environment:
       - AWS_PROFILE=localstack
       - BEADS_DIR=/workspaces/copier-base-template/.claude/.beads
+      - BEADS_DOLT_SERVER_HOST=beads-dolt # this is on the docker compose network. We don't want to publish the server port because then the local machine would have a bunch of conflicts with multiple devcontainers running
+      - BEADS_DOLT_SERVER_PORT=3306
 
   beads-dolt:
     image: dolthub/dolt-sql-server:1.83.0
