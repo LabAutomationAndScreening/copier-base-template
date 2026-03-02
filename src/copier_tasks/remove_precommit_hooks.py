@@ -90,7 +90,7 @@ def main() -> int:
 
     if not target_file.exists():
         print(f"{target_file} not found; skipping hook removal.")
-        return 0
+        return 1
 
     removed_count = remove_hook_blocks(target_file, hook_id_pattern)
     if removed_count > 0:
