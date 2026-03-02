@@ -56,3 +56,4 @@ beads.right.meta.json
 # at the moment, we're just using beads for local development, so don't commit any jsonl
 interactions.jsonl
 issues.jsonl
+backup/
