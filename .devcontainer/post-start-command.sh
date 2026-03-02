@@ -9,5 +9,5 @@ if ! bd ready; then
     # the 'stealth' flag is just the only way I could figure out how to stop it from modifying AGENTS.md...if there's another way to avoid that, then fine.  Even without the stealth flag though, files inside the .claude/beads directory get modified, so restoring them at the end to what was set in git...these shouldn't really need to change regularly
     # trying to set 'prefix' to nothing doesn't seem to work (it just acts like the prefix flag wasn't there), so just setting to 'work' as an arbitrary name
     # for some reason, the envvar for the server host isn't being picked up normally, so just passing it explicitly here
-    rm -rf .claude/.beads && bd init --server-host="$BEADS_DOLT_SERVER_HOST" --skip-hooks --stealth --prefix=work </dev/null && git -c core.hooksPath=/dev/null restore --source=HEAD --staged --worktree .claude/.beads
+    rm -rf .claude/.beads && bd init --server-host="$BEADS_DOLT_SERVER_HOST" --database="$BEADS_DOLT_SERVER_DATABASE" --skip-hooks --stealth --prefix=work </dev/null && git -c core.hooksPath=/dev/null restore --source=HEAD --staged --worktree .claude/.beads
 fi
