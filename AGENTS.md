@@ -44,6 +44,9 @@ bd update bd-42 --priority 1 --json
 bd close bd-42 --reason "Completed" --json
 ```
 
+**Creating human readable file:**
+- After every command CRUD command on an issue, run `bd export -o .claude/.beads/issues-dump.jsonl`
+
 ### Issue Types
 
 - `bug` - Something broken
