@@ -57,9 +57,10 @@
       "Bash(test *)",
       "Bash(zk *)",
       // Node.js
-      "Bash(pnpm *)",
+      "Bash(pnpm test-unit *)",
+      "Bash(pnpm test-e2e *)",
       // Python
-      "Bash(uv *)",
+      "Bash(uv run pytest *)",
       // Text Processing
       "Bash(awk *)",
       "Bash(cat *)",
