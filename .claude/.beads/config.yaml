@@ -41,4 +41,4 @@
 # - github.org
 # - github.repo
 no-git-ops: true
-backup.enabled: false
+backup.enabled: false # in v0.57 the backup seems to automatically add stage the files into git, bypassing the .gitignore I tried to set up, so disabling for now (also we don't really need backup anyway if we're not pushing into git, but this would be nicer long term than having to run the export command manually all the time)
