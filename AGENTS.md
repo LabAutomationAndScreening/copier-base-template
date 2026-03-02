@@ -7,7 +7,7 @@
 - Prefer keyword-only parameters: use `*` in Python signatures and destructured options objects in TypeScript.
 
 ## Testing
-- Test runners will detect unit and e2e tests by default, so always run tests with a path. e.g. `uv run pytest tests/unit`
+- Always run tests with an explicit path (e.g. uv run pytest tests/unit) — test runners discover all types by default.
 - Test coverage requirements are usually at 100%, so when running a subset of tests, always disable test coverage to avoid the test run failing for insufficient coverage.
 - Avoid magic values in comparisons in tests in all languages (like ruff rule PLR2004 specifies)
 - Prefer using random values in tests rather than arbitrary ones (e.g. the faker library, uuids, random.randint) when possible.
