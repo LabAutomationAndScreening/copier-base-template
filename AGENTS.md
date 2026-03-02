@@ -1,17 +1,30 @@
+## Code Style
 - Comments should be used very rarely. Generally the code should speak for itself.
 - Never create a single-line docstring. Either the function should clearly describe what it does, or it is something with very complex behavior that requires a detailed docstring.
-- Don't spend time sorting or removing imports within code files. The pre-commit hooks will do that.
+- Don't sort or remove imports manually — pre-commit handles it.
 - Always include type hints for pyright in Python
-- Always use `uv run python` instead of `python3` or `python` when running Python commands.
+- Respect the pyright rule reportUnusedCallResult; assign unneeded return values to `_`
+- Prefer keyword-only parameters: use `*` in Python signatures and destructured options objects in TypeScript.
+
+## Testing
 - Test runners will detect unit and e2e tests by default, so always run tests with a path. e.g. `uv run pytest tests/unit`
 - Test coverage requirements are usually at 100%, so when running a subset of tests, always disable test coverage to avoid the test run failing for insufficient coverage.
-- The test runners provide a random seed that can be reused to exactly re-run a test suite. So prefer using random values in tests rather than arbitrary ones (e.g. the faker library, uuids, random.randint) when possible.
 - Avoid magic values in comparisons in tests in all languages (like ruff rule PLR2004 specifies)
-- Respect the pyright rule reportUnusedCallResult; assign unneeded return values to `_`
+- Prefer using random values in tests rather than arbitrary ones (e.g. the faker library, uuids, random.randint) when possible.
+
+## Tooling
+- Always use `uv run python` instead of `python3` or `python` when running Python commands.
 - The .devcontainer/devcontainer.json file will specify the versions of tooling (e.g. Python, Node) used in the project. Check it when reasoning about version-specific stdlib or tooling behavior.
-- Prefer keyword-only parameters: use * in Python signatures and destructured options objects in TypeScript.
 <!-- Allows better automated utilization of command allow/deny list -->
 - When running terminal commands, execute exactly one command per tool call. Do not chain commands with shell operators or metacharacters such as &&, ||, ;, |, or & unless the user explicitly asks for it. If two commands are needed, run them in separate tool calls.
+
+
+
+
+
+
+
+
 
 <!-- BEGIN BEADS INTEGRATION -->
 ## Issue Tracking with bd (beads)
