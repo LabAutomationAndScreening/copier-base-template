@@ -31,7 +31,7 @@
       - beads_dolt_data:/var/lib/dolt
     environment:
       - DOLT_ROOT_HOST=%
-      - DOLT_DATABASE=beads{% endraw %}{% endif %}{% raw %}
+      - DOLT_DATABASE=beads_work{% endraw %}{% endif %}{% raw %}
 
 
 volumes:{% endraw %}{% if install_claude_cli %}{% raw %}
