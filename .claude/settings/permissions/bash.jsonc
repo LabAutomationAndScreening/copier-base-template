@@ -13,7 +13,6 @@
       // Core Shell Commands
       "Bash(COMMAND *)", // used in slash commands
       "Bash(kill *)",
-      "Bash(ln *)",
       "Bash(ps *)",
       "Bash(pwd *)",
       "Bash(time *)",
@@ -79,6 +78,7 @@
       "Bash(gh *)", // let's hold off before we let it use the github CLI in any free running allow mode...I don't want it somehow approving PRs with the user's credentials
       "Bash(aws *)", // let's hold off before we let it use AWS CLI in any free running allow mode. We need to be very sure we don't have any access to staging or production credentials in our dev environment (...which we shouldn't...but we need to double check that or consider any other safeguards first)
       "Bash(curl *)",
+      "Bash(ln *)",
     ],
     "deny": [
       // Exceptions to generally allowed AI tooling
