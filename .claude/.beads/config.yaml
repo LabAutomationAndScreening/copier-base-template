@@ -40,3 +40,4 @@
 # - linear.api-key
 # - github.org
 # - github.repo
+no-git-ops: true

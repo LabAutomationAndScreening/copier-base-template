@@ -98,6 +98,8 @@
       "Bash(killall *)",
       // Git & Version Control
       "Bash(git reset --hard *)",
+      "Bash(git push -f *)",
+      "Bash(git push --force*)",
       // Node.js
       "Bash(npm publish *)",
       // System Administration
