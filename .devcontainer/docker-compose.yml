@@ -15,5 +15,11 @@ services:
       - AWS_PROFILE=localstack
       - BEADS_DIR=/workspaces/copier-base-template/.claude/.beads
 
+  beads-dolt:
+    image: dolthub/dolt-sql-server:1.83.0
+    environment:
+      - DOLT_ROOT_HOST=%
+      - DOLT_DATABASE=beads
+
 volumes:
   python_venv: {}
