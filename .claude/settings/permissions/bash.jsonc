@@ -6,6 +6,8 @@
     "allow": [
       // AI interactions and tooling
       "Bash(bd *)",
+      // Cloud Infrastructure
+      "Bash(aws sts get*)",
       // Code Quality & Formatting
       "Bash(pre-commit run *)",
       // Core Shell Commands
@@ -39,7 +41,6 @@
       "Bash(touch *)",
       "Bash(tree *)",
       // Git & Version Control
-      //   "Bash(gh:*)", // let's hold off before we let it use the github CLI...I don't want it somehow approving PRs with the user's credentials
       "Bash(git diff *)",
       "Bash(git status *)",
       "Bash(git log *)",
@@ -74,6 +75,10 @@
       "Bash(tail *)",
       // Search
       "Bash(rg *)",
+    ],
+    "ask": [
+      "Bash(gh *)", // let's hold off before we let it use the github CLI in any free running allow mode...I don't want it somehow approving PRs with the user's credentials
+      "Bash(aws *)", // let's hold off before we let it use AWS CLI in any free running allow mode. We need to be very sure we don't have any access to staging or production credentials in our dev environment (...which we shouldn't...but we need to double check that or consider any other safeguards first)
     ],
     "deny": [
       // Exceptions to generally allowed AI tooling
