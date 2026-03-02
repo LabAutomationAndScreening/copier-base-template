@@ -1,6 +1,6 @@
 ## Code Style
-- Comments should be used very rarely. Generally the code should speak for itself.
-- Never create a single-line docstring. Either the function should clearly describe what it does, or it is something with very complex behavior that requires a detailed docstring.
+- Comments should be used very rarely. Code should generally express its intent.
+- Never write a one-line docstring — either the name is sufficient or the behavior warrants a full explanation.
 - Don't sort or remove imports manually — pre-commit handles it.
 - Always include type hints for pyright in Python
 - Respect the pyright rule reportUnusedCallResult; assign unneeded return values to `_`
@@ -14,17 +14,9 @@
 
 ## Tooling
 - Always use `uv run python` instead of `python3` or `python` when running Python commands.
-- The .devcontainer/devcontainer.json file will specify the versions of tooling (e.g. Python, Node) used in the project. Check it when reasoning about version-specific stdlib or tooling behavior.
+- Check .devcontainer/devcontainer.json for tooling versions (Python, Node, etc.) when reasoning about version-specific stdlib or tooling behavior.
 <!-- Allows better automated utilization of command allow/deny list -->
 - When running terminal commands, execute exactly one command per tool call. Do not chain commands with shell operators or metacharacters such as &&, ||, ;, |, or & unless the user explicitly asks for it. If two commands are needed, run them in separate tool calls.
-
-
-
-
-
-
-
-
 
 <!-- BEGIN BEADS INTEGRATION -->
 ## Issue Tracking with bd (beads)
