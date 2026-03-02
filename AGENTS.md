@@ -59,7 +59,7 @@ bd close bd-42 --reason "Completed" --json
 ```
 
 **Creating human readable file:**
-After every command CRUD command on an issue, export it:
+After every CRUD command on an issue, export it:
 
 ```bash
 bd export -o .claude/.beads/issues-dump.jsonl
