@@ -1,6 +1,6 @@
 #!/bin/bash
 set -ex
-
+# TODO: update the devcontainer hash script to exclude this file, since rebuilding the devcontainer wouldn't rely on this
 git config --global --add safe.directory /workspaces/copier-base-template
 pre-commit run merge-claude-settings -a
 
