@@ -25,7 +25,7 @@ services:
       - beads_dolt_data:/var/lib/dolt
     environment:
       - DOLT_ROOT_HOST=%
-      - DOLT_DATABASE=beads
+      - DOLT_DATABASE=beads_work
 
 volumes:
   beads_dolt_data: {}
