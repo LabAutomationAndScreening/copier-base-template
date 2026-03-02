@@ -18,7 +18,7 @@ set -euo pipefail
 
 # Navigate to the .claude directory relative to the folder this script is in
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-cd "$script_dir/../.claude"
+cd "$script_dir/../"
 
 # ---------------------------------------------------------------------------- #
 #                              1. DISCOVER FILES                               #
