@@ -16,7 +16,7 @@
 - Always use `uv run python` instead of `python3` or `python` when running Python commands.
 - Check .devcontainer/devcontainer.json for tooling versions (Python, Node, etc.) when reasoning about version-specific stdlib or tooling behavior.
 <!-- Allows better automated utilization of command allow/deny list -->
-- When running terminal commands, execute exactly one command per tool call. Do not chain commands with shell operators or metacharacters such as &&, ||, ;, |, or & unless the user explicitly asks for it. If two commands are needed, run them in separate tool calls.
+- When running terminal commands, execute exactly one command per tool call. Do not chain commands with &&, ||, ;, or & unless the user explicitly asks for it. Pipes (|) are allowed for output transformation (e.g., head, tail, grep). If two sequential commands are needed, run them in separate tool calls.
 
 <!-- BEGIN BEADS INTEGRATION -->
 ## Issue Tracking with bd (beads)
