@@ -9,6 +9,7 @@
 - Avoid magic values in comparisons in tests in all languages (like ruff rule PLR2004 specifies)
 - Respect the pyright rule reportUnusedCallResult; assign unneeded return values to `_`
 - The .devcontainer/devcontainer.json file will specify the versions of tooling (e.g. Python, Node) used in the project. Check it when reasoning about version-specific stdlib or tooling behavior.
+- Prefer keyword-only parameters: use * in Python signatures and destructured options objects in TypeScript.
 <!-- Allows better automated utilization of command allow/deny list -->
 - When running terminal commands, execute exactly one command per tool call. Do not chain commands with shell operators or metacharacters such as &&, ||, ;, |, or & unless the user explicitly asks for it. If two commands are needed, run them in separate tool calls.
 
