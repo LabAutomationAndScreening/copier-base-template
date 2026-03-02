@@ -321,7 +321,7 @@ repos:
         # Keep Claude's settings.json synced with the JSON5 files. It's only for local development, so don't run it in CI
         name: merge Claude settings
         entry: bash -c '[[ "${GITHUB_ACTIONS:-}" == "true" || "${CI:-}" == "true" ]] && exit 0; bash .claude/helpers/merge-claude-settings.sh'
-        files: .claude/settings/.*\.(json|jsonc)$
+        files: ^\.claude/settings/.*\.(json|jsonc)$
         pass_filenames: false
         language: system
 
