@@ -72,6 +72,9 @@ merged_json=$(echo "$parsed_json" | jq -s '
             # Collect allow patterns from all files, flatten, and deduplicate
             allow: ([.[].permissions.allow // [] | .[] ] | unique),
 
+            # Collect ask patterns from all files, flatten, and deduplicate
+            ask: ([.[].permissions.ask // [] | .[] ] | unique),
+
             # Collect deny patterns from all files, flatten, and deduplicate
             deny: ([.[].permissions.deny // [] | .[] ] | unique)
         }
