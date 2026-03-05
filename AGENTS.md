@@ -4,7 +4,7 @@
 - Don't sort or remove imports manually — pre-commit handles it.
 - Always include type hints for pyright in Python
 - Respect the pyright rule reportUnusedCallResult; assign unneeded return values to `_`
-- Prefer keyword-only parameters (unless a very clear single argument function): use `*` in Python signatures and destructured options objects in TypeScript.
+- Prefer keyword-only parameters (unless a very clear single-argument function): use `*` in Python signatures and destructured options objects in TypeScript.
 
 ## Testing
 - Always run tests with an explicit path (e.g. uv run pytest tests/unit) — test runners discover all types by default.
