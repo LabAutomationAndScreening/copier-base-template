@@ -11,7 +11,7 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.10.7"
+        context["uv_version"] = "0.10.8"
         context["pre_commit_version"] = "4.5.1"
         # These also in pyproject.toml
         context["copier_version"] = "==9.12.0"
@@ -38,7 +38,7 @@ class ContextUpdater(ContextHook):
         context["pyinstaller_version"] = ">=6.19.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = ">=0.298.0"
-        context["fastapi_version"] = ">=0.129.0"
+        context["fastapi_version"] = ">=0.135.1"
         context["fastapi_offline_version"] = ">=1.7.4"
         context["uvicorn_version"] = ">=0.41.0"
         context["lab_auto_pulumi_version"] = ">=0.1.18"
@@ -56,7 +56,7 @@ class ContextUpdater(ContextHook):
         context["python_faker_version"] = ">=40.4.0"
         #######
         context["default_node_version"] = "24.11.1"
-        context["nuxt_ui_version"] = "^4.4.0"
+        context["nuxt_ui_version"] = "^4.5.1"
         context["nuxt_version"] = "^4.3.1"
         context["nuxt_icon_version"] = "^2.2.1"
         context["typescript_version"] = "^5.9.3"
@@ -84,17 +84,17 @@ class ContextUpdater(ContextHook):
         context["vue_test_utils_version"] = "^2.4.6"
         context["nuxt_test_utils_version"] = "3.19.1"
         context["vue_eslint_parser_version"] = "^10.4.0"
-        context["happy_dom_version"] = "^20.6.3"
+        context["happy_dom_version"] = "^20.8.3"
         context["node_kiota_bundle_version"] = "1.0.0-preview.99"
         #######
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v6.0.2"
         context["gha_setup_python"] = "v6.2.0"
-        context["gha_cache"] = "v5.0.2"
+        context["gha_cache"] = "v5.0.3"
         context["gha_linux_runner"] = "ubuntu-24.04"
         #######
-        context["gha_upload_artifact"] = "v6.0.0"
-        context["gha_download_artifact"] = "v7.0.0"
+        context["gha_upload_artifact"] = "v7.0.0"
+        context["gha_download_artifact"] = "v8.0.0"
         context["gha_github_script"] = "v7.0.1"
         context["gha_setup_buildx"] = "v3.11.1"
         context["buildx_version"] = "v0.27.0"
