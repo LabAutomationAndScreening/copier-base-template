@@ -11,7 +11,7 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.10.7"
+        context["uv_version"] = "0.10.8"
         context["pre_commit_version"] = "4.5.1"
         # These also in pyproject.toml
         context["copier_version"] = "==9.12.0"
@@ -84,7 +84,7 @@ class ContextUpdater(ContextHook):
         context["vue_test_utils_version"] = "^2.4.6"
         context["nuxt_test_utils_version"] = "3.19.1"
         context["vue_eslint_parser_version"] = "^10.4.0"
-        context["happy_dom_version"] = "^20.6.3"
+        context["happy_dom_version"] = "^20.8.3"
         context["node_kiota_bundle_version"] = "1.0.0-preview.99"
         #######
         # These are duplicated in the CI files for this repository
