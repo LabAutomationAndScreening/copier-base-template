@@ -40,7 +40,7 @@
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.388.0",
         "github.copilot-chat@0.38.2026022704",{% endraw %}{% if install_claude_cli %}{% raw %}
-        "anthropic.claude-code@2.1.61",{% endraw %}{% endif %}{% raw %}
+        "anthropic.claude-code@2.1.74",{% endraw %}{% endif %}{% raw %}
 
         // Python
         "ms-python.python@2026.2.2026021801",
