@@ -5,24 +5,29 @@
 - Always include type hints for pyright in Python
 - Respect the pyright rule reportUnusedCallResult; assign unneeded return values to `_`
 - Prefer keyword-only parameters (unless a very clear single-argument function): use `*` in Python signatures and destructured options objects in TypeScript.
+- When disabling a linting rule with an inline directive, provide a comment at the end of the line (or on the line above for tools that don't allow extra text after an inline directive) describing the reasoning for disabling the rule.
 
 ## Testing
 - Always run tests with an explicit path (e.g. uv run pytest tests/unit) — test runners discover all types by default.
 - Test coverage requirements are usually at 100%, so when running a subset of tests, always disable test coverage to avoid the test run failing for insufficient coverage.
 - Avoid magic values in comparisons in tests in all languages (like ruff rule PLR2004 specifies)
 - Prefer using random values in tests rather than arbitrary ones (e.g. the faker library, uuids, random.randint) when possible.
+- Avoid loops in tests — assert each item explicitly so failures pinpoint the exact element.
+- Key `data-testid` selectors off unique IDs (e.g. UUIDs), not human-readable names which may collide or change.
 
 ### Python Testing
 - When using `mocker.spy` on a class-level method (including inherited ones), the spy records the unbound call, so assertions need `ANY` as the first argument to match self:  `spy.assert_called_once_with(ANY, expected_arg)`
 - Before writing new mock/spy helpers, check the `tests/unit/` folder for pre-built helpers in files like `fixtures.py` or `*mocks.py`
+- When a test needs a fixture only for its side effects (not its return value), use `@pytest.mark.usefixtures(fixture_name.__name__)` instead of adding an unused parameter with a noqa comment
+- Use `__name__` instead of string literals when referencing functions/methods (e.g., `mocker.patch.object(MyClass, MyClass.method.__name__)`, `pytest.mark.usefixtures(my_fixture.__name__)`). This enables IDE refactoring tools to catch renames.
 
 
 ## Tooling
 - Always use `uv run python` instead of `python3` or `python` when running Python commands.
 - Check .devcontainer/devcontainer.json for tooling versions (Python, Node, etc.) when reasoning about version-specific stdlib or tooling behavior.
-- For frontend work, run commands via `pnpm` scripts from `frontend/package.json`
-<!-- Allows better automated utilization of command allow/deny list -->
-- When running terminal commands, execute exactly one command per tool call. Do not chain commands with &&, ||, ;, or & unless the user explicitly asks for it. Pipes (|) are allowed for output transformation (e.g., head, tail, grep). If two sequential commands are needed, run them in separate tool calls.
+- For frontend work, run commands via `pnpm` scripts from `frontend/package.json`. ✅ pnpm test-unit  ❌ pnpm vitest ... or npx vitest ...
+- When running terminal commands, execute exactly one command per tool call. Do not chain commands with &&, ||, ;, or & unless the user explicitly asks for it. Pipes (|) are allowed for output transformation (e.g., head, tail, grep). If two sequential commands are needed, run them in separate tool calls. Chained commands break the permission allow-list matcher and cause unnecessary permission prompts
+- Never use backslash line continuations in shell commands — always write the full command on a single line. Backslashes break the permission allow-list matcher.
 
 <!-- BEGIN BEADS INTEGRATION -->
 ## Issue Tracking with bd (beads)
