@@ -26,7 +26,7 @@
 - Always use `uv run python` instead of `python3` or `python` when running Python commands.
 - Check .devcontainer/devcontainer.json for tooling versions (Python, Node, etc.) when reasoning about version-specific stdlib or tooling behavior.
 - For frontend work, run commands via `pnpm` scripts from `frontend/package.json`. ✅ pnpm test-unit  ❌ pnpm vitest ... or npx vitest ...
-- When running terminal commands, execute exactly one command per tool call. Do not chain commands with &&, ||, ;, or & unless the user explicitly asks for it. Pipes (|) are allowed for output transformation (e.g., head, tail, grep). If two sequential commands are needed, run them in separate tool calls. Chained commands break the permission allow-list matcher and causing unnecessary permission prompts
+- When running terminal commands, execute exactly one command per tool call. Do not chain commands with &&, ||, ;, or & unless the user explicitly asks for it. Pipes (|) are allowed for output transformation (e.g., head, tail, grep). If two sequential commands are needed, run them in separate tool calls. Chained commands break the permission allow-list matcher and cause unnecessary permission prompts
 - Never use backslash line continuations in shell commands — always write the full command on a single line. Backslashes break the permission allow-list matcher.
 
 <!-- BEGIN BEADS INTEGRATION -->
