@@ -14,7 +14,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: OIDC Auth for ECR to pull Data Hub images
+    - name: OIDC Auth for ECR
       uses: aws-actions/configure-aws-credentials@{% endraw %}{{ gha_configure_aws_credentials }}{% raw %}
       with:
         role-to-assume: ${{ inputs.role-arn }}
