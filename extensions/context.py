@@ -14,7 +14,7 @@ class ContextUpdater(ContextHook):
         context["uv_version"] = "0.10.9"
         context["pre_commit_version"] = "4.5.1"
         # These also in pyproject.toml
-        context["copier_version"] = "==9.12.0"
+        context["copier_version"] = "==9.14.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
         context["pnpm_version"] = "10.32.1"
@@ -40,7 +40,7 @@ class ContextUpdater(ContextHook):
         context["strawberry_graphql_version"] = ">=0.298.0"
         context["fastapi_version"] = ">=0.135.1"
         context["fastapi_offline_version"] = ">=1.7.4"
-        context["uvicorn_version"] = ">=0.41.0"
+        context["uvicorn_version"] = ">=0.42.0"
         context["lab_auto_pulumi_version"] = ">=0.1.18"
         context["ariadne_codegen_version"] = ">=0.17.0"
         context["pytest_mock_version"] = ">=3.15.1"
