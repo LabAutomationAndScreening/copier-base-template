@@ -48,7 +48,7 @@ class ContextUpdater(ContextHook):
         context["syrupy_version"] = ">=5.1.0"
         context["structlog_version"] = ">=25.5.0"
         context["httpx_version"] = ">=0.28.1"
-        context["python_kiota_bundle_version"] = ">=1.9.8"
+        context["python_kiota_bundle_version"] = ">=1.9.10"
         context["vcrpy_version"] = ">=8.1.1"
         context["pytest_recording_version"] = ">=0.13.4"
         context["pytest_asyncio_version"] = ">=1.3.0"
@@ -85,7 +85,7 @@ class ContextUpdater(ContextHook):
         context["nuxt_test_utils_version"] = "3.19.1"
         context["vue_eslint_parser_version"] = "^10.4.0"
         context["happy_dom_version"] = "^20.8.3"
-        context["node_kiota_bundle_version"] = "1.0.0-preview.99"
+        context["node_kiota_bundle_version"] = "1.0.0-preview.100"
         #######
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v6.0.2"
