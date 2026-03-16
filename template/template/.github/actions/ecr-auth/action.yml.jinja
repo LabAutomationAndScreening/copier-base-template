@@ -6,7 +6,7 @@ inputs:
     type: string
     description: AWS region to use for ECR authentication
     required: false
-    default: '{% endraw %}{{ aws_central_infrastructure_account_id }}{% raw %}'
+    default: '{% endraw %}{{ aws_org_home_region }}{% raw %}'
   role-arn:
     type: string
     description: AWS IAM Role ARN to assume for ECR authentication
