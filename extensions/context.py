@@ -11,10 +11,10 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.10.9"
+        context["uv_version"] = "0.10.10"
         context["pre_commit_version"] = "4.5.1"
         # These also in pyproject.toml
-        context["copier_version"] = "==9.12.0"
+        context["copier_version"] = "==9.14.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
         context["pnpm_version"] = "10.32.1"
@@ -40,7 +40,7 @@ class ContextUpdater(ContextHook):
         context["strawberry_graphql_version"] = ">=0.298.0"
         context["fastapi_version"] = ">=0.135.1"
         context["fastapi_offline_version"] = ">=1.7.4"
-        context["uvicorn_version"] = ">=0.41.0"
+        context["uvicorn_version"] = ">=0.42.0"
         context["lab_auto_pulumi_version"] = ">=0.1.18"
         context["ariadne_codegen_version"] = ">=0.17.0"
         context["pytest_mock_version"] = ">=3.15.1"
@@ -48,7 +48,7 @@ class ContextUpdater(ContextHook):
         context["syrupy_version"] = ">=5.1.0"
         context["structlog_version"] = ">=25.5.0"
         context["httpx_version"] = ">=0.28.1"
-        context["python_kiota_bundle_version"] = ">=1.9.8"
+        context["python_kiota_bundle_version"] = ">=1.9.10"
         context["vcrpy_version"] = ">=8.1.1"
         context["pytest_recording_version"] = ">=0.13.4"
         context["pytest_asyncio_version"] = ">=1.3.0"
@@ -85,7 +85,7 @@ class ContextUpdater(ContextHook):
         context["nuxt_test_utils_version"] = "3.19.1"
         context["vue_eslint_parser_version"] = "^10.4.0"
         context["happy_dom_version"] = "^20.8.3"
-        context["node_kiota_bundle_version"] = "1.0.0-preview.99"
+        context["node_kiota_bundle_version"] = "1.0.0-preview.100"
         #######
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v6.0.2"
@@ -99,9 +99,9 @@ class ContextUpdater(ContextHook):
         context["gha_setup_buildx"] = "v3.11.1"
         context["buildx_version"] = "v0.27.0"
         context["gha_docker_build_push"] = "v6.18.0"
-        context["gha_configure_aws_credentials"] = "v5.1.1"
-        context["gha_amazon_ecr_login"] = "v2.0.1"
-        context["gha_setup_node"] = "v6.2.0"
+        context["gha_configure_aws_credentials"] = "v6.0.0"
+        context["gha_amazon_ecr_login"] = "v2.0.2"
+        context["gha_setup_node"] = "v6.3.0"
         context["gha_action_gh_release"] = "v2.2.1"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
         context["gha_pypi_publish"] = "v1.13.0"
