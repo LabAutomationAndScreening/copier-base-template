@@ -58,7 +58,7 @@ class ContextUpdater(ContextHook):
         context["default_node_version"] = "24.11.1"
         context["nuxt_ui_version"] = "^4.5.1"
         context["nuxt_version"] = (
-            "~4.3.1"  # some weird funkiness with Nuxt v4.4.3 and MagicString. trying to bump to Vitest v4 is possibly the answer, but initial attempt at that failed
+            "~4.3.1"  # some weird funkiness with Nuxt v4.4.2 and MagicString. trying to bump to Vitest v4 is possibly the answer, but initial attempt at that failed
         )
         context["nuxt_icon_version"] = "^2.2.1"
         context["typescript_version"] = "^5.9.3"
