@@ -61,7 +61,7 @@ class ContextUpdater(ContextHook):
         context["nuxt_icon_version"] = "^2.2.1"
         context["typescript_version"] = "^5.9.3"
         context["playwright_version"] = "^1.58.2"
-        context["vue_version"] = "^3.5.28"
+        context["vue_version"] = "^3.5.50"
         context["vue_tsc_version"] = "^3.2.4"
         context["vue_devtools_api_version"] = "^8.1.0"
         context["vue_router_version"] = "^5.0.3"
