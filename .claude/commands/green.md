@@ -52,6 +52,13 @@ The foundation of TDD is the Red-Green-Refactor cycle:
    - No anticipatory coding or extra features
    - Address the specific failure message
 
+### Post-Green Verification
+
+Once the test passes, run the coverage tool scoped to **only the files you edited** and check for uncovered lines:
+
+- Any uncovered lines in files you edited are over-implementation — **delete them**
+- Do not scope to the full test suite; focus only on what changed
+
 3. **Refactor Phase**: Improve code structure while keeping tests green
    - Only allowed when relevant tests are passing
    - Requires proof that tests have been run and are green

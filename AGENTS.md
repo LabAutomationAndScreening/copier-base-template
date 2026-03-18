@@ -11,7 +11,7 @@
 - Always run tests with an explicit path (e.g. uv run pytest tests/unit) — test runners discover all types by default.
 - Test coverage requirements are usually at 100%, so when running a subset of tests, always disable test coverage to avoid the test run failing for insufficient coverage.
 - Avoid magic values in comparisons in tests in all languages (like ruff rule PLR2004 specifies)
-- Prefer using random values in tests rather than arbitrary ones (e.g. the faker library, uuids, random.randint) when possible.
+- Prefer using random values in tests rather than arbitrary ones (e.g. the faker library, uuids, random.randint) when possible. For enums, pick randomly rather than hardcoding one value.
 - Avoid loops in tests — assert each item explicitly so failures pinpoint the exact element. When verifying a condition across all items in a collection, collect the violations into a list and assert it's empty (e.g., assert [x for x in items if bad_condition(x)] == []).
 - Key `data-testid` selectors off unique IDs (e.g. UUIDs), not human-readable names which may collide or change.
 
@@ -20,13 +20,17 @@
 - Before writing new mock/spy helpers, check the `tests/unit/` folder for pre-built helpers in files like `fixtures.py` or `*mocks.py`
 - When a test needs a fixture only for its side effects (not its return value), use `@pytest.mark.usefixtures(fixture_name.__name__)` instead of adding an unused parameter with a noqa comment
 - Use `__name__` instead of string literals when referencing functions/methods (e.g., `mocker.patch.object(MyClass, MyClass.method.__name__)`, `pytest.mark.usefixtures(my_fixture.__name__)`). This enables IDE refactoring tools to catch renames.
+- **Never hand-write VCR cassette YAML files.** Cassettes must be recorded from real HTTP interactions by running the test once with `--record-mode=once` against a live external service: `uv run pytest --record-mode=once <test path> --no-cov`. The default mode is `none` — a missing cassette will cause an error, which is expected until recorded.
+- **Never hand-edit syrupy snapshot files.** Snapshots are auto-generated — to create or update them, run `uv run pytest --snapshot-update <test path> --no-cov`. A missing snapshot causes the test to fail, which is expected until you run with `--snapshot-update`. When a snapshot mismatch occurs, fix the code if the change was unintentional; run `--snapshot-update` if it was intentional.
+- **Never hand-write or hand-edit pytest-reserial `.jsonl` recording files.** Recordings must be captured from real serial port traffic by running the test with `--record` while the device is connected: `uv run pytest --record <test path> --no-cov`. The default mode replays recordings — a missing recording causes an error, which is expected until recorded against a live device.
 
 
 ## Tooling
 - Always use `uv run python` instead of `python3` or `python` when running Python commands.
+- Prefer dedicated shell tools over `python3`/`python` for simple one-off tasks: use `jq` for JSON parsing, standard shell builtins for string manipulation, etc. Only reach for `python3` when no simpler tool covers the need.
 - Check .devcontainer/devcontainer.json for tooling versions (Python, Node, etc.) when reasoning about version-specific stdlib or tooling behavior.
-- For frontend work, run commands via `pnpm` scripts from `frontend/package.json`. ✅ pnpm test-unit  ❌ pnpm vitest ... or npx vitest ...
-- When running terminal commands, execute exactly one command per tool call. Do not chain commands with &&, ||, ;, or & unless the user explicitly asks for it. Pipes (|) are allowed for output transformation (e.g., head, tail, grep). If two sequential commands are needed, run them in separate tool calls. Chained commands break the permission allow-list matcher and cause unnecessary permission prompts
+- For frontend work, run commands via `pnpm` scripts from `frontend/package.json` — never invoke tools directly (not pnpm exec <tool>, npx <tool>, etc.). ✅ pnpm test-unit  ❌ pnpm vitest ... or npx vitest ...
+- When running terminal commands, execute exactly one command per tool call. Do not chain commands with &&, ||, ;, or & — this prohibition has no exceptions, even for `cd && ...` patterns. Use absolute paths instead of `cd` to avoid needing to chain. Pipes (|) are allowed for output transformation (e.g., head, tail, grep). If two sequential commands are needed, run them in separate tool calls. Chained commands break the permission allow-list matcher and cause unnecessary permission prompts
 - Never use backslash line continuations in shell commands — always write the full command on a single line. Backslashes break the permission allow-list matcher.
 
 <!-- BEGIN BEADS INTEGRATION -->
