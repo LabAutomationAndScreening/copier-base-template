@@ -63,7 +63,7 @@ class ContextUpdater(ContextHook):
         context["playwright_version"] = "^1.58.2"
         context["vue_version"] = "^3.5.28"
         context["vue_tsc_version"] = "^3.2.4"
-        context["vue_devtools_api_version"] = "^8.0.0"
+        context["vue_devtools_api_version"] = "^8.1.0"
         context["vue_router_version"] = "^5.0.3"
         context["dotenv_cli_version"] = "^11.0.0"
         context["faker_version"] = "^10.3.0"
@@ -84,7 +84,7 @@ class ContextUpdater(ContextHook):
         context["vue_test_utils_version"] = "^2.4.6"
         context["nuxt_test_utils_version"] = "3.19.1"
         context["vue_eslint_parser_version"] = "^10.4.0"
-        context["happy_dom_version"] = "^20.8.3"
+        context["happy_dom_version"] = "^20.8.4"
         context["node_kiota_bundle_version"] = "1.0.0-preview.100"
         #######
         # These are duplicated in the CI files for this repository
