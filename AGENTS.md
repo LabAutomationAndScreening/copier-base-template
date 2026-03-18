@@ -27,6 +27,7 @@
 
 ## Tooling
 - Always use `uv run python` instead of `python3` or `python` when running Python commands.
+- Prefer dedicated shell tools over `python3`/`python` for simple one-off tasks: use `jq` for JSON parsing, standard shell builtins for string manipulation, etc. Only reach for `python3` when no simpler tool covers the need.
 - Check .devcontainer/devcontainer.json for tooling versions (Python, Node, etc.) when reasoning about version-specific stdlib or tooling behavior.
 - For frontend work, run commands via `pnpm` scripts from `frontend/package.json` — never invoke tools directly (not pnpm exec <tool>, npx <tool>, etc.). ✅ pnpm test-unit  ❌ pnpm vitest ... or npx vitest ...
 - When running terminal commands, execute exactly one command per tool call. Do not chain commands with &&, ||, ;, or & — this prohibition has no exceptions, even for `cd && ...` patterns. Use absolute paths instead of `cd` to avoid needing to chain. Pipes (|) are allowed for output transformation (e.g., head, tail, grep). If two sequential commands are needed, run them in separate tool calls. Chained commands break the permission allow-list matcher and cause unnecessary permission prompts
