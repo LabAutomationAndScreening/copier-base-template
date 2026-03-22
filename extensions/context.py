@@ -22,7 +22,7 @@ class ContextUpdater(ContextHook):
         context["pyright_version"] = ">=1.1.408"
         context["pytest_version"] = ">=9.0.2"
         context["pytest_randomly_version"] = ">=4.0.1"
-        context["pytest_cov_version"] = ">=7.0.0"
+        context["pytest_cov_version"] = ">=7.1.0"
         context["ty_version"] = ">=0.0.23"
         #######
         context["sphinx_version"] = "9.0.4"
