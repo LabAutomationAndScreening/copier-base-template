@@ -1,5 +1,4 @@
-## Memory and Rules
-- Before saving any memory or adding any rule, explicitly ask the user whether the concept should be: (1) added to AGENTS.md as a general rule applicable across all projects, (2) added to AGENTS.md as a rule specific to this project, or (3) stored as a temporary local memory only relevant to the current active work. The devcontainer environment is ephemeral, so local memory files are rarely the right choice.
+# Code Guidelines
 
 ## Code Style
 - Comments should be used very rarely. Code should generally express its intent.
@@ -28,6 +27,14 @@
 - **Never hand-edit syrupy snapshot files.** Snapshots are auto-generated — to create or update them, run `uv run pytest --snapshot-update <test path> --no-cov`. A missing snapshot causes the test to fail, which is expected until you run with `--snapshot-update`. When a snapshot mismatch occurs, fix the code if the change was unintentional; run `--snapshot-update` if it was intentional.
 - **Never hand-write or hand-edit pytest-reserial `.jsonl` recording files.** Recordings must be captured from real serial port traffic by running the test with `--record` while the device is connected: `uv run pytest --record <test path> --no-cov`. The default mode replays recordings — a missing recording causes an error, which is expected until recorded against a live device.
 
+# Project Structure
+
+This project is a Copier template used to generate other copier templates. It is the "grandparent" of actual instantiated application/library repositories.
+
+# Agent Implementations & Configurations
+
+## Memory and Rules
+- Before saving any memory or adding any rule, explicitly ask the user whether the concept should be: (1) added to AGENTS.md as a general rule applicable across all projects, (2) added to AGENTS.md as a rule specific to this project, or (3) stored as a temporary local memory only relevant to the current active work. The devcontainer environment is ephemeral, so local memory files are rarely the right choice.
 
 ## Tooling
 - Always use `uv run python` instead of `python3` or `python` when running Python commands.
