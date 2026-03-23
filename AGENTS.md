@@ -5,6 +5,7 @@ This project is a Copier template used to generate other copier templates. It is
 # Code Guidelines
 
 ## Code Style
+
 - Comments should be used very rarely. Code should generally express its intent.
 - Never write a one-line docstring — either the name is sufficient or the behavior warrants a full explanation.
 - Don't sort or remove imports manually — pre-commit handles it.
@@ -15,6 +16,7 @@ This project is a Copier template used to generate other copier templates. It is
 - Avoid telling the type checker what a type is rather than letting it prove it. This includes type assertions (`as SomeType` in TypeScript, `cast()` in Python) and variable annotations that override inference. Prefer approaches that let the type checker verify the type itself: `isinstance`/`instanceof` narrowing, restructuring code so the correct type flows naturally, or using discriminated unions. When there is genuinely no alternative, add a comment explaining why the workaround is necessary and why it is safe.
 
 ## Testing
+
 - Always run tests with an explicit path (e.g. uv run pytest tests/unit) — test runners discover all types by default.
 - Test coverage requirements are usually at 100%, so when running a subset of tests, always disable test coverage to avoid the test run failing for insufficient coverage.
 - Avoid magic values in comparisons in tests in all languages (like ruff rule PLR2004 specifies)
@@ -23,6 +25,7 @@ This project is a Copier template used to generate other copier templates. It is
 - Key `data-testid` selectors off unique IDs (e.g. UUIDs), not human-readable names which may collide or change.
 
 ### Python Testing
+
 - When using `mocker.spy` on a class-level method (including inherited ones), the spy records the unbound call, so assertions need `ANY` as the first argument to match self:  `spy.assert_called_once_with(ANY, expected_arg)`
 - Before writing new mock/spy helpers, check the `tests/unit/` folder for pre-built helpers in files like `fixtures.py` or `*mocks.py`
 - When a test needs a fixture only for its side effects (not its return value), use `@pytest.mark.usefixtures(fixture_name.__name__)` instead of adding an unused parameter with a noqa comment
@@ -39,6 +42,7 @@ This project is a Copier template used to generate other copier templates. It is
 - Before saving any memory or adding any rule, explicitly ask the user whether the concept should be: (1) added to AGENTS.md as a general rule applicable across all projects, (2) added to AGENTS.md as a rule specific to this project, or (3) stored as a temporary local memory only relevant to the current active work. The devcontainer environment is ephemeral, so local memory files are rarely the right choice.
 
 ## Tooling
+
 - Always use `uv run python` instead of `python3` or `python` when running Python commands.
 - Prefer dedicated shell tools over `python3`/`python` for simple one-off tasks: use `jq` for JSON parsing, standard shell builtins for string manipulation, etc. Only reach for `python3` when no simpler tool covers the need.
 - Check .devcontainer/devcontainer.json for tooling versions (Python, Node, etc.) when reasoning about version-specific stdlib or tooling behavior.
