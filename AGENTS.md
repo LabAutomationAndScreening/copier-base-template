@@ -12,6 +12,7 @@ This project is a Copier template used to generate other copier templates. It is
 - Respect the pyright rule reportUnusedCallResult; assign unneeded return values to `_`
 - Prefer keyword-only parameters (unless a very clear single-argument function): use `*` in Python signatures and destructured options objects in TypeScript.
 - When disabling a linting rule with an inline directive, provide a comment at the end of the line (or on the line above for tools that don't allow extra text after an inline directive) describing the reasoning for disabling the rule.
+- Avoid telling the type checker what a type is rather than letting it prove it. This includes type assertions (`as SomeType` in TypeScript, `cast()` in Python) and variable annotations that override inference. Prefer approaches that let the type checker verify the type itself: `isinstance`/`instanceof` narrowing, restructuring code so the correct type flows naturally, or using discriminated unions. When there is genuinely no alternative, add a comment explaining why the workaround is necessary and why it is safe.
 
 ## Testing
 - Always run tests with an explicit path (e.g. uv run pytest tests/unit) — test runners discover all types by default.
