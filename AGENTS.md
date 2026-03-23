@@ -34,6 +34,7 @@ This project is a Copier template used to generate other copier templates. It is
 # Agent Implementations & Configurations
 
 ## Memory and Rules
+
 - Before saving any memory or adding any rule, explicitly ask the user whether the concept should be: (1) added to AGENTS.md as a general rule applicable across all projects, (2) added to AGENTS.md as a rule specific to this project, or (3) stored as a temporary local memory only relevant to the current active work. The devcontainer environment is ephemeral, so local memory files are rarely the right choice.
 
 ## Tooling
