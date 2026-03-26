@@ -17,7 +17,7 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "==9.14.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
-        context["pnpm_version"] = "10.32.1"
+        context["pnpm_version"] = "10.33.0"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = ">=1.1.408"
         context["pytest_version"] = ">=9.0.2"
@@ -56,7 +56,7 @@ class ContextUpdater(ContextHook):
         context["python_faker_version"] = ">=40.4.0"
         #######
         context["default_node_version"] = "24.11.1"
-        context["nuxt_ui_version"] = "^4.5.1"
+        context["nuxt_ui_version"] = "^4.6.0"
         context["nuxt_version"] = (
             "~4.3.1"  # some weird funkiness with Nuxt v4.4.2 and MagicString. trying to bump to Vitest v4 is possibly the answer, but initial attempt at that failed
         )
