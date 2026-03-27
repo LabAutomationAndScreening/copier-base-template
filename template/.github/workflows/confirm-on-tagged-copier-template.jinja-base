@@ -8,19 +8,26 @@ on:
         type: string
         default: '.copier-answers.yml'
 
+permissions:
+  contents: read
+  pull-requests: read # needed to check if PR exists for current branch
+
 jobs:
   confirm-on-tagger-copier-template:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
     timeout-minutes: {% endraw %}{{ gha_short_timeout_minutes }}{% raw %}
     name: Fail if template under development
-    permissions: {}
     steps:
       - name: Checkout code
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
         with:
           persist-credentials: false
 
+      - id: check
+        uses: ./.github/actions/check-skip-duplicates
+
       - name: Check _commit is a clean release tag
+        if: ${{ steps.check.outputs.should-run != 'true' }} # only run IF there is a PR open
         run: |
           ANSWERS_FILE="${{ inputs.answers_file }}"
           if [ ! -f "$ANSWERS_FILE" ]; then
