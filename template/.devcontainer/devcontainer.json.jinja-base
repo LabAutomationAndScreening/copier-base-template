@@ -1,4 +1,8 @@
 {% raw %}{
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "4gb"
+  },
   "dockerComposeFile": "docker-compose.yml",
   "service": "devcontainer",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
