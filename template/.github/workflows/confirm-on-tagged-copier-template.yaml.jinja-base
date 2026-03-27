@@ -8,10 +8,6 @@ on:
         type: string
         default: '.copier-answers.yml'
 
-permissions:
-  contents: read
-  pull-requests: read # needed to check if PR exists for current branch
-
 jobs:
   confirm-on-tagged-copier-template:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}

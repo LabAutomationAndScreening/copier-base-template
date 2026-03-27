@@ -34,13 +34,8 @@ jobs:
         uses: ./.github/actions/check-skip-duplicates
 
   confirm-on-tagged-copier-template:
-    needs:
-      - check-skip-duplicate
     if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
     uses: ./.github/workflows/confirm-on-tagged-copier-template.yaml
-    permissions:
-      contents: read
-      pull-requests: read # needed to check if PR exists for current branch
 
   workflow-summary:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
