@@ -41,10 +41,10 @@
         "github.copilot-chat@0.42.2026032602",
         "anthropic.claude-code@2.1.84",
         // Python
-        "ms-python.python@2026.2.2026021801",
-        "ms-python.vscode-pylance@2026.1.1",
+        "ms-python.python@2026.5.2026032701",
+        "ms-python.vscode-pylance@2026.1.102",
         "ms-vscode-remote.remote-containers@0.414.0",
-        "charliermarsh.ruff@2026.36.0",
+        "charliermarsh.ruff@2026.38.0",
         // Misc file formats
         "bierner.markdown-mermaid@1.29.0",
         "samuelcolvin.jinjahtml@0.20.0",

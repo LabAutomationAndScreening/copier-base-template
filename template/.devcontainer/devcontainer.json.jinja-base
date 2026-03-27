@@ -47,10 +47,10 @@
         "anthropic.claude-code@2.1.84",{% endraw %}{% endif %}{% raw %}
 
         // Python
-        "ms-python.python@2026.2.2026021801",
-        "ms-python.vscode-pylance@2026.1.1",
+        "ms-python.python@2026.5.2026032701",
+        "ms-python.vscode-pylance@2026.1.102",
         "ms-vscode-remote.remote-containers@0.414.0",
-        "charliermarsh.ruff@2026.36.0",
+        "charliermarsh.ruff@2026.38.0",
 {% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}
         // VueJS
         "vue.volar@3.2.5",
