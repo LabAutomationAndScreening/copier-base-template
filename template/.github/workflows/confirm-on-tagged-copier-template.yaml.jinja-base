@@ -13,7 +13,7 @@ permissions:
   pull-requests: read # needed to check if PR exists for current branch
 
 jobs:
-  confirm-on-tagger-copier-template:
+  confirm-on-tagged-copier-template:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
     timeout-minutes: {% endraw %}{{ gha_short_timeout_minutes }}{% raw %}
     name: Fail if template under development
