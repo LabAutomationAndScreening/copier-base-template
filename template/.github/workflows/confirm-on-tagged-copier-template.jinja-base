@@ -15,7 +15,8 @@ jobs:
     name: Fail if template under development
     permissions: {}
     steps:
-      - uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+      - name: Checkout code
+        uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
         with:
           persist-credentials: false
 
