@@ -23,11 +23,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - id: check
-        uses: ./.github/actions/check-skip-duplicates
-
       - name: Check _commit is a clean release tag
-        if: ${{ steps.check.outputs.should-run != 'true' }} # only run IF there is a PR open
         run: |
           ANSWERS_FILE="${{ inputs.answers_file }}"
           if [ ! -f "$ANSWERS_FILE" ]; then
