@@ -3,7 +3,9 @@ set -ex
 
 # For some reason the directory is not setup correctly and causes build of devcontainer to fail since
 # it doesn't have access to the workspace directory. This can normally be done in post-start-command
-git config --global --add safe.directory /workspaces/{% endraw %}{{ repo_name }}{% if install_claude_cli %}{% raw %}
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+repo_root="$(CDPATH= cd -- "$script_dir/.." && pwd)"
+git config --global --add safe.directory "$repo_root"{% endraw %}{% if install_claude_cli %}{% raw %}
 pre-commit run merge-claude-settings -a
 if ! bd ready; then
 	echo "It's likely the Dolt server has not yet been initialized to support beads, running that now" # TODO: figure out a better way to match this specific scenario than just a non-zero exit code...but beads still seems like in high flux right now so not sure what to tie it to

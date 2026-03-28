@@ -1,0 +1,83 @@
+{% raw %}name: CI
+
+on:
+  push:
+    branches-ignore:
+      - 'gh-readonly-queue/**' # don't run (again) when on these special branches created during merge groups; the `on: merge_group` already triggers it.
+  merge_group:
+  pull_request:
+
+env:
+  PYTHONUNBUFFERED: True
+  PRE_COMMIT_HOME: ${{ github.workspace }}/.precommit_cache
+
+permissions:
+  id-token: write # needed to assume OIDC roles (e.g. for downloading from CodeArtifact)
+
+jobs:
+  get-values:
+    uses: ./.github/workflows/get-values.yaml
+
+  check-skip-duplicate:
+    runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
+    permissions:
+      contents: read
+      pull-requests: read # needed to check if PR exists for current branch
+    outputs:
+      should-run: ${{ steps.check.outputs.should-run }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+        with:
+          persist-credentials: false
+      - id: check
+        uses: ./.github/actions/check-skip-duplicates
+
+  confirm-on-tagged-copier-template:
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+    uses: ./.github/workflows/confirm-on-tagged-copier-template.yaml
+
+  workflow-summary:
+    runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
+    timeout-minutes: {% endraw %}{{ gha_short_timeout_minutes }}{% raw %}
+    needs:
+      - get-values
+      - check-skip-duplicate
+      - confirm-on-tagged-copier-template
+    permissions:
+      statuses: write # needed for updating status on Dependabot PRs
+    if: always()
+    steps:
+      - name: fail if prior job failure
+        run: |
+          success_pattern="^(skipped|success)$" # these are the possibilities: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#needs-context
+
+          if [[ ! "${{ needs.get-values.result }}" =~ $success_pattern ]] ||
+            [[ ! "${{ needs.check-skip-duplicate.result }}" =~ $success_pattern ]] ||
+            [[ ! "${{ needs.confirm-on-tagged-copier-template.result }}" =~ $success_pattern ]]; then
+            echo "❌ One or more jobs did not finish with skipped or success"
+            exit 1
+          fi
+          echo "✅ All jobs finished with skipped or success"
+
+      - name: Mark the required-check as succeeded so the PR can be merged
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api \
+            -X POST -H "Accept: application/vnd.github.v3+json" \
+            "${{ github.event.pull_request.statuses_url }}" \
+            -f state=success -f context="required-check" -f description="✅ All required checks passed in the job triggered by pull_request" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Mark updated dependabot hash commit as succeeded
+        if: needs.get-values.outputs.dependabot-commit-created == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api \
+            -X POST -H "Accept: application/vnd.github.v3+json" \
+            "/repos/${{ github.repository }}/statuses/${{ needs.get-values.outputs.new-dependabot-sha }}" \
+            -f state=success -f context="required-check" -f description="Initial CI run passed" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"{% endraw %}

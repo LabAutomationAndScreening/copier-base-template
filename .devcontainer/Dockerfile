@@ -1,7 +1,7 @@
 # base image tags available at https://mcr.microsoft.com/v2/devcontainers/universal/tags/list
 # added the platform flag to override any local settings since this image is only compatible with linux/amd64. since this image is only x64 compatible, suppressing the hadolint rule
 # hadolint ignore=DL3029
-FROM --platform=linux/amd64 mcr.microsoft.com/devcontainers/universal:5.1.4-noble
+FROM --platform=linux/amd64 mcr.microsoft.com/devcontainers/universal:5.1.5-noble
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 

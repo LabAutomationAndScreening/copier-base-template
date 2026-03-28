@@ -17,7 +17,7 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "==9.14.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
-        context["pnpm_version"] = "10.32.1"
+        context["pnpm_version"] = "10.33.0"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = ">=1.1.408"
         context["pytest_version"] = ">=9.0.2"
@@ -56,7 +56,7 @@ class ContextUpdater(ContextHook):
         context["python_faker_version"] = ">=40.4.0"
         #######
         context["default_node_version"] = "24.11.1"
-        context["nuxt_ui_version"] = "^4.5.1"
+        context["nuxt_ui_version"] = "^4.6.0"
         context["nuxt_version"] = (
             "~4.3.1"  # some weird funkiness with Nuxt v4.4.2 and MagicString. trying to bump to Vitest v4 is possibly the answer, but initial attempt at that failed
         )
@@ -68,14 +68,14 @@ class ContextUpdater(ContextHook):
         context["vue_devtools_api_version"] = "^8.1.0"
         context["vue_router_version"] = "^5.0.3"
         context["dotenv_cli_version"] = "^11.0.0"
-        context["faker_version"] = "^10.3.0"
+        context["faker_version"] = "^10.4.0"
         context["vitest_version"] = "^3.2.4"
         context["eslint_version"] = "~9.38.0"
         context["nuxt_eslint_version"] = "^1.15.1"
         context["zod_version"] = "^4.3.6"
         context["zod_from_json_schema_version"] = "^0.5.1"
         context["nuxt_apollo_version"] = "5.0.0-alpha.15"
-        context["graphql_codegen_cli_version"] = "^6.1.0"
+        context["graphql_codegen_cli_version"] = "^6.2.1"
         context["graphql_codegen_typescript_version"] = "^5.0.7"
         context["graphql_tools_mock_version"] = "^9.1.0"
         context["tailwindcss_version"] = "^4.2.0"
