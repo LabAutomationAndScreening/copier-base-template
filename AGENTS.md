@@ -18,7 +18,7 @@ This project is a Copier template used to generate other copier templates. It is
 ## Testing
 
 - Always run tests with an explicit path (e.g. uv run pytest tests/unit) — test runners discover all types (unit, integration, E2E...) by default.
-- When iterating on a single test, run that test in isolation first and confirm it is in the  expected state (red or green) before widening to the full suite. Use the most targeted invocation available: a specific test function for Python (e.g. `uv run pytest path/to/test.py::test_name --no-cov`) or a file path and name filter for TypeScript (e.g. `pnpm test-unit -- path/to/test.spec.ts -t "test name" --no-coverage`). Only run the full suite once the target test behaves as expected.
+- When iterating on a single test, run that test in isolation first and confirm it is in the expected state (red or green) before widening to the full suite. Use the most targeted invocation available: a specific test function for Python (e.g. `uv run pytest path/to/test.py::test_name --no-cov`) or a file path and name filter for TypeScript (e.g. `pnpm test-unit -- path/to/test.spec.ts -t "test name" --no-coverage`). Only run the full suite once the target test behaves as expected.
 - Test coverage requirements are usually at 100%, so when running a subset of tests, always disable test coverage to avoid the test run failing for insufficient coverage.
 - Avoid magic values in comparisons in tests in all languages (like ruff rule PLR2004 specifies)
 - Prefer using random values in tests rather than arbitrary ones (e.g. the faker library, uuids, random.randint) when possible. For enums, pick randomly rather than hardcoding one value.
@@ -27,7 +27,7 @@ This project is a Copier template used to generate other copier templates. It is
 
 ### Python Testing
 
-- When using `mocker.spy` on a class-level method (including inherited ones), the spy records the unbound call, so assertions need `ANY` as the first argument to match self:  `spy.assert_called_once_with(ANY, expected_arg)`
+- When using `mocker.spy` on a class-level method (including inherited ones), the spy records the unbound call, so assertions need `ANY` as the first argument to match self: `spy.assert_called_once_with(ANY, expected_arg)`
 - Before writing new mock/spy helpers, check the `tests/unit/` folder for pre-built helpers in files like `fixtures.py` or `*mocks.py`
 - When a test needs a fixture only for its side effects (not its return value), use `@pytest.mark.usefixtures(fixture_name.__name__)` instead of adding an unused parameter with a noqa comment
 - Use `__name__` instead of string literals when referencing functions/methods (e.g., `mocker.patch.object(MyClass, MyClass.method.__name__)`, `pytest.mark.usefixtures(my_fixture.__name__)`). This enables IDE refactoring tools to catch renames.
