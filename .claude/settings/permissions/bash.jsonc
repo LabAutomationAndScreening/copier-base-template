@@ -74,9 +74,17 @@
       "Bash(tail *)",
       // Search
       "Bash(rg *)",
+      // Research
+      "Bash(gh issue list *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr diff *)"
     ],
     "ask": [
-      "Bash(gh *)", // let's hold off before we let it use the github CLI in any free running allow mode...I don't want it somehow approving PRs with the user's credentials
+      // let's hold off before we let it use the github CLI in any free running allow mode...I don't want it somehow approving PRs with the user's credentials
+      "Bash(gh repo *)",
+      "Bash(gh release *)",
+      "Bash(gh secret *)",
+      "Bash(gh ruleset *)",
       "Bash(aws *)", // let's hold off before we let it use AWS CLI in any free running allow mode. We need to be very sure we don't have any access to staging or production credentials in our dev environment (...which we shouldn't...but we need to double check that or consider any other safeguards first)
       "Bash(curl *)",
       "Bash(ln *)",
@@ -85,6 +93,17 @@
     "deny": [
       // Exceptions to generally allowed AI tooling
       "Bash(bd init*)", // we need to control the init process, don't let AI do that in the background
+      // Github
+      // Claude should not ever interfere with the PR process, that is how we gate AI's work
+      "Bash(gh pr create *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh pr ready *)",
+      "Bash(gh pr review *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh pr close *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh pr update-branch *)",
+
       // Destructive File Operations
       "Bash(chmod -R *)",
       "Bash(chown -R *)",
