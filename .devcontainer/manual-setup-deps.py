@@ -134,7 +134,8 @@ def main():
                     env=uv_env,
                 )
             if (
-                not args.skip_installing_pulumi_cli
+                not generate_lock_file_only
+                and not args.skip_installing_pulumi_cli
                 and platform.system() == "Linux"
                 and env.lock_file.exists()
                 and '"pulumi"' in env.lock_file.read_text()

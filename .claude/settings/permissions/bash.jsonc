@@ -76,6 +76,8 @@
       "Bash(rg *)",
       // Research
       "Bash(gh issue list *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr diff *)"
     ],
     "ask": [
       // let's hold off before we let it use the github CLI in any free running allow mode...I don't want it somehow approving PRs with the user's credentials
@@ -92,7 +94,13 @@
       // Exceptions to generally allowed AI tooling
       "Bash(bd init*)", // we need to control the init process, don't let AI do that in the background
       // Github
-      "Bash(gh pr *)", // Claude should not ever interfere with the PR process, that is how we gate AI's work
+      // Claude should not ever interfere with the PR process, that is how we gate AI's work
+      "Bash(gh pr create *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh pr ready *)",
+      "Bash(gh pr review *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh pr close *)",
 
       // Destructive File Operations
       "Bash(chmod -R *)",
