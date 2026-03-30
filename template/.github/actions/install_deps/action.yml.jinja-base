@@ -47,7 +47,7 @@ inputs:
   skip-installing-pulumi-cli:
     type: boolean
     description: Whether to skip installing the Pulumi CLI even if the lock file references it
-    default: true
+    default: false
     required: false
 
 
