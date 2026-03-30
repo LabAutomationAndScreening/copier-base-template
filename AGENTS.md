@@ -23,7 +23,7 @@ This project is a Copier template used to generate other copier templates. It is
 - Avoid magic values in comparisons in tests in all languages (like ruff rule PLR2004 specifies)
 - Prefer using random values in tests rather than arbitrary ones (e.g. the faker library, uuids, random.randint) when possible. For enums, pick randomly rather than hardcoding one value.
 - Avoid loops in tests — assert each item explicitly so failures pinpoint the exact element. When verifying a condition across all items in a collection, collect the violations into a list and assert it's empty (e.g., assert [x for x in items if bad_condition(x)] == []).
-- Key `data-testid` selectors off unique IDs (e.g. UUIDs), not human-readable names which may collide or change.
+- When asserting a mock or spy was called with specific arguments, always constrain as tightly as possible. In order of preference: (1) assert called exactly once with those args (`assert_called_once_with` in Python, `toHaveBeenCalledExactlyOnceWith` in Vitest/Jest); (2) if multiple calls are expected, assert the total call count and use a positional or last-call assertion (`nthCalledWith`, `lastCalledWith` / `assert_has_calls` with `call_args_list[n]`); (3) plain "called with at any point" (`toHaveBeenCalledWith`, `assert_called_with`) is a last resort only when neither the call count nor the call order can reasonably be constrained.
 
 ### Python Testing
 
@@ -36,6 +36,11 @@ This project is a Copier template used to generate other copier templates. It is
 - **Never hand-write VCR cassette YAML files.** Cassettes must be recorded from real HTTP interactions by running the test once with `--record-mode=once` against a live external service: `uv run pytest --record-mode=once <test path> --no-cov`. The default mode is `none` — a missing cassette will cause an error, which is expected until recorded.
 - **Never hand-edit syrupy snapshot files.** Snapshots are auto-generated — to create or update them, run `uv run pytest --snapshot-update <test path> --no-cov`. A missing snapshot causes the test to fail, which is expected until you run with `--snapshot-update`. When a snapshot mismatch occurs, fix the code if the change was unintentional; run `--snapshot-update` if it was intentional.
 - **Never hand-write or hand-edit pytest-reserial `.jsonl` recording files.** Recordings must be captured from real serial port traffic by running the test with `--record` while the device is connected: `uv run pytest --record <test path> --no-cov`. The default mode replays recordings — a missing recording causes an error, which is expected until recorded against a live device.
+
+### Frontend Testing
+
+- Key `data-testid` selectors off unique IDs (e.g. UUIDs), not human-readable names which may collide or change.
+- In DOM-based tests, scope queries to the tightest relevant container. Only query `document` or `document.body` directly to find the top-level portal/popup element (e.g. a Reka UI dialog via `[role="dialog"][data-state="open"]`); all further queries should run on that element, not on `document.body` again.
 
 # Agent Implementations & Configurations
 

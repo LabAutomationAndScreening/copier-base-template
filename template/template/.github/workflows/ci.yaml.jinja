@@ -13,10 +13,13 @@ env:
 
 permissions:
   id-token: write # needed to assume OIDC roles (e.g. for downloading from CodeArtifact)
+  contents: read # need to explicitly provide this whenever defining permissions because the default value is 'none' for anything not explicitly set when permissions are defined
 
 jobs:
   get-values:
     uses: ./.github/workflows/get-values.yaml
+    permissions:
+      contents: write # needed for updating dependabot branches
 
   check-skip-duplicate:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
