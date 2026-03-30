@@ -122,6 +122,7 @@ jobs:
         uses: ./.github/actions/install_deps
         with:
           python-version: ${{ inputs.PYTHON_VERSION }}
+          skip-installing-pulumi-cli: true # at the moment, we're more specifically installing the Pulumi CLI just in the target direction inside the pulumi_ephemeral_deploy action
 
       - name: Download Artifact
         uses: actions/download-artifact@{% endraw %}{{ gha_download_artifact }}{% raw %}
