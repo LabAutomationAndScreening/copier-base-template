@@ -101,6 +101,8 @@
       "Bash(gh pr review *)",
       "Bash(gh pr merge *)",
       "Bash(gh pr close *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh pr update-branch *)",
 
       // Destructive File Operations
       "Bash(chmod -R *)",
