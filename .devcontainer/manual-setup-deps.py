@@ -11,6 +11,7 @@ from typing import Any
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.resolve()
 ENVS_CONFIG = REPO_ROOT_DIR / ".devcontainer" / "envs.json"
+PULUMI_CLI_INSTALL_SCRIPT = REPO_ROOT_DIR / ".devcontainer" / "install-pulumi-cli.sh"
 UV_PYTHON_ALREADY_CONFIGURED = "UV_PYTHON" in os.environ
 parser = argparse.ArgumentParser(description="Manual setup for dependencies in the repo")
 _ = parser.add_argument(
@@ -140,10 +141,15 @@ def main():
                 and env.lock_file.exists()
                 and '"pulumi"' in env.lock_file.read_text()
             ):
-                _ = subprocess.run(
-                    ["sh", str(REPO_ROOT_DIR / ".devcontainer" / "install-pulumi-cli.sh"), str(env.lock_file)],
-                    check=True,
-                )
+                if not PULUMI_CLI_INSTALL_SCRIPT.exists():
+                    print(
+                        f"Pulumi CLI install script not found at {PULUMI_CLI_INSTALL_SCRIPT}, skipping Pulumi CLI installation"
+                    )
+                else:
+                    _ = subprocess.run(
+                        ["sh", str(PULUMI_CLI_INSTALL_SCRIPT), str(env.lock_file)],
+                        check=True,
+                    )
         elif env.package_manager == PackageManager.PNPM:
             pnpm_command = ["pnpm", "install", "--dir", str(env.path)]
             if env_check_lock:
