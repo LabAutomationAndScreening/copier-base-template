@@ -78,6 +78,11 @@ template_might_want_to_use_python_asyncio:
     default: no
     when: "{{ template_uses_python }}"
 
+template_uses_confluence_docs:
+    type: bool
+    help: Will repositories using this template publish markdown docs to Confluence?
+    default: no
+
 _tasks:
   - command: |
         python3 '{{ _copier_conf.src_path }}/src/copier_tasks/remove_precommit_hooks.py' \

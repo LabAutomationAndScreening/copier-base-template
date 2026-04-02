@@ -62,7 +62,16 @@ configure_python_asyncio:
     type: bool
     help: Will python code be using asyncio?
     default: no{% endraw %}{% endif %}{% raw %}
-{% endraw %}
+{% endraw %}{% if template_uses_confluence_docs %}{% raw %}
+confluence_docs_directory:
+    type: str
+    help: What directory contains the Confluence markdown docs?
+    default: documentation
+
+confluence_domain:
+    type: str
+    help: What is your Atlassian domain (e.g. your-company.atlassian.net)?
+{% endraw %}{% endif %}
 python_version:
     type: str
     help: What version of Python is used for development?

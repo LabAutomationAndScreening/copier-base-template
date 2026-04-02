@@ -1,0 +1,15 @@
+repo_name: confluence_template
+repo_org_name: test-org
+repo_org_name_for_copyright: Test Org
+description: A template with Confluence docs publishing
+install_claude_cli: false
+ssh_port_number: 33333
+python_ci_versions:
+  - 3.13.9
+template_uses_python: true
+template_uses_pulumi: false
+template_uses_javascript: false
+template_might_want_to_install_aws_ssm_port_forwarding_plugin: false
+template_might_want_to_use_vcrpy: false
+template_might_want_to_use_python_asyncio: false
+template_uses_confluence_docs: true

@@ -10,6 +10,9 @@ use_windows_in_ci: true
 {% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}install_aws_ssm_port_forwarding_plugin: false{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_might_want_to_use_vcrpy %}{% raw %}configure_vcrpy: false{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_might_want_to_use_python_asyncio %}{% raw %}configure_python_asyncio: false{% endraw %}{% endif %}{% raw %}
+{% endraw %}{% if template_uses_confluence_docs %}{% raw %}confluence_docs_directory: confluence-docs
+confluence_domain: example.atlassian.net
+{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_javascript %}{% raw %}
 node_version: {% endraw %}{{ default_node_version }}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_python %}{% raw %}

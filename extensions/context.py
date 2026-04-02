@@ -25,6 +25,8 @@ class ContextUpdater(ContextHook):
         context["pytest_cov_version"] = ">=7.1.0"
         context["ty_version"] = ">=0.0.23"
         #######
+        context["md2conf_version"] = "0.5.8"
+        context["mermaid_cli_version"] = "11.12.0"
         context["sphinx_version"] = "9.0.4"
         context["pulumi_version"] = ">=3.228.0"
         context["pulumi_aws_version"] = ">=7.23.0"

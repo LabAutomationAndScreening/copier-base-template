@@ -1,0 +1,65 @@
+{% raw %}name: Docs to Confluence
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '{% endraw %}{{ confluence_docs_directory }}{% raw %}/**'
+      - '.github/workflows/docs-to-confluence.yml'
+
+jobs:
+  confluence-lint:
+    runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
+    timeout-minutes: {% endraw %}{{ gha_short_timeout_minutes }}{% raw %}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+        with:
+          persist-credentials: false
+
+      - name: Check Confluence metadata in markdown files
+        run: |
+          fail=0
+          while IFS= read -r -d '' file; do
+            if ! grep -q '<!-- confluence-page-id:' "$file"; then
+              echo "Missing confluence-page-id in $file"
+              fail=1
+            fi
+            if ! grep -q '<!-- confluence-space-key:' "$file"; then
+              echo "Missing confluence-space-key in $file"
+              fail=1
+            fi
+          done < <(find {% endraw %}{{ confluence_docs_directory }}{% raw %} -name '*.md' -print0)
+          exit $fail
+
+  confluence-deploy:
+    runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
+    timeout-minutes: {% endraw %}{{ gha_medium_timeout_minutes }}{% raw %}
+    needs: confluence-lint
+    if: ${{ github.ref == 'refs/heads/main' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@{% endraw %}{{ gha_setup_node }}{% raw %}
+
+      - name: Install mermaid-js
+        run: npm install -g @mermaid-js/mermaid-cli@{% endraw %}{{ mermaid_cli_version }}{% raw %}
+
+      - name: Install markdown-to-confluence
+        run: pip install markdown-to-confluence=={% endraw %}{{ md2conf_version }}{% raw %}
+
+      - name: Deploy docs to Confluence
+        env:
+          CONFLUENCE_API_KEY: ${{ secrets.CONFLUENCE_SVC_ACCT_API_TOKEN }}
+          CONFLUENCE_USER_NAME: ${{ secrets.CONFLUENCE_SVC_ACCT_USERNAME }}
+        run: |
+          md2conf \
+            --confluence-url https://{% endraw %}{{ confluence_domain }}{% raw %} \
+            --username "$CONFLUENCE_USER_NAME" \
+            --api-key "$CONFLUENCE_API_KEY" \
+            {% endraw %}{{ confluence_docs_directory }}{% raw %}
+{% endraw %}
