@@ -11,9 +11,9 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.10.12"
+        context["uv_version"] = "0.11.6"
         context["pre_commit_version"] = "4.5.1"
-        # These also in pyproject.toml
+        # These also in pyproject.toml and the install-ci-tooling.py script in this repository
         context["copier_version"] = "==9.14.3"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
@@ -38,7 +38,7 @@ class ContextUpdater(ContextHook):
         context["pyinstaller_version"] = ">=6.19.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = ">=0.298.0"
-        context["fastapi_version"] = ">=0.135.1"
+        context["fastapi_version"] = ">=0.135.3"
         context["fastapi_offline_version"] = ">=1.7.4"
         context["uvicorn_version"] = ">=0.42.0"
         context["lab_auto_pulumi_version"] = ">=0.1.18"
@@ -48,12 +48,12 @@ class ContextUpdater(ContextHook):
         context["syrupy_version"] = ">=5.1.0"
         context["structlog_version"] = ">=25.5.0"
         context["httpx_version"] = ">=0.28.1"
-        context["python_kiota_bundle_version"] = ">=1.9.10"
+        context["python_kiota_bundle_version"] = ">=1.10.1"
         context["vcrpy_version"] = ">=8.1.1"
         context["pytest_recording_version"] = ">=0.13.4"
         context["pytest_asyncio_version"] = ">=1.3.0"
         context["pytest_reserial_version"] = ">=0.6.0"
-        context["python_faker_version"] = ">=40.4.0"
+        context["python_faker_version"] = ">=40.13.0"
         #######
         context["default_node_version"] = "24.11.1"
         context["nuxt_ui_version"] = "^4.6.0"
@@ -118,7 +118,7 @@ class ContextUpdater(ContextHook):
         context["alpine_image_version"] = "3.23"
         context["nginx_image_version"] = "1.29.4"
         #######
-        context["kiota_cli_version"] = "1.30.0"
+        context["kiota_cli_version"] = "1.31.0"
         # These also in the tests/data.yml files in this repository and in copier.yaml
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
         context["py313_version"] = "3.13.9"
