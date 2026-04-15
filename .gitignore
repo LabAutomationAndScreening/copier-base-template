@@ -34,8 +34,9 @@
 .claude/policy-limits.json
 ## we manage the settings JSON by merging the JSONC files in the settings/ directory
 .claude/settings.json
-# Dolt database files (used by beads for Claude)
+# Dolt database files (used by beads for Claude) (these are both automatically added when `bd init` is run...so not sure how to avoid them)
 .dolt/
+*.db
 
 
 # Vendor build/make
