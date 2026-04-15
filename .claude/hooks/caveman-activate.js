@@ -11,7 +11,9 @@ const path = require('path');
 const os = require('os');
 const { getDefaultMode, safeWriteFlag } = require('./caveman-config');
 
-const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
+const { execSync } = require('child_process');
+const repoRootOrHome = (() => { try { return execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim(); } catch (e) { return os.homedir(); } })();
+const claudeDir = path.join(repoRootOrHome, '.claude');
 const flagPath = path.join(claudeDir, '.caveman-active');
 const settingsPath = path.join(claudeDir, 'settings.json');
 

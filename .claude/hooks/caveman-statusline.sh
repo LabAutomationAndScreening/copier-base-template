@@ -8,7 +8,7 @@
 # Plugin users: Claude will offer to set this up on first session.
 # Standalone users: install.sh wires this automatically.
 
-FLAG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/.caveman-active"
+FLAG="$(git rev-parse --show-toplevel 2>/dev/null || echo "$HOME")/.claude/.caveman-active"
 
 # Refuse symlinks — a local attacker could point the flag at ~/.ssh/id_rsa and
 # have the statusline render its bytes (including ANSI escape sequences) to
