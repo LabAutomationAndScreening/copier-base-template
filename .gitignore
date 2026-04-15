@@ -17,6 +17,9 @@
 
 # Claude
 .claude/settings.local.json
+.claude/.claude.json
+.claude/cache
+.claude/backups
 ## we manage the settings JSON by merging the JSONC files in the settings/ directory
 .claude/settings.json
 # Dolt database files (used by beads for Claude)
