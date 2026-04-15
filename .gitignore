@@ -23,10 +23,12 @@
 .claude/plugins
 .claude/sessions
 .claude/session-env
+.claude/projects
 .claude/.caveman-active
 .claude/.credentials.json
 .claude/mcp-needs-auth-cache.json
 .claude/policy-limits.json
+.claude/history.jsonl
 ## we manage the settings JSON by merging the JSONC files in the settings/ directory
 .claude/settings.json
 # Dolt database files (used by beads for Claude)
