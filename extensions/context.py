@@ -75,8 +75,8 @@ class ContextUpdater(ContextHook):
         context["zod_version"] = "^4.3.6"
         context["zod_from_json_schema_version"] = "^0.5.1"
         context["nuxt_apollo_version"] = "5.0.0-alpha.15"
-        context["graphql_codegen_cli_version"] = "^6.2.1"
-        context["graphql_codegen_typescript_version"] = "^5.0.7"
+        context["graphql_codegen_cli_version"] = "^6.3.0"
+        context["graphql_codegen_typescript_version"] = "^5.1.0"
         context["graphql_tools_mock_version"] = "^9.1.0"
         context["tailwindcss_version"] = "^4.2.0"
         context["iconify_vue_version"] = "^5.0.0"
@@ -86,7 +86,7 @@ class ContextUpdater(ContextHook):
         context["vue_test_utils_version"] = "^2.4.6"
         context["nuxt_test_utils_version"] = "3.19.1"
         context["vue_eslint_parser_version"] = "^10.4.0"
-        context["happy_dom_version"] = "^20.8.4"
+        context["happy_dom_version"] = "^20.9.0"
         context["node_kiota_bundle_version"] = "1.0.0-preview.100"
         #######
         # These are duplicated in the CI files for this repository
