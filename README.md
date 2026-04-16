@@ -25,4 +25,4 @@ Some claude commands were installed to help with Test Driven Development. See pa
 
 Claude settings are being merged from JSONC files. Based on https://github.com/PaulRBerg/dot-claude/blob/main/helpers/merge_settings.sh
 
-The Claude Caveman skill/hooks were installed from https://github.com/JuliusBrussee/caveman
+The Claude Caveman skill/hooks were installed from https://github.com/JuliusBrussee/caveman.  The status line was removed and the default claude config dir was changed to the repositories .claude folder.  Also, wenyan language support was removed from the MD files since we don't use it.
