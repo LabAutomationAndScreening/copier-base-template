@@ -46,6 +46,8 @@ jobs:
 
       - name: Install latest versions of packages
         uses: ./.github/actions/install_deps
+        env:
+          SKIP_PLAYWRIGHT_INSTALL: "1"
         with:
           python-version: ${{ inputs.python-version }}
           node-version: ${{ inputs.node-version }}

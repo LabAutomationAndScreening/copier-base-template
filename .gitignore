@@ -16,10 +16,25 @@
 
 
 # Claude
+.claude/backups
+.claude/cache
+.claude/file-history
+.claude/ide
+.claude/plugins
+.claude/projects
+.claude/session-env
+.claude/sessions
+.claude/shell-snapshots
 .claude/settings.local.json
+.claude/.claude.json
+.claude/.caveman-active
+.claude/.credentials.json
+.claude/history.jsonl
+.claude/mcp-needs-auth-cache.json
+.claude/policy-limits.json
 ## we manage the settings JSON by merging the JSONC files in the settings/ directory
 .claude/settings.json
-# Dolt database files (used by beads for Claude)
+# Dolt database files (used by beads for Claude) (these are both automatically added when `bd init` is run...so not sure how to avoid them)
 .dolt/
 *.db
 

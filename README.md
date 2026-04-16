@@ -18,3 +18,11 @@
 1. Rebuild your new devcontainer
 
 If you are running into issues with the SSH port, confirm the randomly chosen port is not in the excluded ranges on your computer. On Windows you can run this in an elevated command prompt to check `netsh interface ipv4 show excludedportrange protocol=tcp`
+
+# Claude
+
+Some claude commands were installed to help with Test Driven Development. See package.json
+
+Claude settings are being merged from JSONC files. Based on https://github.com/PaulRBerg/dot-claude/blob/main/helpers/merge_settings.sh
+
+The Claude Caveman skill/hooks were installed from https://github.com/JuliusBrussee/caveman.  The status line was removed and the default claude config dir was changed to the repositories .claude folder.  Also, wenyan language support was removed from the MD files since we don't use it.

@@ -147,6 +147,7 @@ jobs:
 
       - name: install new dependencies
         env:
+          SKIP_PLAYWRIGHT_INSTALL: "1"
           # Provide a fake token so it doesn't attempt to access AWS to generate a new one when the script is run if CodeArtifact is set as the registry
           CODEARTIFACT_AUTH_TOKEN: 'faketoken'
         run: |

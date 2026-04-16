@@ -39,7 +39,7 @@
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.388.0",
         "github.copilot-chat@0.42.2026032602",
-        "anthropic.claude-code@2.1.84",
+        "anthropic.claude-code@2.1.109",
         // Python
         "ms-python.python@2026.5.2026032701",
         "ms-python.vscode-pylance@2026.1.102",
@@ -75,5 +75,5 @@
   "initializeCommand": "sh .devcontainer/initialize-command.sh",
   "onCreateCommand": "sh .devcontainer/on-create-command.sh",
   "postStartCommand": "sh .devcontainer/post-start-command.sh"
-  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): 4d399793 # spellchecker:disable-line
+  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): d9fe965f # spellchecker:disable-line
 }

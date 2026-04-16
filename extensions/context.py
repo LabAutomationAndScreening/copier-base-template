@@ -11,19 +11,19 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.10.12"
+        context["uv_version"] = "0.11.6"
         context["pre_commit_version"] = "4.5.1"
-        # These also in pyproject.toml
-        context["copier_version"] = "==9.14.0"
+        # These also in pyproject.toml and the install-ci-tooling.py script in this repository
+        context["copier_version"] = "==9.14.3"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
         context["pnpm_version"] = "10.33.0"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = ">=1.1.408"
-        context["pytest_version"] = ">=9.0.2"
+        context["pytest_version"] = ">=9.0.3"
         context["pytest_randomly_version"] = ">=4.0.1"
         context["pytest_cov_version"] = ">=7.1.0"
-        context["ty_version"] = ">=0.0.23"
+        context["ty_version"] = ">=0.0.30"
         #######
         context["sphinx_version"] = "9.0.4"
         context["pulumi_version"] = ">=3.228.0"
@@ -34,26 +34,26 @@ class ContextUpdater(ContextHook):
         context["pulumi_okta_version"] = ">=6.4.0"
         context["boto3_version"] = ">=1.42.53"
         context["ephemeral_pulumi_deploy_version"] = ">=0.0.6"
-        context["pydantic_version"] = ">=2.12.5"
+        context["pydantic_version"] = ">=2.13.0"
         context["pyinstaller_version"] = ">=6.19.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = ">=0.298.0"
-        context["fastapi_version"] = ">=0.135.1"
+        context["fastapi_version"] = ">=0.135.3"
         context["fastapi_offline_version"] = ">=1.7.4"
-        context["uvicorn_version"] = ">=0.42.0"
+        context["uvicorn_version"] = ">=0.44.0"
         context["lab_auto_pulumi_version"] = ">=0.1.18"
-        context["ariadne_codegen_version"] = ">=0.17.0"
+        context["ariadne_codegen_version"] = ">=0.18.0"
         context["pytest_mock_version"] = ">=3.15.1"
         context["uuid_utils_version"] = ">=0.14.0"
         context["syrupy_version"] = ">=5.1.0"
         context["structlog_version"] = ">=25.5.0"
         context["httpx_version"] = ">=0.28.1"
-        context["python_kiota_bundle_version"] = ">=1.9.10"
+        context["python_kiota_bundle_version"] = ">=1.10.1"
         context["vcrpy_version"] = ">=8.1.1"
         context["pytest_recording_version"] = ">=0.13.4"
         context["pytest_asyncio_version"] = ">=1.3.0"
         context["pytest_reserial_version"] = ">=0.6.0"
-        context["python_faker_version"] = ">=40.4.0"
+        context["python_faker_version"] = ">=40.13.0"
         #######
         context["default_node_version"] = "24.11.1"
         context["nuxt_ui_version"] = "^4.6.0"
@@ -62,7 +62,7 @@ class ContextUpdater(ContextHook):
         )
         context["nuxt_icon_version"] = "^2.2.1"
         context["typescript_version"] = "^5.9.3"
-        context["playwright_version"] = "^1.58.2"
+        context["playwright_version"] = "^1.59.1"
         context["vue_version"] = "^3.5.30"
         context["vue_tsc_version"] = "^3.2.4"
         context["vue_devtools_api_version"] = "^8.1.0"
@@ -75,7 +75,7 @@ class ContextUpdater(ContextHook):
         context["zod_version"] = "^4.3.6"
         context["zod_from_json_schema_version"] = "^0.5.1"
         context["nuxt_apollo_version"] = "5.0.0-alpha.15"
-        context["graphql_codegen_cli_version"] = "^6.2.1"
+        context["graphql_codegen_cli_version"] = "^6.3.0"
         context["graphql_codegen_typescript_version"] = "^5.0.7"
         context["graphql_tools_mock_version"] = "^9.1.0"
         context["tailwindcss_version"] = "^4.2.0"
@@ -86,7 +86,7 @@ class ContextUpdater(ContextHook):
         context["vue_test_utils_version"] = "^2.4.6"
         context["nuxt_test_utils_version"] = "3.19.1"
         context["vue_eslint_parser_version"] = "^10.4.0"
-        context["happy_dom_version"] = "^20.8.4"
+        context["happy_dom_version"] = "^20.9.0"
         context["node_kiota_bundle_version"] = "1.0.0-preview.100"
         #######
         # These are duplicated in the CI files for this repository
@@ -118,7 +118,7 @@ class ContextUpdater(ContextHook):
         context["alpine_image_version"] = "3.23"
         context["nginx_image_version"] = "1.29.4"
         #######
-        context["kiota_cli_version"] = "1.30.0"
+        context["kiota_cli_version"] = "1.31.0"
         # These also in the tests/data.yml files in this repository and in copier.yaml
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
         context["py313_version"] = "3.13.9"
