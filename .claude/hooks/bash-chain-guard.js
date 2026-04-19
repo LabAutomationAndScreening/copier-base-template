@@ -12,9 +12,9 @@ process.stdin.on("end", () => {
     const data = JSON.parse(input);
     const command = (data.tool_input?.command || "").trim();
 
-    if (/&&|\|\|/.test(command)) {
+    if (/\s(&&|\|\||;)\s|\s&(\s|$)/.test(command)) {
       process.stderr.write(
-        "AGENTS.md violation: never chain commands with && or ||. " +
+        "AGENTS.md violation: never chain commands with &&, ||, ;, or &. " +
           "Run one command per tool call. " +
           "Use cd as a separate prior tool call instead of cd && ...",
       );
