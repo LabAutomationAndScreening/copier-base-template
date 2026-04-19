@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"./.claude/hooks/caveman-activate.js\"",
+            "command": "sh \"./.claude/hooks/caveman-activate.sh\"",
             "timeout": 5,
             "statusMessage": "Loading caveman mode...",
           },
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"./.claude/hooks/caveman-mode-tracker.js\"",
+            "command": "sh \"./.claude/hooks/caveman-mode-tracker.sh\"",
             "timeout": 5,
             "statusMessage": "Tracking caveman mode...",
           },
