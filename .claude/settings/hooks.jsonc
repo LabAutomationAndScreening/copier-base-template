@@ -5,13 +5,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -c 'SESSION=$(jq -r \".session_id // \\\"default\\\"\" 2>/dev/null); printf \"%s\" \"$(pwd)\" > \"${TMPDIR:-/tmp}/.claude_project_root_${SESSION:-default}\"'",
+            "command": "sh -c 'SESSION=$(jq -r \".session_id // \\\"default\\\"\" 2>/dev/null); printf \"%s\" \"$(git rev-parse --show-toplevel)\" > \"/tmp/.claude_project_root_${SESSION}\"'",
             "timeout": 5,
             "statusMessage": "Caching project root...",
           },
           {
             "type": "command",
-            "command": "sh -c 'SESSION=$(jq -r \".session_id // \\\"default\\\"\" 2>/dev/null); ROOT=$(cat \"${TMPDIR:-/tmp}/.claude_project_root_${SESSION:-default}\"); PROJECT_ROOT_DIR=\"$ROOT\" node \"$ROOT/.claude/hooks/caveman-activate.js\"'",
+            "command": "node \"$(git rev-parse --show-toplevel)/.claude/hooks/caveman-activate.js\"",
             "timeout": 5,
             "statusMessage": "Loading caveman mode...",
           },
@@ -23,7 +23,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -c 'INPUT=$(cat); SESSION=$(printf \"%s\" \"$INPUT\" | jq -r \".session_id // \\\"default\\\"\" 2>/dev/null); ROOT=$(cat \"${TMPDIR:-/tmp}/.claude_project_root_${SESSION:-default}\" 2>/dev/null || git rev-parse --show-toplevel 2>/dev/null); printf \"%s\" \"$ROOT\" > \"${TMPDIR:-/tmp}/.claude_project_root_${SESSION:-default}\"; printf \"%s\" \"$INPUT\" | PROJECT_ROOT_DIR=\"$ROOT\" node \"$ROOT/.claude/hooks/caveman-mode-tracker.js\"'",
+            "command": "sh -c 'INPUT=$(cat); SESSION=$(printf \"%s\" \"$INPUT\" | jq -r \".session_id // \\\"default\\\"\" 2>/dev/null); ROOT=$(cat \"${TMPDIR:-/tmp}/.claude_project_root_${SESSION:-default}\"); printf \"%s\" \"$INPUT\" | PROJECT_ROOT_DIR=\"$ROOT\" node \"$ROOT/.claude/hooks/caveman-mode-tracker.js\"'",
             "timeout": 5,
             "statusMessage": "Tracking caveman mode...",
           },
@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -c 'INPUT=$(cat); SESSION=$(printf \"%s\" \"$INPUT\" | jq -r \".session_id // \\\"default\\\"\" 2>/dev/null); ROOT=$(cat \"${TMPDIR:-/tmp}/.claude_project_root_${SESSION:-default}\" 2>/dev/null || git rev-parse --show-toplevel 2>/dev/null); printf \"%s\" \"$ROOT\" > \"${TMPDIR:-/tmp}/.claude_project_root_${SESSION:-default}\"; printf \"%s\" \"$INPUT\" | node \"$ROOT/.claude/hooks/bash-chain-guard.js\"'",
+            "command": "sh -c 'INPUT=$(cat); SESSION=$(printf \"%s\" \"$INPUT\" | jq -r \".session_id // \\\"default\\\"\" 2>/dev/null); ROOT=$(cat \"${TMPDIR:-/tmp}/.claude_project_root_${SESSION:-default}\"); printf \"%s\" \"$INPUT\" | node \"$ROOT/.claude/hooks/bash-chain-guard.js\"'",
             "timeout": 5,
             "statusMessage": "Checking for command chaining...",
           },
