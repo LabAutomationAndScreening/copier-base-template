@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -c 'INPUT=$(cat); SESSION=$(printf \"%s\" \"$INPUT\" | jq -r \".session_id // \\\"default\\\"\" 2>/dev/null); ROOT=$(cat \"${TMPDIR:-/tmp}/.claude_project_root_${SESSION:-default}\"); printf \"%s\" \"$INPUT\" | PROJECT_ROOT_DIR=\"$ROOT\" node \"$ROOT/.claude/hooks/caveman-mode-tracker.js\"'",
+            "command": "sh -c 'INPUT=$(cat); SESSION=$(printf \"%s\" \"$INPUT\" | jq -r \".session_id // \\\"default\\\"\" 2>/dev/null); ROOT=$(cat \"/tmp/.claude_project_root_${SESSION:-default}\"); printf \"%s\" \"$INPUT\" | PROJECT_ROOT_DIR=\"$ROOT\" node \"$ROOT/.claude/hooks/caveman-mode-tracker.js\"'",
             "timeout": 5,
             "statusMessage": "Tracking caveman mode...",
           },
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -c 'INPUT=$(cat); SESSION=$(printf \"%s\" \"$INPUT\" | jq -r \".session_id // \\\"default\\\"\" 2>/dev/null); ROOT=$(cat \"${TMPDIR:-/tmp}/.claude_project_root_${SESSION:-default}\"); printf \"%s\" \"$INPUT\" | node \"$ROOT/.claude/hooks/bash-chain-guard.js\"'",
+            "command": "sh -c 'INPUT=$(cat); SESSION=$(printf \"%s\" \"$INPUT\" | jq -r \".session_id // \\\"default\\\"\" 2>/dev/null); ROOT=$(cat \"/tmp/.claude_project_root_${SESSION:-default}\"); printf \"%s\" \"$INPUT\" | node \"$ROOT/.claude/hooks/bash-chain-guard.js\"'",
             "timeout": 5,
             "statusMessage": "Checking for command chaining...",
           },
