@@ -5,11 +5,9 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
 const { getDefaultMode, safeWriteFlag, readFlag } = require('./caveman-config');
 
-const repoRootOrHome = (() => { try { return execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim(); } catch (e) { return os.homedir(); } })();
-const claudeDir = path.join(repoRootOrHome, '.claude');
+const claudeDir = path.join(process.env.PROJECT_ROOT_DIR || os.homedir(), '.claude');
 const flagPath = path.join(claudeDir, '.caveman-active');
 
 let input = '';

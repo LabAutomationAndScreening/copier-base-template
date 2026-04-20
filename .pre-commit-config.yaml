@@ -42,7 +42,7 @@ repos:
 
   # Reformatting (should generally come before any file format or other checks, because reformatting can change things)
   - repo: https://github.com/crate-ci/typos
-    rev: e1f6f6eaedd8587fa3c76ec20e7cbaa8f7132b2d  # frozen: v1
+    rev: 141bf8d1d11823cd5dc44d6b3c17d83b19015bcb  # frozen: v1
     hooks:
       - id: typos
         exclude: |
@@ -108,7 +108,7 @@ repos:
           )$
 
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: c2bc67fe8f8f549cc489e00ba8b45aa18ee713b1  # frozen: v3.8.1
+    rev: 515f543f5718ebfd6ce22e16708bb32c68ff96e1  # frozen: v3.8.3
     hooks:
       - id: prettier
         # TODO: get template YAML and MD files more in line with prettier expectations so we can start using prettier on those too
@@ -195,7 +195,7 @@ repos:
       - id: check-case-conflict
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: ec368acd16deee9c560c105ab6d27db4ee19a5ec  # frozen: 0.36.2
+    rev: ed81924a8b1cecdaa570b072528fa80c9c4d6ccd  # frozen: 0.37.1
     hooks:
       - id: check-github-workflows
 
@@ -249,7 +249,7 @@ repos:
         description: Runs hadolint to lint Dockerfiles
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 0839f92796ae388643a08a21640a029b322be5c2  # frozen: v0.15.2
+    rev: d1b833175a5d08a925900115526febd8fe71c98e  # frozen: v0.15.11
     hooks:
       - id: ruff
         name: ruff-src
@@ -279,7 +279,7 @@ repos:
           )$
 
   - repo: https://github.com/pylint-dev/pylint
-    rev: e16f942166511d6fb4427e503a734152fae0c4fe  # frozen: v4.0.4
+    rev: 88e1ab7545a4af4aea15c305a154c164a95ab842  # frozen: v4.0.5
     hooks:
       - id: pylint
         name: pylint
