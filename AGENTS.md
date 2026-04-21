@@ -119,10 +119,10 @@ bd close bd-42 --reason "Completed" --json
 ```
 
 **Creating human readable file:**
-After every CRUD command on an issue, export it. Must run from the repo root — use a separate `cd` call first if needed:
+After every CRUD command on an issue, export it:
 
 ```bash
-bd export -o .claude/.beads/issues-dump.jsonl
+bd export -o [relative path to repository root]/.claude/.beads/issues-dump.jsonl
 ```
 
 ### Issue Types
