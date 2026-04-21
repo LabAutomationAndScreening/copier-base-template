@@ -25,6 +25,7 @@ This project is a Copier template used to generate other copier templates. It is
 - Avoid loops in tests — assert each item explicitly so failures pinpoint the exact element. When verifying a condition across all items in a collection, collect the violations into a list and assert it's empty (e.g., assert [x for x in items if bad_condition(x)] == []).
 - When a test's final assertion is an absence (e.g., element is `null`, list is empty, modal is closed), include a prior presence assertion confirming the expected state existed before the action that removed it. A test whose only assertion is an absence check can pass vacuously if setup silently failed.
 - When asserting a mock or spy was called with specific arguments, always constrain as tightly as possible. In order of preference: (1) assert called exactly once with those args (`assert_called_once_with` in Python, `toHaveBeenCalledExactlyOnceWith` in Vitest/Jest); (2) if multiple calls are expected, assert the total call count and use a positional or last-call assertion (`nthCalledWith`, `lastCalledWith` / `assert_has_calls` with `call_args_list[n]`); (3) plain "called with at any point" (`toHaveBeenCalledWith`, `assert_called_with`) is a last resort only when neither the call count nor the call order can reasonably be constrained.
+- When asserting an exception is raised, verify the error message includes all key constructor arguments — not just one identifying field. This ensures the error message is fully populated and catches cases where arguments are swapped or missing. In Python: use the `match` parameter in `pytest.raises`. In TypeScript: use a regex or substring in `toThrow`, or catch and assert on error properties individually.
 - Structure each test body in this order, with a single blank line separating each section:
   1. **Constants** — random/faker values and test data objects
   2. **Mocks/spies** — all spy and patch setups
@@ -118,10 +119,10 @@ bd close bd-42 --reason "Completed" --json
 ```
 
 **Creating human readable file:**
-After every CRUD command on an issue, export it. Must run from the repo root — use a separate `cd` call first if needed:
+After every CRUD command on an issue, export it:
 
 ```bash
-bd export -o .claude/.beads/issues-dump.jsonl
+bd export -o [relative path to repository root]/.claude/.beads/issues-dump.jsonl
 ```
 
 ### Issue Types
