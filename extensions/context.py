@@ -21,7 +21,7 @@ class ContextUpdater(ContextHook):
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = ">=1.1.408"
         context["pytest_version"] = ">=9.0.3"
-        context["pytest_randomly_version"] = ">=4.0.1"
+        context["pytest_randomly_version"] = ">=4.1.0"
         context["pytest_cov_version"] = ">=7.1.0"
         context["ty_version"] = ">=0.0.32"
         #######
