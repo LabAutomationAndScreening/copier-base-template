@@ -84,14 +84,14 @@
           "editor.formatOnSave": true
         }
       }
-    }{% endraw %}{% if repo_names_for_codespaces_read_permissions is defined and repo_names_for_codespaces_read_permissions.strip() %}{% set _cs_repos = repo_names_for_codespaces_read_permissions.split(',') | map('trim') | reject('equalto', '') | list %}{% if _cs_repos %},
+    },{% endraw %}{% if repo_names_for_codespaces_read_permissions is defined and repo_names_for_codespaces_read_permissions.strip() %}{% set _cs_repos = repo_names_for_codespaces_read_permissions.split(',') | map('trim') | reject('equalto', '') | list %}{% if _cs_repos %}
     "codespaces": {
       "repositories": {
 {% for cs_repo_item in _cs_repos %}        "{{ repo_org_name }}/{{ cs_repo_item }}": {
           "permissions": { "contents": "read" }
         }{% if not loop.last %},{% endif %}
 {% endfor %}      }
-    }{% endif %}{% endif %}{% raw %}
+    },{% endif %}{% endif %}{% raw %}
   },
   "initializeCommand": "sh .devcontainer/initialize-command.sh",
   "onCreateCommand": "sh .devcontainer/on-create-command.sh",
