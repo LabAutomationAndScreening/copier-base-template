@@ -152,7 +152,7 @@ aws_region_for_stack:
 
 repo_names_for_codespaces_read_permissions:
     type: str
-    help: Provide a comma-separated list of repository names within this github organization that you would like the codespace to have read access to (e.g. private copier templates)
+    help: Provide a comma-separated list of repository names only within this GitHub organization that you would like the codespace to have read access to (for example, private-template, not my-org/private-template)
     default: ""
 
 
