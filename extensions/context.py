@@ -54,6 +54,8 @@ class ContextUpdater(ContextHook):
         context["pytest_asyncio_version"] = ">=1.3.0"
         context["pytest_reserial_version"] = ">=0.6.0"
         context["python_faker_version"] = ">=40.13.0"
+        context["adafruit_circuitpython_busdevice_version"] = "==5.2.14"
+        context["adafruit_circuitpython_register_version"] = "==1.11.1"
         #######
         context["default_node_version"] = "24.11.1"
         context["nuxt_ui_version"] = "^4.6.0"
