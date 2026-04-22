@@ -67,14 +67,11 @@ repos:
           (?x)^(
               \.github/pull_request_template.md|
               template/\.github/pull_request_template.md|
-              template/\.copier-answers\.yml\.jinja-base|
-              template/template/\.copier-answers\.yml\.jinja|
-              template/\.copier-answers\.yml\.jinja|
               .*generated/graphql.ts|
               .*/generated/open[-_]api/.*|
               .*tests/.*/__snapshots__/.*|
               .devcontainer/devcontainer-lock.json|
-              .*\.copier-answers\.yml|
+              .*\.copier-answers\.yml(\.jinja(-base)?)?|
               .*\.xml|
               .*\.svg|
               .*/vendor_files/.*|
