@@ -6,7 +6,7 @@ description: Doing crazy things! So many things!
 install_claude_cli: true
 ssh_port_number: 54321
 pull_from_ecr: true
-repo_names_for_codespaces_read_permissions: best-repo,good-repo
+repo_names_for_codespaces_read_permissions: best-repo,good-project
 use_windows_in_ci: true
 {% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}install_aws_ssm_port_forwarding_plugin: false{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_might_want_to_use_vcrpy %}{% raw %}configure_vcrpy: false{% endraw %}{% endif %}{% raw %}
