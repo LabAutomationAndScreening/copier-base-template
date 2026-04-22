@@ -11,13 +11,13 @@ class ContextUpdater(ContextHook):
     @override
     def hook(self, context: dict[Any, Any]) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.11.6"
+        context["uv_version"] = "0.11.7"
         context["pre_commit_version"] = "4.5.1"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
         context["copier_version"] = "==9.14.3"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
-        context["pnpm_version"] = "10.33.0"
+        context["pnpm_version"] = "10.33.1"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = ">=1.1.408"
         context["pytest_version"] = ">=9.0.3"
@@ -92,17 +92,17 @@ class ContextUpdater(ContextHook):
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v6.0.2"
         context["gha_setup_python"] = "v6.2.0"
-        context["gha_cache"] = "v5.0.3"
+        context["gha_cache"] = "v5.0.4"
         context["gha_linux_runner"] = "ubuntu-24.04"
         #######
-        context["gha_upload_artifact"] = "v7.0.0"
-        context["gha_download_artifact"] = "v8.0.0"
+        context["gha_upload_artifact"] = "v7.0.1"
+        context["gha_download_artifact"] = "v8.0.1"
         context["gha_github_script"] = "v7.0.1"
         context["gha_setup_buildx"] = "v3.11.1"
         context["buildx_version"] = "v0.27.0"
         context["gha_docker_build_push"] = "v6.18.0"
-        context["gha_configure_aws_credentials"] = "v6.0.0"
-        context["gha_amazon_ecr_login"] = "v2.0.2"
+        context["gha_configure_aws_credentials"] = "v6.1.0"
+        context["gha_amazon_ecr_login"] = "v2.1.3"
         context["gha_setup_node"] = "v6.3.0"
         context["gha_action_gh_release"] = "v2.2.1"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
