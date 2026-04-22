@@ -146,6 +146,16 @@ aws_region_for_stack:
 
 # Questions specific to this template
 
+
+
+# Questions managed by upstream template
+
+repo_names_for_codespaces_read_permissions:
+    type: str
+    help: Provide a comma-separated list of repository names only within this GitHub organization that you would like the codespace to have read access to (for example, private-template, not my-org/private-template)
+    default: ""
+
+
 _tasks:
   - command: |
         python3 '{{ _copier_conf.src_path }}/src/copier_tasks/remove_precommit_hooks.py' \
@@ -163,7 +173,7 @@ _tasks:
         fi
 
 # Additional Settings
-_min_copier_version: "9.7"
+_min_copier_version: "9.8"
 
 _subdirectory: template
 

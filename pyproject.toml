@@ -7,7 +7,7 @@ requires-python = ">=3.12.7"
 dependencies = [
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
-    "pytest-randomly>=4.0.1",
+    "pytest-randomly>=4.1.0",
     "pyright[nodejs]>=1.1.408",
     "ty>=0.0.32",
     "copier==9.14.3",
