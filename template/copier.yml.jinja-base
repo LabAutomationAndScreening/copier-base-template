@@ -173,7 +173,7 @@ _tasks:
         fi
 
 # Additional Settings
-_min_copier_version: "9.7"
+_min_copier_version: "9.8"
 
 _subdirectory: template
 
