@@ -106,6 +106,7 @@ class ContextUpdater(ContextHook):
         context["gha_medium_timeout_minutes"] = "{{ gha_medium_timeout_minutes }}"
         context["gha_long_timeout_minutes"] = "{{ gha_long_timeout_minutes }}"
         context["gha_xlong_timeout_minutes"] = "{{ gha_xlong_timeout_minutes }}"
+        context["gha_xxlong_timeout_minutes"] = "{{gha_xxlong_timeout_minutes}}"
 
         context["debian_release_name"] = "{{ debian_release_name }}"
         context["alpine_image_version"] = "{{ alpine_image_version }}"

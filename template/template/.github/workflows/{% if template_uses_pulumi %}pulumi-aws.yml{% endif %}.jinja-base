@@ -109,7 +109,7 @@ permissions:
 jobs:
   pulumi:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
-    timeout-minutes: {% endraw %}{{ gha_xlong_timeout_minutes }}{% raw %}
+    timeout-minutes: {% endraw %}{{ gha_xxlong_timeout_minutes }}{% raw %}
     env:
       IAC_GITHUB_API_TOKENS: ${{ secrets.iac-github-api-tokens }} # only used in non-enterprise situations when not using full fledged Secrets Manager
     steps:
