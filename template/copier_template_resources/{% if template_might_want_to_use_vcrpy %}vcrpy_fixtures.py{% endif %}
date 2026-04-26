@@ -1,4 +1,5 @@
 import difflib
+import json
 import logging
 import os
 from collections.abc import Callable
@@ -61,15 +62,17 @@ class _VCRRequest:
     body: object
 
 
-def _make_logging_body_matcher(
-    *normalizers: Callable[[str], str],
-) -> Callable[[_VCRRequest, _VCRRequest], None]:
+def _normalize_json(body: str) -> str:
+    try:
+        return json.dumps(json.loads(body), sort_keys=True)
+    except (ValueError, TypeError):
+        return body
+
+
+def _make_logging_body_matcher() -> Callable[[_VCRRequest, _VCRRequest], None]:
     def _body_matcher(r1: _VCRRequest, r2: _VCRRequest) -> None:
-        b1 = _decode_vcr_body(r1.body)
-        b2 = _decode_vcr_body(r2.body)
-        for normalize in normalizers:
-            b1 = normalize(b1)
-            b2 = normalize(b2)
+        b1 = _normalize_json(_decode_vcr_body(r1.body))
+        b2 = _normalize_json(_decode_vcr_body(r2.body))
         if b1 != b2:
             diff = "\n".join(
                 difflib.unified_diff(
