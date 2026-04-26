@@ -47,7 +47,7 @@ def _decode_vcr_body(body: object) -> str:
     if isinstance(body, str):
         return body
     if isinstance(body, BytesIO):
-        return body.read().decode("utf-8")
+        return body.getvalue().decode("utf-8")
     if isinstance(body, Iterator):
         raise NotImplementedError(
             "VCR body is an Iterator — element type is ambiguous (bytes chunks vs ints). Extend _decode_vcr_body if you need to support streaming request bodies."
