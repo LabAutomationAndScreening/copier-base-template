@@ -1,7 +1,6 @@
 import difflib
 import logging
 import os
-import re
 from collections.abc import Callable
 from collections.abc import Iterator
 from io import BytesIO
@@ -56,12 +55,18 @@ def _decode_vcr_body(body: object) -> str:
     raise TypeError(f"Unexpected VCR body type: {type(body)}")
 
 
+class _VCRRequest:
+    """Structural stub for type-checking vcr.request.Request — vcrpy ships no type stubs."""
+
+    body: object
+
+
 def _make_logging_body_matcher(
     *normalizers: Callable[[str], str],
-) -> Callable[["_VCRRequest", "_VCRRequest"], None]:
-    def _body_matcher(r1: "_VCRRequest", r2: "_VCRRequest") -> None:
-        b1 = _decode_vcr_body(r1.body)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType] # vcrpy body property is untyped
-        b2 = _decode_vcr_body(r2.body)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType] # vcrpy body property is untyped
+) -> Callable[[_VCRRequest, _VCRRequest], None]:
+    def _body_matcher(r1: _VCRRequest, r2: _VCRRequest) -> None:
+        b1 = _decode_vcr_body(r1.body)
+        b2 = _decode_vcr_body(r2.body)
         for normalize in normalizers:
             b1 = normalize(b1)
             b2 = normalize(b2)
@@ -114,9 +119,3 @@ def pytest_recording_configure(
         return response
 
     vcr.before_record_response = before_record_response
-
-
-class _VCRRequest:
-    """Structural stub for type-checking vcr.request.Request — vcrpy ships no type stubs."""
-
-    body: object
