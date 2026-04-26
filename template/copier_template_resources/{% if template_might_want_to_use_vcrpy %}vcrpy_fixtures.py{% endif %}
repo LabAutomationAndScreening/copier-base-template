@@ -1,9 +1,17 @@
+import difflib
+import logging
 import os
+import re
+from collections.abc import Callable
+from collections.abc import Iterator
+from io import BytesIO
 from typing import Any
 from typing import cast
 
 import pytest
 from vcr import VCR
+
+logger = logging.getLogger(__name__)
 
 UNREACHABLE_IP_ADDRESS = "192.0.2.1"  # RFC 5737 TEST-NET-1
 IGNORED_HOSTS = [
@@ -32,6 +40,48 @@ def vcr_config() -> dict[str, list[str]]:
     return cfg
 
 
+def _decode_vcr_body(body: object) -> str:
+    if body is None:
+        return ""
+    if isinstance(body, bytes):
+        return body.decode("utf-8")
+    if isinstance(body, str):
+        return body
+    if isinstance(body, BytesIO):
+        return body.read().decode("utf-8")
+    if isinstance(body, Iterator):
+        raise NotImplementedError(
+            "VCR body is an Iterator — element type is ambiguous (bytes chunks vs ints). Extend _decode_vcr_body if you need to support streaming request bodies."
+        )
+    raise TypeError(f"Unexpected VCR body type: {type(body)}")
+
+
+def _make_logging_body_matcher(
+    *normalizers: Callable[[str], str],
+) -> Callable[["_VCRRequest", "_VCRRequest"], None]:
+    def _body_matcher(r1: "_VCRRequest", r2: "_VCRRequest") -> None:
+        b1 = _decode_vcr_body(r1.body)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType] # vcrpy body property is untyped
+        b2 = _decode_vcr_body(r2.body)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType] # vcrpy body property is untyped
+        for normalize in normalizers:
+            b1 = normalize(b1)
+            b2 = normalize(b2)
+        if b1 != b2:
+            diff = "\n".join(
+                difflib.unified_diff(
+                    b2.splitlines(),
+                    b1.splitlines(),
+                    fromfile="cassette",
+                    tofile="actual",
+                    lineterm="",
+                )
+            )
+            logger.warning("VCR body mismatch:\n%s", diff)
+            print(f"\nVCR body mismatch:\n{diff}")  # noqa: T201 # intentional debug output to surface cassette drift
+            raise AssertionError(f"Request body mismatch:\n{diff}")
+
+    return _body_matcher
+
+
 def pytest_recording_configure(
     config: pytest.Config,  # noqa: ARG001 # the config argument MUST be present (even when unused) or pytest-recording throws an error
     vcr: VCR,
@@ -40,7 +90,9 @@ def pytest_recording_configure(
     assert isinstance(vcr.match_on, tuple), (
         f"vcr.match_on is not a tuple, it is a {type(vcr.match_on)} with value {vcr.match_on}"
     )
-    vcr.match_on += ("body",)  # body is not included by default, but it seems relevant
+
+    vcr.register_matcher("logging_body", _make_logging_body_matcher())  # pyright: ignore[reportUnknownMemberType] # vcrpy is not fully typed
+    vcr.match_on += ("logging_body",)  # body is not included by default, but it seems relevant
 
     def before_record_response(response: dict[str, str | dict[str, Any]]) -> dict[str, str | dict[str, Any]]:
         headers_to_filter = (
@@ -62,3 +114,9 @@ def pytest_recording_configure(
         return response
 
     vcr.before_record_response = before_record_response
+
+
+class _VCRRequest:
+    """Structural stub for type-checking vcr.request.Request — vcrpy ships no type stubs."""
+
+    body: object
