@@ -52,19 +52,23 @@ def _logging_body_matcher(r1: VCRRequest, r2: VCRRequest) -> None:
     try:
         _vcr_matchers.body(r1, r2)  # pyright: ignore[reportUnknownMemberType] # vcrpy is untyped
     except AssertionError as err:
-        b1 = _read_body_as_str(r1)
-        b2 = _read_body_as_str(r2)
-        diff = "\n".join(
-            difflib.unified_diff(
-                b2.splitlines(),
-                b1.splitlines(),
-                fromfile="cassette",
-                tofile="actual",
-                lineterm="",
+        try:
+            b1 = _read_body_as_str(r1)
+            b2 = _read_body_as_str(r2)
+            diff = "\n".join(
+                difflib.unified_diff(
+                    b2.splitlines(),
+                    b1.splitlines(),
+                    fromfile="cassette",
+                    tofile="actual",
+                    lineterm="",
+                )
             )
-        )
-        logger.info(f"VCR body mismatch:\n{diff}")
-        print(f"\nVCR body mismatch:\n{diff}")  # noqa: T201 # intentional debug output to surface cassette drift
+            logger.info(f"VCR body mismatch:\n{diff}")
+            print(f"\nVCR body mismatch:\n{diff}")  # noqa: T201 # intentional debug output to surface cassette drift
+        except Exception:
+            logger.exception("Error while logging VCR body mismatch")
+            raise AssertionError from err
         raise AssertionError(
             f"Request body mismatch:\n{diff}"
         ) from err  # TODO: figure out why Body is the only VCRpy matcher that doesn't include an error message of the diff, and see about creating an issue in VCRpy repo itself
