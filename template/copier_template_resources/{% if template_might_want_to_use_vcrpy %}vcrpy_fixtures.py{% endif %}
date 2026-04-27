@@ -1,6 +1,7 @@
 import difflib
 import logging
 import os
+import traceback
 from typing import Any
 from typing import cast
 
@@ -52,6 +53,11 @@ def _logging_body_matcher(r1: VCRRequest, r2: VCRRequest) -> None:
     try:
         _vcr_matchers.body(r1, r2)  # pyright: ignore[reportUnknownMemberType] # vcrpy is untyped
     except AssertionError as err:
+        tb_frames = traceback.extract_tb(err.__traceback__)
+        if (
+            not tb_frames or f"{os.sep}vcr{os.sep}" not in tb_frames[-1].filename
+        ):  # if the assertion error came from something else in pytest, just rethrow it. Only log the diff if the assertion error came from within VCRpy itself
+            raise
         try:
             b1 = _read_body_as_str(r1)
             b2 = _read_body_as_str(r2)
@@ -64,14 +70,11 @@ def _logging_body_matcher(r1: VCRRequest, r2: VCRRequest) -> None:
                     lineterm="",
                 )
             )
-            logger.info(f"VCR body mismatch:\n{diff}")
-            print(f"\nVCR body mismatch:\n{diff}")  # noqa: T201 # intentional debug output to surface cassette drift
         except Exception:
             logger.exception("Error while logging VCR body mismatch")
             raise AssertionError from err
-        raise AssertionError(
-            f"Request body mismatch:\n{diff}"
-        ) from err  # TODO: figure out why Body is the only VCRpy matcher that doesn't include an error message of the diff, and see about creating an issue in VCRpy repo itself
+        # TODO: figure out why Body is the only VCRpy matcher that doesn't include an error message of the diff, and see about creating an issue in VCRpy repo itself
+        raise AssertionError(f"Request body mismatch:\n{diff}") from err
 
 
 def pytest_recording_configure(
