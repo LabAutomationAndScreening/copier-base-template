@@ -1,15 +1,14 @@
 import difflib
-import json
 import logging
 import os
-from collections.abc import Callable
-from collections.abc import Iterator
-from io import BytesIO
 from typing import Any
 from typing import cast
 
 import pytest
 from vcr import VCR
+from vcr import matchers as _vcr_matchers
+from vcr.request import Request as VCRRequest
+from vcr.util import read_body as _vcr_read_body  # pyright: ignore[reportUnknownVariableType] # vcrpy is untyped
 
 logger = logging.getLogger(__name__)
 
@@ -40,59 +39,35 @@ def vcr_config() -> dict[str, list[str]]:
     return cfg
 
 
-def _decode_vcr_body(body: object) -> str:
-    if body is None:
+def _read_body_as_str(request: VCRRequest) -> str:
+    raw = _vcr_read_body(request)  # pyright: ignore[reportUnknownVariableType] # vcrpy is untyped
+    if raw is None:
         return ""
-    if isinstance(body, bytes):
-        return body.decode("utf-8")
-    if isinstance(body, str):
-        return body
-    if isinstance(body, BytesIO):
-        return body.getvalue().decode("utf-8")
-    if isinstance(body, Iterator):
-        raise NotImplementedError(
-            "VCR body is an Iterator — element type is ambiguous (bytes chunks vs ints). Extend _decode_vcr_body if you need to support streaming request bodies."
-        )
-    raise TypeError(f"Unexpected VCR body type: {type(body)}")
+    if isinstance(raw, bytes):
+        return raw.decode("utf-8")
+    return str(raw)  # pyright: ignore[reportUnknownArgumentType] # vcrpy is untyped
 
 
-class _VCRRequest:
-    """Structural stub for type-checking vcr.request.Request — vcrpy ships no type stubs."""
-
-    body: object
-
-
-def _normalize_json(body: str) -> str:
+def _logging_body_matcher(r1: VCRRequest, r2: VCRRequest) -> None:
     try:
-        return json.dumps(json.loads(body), sort_keys=True)
-    except (ValueError, TypeError):
-        return body
-
-
-def _make_logging_body_matcher(
-    *normalizers: Callable[[str], str],
-) -> Callable[[_VCRRequest, _VCRRequest], None]:
-    def _body_matcher(r1: _VCRRequest, r2: _VCRRequest) -> None:
-        b1 = _normalize_json(_decode_vcr_body(r1.body))
-        b2 = _normalize_json(_decode_vcr_body(r2.body))
-        for normalize in normalizers:
-            b1 = normalize(b1)
-            b2 = normalize(b2)
-        if b1 != b2:
-            diff = "\n".join(
-                difflib.unified_diff(
-                    b2.splitlines(),
-                    b1.splitlines(),
-                    fromfile="cassette",
-                    tofile="actual",
-                    lineterm="",
-                )
+        _vcr_matchers.body(r1, r2)  # pyright: ignore[reportUnknownMemberType] # vcrpy is untyped
+    except AssertionError as err:
+        b1 = _read_body_as_str(r1)
+        b2 = _read_body_as_str(r2)
+        diff = "\n".join(
+            difflib.unified_diff(
+                b2.splitlines(),
+                b1.splitlines(),
+                fromfile="cassette",
+                tofile="actual",
+                lineterm="",
             )
-            logger.warning("VCR body mismatch:\n%s", diff)
-            print(f"\nVCR body mismatch:\n{diff}")  # noqa: T201 # intentional debug output to surface cassette drift
-            raise AssertionError(f"Request body mismatch:\n{diff}")
-
-    return _body_matcher
+        )
+        logger.info(f"VCR body mismatch:\n{diff}")
+        print(f"\nVCR body mismatch:\n{diff}")  # noqa: T201 # intentional debug output to surface cassette drift
+        raise AssertionError(
+            f"Request body mismatch:\n{diff}"
+        ) from err  # TODO: figure out why Body is the only VCRpy matcher that doesn't include an error message of the diff, and see about creating an issue in VCRpy repo itself
 
 
 def pytest_recording_configure(
@@ -104,7 +79,7 @@ def pytest_recording_configure(
         f"vcr.match_on is not a tuple, it is a {type(vcr.match_on)} with value {vcr.match_on}"
     )
 
-    vcr.register_matcher("logging_body", _make_logging_body_matcher())  # pyright: ignore[reportUnknownMemberType] # vcrpy is not fully typed
+    vcr.register_matcher("logging_body", _logging_body_matcher)  # pyright: ignore[reportUnknownMemberType] # vcrpy is not fully typed
     vcr.match_on += ("logging_body",)  # body is not included by default, but it seems relevant
 
     def before_record_response(response: dict[str, str | dict[str, Any]]) -> dict[str, str | dict[str, Any]]:
