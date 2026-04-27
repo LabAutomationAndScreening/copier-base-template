@@ -72,7 +72,7 @@ def _logging_body_matcher(r1: VCRRequest, r2: VCRRequest) -> None:
             )
         except Exception:
             logger.exception("Error while logging VCR body mismatch")
-            raise AssertionError from err
+            raise err from None  # if there's some failure generating the diff, just raise the original error unchanged
         # TODO: figure out why Body is the only VCRpy matcher that doesn't include an error message of the diff, and see about creating an issue in VCRpy repo itself
         raise AssertionError(f"Request body mismatch:\n{diff}") from err
 
