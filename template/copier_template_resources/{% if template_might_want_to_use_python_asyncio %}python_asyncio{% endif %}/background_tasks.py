@@ -13,7 +13,9 @@ background_task_exceptions: deque[Exception] = deque(
 _task_creation_tracebacks: dict[int, str] = {}
 
 
-def _task_done_callback(task: asyncio.Task[None]):
+def _task_done_callback(  # pragma: no cover # when we move this into a library, we'll remove this. It's already tested in some repos, but it's complicated to hit the coverage requirements when instantiating a new template that uses this
+    task: asyncio.Task[None],
+):
     task_id = id(task)
     background_tasks_set.discard(task)
     try:
@@ -32,7 +34,9 @@ def _task_done_callback(task: asyncio.Task[None]):
         _ = _task_creation_tracebacks.pop(task_id, None)
 
 
-def register_task(task: asyncio.Task[None]) -> None:
+def register_task(  # pragma: no cover # when we move this into a library, we'll remove this. It's already tested in some repos, but it's complicated to hit the coverage requirements when instantiating a new template that uses this
+    task: asyncio.Task[None],
+) -> None:
     # Capture the stack trace at task creation time (excluding this function)
     creation_stack = "".join(traceback.format_stack()[:-1])
     _task_creation_tracebacks[id(task)] = creation_stack
