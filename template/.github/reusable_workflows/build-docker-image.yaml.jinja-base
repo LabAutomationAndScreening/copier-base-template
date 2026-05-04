@@ -100,7 +100,7 @@ jobs:
           if [ -n "$EXTRA_PATHS" ]; then
             EXTRA_ARGS="--extra-paths $EXTRA_PATHS"
           fi
-          BUILD_HASH=$(python3 .github/workflows/hash_git_files.py ${{ inputs.context }})
+          BUILD_HASH=$(python3 .github/workflows/hash_git_files.py ${{ inputs.context }} $EXTRA_ARGS)
           echo "build_context_tag=context-${BUILD_HASH}" >> "$GITHUB_OUTPUT"
           echo "Calculated build context tag as: ${BUILD_HASH}"
 
