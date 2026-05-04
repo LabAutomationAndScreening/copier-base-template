@@ -53,7 +53,7 @@ def main():
         # Check if the file is at most two levels deep.
         # The relative path's parts count should be <= 3 (e.g. "pyproject.toml" is 1 part,
         # "subdir/pyproject.toml" is 2 parts, and "subdir/subsubdir/pyproject.toml" is 3 parts).
-        if len(file_path.relative_to(base_dir).parts) <= 3:
+        if len(file_path.relative_to(base_dir).parts) <= 3:  # noqa: PLR2004 # just explained the rationale above
             process_file(file_path)
 
 
