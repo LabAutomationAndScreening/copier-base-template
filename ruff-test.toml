@@ -20,7 +20,7 @@ unfixable = [
 ]
 
 [lint.per-file-ignores]
-"!tests/**" = ["INP001"] # non-test files aren't part of a package
+"!**/tests/**" = ["INP001"] # non-test files aren't part of a package
 
 [lint.flake8-pytest-style]
 raises-require-match-for = ["*"] # ensures we always have a match for our raises statements so that we validate tests fail for the right reason
