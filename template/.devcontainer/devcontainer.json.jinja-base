@@ -24,10 +24,11 @@
       "installTools": false,
       "optimize": true
     }{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_javascript is defined and template_uses_javascript is sameas(true) %}{% raw %},
-    "ghcr.io/devcontainers/features/node:1.7.1": {
+    "ghcr.io/devcontainers/features/node:2.0.0": {
       // https://github.com/devcontainers/features/blob/main/src/node/devcontainer-feature.json
       "version": "{% endraw %}{{ node_version }}{% raw %}",
-      "pnpmVersion": "{% endraw %}{{ pnpm_version }}{% raw %}"
+      "pnpmVersion": "{% endraw %}{{ pnpm_version }}{% raw %}",
+      "nvmVersion": "{% endraw %}{{ nvm_version }}{% raw %}",
     }{% endraw %}{% endif %}{% raw %}{% endraw %}{% if install_claude_cli %}{% raw %},
     // https://github.com/anthropics/devcontainer-features/blob/main/src/claude-code/devcontainer-feature.json
     "ghcr.io/anthropics/devcontainer-features/claude-code:1.0.5": {}{% endraw %}{% endif %}{% raw %}
@@ -39,12 +40,12 @@
         "-AmazonWebServices.aws-toolkit-vscode", // the AWS CLI feature installs this automatically, but it's causing problems in VS Code{% endraw %}{% endif %}{% raw %}
         // basic tooling
         // "eamodio.gitlens@15.5.1",
-        "coderabbit.coderabbit-vscode@0.18.5",
+        "coderabbit.coderabbit-vscode@0.19.1",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.388.0",
         "github.copilot-chat@0.44.2",{% endraw %}{% if install_claude_cli %}{% raw %}
-        "anthropic.claude-code@2.1.117",{% endraw %}{% endif %}{% raw %}
+        "anthropic.claude-code@2.1.126",{% endraw %}{% endif %}{% raw %}
 
         // Python
         "ms-python.python@2026.5.2026032701",
@@ -78,7 +79,7 @@
         },
         "ruff.nativeServer": "on",
         // TODO: see if there's a way to specify different configurations for different folders
-        "ruff.configuration": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/ruff-test.toml", // use the test configuration since it's less restrictive and won't show false positives and underline things
+        "ruff.configuration": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/ruff-non-src.toml", // use the test configuration since it's less restrictive and won't show false positives and underline things
         "[jsonc][json][javascript][typescript][graphql][css][scss][html][vue]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode",
           "editor.formatOnSave": true

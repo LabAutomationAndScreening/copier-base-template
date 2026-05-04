@@ -5,8 +5,8 @@ import shutil
 import subprocess
 import sys
 
-UV_VERSION = "0.11.7"
-COPIER_VERSION = "9.14.3"
+UV_VERSION = "0.11.8"
+COPIER_VERSION = "9.15.0"
 COPIER_TEMPLATE_EXTENSIONS_VERSION = "0.3.3"
 PRE_COMMIT_VERSION = "4.5.1"
 GITHUB_WINDOWS_RUNNER_BIN_PATH = r"C:\Users\runneradmin\.local\bin"
@@ -39,7 +39,7 @@ def main():
         if is_windows:
             uv_env.update({"PATH": rf"{GITHUB_WINDOWS_RUNNER_BIN_PATH};{uv_env['PATH']}"})
             # invoke installer in a pwsh process
-            _ = subprocess.run(
+            _ = subprocess.run(  # noqa: S603 # this is all our own input
                 [
                     pwsh,  # type: ignore[reportPossiblyUnboundVariable] # this matches the conditional above that defines pwsh
                     "-NoProfile",
@@ -51,14 +51,14 @@ def main():
                 env=uv_env,
             )
         else:
-            _ = subprocess.run(
+            _ = subprocess.run(  # noqa: S602 # we need to set shell to true to use the pipe operator, and this is all our own input
                 f"curl -fsSL --connect-timeout 20 --max-time 40 --retry 3 --retry-delay 5 --retry-connrefused --proto '=https' https://astral.sh/uv/{UV_VERSION}/install.sh | sh",
                 check=True,
                 shell=True,
                 env=uv_env,
             )
             # TODO: add uv autocompletion to the shell https://docs.astral.sh/uv/getting-started/installation/#shell-autocompletion
-        _ = subprocess.run(
+        _ = subprocess.run(  # noqa: S603 # this is all our own input
             [
                 uv_path,
                 "tool",
@@ -70,7 +70,7 @@ def main():
             check=True,
             env=uv_env,
         )
-        _ = subprocess.run(
+        _ = subprocess.run(  # noqa: S603 # this is all our own input
             [
                 uv_path,
                 "tool",
@@ -80,7 +80,7 @@ def main():
             check=True,
             env=uv_env,
         )
-        _ = subprocess.run(
+        _ = subprocess.run(  # noqa: S603 # this is all our own input
             [
                 uv_path,
                 "tool",

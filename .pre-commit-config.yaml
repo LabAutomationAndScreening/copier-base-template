@@ -259,9 +259,9 @@ repos:
               template/.*|
           )$
       - id: ruff
-        name: ruff-tests
-        args: [--fix, --config=./ruff-test.toml]
-        files: tests?/.+\.py$
+        name: ruff-non-src # tests, scripts and other non-source code
+        args: [--fix, --config=./ruff-non-src.toml]
+        files: ^(?!src/)(?!.+/src/).+\.py$
         exclude: |
           (?x)^(
               .*/generated/graphql/.*|

@@ -1,1 +1,1 @@
-../../../../src/hash_git_files.py
+../../../../.github/workflows/hash_git_files.py

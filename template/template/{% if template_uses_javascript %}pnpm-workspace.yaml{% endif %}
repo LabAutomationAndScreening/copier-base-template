@@ -1,0 +1,10 @@
+# packages:
+#   - 'frontend'
+
+allowBuilds:
+  # managed by upstream template
+  '@parcel/watcher': false # ships pre-built platform binaries via optional deps; postinstall is redundant
+  esbuild: false # ships pre-built platform binaries via optional deps; postinstall is redundant
+  unrs-resolver: false # ships pre-built platform binaries via optional deps; postinstall is redundant
+  vue-demi: false # postinstall switches Vue 2/3 mode; Vue 3-only project so default is already correct
+  # specific to this repository
