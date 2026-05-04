@@ -93,6 +93,11 @@ _tasks:
         else
             echo "ruff.toml not found; skipping Ruff target-version update."
         fi
+  # Copier does not preserve executable permissions when instantiating the template, so we set them explicitly here.
+  - command: |
+        if [ -f scripts/delete_false_positive_rej.py ]; then
+            chmod +x scripts/delete_false_positive_rej.py
+        fi
 
 
 _min_copier_version: "9.8"
