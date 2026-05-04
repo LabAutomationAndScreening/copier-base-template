@@ -23,7 +23,9 @@ def process_file(file_path: Path):
 
     # Check if any block contains "default = true"
     if not any("default = true" in block for block in blocks):
-        print(f"No changes in: {file_path}")
+        print(  # noqa: T201 # we want the script to print to console for easy viewing
+            f"No changes in: {file_path}"
+        )
         return
 
     # If at least one block contains "default = true", remove all uv.index blocks.
@@ -39,11 +41,13 @@ def process_file(file_path: Path):
 
     # Write the updated content back to the file.
     _ = file_path.write_text(new_content)
-    print(f"Updated file: {file_path}")
+    print(  # noqa: T201 # we want the script to print to console for easy viewing
+        f"Updated file: {file_path}"
+    )
 
 
 def main():
-    base_dir = Path(".")
+    base_dir = Path()
     # Use rglob to find all pyproject.toml files recursively.
     for file_path in base_dir.rglob("pyproject.toml"):
         # Check if the file is at most two levels deep.
