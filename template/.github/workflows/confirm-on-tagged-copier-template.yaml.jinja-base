@@ -22,7 +22,7 @@ jobs:
       - name: Check _commit is a clean release tag
         run: |
           PATTERN="${{ inputs.answers_file_pattern }}"
-          mapfile -t ANSWERS_FILES < <(find . -type f | grep -E "$PATTERN")
+          mapfile -t ANSWERS_FILES < <(find . -type f -printf '%P\n' | grep -E "$PATTERN")
           if [ ${#ANSWERS_FILES[@]} -eq 0 ]; then
             echo "Error: No files matching pattern '$PATTERN' found"
             exit 1
