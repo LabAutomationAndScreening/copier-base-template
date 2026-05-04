@@ -161,7 +161,7 @@ def main():  # noqa: C901,PLR0912,PLR0915 # TODO: cleanup into some subfunctions
         elif env.package_manager == PackageManager.PNPM:
             pnpm_command = ["pnpm", "install", "--dir", str(env.path)]
             if env_check_lock:
-                pnpm_command.append("--frozen-lockfile")
+                pnpm_command[1] = "ci"
             if is_windows:
                 pwsh = shutil.which("pwsh") or shutil.which("powershell")
                 if not pwsh:
