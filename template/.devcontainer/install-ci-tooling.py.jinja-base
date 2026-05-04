@@ -105,7 +105,7 @@ def main():
     if not args.no_node:
         pnpm_install_sequence = ["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"]
         for cmd in pnpm_install_sequence:
-            cmd = (
+            run_cmd = (
                 [
                     pwsh,  # type: ignore[reportPossiblyUnboundVariable] # this matches the conditional above that defines pwsh
                     "-NoProfile",
@@ -116,7 +116,7 @@ def main():
                 if is_windows
                 else [cmd]
             )
-            _ = subprocess.run(cmd, shell=True, check=True)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
+            _ = subprocess.run(run_cmd, shell=True, check=True)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
     if INSTALL_SSM_PLUGIN_BY_DEFAULT and not args.skip_installing_ssm_plugin:
         with tempfile.TemporaryDirectory() as tmp_dir:
             if is_windows:
