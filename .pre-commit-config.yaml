@@ -259,8 +259,8 @@ repos:
               template/.*|
           )$
       - id: ruff
-        name: ruff-non-src # tests, scripts and other non-production code
-        args: [--fix, --config=./ruff-test.toml]
+        name: ruff-non-src # tests, scripts and other non-source code
+        args: [--fix, --config=./ruff-non-src.toml]
         files: ^(?!src/)(?!.+/src/).+\.py$
         exclude: |
           (?x)^(
