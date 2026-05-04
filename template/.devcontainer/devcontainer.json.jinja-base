@@ -28,7 +28,6 @@
       // https://github.com/devcontainers/features/blob/main/src/node/devcontainer-feature.json
       "version": "{% endraw %}{{ node_version }}{% raw %}",
       "pnpmVersion": "{% endraw %}{{ pnpm_version }}{% raw %}",
-      "npmVersion": "{% endraw %}{{ npm_version }}{% raw %}",
       "nvmVersion": "{% endraw %}{{ nvm_version }}{% raw %}",
     }{% endraw %}{% endif %}{% raw %}{% endraw %}{% if install_claude_cli %}{% raw %},
     // https://github.com/anthropics/devcontainer-features/blob/main/src/claude-code/devcontainer-feature.json
