@@ -14,7 +14,7 @@ class ContextUpdater(ContextHook):
         context["uv_version"] = "0.11.7"
         context["pre_commit_version"] = "4.5.1"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
-        context["copier_version"] = "==9.14.3"
+        context["copier_version"] = "==9.15.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
         context["pnpm_version"] = "10.33.1"
