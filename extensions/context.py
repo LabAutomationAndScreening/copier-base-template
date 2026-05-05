@@ -27,7 +27,7 @@ class ContextUpdater(ContextHook):
         context["pytest_version"] = ">=9.0.3"
         context["pytest_randomly_version"] = ">=4.1.0"
         context["pytest_cov_version"] = ">=7.1.0"
-        context["ty_version"] = ">=0.0.32"
+        context["ty_version"] = ">=0.0.34"
         #######
         context["sphinx_version"] = "9.0.4"
         context["pulumi_version"] = ">=3.234.0"
@@ -98,7 +98,7 @@ class ContextUpdater(ContextHook):
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v6.0.2"
         context["gha_setup_python"] = "v6.2.0"
-        context["gha_cache"] = "v5.0.4"
+        context["gha_cache"] = "v5.0.5"
         context["gha_linux_runner"] = "ubuntu-24.04"
         #######
         context["gha_upload_artifact"] = "v7.0.1"
