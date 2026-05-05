@@ -64,7 +64,7 @@
         },
         "ruff.nativeServer": "on",
         // TODO: see if there's a way to specify different configurations for different folders
-        "ruff.configuration": "/workspaces/copier-base-template/ruff-non-src.toml", // use the test configuration since it's less restrictive and won't show false positives and underline things
+        "ruff.configuration": "/workspaces/copier-base-template/ruff-non-src.toml", // use the non-src configuration since it's less restrictive and won't show false positives and underline things
         "[jsonc][json]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode",
           "editor.formatOnSave": true
@@ -75,5 +75,5 @@
   "initializeCommand": "sh .devcontainer/initialize-command.sh",
   "onCreateCommand": "sh .devcontainer/on-create-command.sh",
   "postStartCommand": "sh .devcontainer/post-start-command.sh"
-  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): 87190073 # spellchecker:disable-line
+  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): 823b611e # spellchecker:disable-line
 }

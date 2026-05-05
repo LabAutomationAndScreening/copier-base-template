@@ -19,7 +19,7 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "==9.15.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
-        context["pnpm_version"] = "11.0.4"
+        context["pnpm_version"] = "11.0.5"
         context["npm_version"] = "11.13.0"
         context["nvm_version"] = "0.40.4"
         # These are duplicated in the pyproject.toml of this repository
@@ -27,7 +27,7 @@ class ContextUpdater(ContextHook):
         context["pytest_version"] = ">=9.0.3"
         context["pytest_randomly_version"] = ">=4.1.0"
         context["pytest_cov_version"] = ">=7.1.0"
-        context["ty_version"] = ">=0.0.32"
+        context["ty_version"] = ">=0.0.34"
         #######
         context["sphinx_version"] = "9.0.4"
         context["pulumi_version"] = ">=3.234.0"
@@ -98,7 +98,7 @@ class ContextUpdater(ContextHook):
         # These are duplicated in the CI files for this repository
         context["gha_checkout"] = "v6.0.2"
         context["gha_setup_python"] = "v6.2.0"
-        context["gha_cache"] = "v5.0.4"
+        context["gha_cache"] = "v5.0.5"
         context["gha_linux_runner"] = "ubuntu-24.04"
         #######
         context["gha_upload_artifact"] = "v7.0.1"
@@ -114,6 +114,11 @@ class ContextUpdater(ContextHook):
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
         context["gha_pypi_publish"] = "v1.13.0"
         context["gha_sleep"] = "v2.0.3"
+        context["gha_absaoss_k3d"] = "v2.4.0"
+        context["gha_azure_setup_helm"] = "v5.0.0"
+        context["helm_version"] = "v3.18.3"
+        context["gha_azure_setup_kubectl"] = "v5.1.0"
+        context["kubectl_version"] = "v1.36.0"
         context["gha_windows_runner"] = "windows-2025"
         context["gha_short_timeout_minutes"] = "2"
         context["gha_medium_timeout_minutes"] = "8"
