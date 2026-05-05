@@ -19,7 +19,7 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "==9.15.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
-        context["pnpm_version"] = "11.0.4"
+        context["pnpm_version"] = "11.0.5"
         context["npm_version"] = "11.13.0"
         context["nvm_version"] = "0.40.4"
         # These are duplicated in the pyproject.toml of this repository
@@ -114,6 +114,11 @@ class ContextUpdater(ContextHook):
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
         context["gha_pypi_publish"] = "v1.13.0"
         context["gha_sleep"] = "v2.0.3"
+        context["gha_absaoss_k3d"] = "v2.4.0"
+        context["gha_azure_setup_helm"] = "v5.0.0"
+        context["helm_version"] = "v3.18.3"
+        context["gha_azure_setup_kubectl"] = "v5.1.0"
+        context["kubectl_version"] = "v1.15.0"
         context["gha_windows_runner"] = "windows-2025"
         context["gha_short_timeout_minutes"] = "2"
         context["gha_medium_timeout_minutes"] = "8"
