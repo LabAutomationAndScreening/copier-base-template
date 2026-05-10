@@ -104,11 +104,11 @@ class ContextUpdater(ContextHook):
         context["gha_upload_artifact"] = "v7.0.1"
         context["gha_download_artifact"] = "v8.0.1"
         context["gha_github_script"] = "v7.0.1"
-        context["gha_setup_buildx"] = "v3.11.1"
-        context["buildx_version"] = "v0.27.0"
-        context["gha_docker_build_push"] = "v6.18.0"
+        context["gha_setup_buildx"] = "v4.0.0"
+        context["buildx_version"] = "v0.33.0"
+        context["gha_docker_build_push"] = "v7.1.0"
         context["gha_configure_aws_credentials"] = "v6.1.0"
-        context["gha_amazon_ecr_login"] = "v2.1.3"
+        context["gha_amazon_ecr_login"] = "v2.1.5"
         context["gha_setup_node"] = "v6.3.0"
         context["gha_action_gh_release"] = "v2.2.1"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
@@ -119,7 +119,9 @@ class ContextUpdater(ContextHook):
         context["helm_version"] = "v3.18.3"
         context["gha_azure_setup_kubectl"] = "v5.1.0"
         context["kubectl_version"] = "v1.36.0"
-        context["gha_windows_runner"] = "windows-2025"
+        context["gha_windows_runner"] = (
+            "windows-2025-vs2026"  # for some reason, github is starting to redirect all windows-2025 to this new one https://github.com/actions/runner-images/issues/14017
+        )
         context["gha_short_timeout_minutes"] = "2"
         context["gha_medium_timeout_minutes"] = "8"
         context["gha_long_timeout_minutes"] = "15"
