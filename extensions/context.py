@@ -13,13 +13,13 @@ class ContextUpdater(ContextHook):
         self, context: dict[Any, Any]
     ) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.11.8"
+        context["uv_version"] = "0.11.12"
         context["pre_commit_version"] = "4.5.1"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
         context["copier_version"] = "==9.15.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
-        context["pnpm_version"] = "11.0.5"
+        context["pnpm_version"] = "11.0.9"
         context["npm_version"] = "11.13.0"
         context["nvm_version"] = "0.40.4"
         # These are duplicated in the pyproject.toml of this repository
