@@ -58,8 +58,6 @@ class ContextUpdater(ContextHook):
         context["pytest_asyncio_version"] = ">=1.3.0"
         context["pytest_reserial_version"] = ">=0.6.0"
         context["python_faker_version"] = ">=40.15.0"
-        context["adafruit_circuitpython_busdevice_version"] = "==5.2.17"
-        context["adafruit_circuitpython_register_version"] = "==1.11.3"
         #######
         context["default_node_version"] = "24.11.1"
         context["nuxt_ui_version"] = "^4.6.0"
@@ -112,7 +110,7 @@ class ContextUpdater(ContextHook):
         context["gha_setup_node"] = "v6.3.0"
         context["gha_action_gh_release"] = "v2.2.1"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
-        context["gha_pypi_publish"] = "v1.13.0"
+        context["gha_pypi_publish"] = "v1.14.0"
         context["gha_sleep"] = "v2.0.3"
         context["gha_absaoss_k3d"] = "v2.4.0"
         context["gha_azure_setup_helm"] = "v5.0.0"
