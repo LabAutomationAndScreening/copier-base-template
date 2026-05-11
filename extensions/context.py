@@ -13,13 +13,13 @@ class ContextUpdater(ContextHook):
         self, context: dict[Any, Any]
     ) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.11.8"
+        context["uv_version"] = "0.11.12"
         context["pre_commit_version"] = "4.5.1"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
         context["copier_version"] = "==9.15.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
-        context["pnpm_version"] = "11.0.5"
+        context["pnpm_version"] = "11.0.9"
         context["npm_version"] = "11.13.0"
         context["nvm_version"] = "0.40.4"
         # These are duplicated in the pyproject.toml of this repository
@@ -38,8 +38,8 @@ class ContextUpdater(ContextHook):
         context["pulumi_okta_version"] = ">=6.6.0"
         context["boto3_version"] = ">=1.42.92"
         context["ephemeral_pulumi_deploy_version"] = ">=0.0.6"
-        context["pydantic_version"] = ">=2.13.3"
-        context["pyinstaller_version"] = ">=6.19.0"
+        context["pydantic_version"] = ">=2.13.4"
+        context["pyinstaller_version"] = ">=6.20.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = ">=0.298.0"
         context["fastapi_version"] = ">=0.136.1"
@@ -58,8 +58,6 @@ class ContextUpdater(ContextHook):
         context["pytest_asyncio_version"] = ">=1.3.0"
         context["pytest_reserial_version"] = ">=0.6.0"
         context["python_faker_version"] = ">=40.15.0"
-        context["adafruit_circuitpython_busdevice_version"] = "==5.2.14"
-        context["adafruit_circuitpython_register_version"] = "==1.11.1"
         #######
         context["default_node_version"] = "24.11.1"
         context["nuxt_ui_version"] = "^4.6.0"
@@ -104,22 +102,24 @@ class ContextUpdater(ContextHook):
         context["gha_upload_artifact"] = "v7.0.1"
         context["gha_download_artifact"] = "v8.0.1"
         context["gha_github_script"] = "v7.0.1"
-        context["gha_setup_buildx"] = "v3.11.1"
-        context["buildx_version"] = "v0.27.0"
-        context["gha_docker_build_push"] = "v6.18.0"
+        context["gha_setup_buildx"] = "v4.0.0"
+        context["buildx_version"] = "v0.33.0"
+        context["gha_docker_build_push"] = "v7.1.0"
         context["gha_configure_aws_credentials"] = "v6.1.0"
-        context["gha_amazon_ecr_login"] = "v2.1.3"
+        context["gha_amazon_ecr_login"] = "v2.1.5"
         context["gha_setup_node"] = "v6.3.0"
         context["gha_action_gh_release"] = "v2.2.1"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
-        context["gha_pypi_publish"] = "v1.13.0"
+        context["gha_pypi_publish"] = "v1.14.0"
         context["gha_sleep"] = "v2.0.3"
         context["gha_absaoss_k3d"] = "v2.4.0"
         context["gha_azure_setup_helm"] = "v5.0.0"
         context["helm_version"] = "v3.18.3"
         context["gha_azure_setup_kubectl"] = "v5.1.0"
         context["kubectl_version"] = "v1.36.0"
-        context["gha_windows_runner"] = "windows-2025"
+        context["gha_windows_runner"] = (
+            "windows-2025-vs2026"  # for some reason, github is starting to redirect all windows-2025 to this new one https://github.com/actions/runner-images/issues/14017
+        )
         context["gha_short_timeout_minutes"] = "2"
         context["gha_medium_timeout_minutes"] = "8"
         context["gha_long_timeout_minutes"] = "15"

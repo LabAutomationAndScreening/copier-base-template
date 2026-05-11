@@ -53,8 +53,6 @@ class ContextUpdater(ContextHook):
         context["pytest_asyncio_version"] = "{{ pytest_asyncio_version }}"
         context["pytest_reserial_version"] = "{{ pytest_reserial_version }}"
         context["python_faker_version"] = "{{ python_faker_version }}"
-        context["adafruit_circuitpython_busdevice_version"] = "{{ adafruit_circuitpython_busdevice_version }}"
-        context["adafruit_circuitpython_register_version"] = "{{ adafruit_circuitpython_register_version }}"
 
         context["default_node_version"] = "{{ default_node_version }}"
         context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"
