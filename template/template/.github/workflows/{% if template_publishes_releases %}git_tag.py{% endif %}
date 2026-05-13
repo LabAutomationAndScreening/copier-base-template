@@ -9,7 +9,9 @@ def ensure_tag_not_present(tag: str, remote: str) -> None:
     )
     if result.returncode == 0:
         raise Exception(f"Error: tag '{tag}' exists on remote '{remote}'")  # noqa: TRY002 # not worth a custom exception
-    if result.returncode != 2:  # 2 = no matching refs; anything else is a real error (bad remote, auth failure, network)
+    if (
+        result.returncode != 2
+    ):  # 2 = no matching refs; anything else is a real error (bad remote, auth failure, network)
         raise Exception(f"git ls-remote exited with code {result.returncode} (remote={remote!r})")  # noqa: TRY002 # not worth a custom exception
 
 
