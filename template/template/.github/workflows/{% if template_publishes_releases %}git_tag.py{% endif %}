@@ -3,15 +3,17 @@ import subprocess
 
 
 def ensure_tag_not_present(tag: str, remote: str) -> None:
+    no_matching_refs_return_code = 2
     result = subprocess.run(  # noqa: S603 # this is trusted input, it's our own arguments being passed in
         ["git", "ls-remote", "--exit-code", "--tags", remote, f"refs/tags/{tag}"],  # noqa: S607 # if `git` isn't in PATH already, then there are bigger problems to solve
         stdout=subprocess.DEVNULL,
+        check=False,
     )
     if result.returncode == 0:
         raise Exception(f"Error: tag '{tag}' exists on remote '{remote}'")  # noqa: TRY002 # not worth a custom exception
     if (
-        result.returncode != 2
-    ):  # 2 = no matching refs; anything else is a real error (bad remote, auth failure, network)
+        result.returncode != no_matching_refs_return_code
+    ):  # anything else is a real error (bad remote, auth failure, network)
         raise Exception(f"git ls-remote exited with code {result.returncode} (remote={remote!r})")  # noqa: TRY002 # not worth a custom exception
 
 
