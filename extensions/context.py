@@ -108,7 +108,7 @@ class ContextUpdater(ContextHook):
         context["gha_configure_aws_credentials"] = "v6.1.0"
         context["gha_amazon_ecr_login"] = "v2.1.5"
         context["gha_setup_node"] = "v6.3.0"
-        context["gha_action_gh_release"] = "v2.2.1"
+        context["gha_action_gh_release"] = "v3.0.0"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
         context["gha_pypi_publish"] = "v1.14.0"
         context["gha_sleep"] = "v2.0.3"
