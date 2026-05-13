@@ -160,16 +160,30 @@ jobs:
       - name: Add git sha tag
         if: ${{ inputs.push-role-name != 'no-push' }}
         run: |
-          aws ecr batch-get-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids imageTag=${{ steps.calculate-build-context-hash.outputs.build_context_tag }} --query 'images[].imageManifest' --output text > manifest.json
-          aws ecr put-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-tag git-sha-${{ github.sha }} --image-manifest file://manifest.json
+          GIT_SHA_TAG="git-sha-${{ github.sha }}"
+          if aws ecr describe-images --region ${{ steps.parse_ecr_url.outputs.aws_region }} --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids imageTag="$GIT_SHA_TAG" > /dev/null 2>&1; then
+            echo "Tag $GIT_SHA_TAG already exists in ECR, skipping"
+          else
+            aws ecr batch-get-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids imageTag=${{ steps.calculate-build-context-hash.outputs.build_context_tag }} --query 'images[].imageManifest' --output text > manifest.json
+            aws ecr put-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-tag "$GIT_SHA_TAG" --image-manifest file://manifest.json
+          fi
 
       - name: Add tag for Production
         if: ${{ inputs.push-role-name != 'no-push' && inputs.tag-for-production }}
         run: |
           aws ecr batch-get-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids imageTag=${{ steps.calculate-build-context-hash.outputs.build_context_tag }} --query 'images[].imageManifest' --output text > manifest.json
-          # TODO: figure out some better conditional logic about adding a tag for the context in production, so we don't have to `|| true` at the end
-          aws ecr put-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-tag production--${{ steps.calculate-build-context-hash.outputs.build_context_tag }} --image-manifest file://manifest.json || true
-          aws ecr put-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-tag production--git-sha-${{ github.sha }} --image-manifest file://manifest.json
+          PRODUCTION_CONTEXT_TAG="production--${{ steps.calculate-build-context-hash.outputs.build_context_tag }}"
+          if aws ecr describe-images --region ${{ steps.parse_ecr_url.outputs.aws_region }} --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids imageTag="$PRODUCTION_CONTEXT_TAG" > /dev/null 2>&1; then
+            echo "Tag $PRODUCTION_CONTEXT_TAG already exists in ECR, skipping"
+          else
+            aws ecr put-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-tag "$PRODUCTION_CONTEXT_TAG" --image-manifest file://manifest.json
+          fi
+          PRODUCTION_SHA_TAG="production--git-sha-${{ github.sha }}"
+          if aws ecr describe-images --region ${{ steps.parse_ecr_url.outputs.aws_region }} --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids imageTag="$PRODUCTION_SHA_TAG" > /dev/null 2>&1; then
+            echo "Tag $PRODUCTION_SHA_TAG already exists in ECR, skipping"
+          else
+            aws ecr put-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-tag "$PRODUCTION_SHA_TAG" --image-manifest file://manifest.json
+          fi
 
       - name: Add release tag
         if: ${{ inputs.push-role-name != 'no-push' && inputs.release-tag != '' }}
