@@ -174,8 +174,13 @@ jobs:
       - name: Add release tag
         if: ${{ inputs.push-role-name != 'no-push' && inputs.release-tag != '' }}
         run: |
+          RELEASE_TAG="${{ inputs.release-tag }}"
+          if ! [[ "$RELEASE_TAG" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+            echo "Invalid release-tag: '$RELEASE_TAG'. Only alphanumeric characters, hyphens, underscores, and dots are allowed."
+            exit 1
+          fi
           aws ecr batch-get-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids imageTag=${{ steps.calculate-build-context-hash.outputs.build_context_tag }} --query 'images[].imageManifest' --output text > manifest.json
-          aws ecr put-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-tag ${{ inputs.release-tag }} --image-manifest file://manifest.json
+          aws ecr put-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-tag "$RELEASE_TAG" --image-manifest file://manifest.json
 
       - name: Save Docker Image as tar
         if: ${{ inputs.save-as-artifact }}
