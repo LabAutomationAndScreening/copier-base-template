@@ -16,6 +16,11 @@ on:
         type: boolean
         required: false
         default: false
+      release-tag:
+        description: 'Optional release tag (e.g. 1.0.6) to push to ECR; applied even if an image with the same build-context-hash already exists'
+        type: string
+        required: false
+        default: ''
       context:
         description: 'Build context path'
         type: string
@@ -165,6 +170,12 @@ jobs:
           # TODO: figure out some better conditional logic about adding a tag for the context in production, so we don't have to `|| true` at the end
           aws ecr put-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-tag production--${{ steps.calculate-build-context-hash.outputs.build_context_tag }} --image-manifest file://manifest.json || true
           aws ecr put-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-tag production--git-sha-${{ github.sha }} --image-manifest file://manifest.json
+
+      - name: Add release tag
+        if: ${{ inputs.push-role-name != 'no-push' && inputs.release-tag != '' }}
+        run: |
+          aws ecr batch-get-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids imageTag=${{ steps.calculate-build-context-hash.outputs.build_context_tag }} --query 'images[].imageManifest' --output text > manifest.json
+          aws ecr put-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-tag ${{ inputs.release-tag }} --image-manifest file://manifest.json
 
       - name: Save Docker Image as tar
         if: ${{ inputs.save-as-artifact }}
