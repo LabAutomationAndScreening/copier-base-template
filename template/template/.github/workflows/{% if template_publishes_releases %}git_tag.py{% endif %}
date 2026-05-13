@@ -22,12 +22,13 @@ def main() -> None:
         required=True,
         help="Version string (e.g. 1.0.6); the tag will be v<version>",
     )
-    _ = parser.add_argument(
+    mode = parser.add_mutually_exclusive_group(required=True)
+    _ = mode.add_argument(
         "--confirm-tag-not-present",
         action="store_true",
         help="Check that git tag v<version> is NOT present on the remote. If the tag exists, exit with an error.",
     )
-    _ = parser.add_argument(
+    _ = mode.add_argument(
         "--push-tag-to-remote",
         action="store_true",
         help="Create git tag v<version> locally and push it to the remote. Internally confirms the tag is not already present.",
