@@ -24,7 +24,7 @@ def main() -> None:
     _ = parser.add_argument(
         "--version",
         required=True,
-        help="Version string (e.g. 1.0.6); the tag will be v<version>",
+        help="Version string (e.g. 1.0.6 or v1.0.6); the tag will always be v<version>",
     )
     mode = parser.add_mutually_exclusive_group(required=True)
     _ = mode.add_argument(
