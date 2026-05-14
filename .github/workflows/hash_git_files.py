@@ -50,6 +50,32 @@ def filter_files_for_devcontainer_context(files: list[str]) -> tuple[list[str], 
     return devcontainer_context, Path(devcontainer_json_file_path)
 
 
+def get_uv_lock_bytes_for_hashing(file_path: Path) -> bytes:
+    """Return uv.lock content with the root package's version line stripped.
+
+    Only the root package (source = { virtual = "." } or editable = ".") version is stripped, since bumping the package version alone does not require
+    re-running `uv sync`.
+    """
+    lines = file_path.read_text(encoding="utf-8").splitlines(keepends=True)
+    result: list[str] = []
+    i = 0
+    while i < len(lines):
+        if lines[i].rstrip() == "[[package]]":
+            block: list[str] = [lines[i]]
+            i += 1
+            while i < len(lines) and not lines[i].startswith("[["):
+                block.append(lines[i])
+                i += 1
+            is_root = any('virtual = "."' in ln or 'editable = "."' in ln for ln in block)
+            if is_root:
+                block = [ln for ln in block if not ln.startswith("version = ")]
+            result.extend(block)
+        else:
+            result.append(lines[i])
+            i += 1
+    return "".join(result).encode("utf-8")
+
+
 def compute_adler32(repo_path: Path, files: list[str], extra_paths: list[Path] | None = None) -> int:
     """Compute an overall Adler-32 checksum of the provided files.
 
@@ -63,12 +89,15 @@ def compute_adler32(repo_path: Path, files: list[str], extra_paths: list[Path] |
         # Update the checksum with the file name (encoded as bytes)
         checksum = zlib.adler32(file.encode("utf-8"), checksum)
         try:
-            with file_path.open("rb") as f:
-                while True:
-                    chunk = f.read(4096)
-                    if not chunk:
-                        break
-                    checksum = zlib.adler32(chunk, checksum)
+            if file_path.name == "uv.lock":
+                checksum = zlib.adler32(get_uv_lock_bytes_for_hashing(file_path), checksum)
+            else:
+                with file_path.open("rb") as f:
+                    while True:
+                        chunk = f.read(4096)
+                        if not chunk:
+                            break
+                        checksum = zlib.adler32(chunk, checksum)
         except IsADirectoryError:
             # Ignore symlinks that on windows sometimes get confused as being directories
             continue
