@@ -40,10 +40,7 @@ def filter_files_for_devcontainer_context(files: list[str]) -> tuple[list[str], 
                 devcontainer_json_file_path = file
                 continue
             devcontainer_context.append(file)
-        elif (
-            file.endswith((".lock", "pnpm-lock.yaml", "hash_git_files.py", "devcontainer-lock.json"))
-            or file == ".pre-commit-config.yaml"
-        ):
+        elif file.endswith((".lock", "pnpm-lock.yaml", "devcontainer-lock.json")) or file == ".pre-commit-config.yaml":
             devcontainer_context.append(file)
     if devcontainer_json_file_path is None:
         raise ValueError("No devcontainer.json file found in the tracked files.")
