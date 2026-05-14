@@ -132,22 +132,6 @@ repos:
           )$
         files: (.*.json)|(.*.ts)|(.*.jsx)|(.*.tsx)|(.*.yaml)|(.*.yml)|(.*.md)|(.*.html)|(.*.css)|(.*.scss)|(.*.less)|(.*.vue)|(.*.graphql)|(.*.gql)
 
-  - repo: https://github.com/myint/docformatter
-    # black seems to be working on formatting docstrings, but use this for now
-    rev: 0032269a0e65c068af9cd86c9a8859a0ddd568d6  # frozen: v1.7.8
-    hooks:
-      - id: docformatter
-        exclude: |
-          (?x)^(
-              .*/tests/.*|
-              exceptions\.py|
-              warnings\.py|
-              .*/generated/open[-_]api/.*|
-          )$
-        args:
-          - --in-place
-          - --wrap-summaries=150
-          - --wrap-descriptions=150
 
   - repo: https://github.com/pamoller/xmlformatter
     rev: bf91234ba2949363eec3429c4ecc2b39a9e8bfce  # frozen: v0.2.9
