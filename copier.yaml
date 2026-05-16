@@ -52,7 +52,7 @@ template_uses_pulumi:
 
 template_uses_javascript:
     type: bool
-    help: Is this a template that will use Javascript within it?
+    help: Is this a template that will use Typescript within it?
     default: no
 
 template_uses_vuejs:
