@@ -48,6 +48,7 @@
       "Bash(git diff *)",
       "Bash(git log *)",
       "Bash(git push *)",
+      "Bash(git remote get-url origin)",
       "Bash(git rev-parse *)",
       "Bash(git status *)",
       // Misc
