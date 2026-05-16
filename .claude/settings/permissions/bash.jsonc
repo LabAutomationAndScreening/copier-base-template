@@ -41,11 +41,14 @@
       "Bash(touch *)",
       "Bash(tree *)",
       // Git & Version Control
-      "Bash(git diff *)",
-      "Bash(git status *)",
-      "Bash(git log *)",
-      "Bash(git rev-parse *)",
+      "Bash(git add *)",
       "Bash(git branch *)",
+      "Bash(git commit *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git push *)",
+      "Bash(git rev-parse *)",
+      "Bash(git status *)",
       // Misc
       "Bash(amp *)",
       "Bash(atuin *)",
@@ -90,19 +93,21 @@
       "Bash(curl *)",
       "Bash(ln *)",
       "WebFetch",
+      // Git & Version Control
+      "Bash(git reset --hard *)",
     ],
     "deny": [
       // Exceptions to generally allowed AI tooling
       "Bash(bd init*)", // we need to control the init process, don't let AI do that in the background
       // Github
       // Claude should not ever interfere with the PR process, that is how we gate AI's work
-      "Bash(gh pr create *)",
-      "Bash(gh pr edit *)",
-      "Bash(gh pr ready *)",
-      "Bash(gh pr review *)",
-      "Bash(gh pr merge *)",
       "Bash(gh pr close *)",
       "Bash(gh pr comment *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh pr ready *)",
+      "Bash(gh pr review *)",
       "Bash(gh pr update-branch *)",
 
       // Destructive File Operations
@@ -119,7 +124,6 @@
       "Bash(kill -9 *)",
       "Bash(killall *)",
       // Git & Version Control
-      "Bash(git reset --hard *)",
       "Bash(git push -f *)",
       "Bash(git push --force*)",
       // Node.js
