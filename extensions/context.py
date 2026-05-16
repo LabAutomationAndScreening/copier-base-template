@@ -61,9 +61,7 @@ class ContextUpdater(ContextHook):
         #######
         context["default_node_version"] = "24.11.1"
         context["nuxt_ui_version"] = "^4.6.0"
-        context["nuxt_version"] = (
-            "~4.3.1"  # some weird funkiness with Nuxt v4.4.2 and MagicString. trying to bump to Vitest v4 is possibly the answer, but initial attempt at that failed
-        )
+        context["nuxt_version"] = "^4.4.5"
         context["nuxt_icon_version"] = "^2.2.1"
         context["typescript_version"] = "^5.9.3"
         context["playwright_version"] = "^1.59.1"
@@ -73,8 +71,9 @@ class ContextUpdater(ContextHook):
         context["vue_router_version"] = "^5.0.3"
         context["dotenv_cli_version"] = "^11.0.0"
         context["faker_version"] = "^10.4.0"
-        context["vitest_version"] = "^3.2.4"
-        context["eslint_version"] = "~9.38.0"
+        context["vitest_version"] = "^4.1.6"
+        context["vitest_eslint_plugin_version"] = "^1.6.17"
+        context["eslint_version"] = "^10.4.0"
         context["nuxt_eslint_version"] = "^1.15.1"
         context["zod_version"] = "^4.3.6"
         context["zod_from_json_schema_version"] = "^0.5.1"
@@ -88,7 +87,7 @@ class ContextUpdater(ContextHook):
         context["nuxt_fonts_version"] = "^0.14.0"
         context["nuxtjs_color_mode_version"] = "^3.5.2"
         context["vue_test_utils_version"] = "^2.4.6"
-        context["nuxt_test_utils_version"] = "3.19.1"
+        context["nuxt_test_utils_version"] = "^4.0.3"
         context["vue_eslint_parser_version"] = "^10.4.0"
         context["happy_dom_version"] = "^20.9.0"
         context["node_kiota_bundle_version"] = "1.0.0-preview.100"
