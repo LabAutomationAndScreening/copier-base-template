@@ -1,3 +1,6 @@
+# Scratch / temp files
+tmp/
+
 # IDE
 .vscode/
 .idea/
@@ -85,6 +88,7 @@ node_modules/
 .output
 .data
 .nuxt
+.nuxtrc
 .nitro
 .cache
 # Nuxt generate creates a symlink to the dist folder, which can't have trailing slash
