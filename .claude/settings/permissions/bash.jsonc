@@ -28,6 +28,7 @@
       "Bash(.claude/skills/**/*)",
       // File System
       "Bash(bat *)",
+      "Bash(cd /workspaces/*)",
       "Bash(chmod *)",
       "Bash(cp *)",
       "Bash(eza *)",
