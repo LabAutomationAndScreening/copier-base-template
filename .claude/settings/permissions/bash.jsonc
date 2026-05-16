@@ -25,6 +25,7 @@
       "Bash(~/.claude/hooks/*)",
       "Bash(~/.agents/skills/*)",
       "Bash(~/.claude/skills/*)",
+      "Bash(.claude/skills/**/*)",
       // File System
       "Bash(bat *)",
       "Bash(chmod *)",
@@ -77,7 +78,7 @@
       // Research
       "Bash(gh issue list *)",
       "Bash(gh pr view *)",
-      "Bash(gh pr diff *)"
+      "Bash(gh pr diff *)",
     ],
     "ask": [
       // let's hold off before we let it use the github CLI in any free running allow mode...I don't want it somehow approving PRs with the user's credentials
