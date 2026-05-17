@@ -28,6 +28,7 @@ tmp/
 .claude/session-env
 .claude/sessions
 .claude/shell-snapshots
+.claude/scheduled_tasks.lock
 .claude/settings.local.json
 .claude/.claude.json
 .claude/.caveman-active
