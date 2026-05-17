@@ -168,6 +168,12 @@ _tasks:
             chmod +x scripts/delete_false_positive_rej.py
         fi
   - command: |
+        for script in .claude/skills/address-pr-comments/check-footer.py .claude/skills/address-pr-comments/fetch-pr-comments.py .claude/skills/address-pr-comments/post-reply.py; do
+            if [ -f "$script" ]; then
+                chmod +x "$script"
+            fi
+        done
+  - command: |
         if [ -f ruff.toml ]; then
             echo "Updating ruff target-version from python_version..."
             py_major_minor="$(printf '%s' '{{ python_version }}' | cut -d. -f1,2)"
