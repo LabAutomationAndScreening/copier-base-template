@@ -189,8 +189,12 @@ jobs:
         if: ${{ inputs.push-role-name != 'no-push' && inputs.release-tag != '' }}
         run: |
           RELEASE_TAG="${{ inputs.release-tag }}"
-          if ! [[ "$RELEASE_TAG" =~ ^[a-zA-Z0-9._-]+$ ]]; then
-            echo "Invalid release-tag: '$RELEASE_TAG'. Only alphanumeric characters, hyphens, underscores, and dots are allowed."
+          if ! [[ "$RELEASE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$ ]]; then
+            echo "Invalid release-tag: '$RELEASE_TAG'. Must start with alphanumeric or underscore and contain only alphanumerics, dots, hyphens, underscores (max 128 chars)."
+            exit 1
+          fi
+          if aws ecr describe-images --region ${{ steps.parse_ecr_url.outputs.aws_region }} --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids imageTag="$RELEASE_TAG" > /dev/null 2>&1; then
+            echo "Release tag '$RELEASE_TAG' already exists in ECR repository '${{ inputs.image_name }}'. Release tags are immutable; pick a new version or delete the existing tag if this was unintended."
             exit 1
           fi
           aws ecr batch-get-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids imageTag=${{ steps.calculate-build-context-hash.outputs.build_context_tag }} --query 'images[].imageManifest' --output text > manifest.json
