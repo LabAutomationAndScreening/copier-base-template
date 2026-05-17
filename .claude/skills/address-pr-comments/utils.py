@@ -4,12 +4,16 @@ import sys
 
 
 def owner_repo_from_remote() -> tuple[str, str]:
-    result = subprocess.run(
-        ["git", "remote", "get-url", "origin"],  # noqa: S607 — git is expected on PATH
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],  # noqa: S607 — git is expected on PATH
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError:
+        _ = sys.stderr.write("Cannot read git remote 'origin'. Ensure it exists and points to GitHub.\n")
+        sys.exit(1)
     url = result.stdout.strip()
     match = re.search(r"github\.com[:/]([^/]+)/([^/]+?)(?:\.git)?$", url)
     if not match:
