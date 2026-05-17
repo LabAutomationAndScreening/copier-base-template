@@ -280,7 +280,7 @@ def main() -> None:
         _ = sys.stderr.write(f"Usage: {sys.argv[0]} <pr_number>\n")
         sys.exit(1)
 
-    pr_number_raw = sys.argv[1]
+    pr_number_raw = sys.argv[1].strip().lstrip("#")
     try:
         pr_number = int(pr_number_raw)
     except ValueError:

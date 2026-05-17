@@ -15,7 +15,10 @@ def owner_repo_from_remote() -> tuple[str, str]:
         _ = sys.stderr.write("Cannot read git remote 'origin'. Ensure it exists and points to GitHub.\n")
         sys.exit(1)
     url = result.stdout.strip()
-    match = re.search(r"github\.com[:/]([^/]+)/([^/]+?)(?:\.git)?$", url)
+    match = re.fullmatch(
+        r"(?:https://github\.com/|git@github\.com:)([^/]+)/([^/]+?)(?:\.git)?",
+        url,
+    )
     if not match:
         _ = sys.stderr.write(f"Cannot parse GitHub owner/repo from remote: {url}\n")
         sys.exit(1)
