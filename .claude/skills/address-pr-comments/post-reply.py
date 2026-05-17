@@ -64,7 +64,11 @@ def main() -> None:
             capture_output=True,
             text=True,
             check=True,
+            timeout=30,
         )
+    except subprocess.TimeoutExpired:
+        _ = sys.stderr.write("gh api timed out while posting reply.\n")
+        sys.exit(1)
     except subprocess.CalledProcessError as e:
         _ = sys.stderr.write(f"gh api error: {e.stderr}\n")
         sys.exit(1)

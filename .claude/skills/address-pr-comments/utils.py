@@ -10,13 +10,17 @@ def owner_repo_from_remote() -> tuple[str, str]:
             capture_output=True,
             text=True,
             check=True,
+            timeout=15,
         )
+    except subprocess.TimeoutExpired:
+        _ = sys.stderr.write("Timed out reading git remote 'origin'.\n")
+        sys.exit(1)
     except subprocess.CalledProcessError:
         _ = sys.stderr.write("Cannot read git remote 'origin'. Ensure it exists and points to GitHub.\n")
         sys.exit(1)
     url = result.stdout.strip()
     match = re.fullmatch(
-        r"(?:https://github\.com/|git@github\.com:)([^/]+)/([^/]+?)(?:\.git)?",
+        r"(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)([^/]+)/([^/]+?)(?:\.git)?/?",
         url,
     )
     if not match:

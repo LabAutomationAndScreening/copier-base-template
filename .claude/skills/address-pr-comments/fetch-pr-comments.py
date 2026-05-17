@@ -32,6 +32,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils import owner_repo_from_remote
 
 EXPECTED_ARG_COUNT = 2
+GH_TIMEOUT_SECONDS = 30
 
 # Fetches only what we need to determine resolution: the root comment URL.
 # We intentionally do NOT use databaseId here — it does not match the REST
@@ -70,6 +71,7 @@ def gh_rest(*args: str) -> Any:  # noqa: ANN401 — return type is genuinely unk
         capture_output=True,
         text=True,
         check=True,
+        timeout=GH_TIMEOUT_SECONDS,
     )
     data = json.loads(result.stdout)
     if not paginating:
@@ -90,6 +92,7 @@ def gh_graphql(query: str, variables: dict[str, str | int]) -> Any:  # noqa: ANN
         capture_output=True,
         text=True,
         check=True,
+        timeout=GH_TIMEOUT_SECONDS,
     )
     data = json.loads(result.stdout)
     if errors := data.get("errors"):
@@ -103,6 +106,7 @@ def fetch_current_user_login() -> str:
         capture_output=True,
         text=True,
         check=True,
+        timeout=GH_TIMEOUT_SECONDS,
     )
     return result.stdout.strip()
 
@@ -295,6 +299,9 @@ def main() -> None:
         _ = sys.stdout.write(json.dumps(comments, indent=2) + "\n")
     except subprocess.CalledProcessError as e:
         _ = sys.stderr.write(f"gh api error: {e.stderr}\n")
+        sys.exit(1)
+    except subprocess.TimeoutExpired:
+        _ = sys.stderr.write(f"gh api timed out after {GH_TIMEOUT_SECONDS}s\n")
         sys.exit(1)
     except RuntimeError as e:
         _ = sys.stderr.write(f"{e}\n")
