@@ -59,4 +59,11 @@ export default withNuxt(
       "vitest/prefer-to-be-truthy": "off", // sometimes you want to check explicitly for true and not just truthy
     },
   },
+  {
+    files: ["tests/e2e/**/*.spec.ts"],
+    rules: {
+      "vitest/prefer-expect-assertions": "off", // E2E tests use Playwright's expect (for web-first auto-retrying matchers like toBeVisible), which vitest's `expect.assertions()` counter cannot track.
+      "vitest/prefer-importing-vitest-globals": "off", // E2E tests import `expect` from Playwright, not vitest; autofix would shadow the Playwright import
+    },
+  },
 );
