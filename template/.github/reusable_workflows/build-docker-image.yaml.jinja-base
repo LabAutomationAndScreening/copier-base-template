@@ -50,7 +50,7 @@ on:
         type: number
         description: 'Number of days to retain the uploaded image artifact'
         required: false
-        default: 7
+        default: 1
     outputs:
       artifact-name:
         description: 'The name of the uploaded artifact of the image tarball'
