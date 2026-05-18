@@ -46,6 +46,11 @@ on:
         description: 'Should the image be saved as an artifact?'
         required: false
         default: false
+      artifact-retention-days:
+        type: number
+        description: 'Number of days to retain the uploaded image artifact'
+        required: false
+        default: 7
     outputs:
       artifact-name:
         description: 'The name of the uploaded artifact of the image tarball'
@@ -210,4 +215,5 @@ jobs:
         with:
           name: ${{ steps.calculate-build-context-hash.outputs.image_name_no_slashes }}
           path: ${{ steps.calculate-build-context-hash.outputs.image_name_no_slashes }}.tar
-          if-no-files-found: error{% endraw %}
+          if-no-files-found: error
+          retention-days: ${{ inputs.artifact-retention-days }}{% endraw %}
