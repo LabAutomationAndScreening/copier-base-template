@@ -114,6 +114,16 @@ def fetch_current_user_login() -> str:
 _BOT_LOGINS = frozenset({"coderabbitai[bot]", "copilot-pull-request-reviewer[bot]", "Copilot"})
 
 
+def _login_from_comment(c: dict[str, Any]) -> str:
+    user = c.get("user")
+    if user is None:
+        return "ghost"
+    login = user.get("login")
+    if not isinstance(login, str):
+        return "ghost"
+    return login
+
+
 def is_bot_pr_body_comment(c: dict[str, Any]) -> bool:
     if "user" not in c or c["user"] is None:
         return False
@@ -161,7 +171,7 @@ def _collect_thread_roots(pulls_raw: list[dict[str, Any]]) -> dict[int, dict[str
             roots[c["id"]] = {
                 "id": c["id"],
                 "type": "pulls/comments",
-                "author": c["user"]["login"],
+                "author": _login_from_comment(c),
                 "body": c["body"],
                 "created_at": c["created_at"],
                 "path": c.get("path"),
@@ -202,7 +212,7 @@ def _attach_replies(pulls_raw: list[dict[str, Any]], roots: dict[int, dict[str, 
         roots[root_id]["replies"].append(
             {
                 "id": c["id"],
-                "author": c["user"]["login"],
+                "author": _login_from_comment(c),
                 "body": c["body"],
                 "created_at": c["created_at"],
             }
@@ -237,13 +247,13 @@ def _build_flat_issues(issues_raw: list[dict[str, Any]], current_user: str) -> l
     for c in issues_raw:
         if is_bot_pr_body_comment(c):
             continue
-        if c["user"]["login"] == current_user:
+        if _login_from_comment(c) == current_user:
             continue
         flat.append(
             {
                 "id": c["id"],
                 "type": "issues/comments",
-                "author": c["user"]["login"],
+                "author": _login_from_comment(c),
                 "body": c["body"],
                 "created_at": c["created_at"],
                 "path": None,

@@ -27,7 +27,8 @@ def main() -> None:
         _ = sys.stderr.write(f"File error for {path}: {e}\n")
         sys.exit(1)
 
-    if FOOTER in content:
+    non_empty_lines = [line.strip() for line in content.splitlines() if line.strip()]
+    if non_empty_lines and non_empty_lines[-1] == FOOTER:
         _ = sys.stdout.write("present\n")
         return
 
