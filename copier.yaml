@@ -50,16 +50,16 @@ template_uses_pulumi:
     help: Is this a template that will use Python Pulumi within it?
     default: no
 
-template_uses_javascript:
+template_uses_typescript:
     type: bool
-    help: Is this a template that will use Javascript within it?
+    help: Is this a template that will use Typescript within it?
     default: no
 
 template_uses_vuejs:
     type: bool
     help: Is this a template that will use VueJS within it?
     default: no
-    when: "{{ template_uses_javascript }}"
+    when: "{{ template_uses_typescript }}"
 
 template_might_want_to_install_aws_ssm_port_forwarding_plugin:
     type: bool
@@ -94,6 +94,12 @@ _tasks:
         if [ -f scripts/delete_false_positive_rej.py ]; then
             chmod +x scripts/delete_false_positive_rej.py
         fi
+  - command: |
+        for script in .claude/skills/address-pr-comments/check-footer.py .claude/skills/address-pr-comments/fetch-pr-comments.py .claude/skills/address-pr-comments/post-reply.py; do
+            if [ -f "$script" ]; then
+                chmod +x "$script"
+            fi
+        done
   - command: |
         if [ -f ruff.toml ]; then
             echo "Updating ruff target-version from python_version..."

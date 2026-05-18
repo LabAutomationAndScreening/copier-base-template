@@ -42,7 +42,7 @@ use_windows_in_ci:
     type: bool
     help: Should CI in the instantiated template also use Windows runners?
     default: no
-{% endraw %}{% if template_uses_javascript %}{% raw %}
+{% endraw %}{% if template_uses_typescript %}{% raw %}
 node_version:
     type: str
     help: What version of NodeJS is used for development?
@@ -167,6 +167,12 @@ _tasks:
         if [ -f scripts/delete_false_positive_rej.py ]; then
             chmod +x scripts/delete_false_positive_rej.py
         fi
+  - command: |
+        for script in .claude/skills/address-pr-comments/check-footer.py .claude/skills/address-pr-comments/fetch-pr-comments.py .claude/skills/address-pr-comments/post-reply.py; do
+            if [ -f "$script" ]; then
+                chmod +x "$script"
+            fi
+        done
   - command: |
         if [ -f ruff.toml ]; then
             echo "Updating ruff target-version from python_version..."

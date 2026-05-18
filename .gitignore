@@ -1,3 +1,6 @@
+# Scratch / temp files
+tmp/
+
 # IDE
 .vscode/
 .idea/
@@ -25,6 +28,7 @@
 .claude/session-env
 .claude/sessions
 .claude/shell-snapshots
+.claude/scheduled_tasks.lock
 .claude/settings.local.json
 .claude/.claude.json
 .claude/.caveman-active
@@ -85,6 +89,7 @@ node_modules/
 .output
 .data
 .nuxt
+.nuxtrc
 .nitro
 .cache
 # Nuxt generate creates a symlink to the dist folder, which can't have trailing slash

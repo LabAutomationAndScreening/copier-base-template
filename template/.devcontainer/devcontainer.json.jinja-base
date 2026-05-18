@@ -23,7 +23,7 @@
       "version": "{% endraw %}{{ python_version }}{% raw %}",
       "installTools": false,
       "optimize": true
-    }{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_javascript is defined and template_uses_javascript is sameas(true) %}{% raw %},
+    }{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_typescript is defined and template_uses_typescript is sameas(true) %}{% raw %},
     "ghcr.io/devcontainers/features/node:2.0.0": {
       // https://github.com/devcontainers/features/blob/main/src/node/devcontainer-feature.json
       "version": "{% endraw %}{{ node_version }}{% raw %}",
@@ -45,7 +45,7 @@
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.388.0",
         "github.copilot-chat@0.44.2",{% endraw %}{% if install_claude_cli %}{% raw %}
-        "anthropic.claude-code@2.1.141",{% endraw %}{% endif %}{% raw %}
+        "anthropic.claude-code@2.1.143",{% endraw %}{% endif %}{% raw %}
 
         // Python
         "ms-python.python@2026.5.2026032701",
@@ -56,7 +56,7 @@
         // VueJS
         "vue.volar@3.2.5",
         "vitest.explorer@1.36.0",
-{% endraw %}{% endif %}{% raw %}{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_javascript is defined and template_uses_javascript is sameas(true) %}{% raw %}
+{% endraw %}{% endif %}{% raw %}{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_typescript is defined and template_uses_typescript is sameas(true) %}{% raw %}
         // All javascript
         "dbaeumer.vscode-eslint@3.0.24",
 {% endraw %}{% endif %}{% raw %}

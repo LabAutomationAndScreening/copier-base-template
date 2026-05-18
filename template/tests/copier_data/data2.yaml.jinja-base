@@ -11,7 +11,7 @@ use_windows_in_ci: true
 {% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}install_aws_ssm_port_forwarding_plugin: false{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_might_want_to_use_vcrpy %}{% raw %}configure_vcrpy: false{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_might_want_to_use_python_asyncio %}{% raw %}configure_python_asyncio: false{% endraw %}{% endif %}{% raw %}
-{% endraw %}{% if template_uses_javascript %}{% raw %}
+{% endraw %}{% if template_uses_typescript %}{% raw %}
 node_version: {% endraw %}{{ default_node_version }}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_python %}{% raw %}
 python_package_registry: AWS CodeArtifact
