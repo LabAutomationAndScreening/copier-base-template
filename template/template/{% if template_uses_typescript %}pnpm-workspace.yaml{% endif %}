@@ -1,5 +1,11 @@
 # packages:
-#   - 'frontend'
+#  - 'frontend'
+
+# @nuxt/ui 4.7.1 still pins @nuxtjs/color-mode ^3.5.2 as a direct dependency,
+# so without this override pnpm installs a nested v3 alongside our top-level v4.
+# Remove once https://github.com/nuxt/ui/pull/6050 merges and we bump @nuxt/ui.
+overrides:
+  '@nuxtjs/color-mode': ^4.0.0
 
 allowBuilds:
   # managed by upstream template
