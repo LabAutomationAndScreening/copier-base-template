@@ -157,7 +157,7 @@ For each comment:
 
 3. **Handle each action:**
    - **Code changes**: Queue the comment for Phase 2. Move to next comment. In Phase 2, the code change is implemented first, then the reply is drafted (so it can include the resulting commit link) — do not draft the reply now.
-   - **Reply only (no code change)**: Draft a suggested reply. Then ask using AskUserQuestion: "Post now or edit first?" Options:
+   - **Reply only (no code change)**: Draft a suggested reply — **do NOT include the AI attribution footer in the draft text; `check-footer.py` appends it**. Then ask using AskUserQuestion: "Post now or edit first?" Options:
      - **Post now**: write the drafted reply to `<reply_file>`, run footer check, then post it.
      - **Edit first**: use the `Write` tool to write the draft to `<reply_file>`, then tell the user the absolute path to the file (per [Conventions](#conventions)) so they can Ctrl+click it open. Ask the user to confirm when done editing. Once confirmed, run the footer check script to ensure the AI attribution line is present (it appends the line if missing, prints "present" or "added"):
        ```bash
@@ -205,7 +205,7 @@ Within a single Phase 2 invocation, the order below is strict. The invariants ap
    - Follow the `/create-issues` process: create a bd issue with a proper title, description (why this change, context from the PR comment), design (technical approach), and Given-When-Then acceptance criteria. Export after creating.
    - Mark the issue in progress
    - If the change involves code: execute the TDD red/green/refactor cycle (`/red` → `/green` → `/refactor`) against the acceptance criteria. If the change is non-code (docs, markdown, config, scripts, etc.): make the change directly — TDD does not apply, but the remaining steps are identical.
-   - **Finalize the reply body with the user — before committing.** Draft the reply text (everything except the commit link), write it to `<reply_file>`, tell the user the absolute path (per [Conventions](#conventions)), and go through the approve/edit loop with the user until they approve. Do not proceed until the user explicitly confirms the text. Leave a clear `[COMMIT LINK]` placeholder where the link will go.
+   - **Finalize the reply body with the user — before committing.** Draft the reply text (everything except the commit link) — **do NOT include the AI attribution footer; `check-footer.py` appends it**. Write to `<reply_file>`, tell the user the absolute path (per [Conventions](#conventions)), and go through the approve/edit loop with the user until they approve. Do not proceed until the user explicitly confirms the text. Leave a clear `[COMMIT LINK]` placeholder where the link will go.
 
      Use AskUserQuestion with this wording (do NOT say "Post now" — the reply is queued for posting after the push, not posted immediately):
      - Question: `Reply for comment <n> — approve text or edit first?`
@@ -260,6 +260,7 @@ Summarise what was done:
 - Post replies the user hasn't approved
 - Skip comments without asking
 - Leave uncommitted changes
+- Include the AI attribution footer in generated reply text — `check-footer.py` is solely responsible for it
 
 ## Handling Common Scenarios
 
