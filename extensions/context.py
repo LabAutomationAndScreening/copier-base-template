@@ -60,7 +60,7 @@ class ContextUpdater(ContextHook):
         context["python_faker_version"] = ">=40.18.0"
         #######
         context["default_node_version"] = "24.11.1"
-        context["nuxt_ui_version"] = "^4.6.0"
+        context["nuxt_ui_version"] = "^4.7.1"
         context["nuxt_version"] = "^4.4.5"
         context["nuxt_icon_version"] = "^2.2.1"
         context["typescript_version"] = "^5.9.3"
