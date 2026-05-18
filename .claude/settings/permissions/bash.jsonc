@@ -84,6 +84,7 @@
       "Bash(rg *)",
       // Research
       "Bash(gh issue list *)",
+      "Bash(gh search *)",
       "Bash(gh pr view *)",
       "Bash(gh pr diff *)",
     ],
