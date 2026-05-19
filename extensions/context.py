@@ -48,7 +48,7 @@ class ContextUpdater(ContextHook):
         context["lab_auto_pulumi_version"] = ">=0.2.0"
         context["ariadne_codegen_version"] = ">=0.18.0"
         context["pytest_mock_version"] = ">=3.15.1"
-        context["uuid_utils_version"] = ">=0.15.0"
+        context["uuid_utils_version"] = ">=0.16.0"
         context["syrupy_version"] = ">=5.2.0"
         context["structlog_version"] = ">=25.5.0"
         context["httpx_version"] = ">=0.28.1"
