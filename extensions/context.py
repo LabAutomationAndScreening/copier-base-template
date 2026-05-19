@@ -19,7 +19,7 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "==9.15.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
-        context["pnpm_version"] = "11.1.2"
+        context["pnpm_version"] = "11.1.3"
         context["npm_version"] = "11.13.0"
         context["nvm_version"] = "0.40.4"
         # These are duplicated in the pyproject.toml of this repository
@@ -66,7 +66,7 @@ class ContextUpdater(ContextHook):
         context["typescript_version"] = "^5.9.3"
         context["playwright_version"] = "^1.60.0"
         context["vue_version"] = "^3.5.30"
-        context["vue_tsc_version"] = "^3.2.4"
+        context["vue_tsc_version"] = "^3.3.0"
         context["vue_devtools_api_version"] = "^8.1.0"
         context["vue_router_version"] = "^5.0.3"
         context["dotenv_cli_version"] = "^11.0.0"
