@@ -44,7 +44,7 @@ class ContextUpdater(ContextHook):
         context["strawberry_graphql_version"] = ">=0.298.0"
         context["fastapi_version"] = ">=0.136.1"
         context["fastapi_offline_version"] = ">=1.7.4"
-        context["uvicorn_version"] = ">=0.46.0"
+        context["uvicorn_version"] = ">=0.47.0"
         context["lab_auto_pulumi_version"] = ">=0.2.0"
         context["ariadne_codegen_version"] = ">=0.18.0"
         context["pytest_mock_version"] = ">=3.15.1"
