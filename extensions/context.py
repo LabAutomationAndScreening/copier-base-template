@@ -127,7 +127,7 @@ class ContextUpdater(ContextHook):
         #######
         context["debian_release_name"] = "trixie"
         context["alpine_image_version"] = "3.23"
-        context["nginx_image_version"] = "1.29.4"
+        context["nginx_image_version"] = "1.30.1"
         #######
         context["kiota_cli_version"] = "1.31.1"
         # These also in the tests/data.yml files in this repository and in copier.yaml
