@@ -69,6 +69,7 @@ This project is a Copier template used to generate other copier templates. It is
 ## Tooling
 
 - ❌ Never chain commands (`&&`, `||`, `;`, `&`) — breaks permission allow-list matcher. ✅ One command per tool call. `cd` as separate prior call. Pipes (`|`) OK.
+- `cd` into a subdirectory is auto-approved; navigating up (`cd ..`) or to an absolute path (`cd /some/path`) requires a user permission prompt. Minimize such navigation: run `pre-commit` from whichever subdirectory you're already in (it walks up to find `.pre-commit-config.yaml`).
 - ❌ Never use `python3` or `python` directly. ✅ Always use `uv run python` for Python commands.
 - ❌ Never use `python3`/`python` for one-off data tasks. ✅ Use `jq` for JSON parsing, standard shell builtins for string manipulation. Only reach for `uv run python` when no dedicated tool covers the need.
 - ❌ Never use `uv run python -c "import ...; print(...)"` or `inspect` to introspect Python source. ✅ Read source files directly or grep for symbols — the code is on disk and can be read without running it.
