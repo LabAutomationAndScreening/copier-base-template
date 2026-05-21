@@ -177,7 +177,9 @@ _tasks:
                 chmod +x "$script"
             fi
         done{% endraw %}{% if template_uses_typescript %}{% raw %}
-  - command: python3 '{{ _copier_conf.src_path }}/src/copier_tasks/ensure_pnpm_minimum_release_age_exclude.py' --patterns '{{ pnpm_minimum_release_age_exclude }}'
+  - command: |
+    export PNPM_PATTERNS='{{ pnpm_minimum_release_age_exclude }}'
+    python3 '{{ _copier_conf.src_path }}/src/copier_tasks/ensure_pnpm_minimum_release_age_exclude.py' --patterns "$PNPM_PATTERNS"
     when: "{{ pnpm_minimum_release_age_exclude }}"{% endraw %}{% endif %}{% raw %}
   - command: |
         if [ -f ruff.toml ]; then
