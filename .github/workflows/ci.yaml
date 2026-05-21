@@ -140,6 +140,14 @@ jobs:
       - name: Instantiate copier template
         run: |
           copier copy --trust --vcs-ref ${{ github.sha }} ${{ matrix.copier }} --data python_version=${{ matrix.python-version }} . ./new-template
+
+      - name: Confirm instantiated template has copier answers file
+        run: |
+          if [ ! -f "./new-template/.copier-answers.yml" ]; then
+            echo "Copier answers file not found in instantiated template location"
+            exit 1
+          fi
+
       - name: Delete files from initial repo
         run: |
           # Delete everything except the folder containing the instantiated template
