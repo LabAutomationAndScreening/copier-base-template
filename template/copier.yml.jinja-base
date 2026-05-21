@@ -3,7 +3,6 @@
 
 
 
-
 # Questions managed by upstream template
 repo_name:
     type: str
@@ -143,6 +142,11 @@ aws_region_for_stack:
     default: "{{ aws_org_home_region }}"
 
 {% endraw %}{% endif %}{% raw %}
+
+copier_answers_directory:
+    type: str
+    help: What directory within the instantiated template contains the .copier-answers.yml file? Use '.' for the root, or a subdirectory path (e.g. 'frontend').
+    default: "."
 
 # Questions specific to this template
 
