@@ -127,6 +127,14 @@ jobs:
       - name: Instantiate copier template
         run: |
           copier copy --trust --vcs-ref ${{ github.sha }} ${{ matrix.copier }} --data python_version=${{ matrix.python-version }} . ./new-template
+
+      - name: Confirm instantiated template has copier answers file
+        run: |
+          if [ ! -f "./new-template/{% endraw %}{{ copier_answers_directory }}{% raw %}/.copier-answers.yml" ]; then
+            echo "Copier answers file not found in instantiated template location"
+            exit 1
+          fi
+
       - name: Delete files from initial repo
         run: |
           # Delete everything except the folder containing the instantiated template
@@ -137,6 +145,7 @@ jobs:
           rm -rf .devcontainer # apparently this folder doesn't get removed with the previous command for some reason
           rm -rf .claude # apparently this folder doesn't get removed with the previous command for some reason
           ls -la
+
       - name: Move the instantiated template into the repo root
         run: |
           # Move all the files from the instantiated template out of the subfolder

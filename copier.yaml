@@ -83,6 +83,11 @@ template_publishes_releases:
     help: Does this template publish versioned releases (e.g. to PyPI, npm, or a container registry)?
     default: no
 
+copier_answers_directory:
+    type: str
+    help: What directory within the instantiated template contains the .copier-answers.yml file? Use '.' for the root, or a subdirectory path (e.g. 'frontend').
+    default: "."
+
 _tasks:
   - command: |
         python3 '{{ _copier_conf.src_path }}/src/copier_tasks/remove_precommit_hooks.py' \
