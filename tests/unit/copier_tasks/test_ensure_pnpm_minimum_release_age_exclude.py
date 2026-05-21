@@ -10,7 +10,7 @@ _SCRIPT_PATH = _PROJECT_ROOT / "src" / "copier_tasks" / "ensure_pnpm_minimum_rel
 
 
 def _pkg() -> str:
-    return f"{uuid.uuid4().hex[:8]}"
+    return uuid.uuid4().hex[:8]
 
 
 def _scoped_pkg() -> str:
@@ -42,6 +42,48 @@ class TestEnsurePnpmMinimumReleaseAgeExcludeViaSubprocess:
         assert result.returncode == 0
         assert "not found" in result.stdout
 
+    def test_When_section_present_with_missing_pattern__Then_inserts_missing_entry(self, tmp_path: Path) -> None:
+        expected_num_excludes = 2
+        existing = _pkg()
+        new = _pkg()
+        workspace = tmp_path / "pnpm-workspace.yaml"
+        _ = workspace.write_text(f'minimumReleaseAgeExclude:\n  - "{existing}"\n', encoding="utf-8")
+
+        result = self._run_script(patterns=f"{existing}, {new}", target_file=workspace)
+
+        raw = workspace.read_text(encoding="utf-8")
+        parsed = yaml.safe_load(raw)
+        assert result.returncode == 0
+        assert len(parsed["minimumReleaseAgeExclude"]) == expected_num_excludes
+        assert existing in parsed["minimumReleaseAgeExclude"]
+        assert new in parsed["minimumReleaseAgeExclude"]
+        assert f'  - "{new}"' in raw
+
+    def test_When_all_patterns_already_present__Then_file_unchanged_and_no_output(self, tmp_path: Path) -> None:
+        pkg_a = _pkg()
+        scoped = _scoped_pkg()
+        workspace = tmp_path / "pnpm-workspace.yaml"
+        original = f'minimumReleaseAgeExclude:\n  - "{pkg_a}"\n  - "{scoped}"\n'
+        _ = workspace.write_text(original, encoding="utf-8")
+
+        result = self._run_script(patterns=f"{pkg_a}, {scoped}", target_file=workspace)
+
+        assert result.returncode == 0
+        assert workspace.read_text(encoding="utf-8") == original
+        assert result.stdout == ""
+
+    def test_When_pattern_present_unquoted__Then_no_duplicate_added(self, tmp_path: Path) -> None:
+        pkg = _pkg()
+        workspace = tmp_path / "pnpm-workspace.yaml"
+        original = f"minimumReleaseAgeExclude:\n  - {pkg}\n"
+        _ = workspace.write_text(original, encoding="utf-8")
+
+        result = self._run_script(patterns=pkg, target_file=workspace)
+
+        assert result.returncode == 0
+        assert workspace.read_text(encoding="utf-8") == original
+        assert result.stdout == ""
+
     def test_When_section_absent__Then_appends_block_with_double_quoted_entries(self, tmp_path: Path) -> None:
         scoped = _scoped_pkg()
         plain = _pkg()
@@ -50,7 +92,10 @@ class TestEnsurePnpmMinimumReleaseAgeExcludeViaSubprocess:
 
         result = self._run_script(patterns=f"{scoped}, {plain}", target_file=workspace)
 
-        parsed = yaml.safe_load(workspace.read_text(encoding="utf-8"))
+        raw = workspace.read_text(encoding="utf-8")
+        parsed = yaml.safe_load(raw)
         assert result.returncode == 0
         assert parsed["minimumReleaseAgeExclude"] == [scoped, plain]
         assert parsed["packages"] == ["frontend"]
+        assert f'  - "{scoped}"' in raw
+        assert f'  - "{plain}"' in raw
