@@ -8,7 +8,7 @@ def _parse_patterns(raw: str) -> list[str]:
 
 
 def _pattern_present(lines: list[str], pattern: str) -> bool:
-    return any(re.match(rf"^\s+-\s+{re.escape(pattern)}\s*$", line) for line in lines)
+    return any(re.match(rf'^\s+-\s+"?{re.escape(pattern)}"?\s*$', line) for line in lines)
 
 
 def ensure_minimum_release_age_exclude(*, workspace_path: Path, patterns: list[str]) -> None:
@@ -21,7 +21,7 @@ def ensure_minimum_release_age_exclude(*, workspace_path: Path, patterns: list[s
     if not re.search(r"^minimumReleaseAgeExclude:", text, re.MULTILINE):
         addition = "\nminimumReleaseAgeExclude:\n"
         for p in patterns:
-            addition += f"  - {p}\n"
+            addition += f'  - "{p}"\n'
         _ = workspace_path.write_text(text.rstrip("\n") + "\n" + addition, encoding="utf-8")
         print(f"Added minimumReleaseAgeExclude section with {len(patterns)} pattern(s).")  # noqa: T201 -- copier task output must reach the user
         return
@@ -35,7 +35,7 @@ def ensure_minimum_release_age_exclude(*, workspace_path: Path, patterns: list[s
     for i, line in enumerate(lines):
         if re.match(r"^minimumReleaseAgeExclude:", line):
             for j, pattern in enumerate(missing):
-                lines.insert(i + 1 + j, f"  - {pattern}\n")
+                lines.insert(i + 1 + j, f'  - "{pattern}"\n')
             break
 
     _ = workspace_path.write_text("".join(lines), encoding="utf-8")
