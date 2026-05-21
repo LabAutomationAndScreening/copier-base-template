@@ -177,26 +177,7 @@ _tasks:
                 chmod +x "$script"
             fi
         done{% endraw %}{% if template_uses_typescript %}{% raw %}
-  - command: |
-        if [ -f pnpm-workspace.yaml ]; then
-            IFS=',' read -r -a _mrae_parts <<< '{{ pnpm_minimum_release_age_exclude }}'
-            if ! grep -q '^minimumReleaseAgeExclude:' pnpm-workspace.yaml; then
-                printf '\nminimumReleaseAgeExclude:\n' >> pnpm-workspace.yaml
-                for _mrae_part in "${_mrae_parts[@]}"; do
-                    _mrae_pat="${_mrae_part#"${_mrae_part%%[![:space:]]*}"}"
-                    _mrae_pat="${_mrae_pat%"${_mrae_pat##*[![:space:]]}"}"
-                    [ -n "$_mrae_pat" ] && printf '  - %s\n' "$_mrae_pat" >> pnpm-workspace.yaml
-                done
-            else
-                for _mrae_part in "${_mrae_parts[@]}"; do
-                    _mrae_pat="${_mrae_part#"${_mrae_part%%[![:space:]]*}"}"
-                    _mrae_pat="${_mrae_pat%"${_mrae_pat##*[![:space:]]}"}"
-                    if [ -n "$_mrae_pat" ] && ! grep -qF "  - ${_mrae_pat}" pnpm-workspace.yaml; then
-                        sed -i "/^minimumReleaseAgeExclude:/a\\  - ${_mrae_pat}" pnpm-workspace.yaml
-                    fi
-                done
-            fi
-        fi
+  - command: python3 '{{ _copier_conf.src_path }}/src/copier_tasks/ensure_pnpm_minimum_release_age_exclude.py' --patterns '{{ pnpm_minimum_release_age_exclude }}'
     when: "{{ pnpm_minimum_release_age_exclude }}"{% endraw %}{% endif %}{% raw %}
   - command: |
         if [ -f ruff.toml ]; then
