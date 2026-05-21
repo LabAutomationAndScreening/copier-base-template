@@ -1,8 +1,9 @@
 import re
 import shutil
 import subprocess
-import sys
 from pathlib import Path
+
+from .helpers import run_copier_task
 
 _EXIT_CODE_INVALID_REGEX = 2
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -11,19 +12,7 @@ _SCRIPT_PATH = _PROJECT_ROOT / "src" / "copier_tasks" / "remove_precommit_hooks.
 
 class TestRemovePrecommitHooksViaSubprocess:
     def _run_script(self, *, hook_id_regex: str, target_file: Path) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(  # noqa: S603 # this is our own script
-            [
-                sys.executable,
-                str(_SCRIPT_PATH),
-                "--hook-id-regex",
-                hook_id_regex,
-                "--target-file",
-                str(target_file),
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        return run_copier_task(_SCRIPT_PATH, "--hook-id-regex", hook_id_regex, "--target-file", str(target_file))
 
     def test_When_run_with_matching_hook__Then_hook_removed(self, tmp_path: Path) -> None:
         source_config = _PROJECT_ROOT / ".pre-commit-config.yaml"

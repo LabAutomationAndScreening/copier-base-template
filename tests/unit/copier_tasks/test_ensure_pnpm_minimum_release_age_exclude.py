@@ -1,9 +1,10 @@
 import subprocess
-import sys
 import uuid
 from pathlib import Path
 
 import yaml
+
+from .helpers import run_copier_task
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _SCRIPT_PATH = _PROJECT_ROOT / "src" / "copier_tasks" / "ensure_pnpm_minimum_release_age_exclude.py"
@@ -19,19 +20,7 @@ def _scoped_pkg() -> str:
 
 class TestEnsurePnpmMinimumReleaseAgeExcludeViaSubprocess:
     def _run_script(self, *, patterns: str, target_file: Path) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(  # noqa: S603 -- this is our own script
-            [
-                sys.executable,
-                str(_SCRIPT_PATH),
-                "--patterns",
-                patterns,
-                "--target-file",
-                str(target_file),
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        return run_copier_task(_SCRIPT_PATH, "--patterns", patterns, "--target-file", str(target_file))
 
     def test_When_target_file_does_not_exist__Then_exits_0_and_reports_skipping(self, tmp_path: Path) -> None:
         pkg = _pkg()
