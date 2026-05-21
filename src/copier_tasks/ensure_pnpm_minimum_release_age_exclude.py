@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def _parse_patterns(raw: str) -> list[str]:
-    return [p.strip() for p in raw.split(",") if p.strip()]
+    return [p.strip().strip('"').strip("'") for p in raw.split(",") if p.strip()]
 
 
 def _pattern_present(lines: list[str], pattern: str) -> bool:
