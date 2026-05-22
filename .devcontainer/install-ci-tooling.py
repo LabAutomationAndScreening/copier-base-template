@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 UV_VERSION = "0.11.14"
+PNPM_VERSION = "11.2.2"
 COPIER_VERSION = "9.15.1"
 COPIER_TEMPLATE_EXTENSIONS_VERSION = "0.3.3"
 PRE_COMMIT_VERSION = "4.5.1"
@@ -35,6 +36,16 @@ def main():
         pwsh = shutil.which("pwsh") or shutil.which("powershell")
         if not pwsh:
             raise FileNotFoundError("Neither 'pwsh' nor 'powershell' found on PATH")
+
+    _ = subprocess.run(  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
+        [  # noqa: S607 # npm should always be on path
+            "npm -v",
+            f"npm install -g pnpm@{PNPM_VERSION}",
+            "pnpm -v",
+        ],
+        shell=True,
+        check=True,
+    )
     if not args.no_python:
         if is_windows:
             uv_env.update({"PATH": rf"{GITHUB_WINDOWS_RUNNER_BIN_PATH};{uv_env['PATH']}"})

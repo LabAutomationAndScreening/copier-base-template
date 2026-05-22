@@ -51,8 +51,8 @@ class TestEnsurePnpmMinimumReleaseAgeExcludeViaSubprocess:
 
         result = self._run_script(patterns=new, target_dir=tmp_path)
 
-        parsed = yaml.safe_load(workspace.read_text(encoding="utf-8"))
         assert result.returncode == 0
+        parsed = yaml.safe_load(workspace.read_text(encoding="utf-8"))
         assert parsed["minimumReleaseAgeExclude"] == f"{existing},{new}"
 
     def test_When_patterns_provided__Then_sets_value_in_workspace(self, tmp_path: Path) -> None:
@@ -63,6 +63,6 @@ class TestEnsurePnpmMinimumReleaseAgeExcludeViaSubprocess:
 
         result = self._run_script(patterns=f"{scoped}, {plain}", target_dir=tmp_path)
 
-        parsed = yaml.safe_load(workspace.read_text(encoding="utf-8"))
         assert result.returncode == 0
+        parsed = yaml.safe_load(workspace.read_text(encoding="utf-8"))
         assert parsed["minimumReleaseAgeExclude"] == f"{scoped},{plain}"

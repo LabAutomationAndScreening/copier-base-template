@@ -13,7 +13,9 @@ def _parse_patterns(raw: str) -> list[str]:
 
 def ensure_minimum_release_age_exclude(*, workspace_dir: Path, patterns: list[str]) -> None:
     if shutil.which("pnpm") is None:
-        print("pnpm not found on PATH; cannot update minimumReleaseAgeExclude.")  # noqa: T201 -- copier task output must reach the user
+        print(  # noqa: T201 -- copier task output must reach the user
+            "pnpm not found on PATH; cannot update minimumReleaseAgeExclude. Install pnpm and try again: npm install -g pnpm"
+        )
         raise SystemExit(_EXIT_CODE_PNPM_NOT_FOUND)
 
     if not (workspace_dir / _WORKSPACE_FILENAME).exists():
