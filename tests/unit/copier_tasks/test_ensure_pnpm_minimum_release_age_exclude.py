@@ -19,72 +19,50 @@ def _scoped_pkg() -> str:
 
 
 class TestEnsurePnpmMinimumReleaseAgeExcludeViaSubprocess:
-    def _run_script(self, *, patterns: str, target_file: Path) -> subprocess.CompletedProcess[str]:
-        return run_copier_task(_SCRIPT_PATH, "--patterns", patterns, "--target-file", str(target_file))
+    def _run_script(
+        self,
+        *,
+        patterns: str,
+        target_dir: Path,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        return run_copier_task(_SCRIPT_PATH, "--patterns", patterns, "--target-dir", str(target_dir), env=env)
 
-    def test_When_target_file_does_not_exist__Then_exits_0_and_reports_skipping(self, tmp_path: Path) -> None:
-        pkg = _pkg()
-        nonexistent = tmp_path / "pnpm-workspace.yaml"
+    def test_When_pnpm_not_on_path__Then_exits_nonzero_with_error(self, tmp_path: Path) -> None:
+        _ = (tmp_path / "pnpm-workspace.yaml").write_text("packages:\n  - frontend\n", encoding="utf-8")
 
-        result = self._run_script(patterns=pkg, target_file=nonexistent)
+        result = self._run_script(patterns=_pkg(), target_dir=tmp_path, env={"PATH": ""})
+
+        assert result.returncode != 0
+        assert "pnpm" in result.stdout
+
+    def test_When_target_dir_has_no_workspace_file__Then_exits_0_and_reports_skipping(self, tmp_path: Path) -> None:
+        result = self._run_script(patterns=_pkg(), target_dir=tmp_path)
 
         assert result.returncode == 0
         assert "not found" in result.stdout
+        assert not (tmp_path / "pnpm-workspace.yaml").exists()
 
-    def test_When_section_present_with_missing_pattern__Then_inserts_missing_entry(self, tmp_path: Path) -> None:
-        expected_num_excludes = 2
+    def test_When_workspace_has_existing_patterns__Then_new_patterns_appended(self, tmp_path: Path) -> None:
         existing = _pkg()
         new = _pkg()
         workspace = tmp_path / "pnpm-workspace.yaml"
-        _ = workspace.write_text(f'minimumReleaseAgeExclude:\n  - "{existing}"\n', encoding="utf-8")
+        _ = workspace.write_text(f"minimumReleaseAgeExclude: {existing}\n", encoding="utf-8")
 
-        result = self._run_script(patterns=f"{existing}, {new}", target_file=workspace)
+        result = self._run_script(patterns=new, target_dir=tmp_path)
 
-        raw = workspace.read_text(encoding="utf-8")
-        parsed = yaml.safe_load(raw)
+        parsed = yaml.safe_load(workspace.read_text(encoding="utf-8"))
         assert result.returncode == 0
-        assert len(parsed["minimumReleaseAgeExclude"]) == expected_num_excludes
-        assert existing in parsed["minimumReleaseAgeExclude"]
-        assert new in parsed["minimumReleaseAgeExclude"]
-        assert f'  - "{new}"' in raw
+        assert parsed["minimumReleaseAgeExclude"] == f"{existing},{new}"
 
-    def test_When_all_patterns_already_present__Then_file_unchanged_and_no_output(self, tmp_path: Path) -> None:
-        pkg_a = _pkg()
-        scoped = _scoped_pkg()
-        workspace = tmp_path / "pnpm-workspace.yaml"
-        original = f'minimumReleaseAgeExclude:\n  - "{pkg_a}"\n  - "{scoped}"\n'
-        _ = workspace.write_text(original, encoding="utf-8")
-
-        result = self._run_script(patterns=f"{pkg_a}, {scoped}", target_file=workspace)
-
-        assert result.returncode == 0
-        assert workspace.read_text(encoding="utf-8") == original
-        assert result.stdout == ""
-
-    def test_When_pattern_present_unquoted__Then_no_duplicate_added(self, tmp_path: Path) -> None:
-        pkg = _pkg()
-        workspace = tmp_path / "pnpm-workspace.yaml"
-        original = f"minimumReleaseAgeExclude:\n  - {pkg}\n"
-        _ = workspace.write_text(original, encoding="utf-8")
-
-        result = self._run_script(patterns=pkg, target_file=workspace)
-
-        assert result.returncode == 0
-        assert workspace.read_text(encoding="utf-8") == original
-        assert result.stdout == ""
-
-    def test_When_section_absent__Then_appends_block_with_double_quoted_entries(self, tmp_path: Path) -> None:
+    def test_When_patterns_provided__Then_sets_value_in_workspace(self, tmp_path: Path) -> None:
         scoped = _scoped_pkg()
         plain = _pkg()
         workspace = tmp_path / "pnpm-workspace.yaml"
         _ = workspace.write_text("packages:\n  - frontend\n", encoding="utf-8")
 
-        result = self._run_script(patterns=f"{scoped}, {plain}", target_file=workspace)
+        result = self._run_script(patterns=f"{scoped}, {plain}", target_dir=tmp_path)
 
-        raw = workspace.read_text(encoding="utf-8")
-        parsed = yaml.safe_load(raw)
+        parsed = yaml.safe_load(workspace.read_text(encoding="utf-8"))
         assert result.returncode == 0
-        assert parsed["minimumReleaseAgeExclude"] == [scoped, plain]
-        assert parsed["packages"] == ["frontend"]
-        assert f'  - "{scoped}"' in raw
-        assert f'  - "{plain}"' in raw
+        assert parsed["minimumReleaseAgeExclude"] == f"{scoped},{plain}"

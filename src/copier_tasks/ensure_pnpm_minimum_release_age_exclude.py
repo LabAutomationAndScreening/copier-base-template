@@ -1,55 +1,53 @@
 import argparse
-import re
+import shutil
+import subprocess
 from pathlib import Path
+
+_EXIT_CODE_PNPM_NOT_FOUND = 1
+_WORKSPACE_FILENAME = "pnpm-workspace.yaml"
 
 
 def _parse_patterns(raw: str) -> list[str]:
     return [p.strip().strip('"').strip("'") for p in raw.split(",") if p.strip()]
 
 
-def _pattern_present(lines: list[str], pattern: str) -> bool:
-    return any(re.match(rf'^\s+-\s+"?{re.escape(pattern)}"?\s*$', line) for line in lines)
+def ensure_minimum_release_age_exclude(*, workspace_dir: Path, patterns: list[str]) -> None:
+    if shutil.which("pnpm") is None:
+        print("pnpm not found on PATH; cannot update minimumReleaseAgeExclude.")  # noqa: T201 -- copier task output must reach the user
+        raise SystemExit(_EXIT_CODE_PNPM_NOT_FOUND)
 
-
-def ensure_minimum_release_age_exclude(*, workspace_path: Path, patterns: list[str]) -> None:
-    if not workspace_path.exists():
-        print(f"{workspace_path} not found; skipping.")  # noqa: T201 -- copier task output must reach the user
+    if not (workspace_dir / _WORKSPACE_FILENAME).exists():
+        print(f"{workspace_dir / _WORKSPACE_FILENAME} not found; skipping.")  # noqa: T201 -- copier task output must reach the user
         return
 
-    text = workspace_path.read_text(encoding="utf-8")
-
-    if not re.search(r"^minimumReleaseAgeExclude:", text, re.MULTILINE):
-        addition = "\nminimumReleaseAgeExclude:\n"
-        for p in patterns:
-            addition += f'  - "{p}"\n'
-        _ = workspace_path.write_text(text.rstrip("\n") + "\n" + addition, encoding="utf-8")
-        print(f"Added minimumReleaseAgeExclude section with {len(patterns)} pattern(s).")  # noqa: T201 -- copier task output must reach the user
-        return
-
-    lines = text.splitlines(keepends=True)
-    missing = [p for p in patterns if not _pattern_present(lines, p)]
-    if not missing:
-        return
-    for i, line in enumerate(lines):
-        if re.match(r"^minimumReleaseAgeExclude:", line):
-            for j, pattern in enumerate(missing):
-                lines.insert(i + 1 + j, f'  - "{pattern}"\n')
-            break
-    _ = workspace_path.write_text("".join(lines), encoding="utf-8")
-    print(f"Added {len(missing)} missing pattern(s): {', '.join(missing)}")  # noqa: T201 -- copier task output must reach the user
+    get_result = subprocess.run(
+        ["pnpm", "config", "--location", "project", "get", "minimumReleaseAgeExclude"],  # noqa: S607 -- pnpm is a trusted tool, not user input
+        check=True,
+        capture_output=True,
+        text=True,
+        cwd=workspace_dir,
+    )
+    raw_existing = get_result.stdout.strip()
+    existing = _parse_patterns(raw_existing) if raw_existing != "undefined" else []
+    merged = existing + [p for p in patterns if p not in existing]
+    _ = subprocess.run(  # noqa: S603 -- merged patterns come from pnpm config get and CLI input, both trusted in this copier task context
+        ["pnpm", "config", "--location", "project", "set", "minimumReleaseAgeExclude", ",".join(merged)],  # noqa: S607 -- pnpm is a trusted tool, not user input
+        check=True,
+        cwd=workspace_dir,
+    )
 
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     _ = parser.add_argument("--patterns", required=True)
-    _ = parser.add_argument("--target-file", default="pnpm-workspace.yaml", dest="target_file")
+    _ = parser.add_argument("--target-dir", default=".", dest="target_dir")
     return parser.parse_args()
 
 
 def main() -> int:
     args = _parse_args()
     ensure_minimum_release_age_exclude(
-        workspace_path=Path(args.target_file),
+        workspace_dir=Path(args.target_dir),
         patterns=_parse_patterns(args.patterns),
     )
     return 0
