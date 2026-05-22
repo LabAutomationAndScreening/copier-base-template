@@ -95,6 +95,9 @@ jobs:
       - name: Install Tooling
         run: python .devcontainer/install-ci-tooling.py
 
+      - name: Add npm global bin to PATH
+        run: echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
+
       - name: Install Dependencies
         run: |
           uv sync --frozen
