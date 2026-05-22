@@ -37,15 +37,9 @@ def main():
         if not pwsh:
             raise FileNotFoundError("Neither 'pwsh' nor 'powershell' found on PATH")
 
-    _ = subprocess.run(  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
-        [  # noqa: S607 # npm should always be on path
-            "npm -v",
-            f"npm install -g pnpm@{PNPM_VERSION}",
-            "pnpm -v",
-        ],
-        shell=True,
-        check=True,
-    )
+    pnpm_install_sequence = ["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"]
+    for cmd in pnpm_install_sequence:
+        _ = subprocess.run([cmd], shell=True, check=True)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
     if not args.no_python:
         if is_windows:
             uv_env.update({"PATH": rf"{GITHUB_WINDOWS_RUNNER_BIN_PATH};{uv_env['PATH']}"})
