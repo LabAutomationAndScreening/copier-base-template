@@ -1,0 +1,1 @@
+../../../src/copier_tasks/remove_precommit_hooks.py

@@ -47,6 +47,11 @@ node_version:
     help: What version of NodeJS is used for development?
     default: "{{ default_node_version }}"
 
+pnpm_minimum_release_age_exclude:
+    type: str
+    help: "Comma-delimited list of package name patterns to exclude from pnpm's minimumReleaseAge constraint (leave empty for none)"
+    default: ""
+
 {% endraw %}{% endif %}{% raw %}{% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}
 install_aws_ssm_port_forwarding_plugin:
     type: bool
@@ -143,11 +148,6 @@ aws_region_for_stack:
 
 {% endraw %}{% endif %}{% raw %}
 
-copier_answers_directory:
-    type: str
-    help: What directory within the instantiated template contains the .copier-answers.yml file? Use '.' for the root, or a subdirectory path (e.g. 'frontend').
-    default: "."
-
 # Questions specific to this template
 
 
@@ -176,7 +176,11 @@ _tasks:
             if [ -f "$script" ]; then
                 chmod +x "$script"
             fi
-        done
+        done{% endraw %}{% if template_uses_typescript %}{% raw %}
+  - command: |
+        export PNPM_PATTERNS='{{ pnpm_minimum_release_age_exclude }}'
+        python3 '{{ _copier_conf.src_path }}/src/copier_tasks/ensure_pnpm_minimum_release_age_exclude.py' --patterns "$PNPM_PATTERNS"
+    when: "{{ pnpm_minimum_release_age_exclude }}"{% endraw %}{% endif %}{% raw %}
   - command: |
         if [ -f ruff.toml ]; then
             echo "Updating ruff target-version from python_version..."

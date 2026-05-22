@@ -12,7 +12,9 @@ use_windows_in_ci: true
 {% endraw %}{% if template_might_want_to_use_vcrpy %}{% raw %}configure_vcrpy: false{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_might_want_to_use_python_asyncio %}{% raw %}configure_python_asyncio: false{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_typescript %}{% raw %}
-node_version: {% endraw %}{{ default_node_version }}{% endif %}{% raw %}
+node_version: {% endraw %}{{ default_node_version }}{% raw %}
+pnpm_minimum_release_age_exclude: 'somelib, another-pkg'
+{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_python %}{% raw %}
 python_package_registry: AWS CodeArtifact
 aws_central_infrastructure_account_id: 012321432543

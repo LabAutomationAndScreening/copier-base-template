@@ -92,6 +92,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Setup Node
+        uses: actions/setup-node@v6.3.0
+        with:
+          node-version: 24.11.1
+
       - name: Install Tooling
         run: python .devcontainer/install-ci-tooling.py
 
@@ -134,12 +139,25 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Setup Node
+        uses: actions/setup-node@v6.3.0
+        with:
+          node-version: 24.11.1
+
       - name: Install Tooling
         run: python .devcontainer/install-ci-tooling.py
 
       - name: Instantiate copier template
         run: |
           copier copy --trust --vcs-ref ${{ github.sha }} ${{ matrix.copier }} --data python_version=${{ matrix.python-version }} . ./new-template
+
+      - name: Confirm instantiated template has copier answers file
+        run: |
+          if [ ! -f "./new-template/.copier-answers.yml" ]; then
+            echo "Copier answers file not found in instantiated template location"
+            exit 1
+          fi
+
       - name: Delete files from initial repo
         run: |
           # Delete everything except the folder containing the instantiated template

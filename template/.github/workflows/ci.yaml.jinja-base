@@ -77,6 +77,7 @@ jobs:
         uses: ./.github/actions/install_deps
         with:
           python-version: ${{ matrix.python-version }}
+          node-version: {% endraw %}{{ default_node_version }}{% raw %}
 
       - name: Run Unit Tests
         # TODO: figure out what to do about tests of copier task scripts that don't actually get detected by code coverage

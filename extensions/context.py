@@ -15,11 +15,11 @@ class ContextUpdater(ContextHook):
         # These are duplicated in the install-ci-tooling.py script in this repository
         context["uv_version"] = "0.11.14"
         context["pre_commit_version"] = "4.5.1"
+        context["pnpm_version"] = "11.2.2"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
         context["copier_version"] = "==9.15.1"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
-        context["pnpm_version"] = "11.1.3"
         context["npm_version"] = "11.13.0"
         context["nvm_version"] = "0.40.4"
         # These are duplicated in the pyproject.toml of this repository
@@ -59,7 +59,6 @@ class ContextUpdater(ContextHook):
         context["pytest_reserial_version"] = ">=0.6.1"
         context["python_faker_version"] = ">=40.18.0"
         #######
-        context["default_node_version"] = "24.11.1"
         context["nuxt_ui_version"] = "^4.7.1"
         context["nuxt_version"] = "^4.4.5"
         context["nuxt_icon_version"] = "^2.2.1"
@@ -93,10 +92,12 @@ class ContextUpdater(ContextHook):
         context["node_kiota_bundle_version"] = "1.0.0-preview.100"
         #######
         # These are duplicated in the CI files for this repository
+        context["default_node_version"] = "24.11.1"
         context["gha_checkout"] = "v6.0.2"
         context["gha_setup_python"] = "v6.2.0"
         context["gha_cache"] = "v5.0.5"
         context["gha_linux_runner"] = "ubuntu-24.04"
+        context["gha_setup_node"] = "v6.3.0"
         #######
         context["gha_upload_artifact"] = "v7.0.1"
         context["gha_download_artifact"] = "v8.0.1"
@@ -106,7 +107,6 @@ class ContextUpdater(ContextHook):
         context["gha_docker_build_push"] = "v7.1.0"
         context["gha_configure_aws_credentials"] = "v6.1.0"
         context["gha_amazon_ecr_login"] = "v2.1.5"
-        context["gha_setup_node"] = "v6.3.0"
         context["gha_action_gh_release"] = "v3.0.0"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
         context["gha_pypi_publish"] = "v1.14.0"
