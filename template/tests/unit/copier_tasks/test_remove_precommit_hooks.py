@@ -1,0 +1,1 @@
+../../../../tests/unit/copier_tasks/test_remove_precommit_hooks.py
