@@ -16,4 +16,9 @@ dependencies = [
     "ty{% endraw %}{{ ty_version }}{% raw %}",
     "copier{% endraw %}{{ copier_version }}{% raw %}",
     "copier-template-extensions{% endraw %}{{ copier_template_extensions_version }}{% raw %}"
-]{% endraw %}
+]
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple/"
+exclude-newer = "1 day"{% endraw %}
