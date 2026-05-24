@@ -51,6 +51,9 @@
       "Bash(git remote get-url origin)",
       "Bash(git rev-parse *)",
       "Bash(git status *)",
+      // Local app interaction
+      "Bash(curl http://localhost:*)",
+      "Bash(curl -s http://localhost:*)",
       // Misc
       "Bash(amp *)",
       "Bash(atuin *)",
@@ -64,8 +67,7 @@
       "Bash(zk *)",
       // Node.js
       "Bash(pnpm list *)",
-      "Bash(pnpm test-unit *)",
-      "Bash(pnpm test-e2e *)",
+      "Bash(pnpm test*)",
       "Bash(pnpm view *)",
       // Python
       "Bash(uv run pytest *)",
