@@ -47,11 +47,6 @@ node_version:
     help: What version of NodeJS is used for development?
     default: "{{ default_node_version }}"
 
-pnpm_minimum_release_age_exclude:
-    type: str
-    help: "Comma-delimited list of package name patterns to exclude from pnpm's minimumReleaseAge constraint (leave empty for none)"
-    default: ""
-
 {% endraw %}{% endif %}{% raw %}{% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}
 install_aws_ssm_port_forwarding_plugin:
     type: bool
@@ -157,7 +152,11 @@ aws_region_for_stack:
 repo_names_for_codespaces_read_permissions:
     type: str
     help: Provide a comma-separated list of repository names only within this GitHub organization that you would like the codespace to have read access to (for example, private-template, not my-org/private-template)
-    default: ""
+    default: ""{% endraw %}{% if template_uses_typescript %}{% raw %}
+pnpm_minimum_release_age_exclude:
+    type: str
+    help: "Comma-delimited list of package name patterns to exclude from pnpm's minimumReleaseAge constraint (leave empty for none)"
+    default: ""{% endraw %}{% endif %}{% raw %}
 
 
 _tasks:

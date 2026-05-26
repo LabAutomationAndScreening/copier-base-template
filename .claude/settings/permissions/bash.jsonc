@@ -51,6 +51,18 @@
       "Bash(git remote get-url origin)",
       "Bash(git rev-parse *)",
       "Bash(git status *)",
+      // Github
+      "Bash(gh issue list *)",
+      "Bash(gh run download *)",
+      "Bash(gh run list *)",
+      "Bash(gh run view *)",
+      "Bash(gh run watch *)",
+      "Bash(gh search *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr diff *)",
+      // Local app interaction
+      "Bash(curl http://localhost:*)",
+      "Bash(curl -s http://localhost:*)",
       // Misc
       "Bash(amp *)",
       "Bash(atuin *)",
@@ -64,8 +76,7 @@
       "Bash(zk *)",
       // Node.js
       "Bash(pnpm list *)",
-      "Bash(pnpm test-unit *)",
-      "Bash(pnpm test-e2e *)",
+      "Bash(pnpm test*)",
       "Bash(pnpm view *)",
       // Python
       "Bash(uv run pytest *)",
@@ -83,10 +94,6 @@
       // Search
       "Bash(rg *)",
       // Research
-      "Bash(gh issue list *)",
-      "Bash(gh search *)",
-      "Bash(gh pr view *)",
-      "Bash(gh pr diff *)",
     ],
     "ask": [
       // let's hold off before we let it use the github CLI in any free running allow mode...I don't want it somehow approving PRs with the user's credentials
