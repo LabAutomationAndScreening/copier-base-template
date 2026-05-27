@@ -95,14 +95,23 @@ _tasks:
             --target-file .pre-commit-config.yaml
     when: "{{ not install_claude_cli }}"
   # Copier does not preserve executable permissions when instantiating the template, so we set them explicitly here.
+  # git update-index is also needed because with core.fileMode=false (common on WSL2) git ignores the on-disk exec bit,
+  # so a plain `git add` would not capture it. It is guarded on the file being tracked, since on an initial `copier copy`
+  # into a fresh repo the file is not in the index yet (the chmod alone covers that case).
   - command: |
         if [ -f scripts/delete_false_positive_rej.py ]; then
             chmod +x scripts/delete_false_positive_rej.py
+            if git ls-files --error-unmatch scripts/delete_false_positive_rej.py > /dev/null 2>&1; then
+                git update-index --chmod=+x scripts/delete_false_positive_rej.py
+            fi
         fi
   - command: |
         for script in .claude/skills/address-pr-comments/check-footer.py .claude/skills/address-pr-comments/fetch-pr-comments.py .claude/skills/address-pr-comments/post-reply.py; do
             if [ -f "$script" ]; then
                 chmod +x "$script"
+                if git ls-files --error-unmatch "$script" > /dev/null 2>&1; then
+                    git update-index --chmod=+x "$script"
+                fi
             fi
         done
   - command: |
