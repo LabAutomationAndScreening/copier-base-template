@@ -22,7 +22,8 @@
       // https://github.com/devcontainers/features/blob/main/src/python/devcontainer-feature.json
       "version": "{% endraw %}{{ python_version }}{% raw %}",
       "installTools": false,
-      "optimize": true
+      "optimize": true{% endraw %}{% if deploy_as_executable is defined and deploy_as_executable is sameas(true) %}{% raw %},
+      "enableShared": true{% endraw %}{% endif %}{% raw %}
     },{% endraw %}{% endif %}{% raw %}{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_typescript is defined and template_uses_typescript is sameas(true) %}{% raw %}
     "ghcr.io/devcontainers/features/node:2.0.0": {
       // https://github.com/devcontainers/features/blob/main/src/node/devcontainer-feature.json
