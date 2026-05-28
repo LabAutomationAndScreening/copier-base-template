@@ -129,4 +129,5 @@ class ContextUpdater(ContextHook):
         # Kludge to be able to help symlinked jinja files in the child and grandchild templates
         context["template_uses_vuejs"] = {{ "True" if template_uses_vuejs else "False" }}
         context["template_uses_typescript"] = {{ "True" if template_uses_typescript else "False" }}
+        context["template_uses_python"] = {{ "True" if template_uses_python else "False" }}
         return context

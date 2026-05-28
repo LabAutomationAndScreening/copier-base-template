@@ -68,6 +68,10 @@ docs/_build
 tests/**/snapshots/*_actual.png
 tests/**/snapshots/*_diff.png
 pytest.log
+test-screenshots/
+playwright-report/
+test-results/
+.vitest-attachments/
 
 # test coverage
 tests/__coverage__
@@ -83,6 +87,8 @@ prof/
 # NodeJS
 node_modules/
 .pnpm-store/
+# TypeScript incremental build cache
+*.tsbuildinfo
 
 
 # Nuxt

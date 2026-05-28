@@ -17,21 +17,22 @@
       // https://github.com/devcontainers/features/blob/main/src/aws-cli/devcontainer-feature.json
       // view latest version https://raw.githubusercontent.com/aws/aws-cli/v2/CHANGELOG.rst
       "version": "2.34.34"
-    },{% endraw %}{% endif %}{% raw %}
+    },{% endraw %}{% endif %}{% raw %}{% endraw %}{% if (is_child_of_copier_base_template is defined and is_child_of_copier_base_template is sameas(true)) or (is_child_of_copier_base_template is not defined and template_uses_python is defined and template_uses_python is sameas(true)) %}{% raw %}
     "ghcr.io/devcontainers/features/python:1.8.0": {
       // https://github.com/devcontainers/features/blob/main/src/python/devcontainer-feature.json
       "version": "{% endraw %}{{ python_version }}{% raw %}",
       "installTools": false,
-      "optimize": true
-    }{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_typescript is defined and template_uses_typescript is sameas(true) %}{% raw %},
+      "optimize": true{% endraw %}{% if deploy_as_executable is defined and deploy_as_executable is sameas(true) %}{% raw %},
+      "enableShared": true{% endraw %}{% endif %}{% raw %}
+    },{% endraw %}{% endif %}{% raw %}{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_typescript is defined and template_uses_typescript is sameas(true) %}{% raw %}
     "ghcr.io/devcontainers/features/node:2.0.0": {
       // https://github.com/devcontainers/features/blob/main/src/node/devcontainer-feature.json
       "version": "{% endraw %}{{ node_version }}{% raw %}",
       "pnpmVersion": "{% endraw %}{{ pnpm_version }}{% raw %}",
       "nvmVersion": "{% endraw %}{{ nvm_version }}{% raw %}",
-    }{% endraw %}{% endif %}{% raw %}{% endraw %}{% if install_claude_cli %}{% raw %},
+    },{% endraw %}{% endif %}{% raw %}{% endraw %}{% if install_claude_cli %}{% raw %}
     // https://github.com/anthropics/devcontainer-features/blob/main/src/claude-code/devcontainer-feature.json
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0.5": {}{% endraw %}{% endif %}{% raw %}
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0.5": {},{% endraw %}{% endif %}{% raw %}
   },
   "customizations": {
     "vscode": {
@@ -45,13 +46,13 @@
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "github.copilot@1.388.0",
         "github.copilot-chat@0.44.2",{% endraw %}{% if install_claude_cli %}{% raw %}
-        "anthropic.claude-code@2.1.145",{% endraw %}{% endif %}{% raw %}
+        "anthropic.claude-code@2.1.145",{% endraw %}{% endif %}{% raw %}{% endraw %}{% if (is_child_of_copier_base_template is defined and is_child_of_copier_base_template is sameas(true)) or (is_child_of_copier_base_template is not defined and template_uses_python is defined and template_uses_python is sameas(true)) %}{% raw %}
 
         // Python
         "ms-python.python@2026.5.2026032701",
         "ms-python.vscode-pylance@2026.2.100",
         "ms-vscode-remote.remote-containers@0.414.0",
-        "charliermarsh.ruff@2026.44.0",
+        "charliermarsh.ruff@2026.44.0",{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}
         // VueJS
         "vue.volar@3.2.5",
@@ -72,14 +73,14 @@
         "extensions.autoUpdate": false,
         "extensions.autoCheckUpdates": false,
         "livePreview.portNumber": 3025, // arbitrary not to conflict with default 3000 Nuxt port number
-        "github.copilot.nextEditSuggestions.allowWhitespaceOnlyChanges": false,
+        "github.copilot.nextEditSuggestions.allowWhitespaceOnlyChanges": false,{% endraw %}{% if (is_child_of_copier_base_template is defined and is_child_of_copier_base_template is sameas(true)) or (is_child_of_copier_base_template is not defined and template_uses_python is defined and template_uses_python is sameas(true)) %}{% raw %}
         "[python]": {
           "editor.formatOnSave": true,
           "editor.defaultFormatter": "charliermarsh.ruff"
         },
         "ruff.nativeServer": "on",
         // TODO: see if there's a way to specify different configurations for different folders
-        "ruff.configuration": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/ruff-non-src.toml", // use the non-src configuration since it's less restrictive and won't show false positives and underline things
+        "ruff.configuration": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/ruff-non-src.toml", // use the non-src configuration since it's less restrictive and won't show false positives and underline things{% endraw %}{% endif %}{% raw %}
         "[jsonc][json][javascript][typescript][graphql][css][scss][html][vue]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode",
           "editor.formatOnSave": true

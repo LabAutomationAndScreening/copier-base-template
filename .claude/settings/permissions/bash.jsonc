@@ -44,6 +44,7 @@
       // Git & Version Control
       "Bash(git add *)",
       "Bash(git branch *)",
+      "Bash(git checkout *)",
       "Bash(git commit *)",
       "Bash(git diff *)",
       "Bash(git log *)",

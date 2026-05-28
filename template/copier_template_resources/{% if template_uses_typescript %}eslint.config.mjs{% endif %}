@@ -60,10 +60,14 @@ export default withNuxt(
     },
   },
   {
+    // E2E specs run under the @playwright/test runner,
+    // importing test/expect from tests/e2e/fixtures, not vitest. The broad **/*.{test,spec}.ts block
+    // above still attaches the vitest plugin, so disable the rules that misfire on Playwright specs.
     files: ["tests/e2e/**/*.spec.ts"],
     rules: {
-      "vitest/prefer-expect-assertions": "off", // E2E tests use Playwright's expect (for web-first auto-retrying matchers like toBeVisible), which vitest's `expect.assertions()` counter cannot track.
-      "vitest/prefer-importing-vitest-globals": "off", // E2E tests import `expect` from Playwright, not vitest; autofix would shadow the Playwright import
+      "vitest/prefer-expect-assertions": "off", // Playwright's web-first matchers; vitest's expect.assertions() counter can't track them
+      "vitest/prefer-importing-vitest-globals": "off", // test/expect come from Playwright via fixtures; autofix would inject a conflicting vitest import
+      "vitest/require-hook": "off", // top-level setup (e.g. destructuring shared constants) is normal in Playwright specs
     },
   },
 );
