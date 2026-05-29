@@ -28,7 +28,7 @@ for (const arg of user) {
   }
 }
 
-const fixedFiltered = noCoverage ? fixed.filter((a) => a !== "--coverage") : fixed;
+const fixedFiltered = noCoverage ? fixed.filter((a) => !a.startsWith("--coverage")) : fixed;
 
 const { status } = spawnSync("vitest", ["run", ...files, ...fixedFiltered, ...flags], {
   stdio: "inherit",
