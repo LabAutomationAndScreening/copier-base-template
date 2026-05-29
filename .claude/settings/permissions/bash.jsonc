@@ -54,6 +54,7 @@
       "Bash(git status *)",
       // Github
       "Bash(gh issue list *)",
+      "Bash(gh issue view *)",
       "Bash(gh run download *)",
       "Bash(gh run list *)",
       "Bash(gh run view *)",
