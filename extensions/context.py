@@ -13,9 +13,9 @@ class ContextUpdater(ContextHook):
         self, context: dict[Any, Any]
     ) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.11.16"
+        context["uv_version"] = "0.11.17"
         context["pre_commit_version"] = "4.5.1"
-        context["pnpm_version"] = "11.4.0"
+        context["pnpm_version"] = "11.5.0"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
         context["copier_version"] = "==9.15.1"
         context["copier_template_extensions_version"] = "==0.3.3"
@@ -62,7 +62,7 @@ class ContextUpdater(ContextHook):
         context["nuxt_ui_version"] = "^4.8.1"
         context["nuxt_version"] = "^4.4.6"
         context["nuxt_icon_version"] = "^2.2.1"
-        context["typescript_version"] = "^5.9.3"
+        context["typescript_version"] = "^6.0.2"
         context["playwright_version"] = "^1.60.0"
         context["vue_version"] = "^3.5.30"
         context["vue_tsc_version"] = "^3.3.2"
@@ -78,7 +78,6 @@ class ContextUpdater(ContextHook):
         context["zod_from_json_schema_version"] = "^0.5.1"
         context["nuxt_apollo_version"] = "5.0.0-alpha.15"
         context["graphql_codegen_cli_version"] = "^6.3.0"
-        context["graphql_codegen_typescript_version"] = "^5.0.7"
         context["graphql_tools_mock_version"] = "^9.1.0"
         context["tailwindcss_version"] = "^4.2.0"
         context["iconify_vue_version"] = "^5.0.0"

@@ -74,7 +74,6 @@ class ContextUpdater(ContextHook):
         context["zod_from_json_schema_version"] = "{{ zod_from_json_schema_version }}"
         context["nuxt_apollo_version"] = "{{ nuxt_apollo_version }}"
         context["graphql_codegen_cli_version"] = "{{ graphql_codegen_cli_version }}"
-        context["graphql_codegen_typescript_version"] = "{{ graphql_codegen_typescript_version }}"
         context["graphql_tools_mock_version"] = "{{ graphql_tools_mock_version }}"
         context["tailwindcss_version"] = "{{ tailwindcss_version }}"
         context["iconify_vue_version"] = "{{ iconify_vue_version }}"
