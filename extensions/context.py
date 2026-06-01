@@ -52,6 +52,7 @@ class ContextUpdater(ContextHook):
         context["syrupy_version"] = ">=5.2.0"
         context["structlog_version"] = ">=25.5.0"
         context["httpx_version"] = ">=0.28.1"
+        context["httpx2_version"] = ">=2.2.0"
         context["python_kiota_bundle_version"] = ">=1.10.2"
         context["vcrpy_version"] = ">=8.1.1"
         context["pytest_recording_version"] = ">=0.13.4"
