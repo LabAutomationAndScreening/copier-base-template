@@ -52,6 +52,7 @@ class ContextUpdater(ContextHook):
         context["vcrpy_version"] = "{{ vcrpy_version }}"
         context["pytest_recording_version"] = "{{ pytest_recording_version }}"
         context["pytest_asyncio_version"] = "{{ pytest_asyncio_version }}"
+        context["pytest_timeout_version"] = "{{ pytest_timeout_version }}"
         context["pytest_reserial_version"] = "{{ pytest_reserial_version }}"
         context["python_faker_version"] = "{{ python_faker_version }}"
 
