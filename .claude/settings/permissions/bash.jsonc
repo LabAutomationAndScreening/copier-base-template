@@ -65,7 +65,6 @@
       "Bash(gh pr diff *)",
       // Local app interaction
       // Claude currently has terrible support for this: https://github.com/anthropics/claude-code/issues/338    using `:*` as a pattern is not allowed (doesn't error, just doesn't really work), so have to specify _something_ between the colon and asterisk.
-      "Bash(curl http://localhost:0*)",
       "Bash(curl http://localhost:1*)",
       "Bash(curl http://localhost:2*)",
       "Bash(curl http://localhost:3*)",
@@ -75,7 +74,6 @@
       "Bash(curl http://localhost:7*)",
       "Bash(curl http://localhost:8*)",
       "Bash(curl http://localhost:9*)",
-      "Bash(curl -s http://localhost:0*)",
       "Bash(curl -s http://localhost:1*)",
       "Bash(curl -s http://localhost:2*)",
       "Bash(curl -s http://localhost:3*)",
@@ -85,7 +83,6 @@
       "Bash(curl -s http://localhost:7*)",
       "Bash(curl -s http://localhost:8*)",
       "Bash(curl -s http://localhost:9*)",
-      "Bash(curl \"http://localhost:0*)",
       "Bash(curl \"http://localhost:1*)",
       "Bash(curl \"http://localhost:2*)",
       "Bash(curl \"http://localhost:3*)",
@@ -95,7 +92,6 @@
       "Bash(curl \"http://localhost:7*)",
       "Bash(curl \"http://localhost:8*)",
       "Bash(curl \"http://localhost:9*)",
-      "Bash(curl -s \"http://localhost:0*)",
       "Bash(curl -s \"http://localhost:1*)",
       "Bash(curl -s \"http://localhost:2*)",
       "Bash(curl -s \"http://localhost:3*)",
