@@ -48,6 +48,7 @@
       "Bash(git commit *)",
       "Bash(git diff *)",
       "Bash(git log *)",
+      "Bash(git mv *)",
       "Bash(git push)",
       "Bash(git remote get-url origin)",
       "Bash(git rev-parse *)",
