@@ -113,6 +113,7 @@ class ContextUpdater(ContextHook):
         context["gha_pypi_publish"] = "v1.14.0"
         context["gha_sleep"] = "v2.0.3"
         context["gha_absaoss_k3d"] = "v2.4.0"
+        context["k3d_version"] = "v5.5.0"
         context["gha_azure_setup_helm"] = "v5.0.0"
         context["helm_version"] = "v3.18.3"
         context["gha_azure_setup_kubectl"] = "v5.1.0"

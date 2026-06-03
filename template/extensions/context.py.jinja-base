@@ -105,6 +105,7 @@ class ContextUpdater(ContextHook):
         context["gha_pypi_publish"] = "{{ gha_pypi_publish }}"
         context["gha_sleep"] = "{{ gha_sleep }}"
         context["gha_absaoss_k3d"] = "{{ gha_absaoss_k3d }}"
+        context["k3d_version"] = "{{ k3d_version }}"
         context["gha_azure_setup_helm"] = "{{ gha_azure_setup_helm }}"
         context["helm_version"] = "{{ helm_version }}"
         context["gha_azure_setup_kubectl"] = "{{ gha_azure_setup_kubectl }}"
