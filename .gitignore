@@ -72,6 +72,7 @@ test-screenshots/
 playwright-report/
 test-results/
 .vitest-attachments/
+mutants/
 
 # test coverage
 tests/__coverage__

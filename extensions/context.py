@@ -28,6 +28,10 @@ class ContextUpdater(ContextHook):
         context["pytest_randomly_version"] = ">=4.1.0"
         context["pytest_cov_version"] = ">=7.1.0"
         context["ty_version"] = ">=0.0.40"
+        context["mutmut_version"] = (
+            "@git+https://github.com/boxed/mutmut.git@e92d763eb8a6c16fb7a1f39ea34ffa6c620c9548"  # some critical config options haven't been released in latest (3.5), so pinning to main
+        )
+        context["pyrefly_version"] = ">=1.0.0"
         #######
         context["sphinx_version"] = "9.0.4"
         context["pulumi_version"] = ">=3.245.0"
@@ -44,7 +48,7 @@ class ContextUpdater(ContextHook):
         context["strawberry_graphql_version"] = ">=0.298.0"
         context["fastapi_version"] = ">=0.136.3"
         context["fastapi_offline_version"] = ">=1.7.4"
-        context["uvicorn_version"] = ">=0.48.0"
+        context["uvicorn_version"] = ">=0.49.0"
         context["lab_auto_pulumi_version"] = ">=0.2.3"
         context["ariadne_codegen_version"] = ">=0.18.0"
         context["pytest_mock_version"] = ">=3.15.1"
@@ -59,11 +63,7 @@ class ContextUpdater(ContextHook):
         context["pytest_asyncio_version"] = ">=1.4.0"
         context["pytest_timeout_version"] = ">=2.4.0"
         context["pytest_reserial_version"] = ">=0.6.1"
-        context["python_faker_version"] = ">=40.18.0"
-        context["mutmut_version"] = (
-            "git+https://github.com/boxed/mutmut.git@e92d763eb8a6c16fb7a1f39ea34ffa6c620c9548"  # some critical config options haven't been released in latest (3.5), so pinning to main
-        )
-        context["pyrefly_version"] = ">=1.0.0"
+        context["python_faker_version"] = ">=40.23.0"
         #######
         context["nuxt_ui_version"] = "^4.8.1"
         context["nuxt_version"] = "^4.4.6"
