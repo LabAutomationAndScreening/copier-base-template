@@ -54,7 +54,7 @@ class ContextUpdater(ContextHook):
         context["pytest_mock_version"] = ">=3.15.1"
         context["uuid_utils_version"] = ">=0.16.0"
         context["syrupy_version"] = ">=5.3.1"
-        context["structlog_version"] = ">=25.5.0"
+        context["structlog_version"] = ">=26.1.0"
         context["httpx_version"] = ">=0.28.1"
         context["httpx2_version"] = ">=2.2.0"
         context["python_kiota_bundle_version"] = ">=1.10.2"
@@ -93,7 +93,7 @@ class ContextUpdater(ContextHook):
         context["vue_test_utils_version"] = "^2.4.6"
         context["nuxt_test_utils_version"] = "^4.0.3"
         context["vue_eslint_parser_version"] = "^10.4.0"
-        context["happy_dom_version"] = "^20.9.0"
+        context["happy_dom_version"] = "^20.10.1"
         context["node_kiota_bundle_version"] = "1.0.0-preview.102"
         #######
         # These are duplicated in the CI files for this repository

@@ -25,6 +25,7 @@ exclude-newer = "1 day"
 source_paths = [ "src/" ]
 pytest_add_cli_args_test_selection = [ "tests/unit/" ]
 pytest_add_cli_args = [ "--no-cov" ]
+also_copy = [ ".pre-commit-config.yaml" ]
 do_not_mutate = [   "*/generated/*" , # do not mutate generated code, this is created by external tooling that has undergone its own testing
 
  ]

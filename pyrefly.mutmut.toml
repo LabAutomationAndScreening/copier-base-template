@@ -1,0 +1,12 @@
+# Used ONLY by mutmut's type_check_command (see backend/pyproject.toml).
+# mutmut runs the checker from backend/mutants/. This config makes pyrefly check the generated
+# mutants tree (gitignored, so use-ignore-files must be off) instead of the real source, and
+# excludes the do_not_mutate files, whose type errors could never map to a mutant and would
+# otherwise crash mutmut with "Could not find mutant for type error".
+use-ignore-files = false
+disable-project-excludes-heuristics = true
+python-platform = "linux"
+project-includes = ["mutants/src/**"]
+project-excludes = [
+    "**/generated/**",
+]
