@@ -1,0 +1,36 @@
+project-excludes = [
+    # excludes managed by this repository
+    "**/template",
+
+    # excludes managed by template
+    "**/vendor_files",
+    "**/generated/graphql",
+    "**/generated/open_api",
+    "**/copier_template_resources",
+    "**/.claude/plugins", # similar to vendor_files, but these are gitignored and can contain arbitrary code, so exclude from type checking but not mutation testing
+]
+# without this explicit "project-includes" and "search-path", pyrefly struggles to understand the tests folder
+project-includes = [    "src",
+                        "tests"
+                ]
+search-path = ["."]
+disable-project-excludes-heuristics = true # with this being enabled by default, pyrefly things the src is excluded because it's an editable local install
+python-platform = "linux"
+infer-with-first-use = false # more similar to pyright. must define the empty list type when instantiated
+# "strict" enables the maximalist error set plus strict-callable-subtyping and
+# unused-ignore. "preset = all" (every error kind) will be available in v1.1.
+preset = "strict"
+spec-compliant-overloads = true # not sure exactly what this does, but seems like a good idea to be more spec compliant
+ignore-errors-in-generated-code = true # not sure yet how effective this is
+
+[errors]
+# reportPrivateUsage=false in pyright (already covered by ruff SLF001)
+no-access = "ignore"
+# reportMissingTypeStubs=false in pyright
+untyped-import = "ignore"
+
+[[sub-config]]
+matches = "**/tests/**"
+
+[sub-config.errors]
+implicitly-defined-attribute = "ignore"

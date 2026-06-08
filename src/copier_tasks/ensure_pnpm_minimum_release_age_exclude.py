@@ -30,7 +30,9 @@ def ensure_minimum_release_age_exclude(*, workspace_dir: Path, patterns: list[st
         cwd=workspace_dir,
     )
     raw_existing = get_result.stdout.strip()
-    existing = _parse_patterns(raw_existing) if raw_existing != "undefined" else []
+    existing: list[str] = []
+    if raw_existing != "undefined":
+        existing = _parse_patterns(raw_existing)
     merged = existing + [p for p in patterns if p not in existing]
     _ = subprocess.run(  # noqa: S603 -- merged patterns come from pnpm config get and CLI input, both trusted in this copier task context
         ["pnpm", "config", "--location", "project", "set", "minimumReleaseAgeExclude", ",".join(merged)],  # noqa: S607 -- pnpm is a trusted tool, not user input

@@ -8,8 +8,9 @@ dependencies = [
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
     "pytest-randomly>=4.1.0",
-    "pyright[nodejs]>=1.1.409",
-    "ty>=0.0.39",
+    "pyright[nodejs]>=1.1.410",
+    "pyrefly>=1.0.0",
+    "mutmut@git+https://github.com/boxed/mutmut.git@e92d763eb8a6c16fb7a1f39ea34ffa6c620c9548",
     "copier==9.15.1",
     "copier-template-extensions==0.3.3",
     "pyyaml>=6.0.3"
@@ -19,3 +20,27 @@ dependencies = [
 name = "pypi"
 url = "https://pypi.org/simple/"
 exclude-newer = "1 day"
+
+[tool.mutmut]
+source_paths = [ "src/" ]
+pytest_add_cli_args_test_selection = [ "tests/unit/" ]
+pytest_add_cli_args = [ "--no-cov" ]
+also_copy = [ ".pre-commit-config.yaml" ]
+do_not_mutate = [   "*/generated/*" , # do not mutate generated code, this is created by external tooling that has undergone its own testing
+
+ ]
+# mutmut runs this from the mutants/ sub-folder. The dedicated config points pyrefly at the generated
+# mutants tree and excludes do_not_mutate files, so every reported type error falls inside a mutant
+# function and mutmut can attribute it. Without it, pyrefly checks the real source from the mutants/
+# cwd and reports errors on non-mutant lines, crashing with "Could not find mutant for type error".
+type_check_command = ['uv', 'run', 'pyrefly', 'check', '--output-format=json', '-c', '../pyrefly.mutmut.toml']
+do_not_mutate_patterns = [
+    # disable mutations of all logger.info/debug/... statements
+    'logger\.\w+',
+    # disable mutations of assert statements (for type narrowing...it often messes with the messages)
+    'assert .+',
+    'f"Expected .+, got.+\{\(type\(.+\}.+\{.+',
+    # disable mutating untested exceptions
+    'raise NotImplementedError.+',
+    'raise AssertionError.+',
+]
