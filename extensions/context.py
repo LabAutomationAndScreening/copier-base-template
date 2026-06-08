@@ -29,7 +29,7 @@ class ContextUpdater(ContextHook):
         context["pytest_cov_version"] = ">=7.1.0"
         context["ty_version"] = ">=0.0.40"
         context["mutmut_version"] = (
-            "@git+https://github.com/boxed/mutmut.git@e92d763eb8a6c16fb7a1f39ea34ffa6c620c9548"  # some critical config options haven't been released in latest (3.5), so pinning to main
+            "@git+https://github.com/boxed/mutmut.git@e92d763eb8a6c16fb7a1f39ea34ffa6c620c9548"  # a critical config option (`do_not_mutate`) hasn't been released in latest (3.5), so pinning to main
         )
         context["pyrefly_version"] = ">=1.0.0"
         #######
