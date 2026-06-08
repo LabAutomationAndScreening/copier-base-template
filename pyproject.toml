@@ -37,6 +37,10 @@ type_check_command = ['uv', 'run', 'pyrefly', 'check', '--output-format=json', '
 do_not_mutate_patterns = [
     # disable mutations of all logger.info/debug/... statements
     'logger\.\w+',
+    # disable mutations of assert statements (for type narrowing...it often messes with the messages)
+    'assert .+',
+    'f"Expected .+, got.+\{\(type\(.+\}.+\{.+',
     # disable mutating exceptions
-    # 'raise \w+',
+    'raise NotImplementedError.+',
+    'raise AssertionError.+',
 ]
