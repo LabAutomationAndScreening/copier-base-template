@@ -8,6 +8,7 @@ dependencies = [
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
     "pytest-randomly>=4.1.0",
+    "faker>=40.21.0",
     "pyright[nodejs]>=1.1.410",
     "pyrefly>=1.0.0",
     "mutmut@git+https://github.com/boxed/mutmut.git@e92d763eb8a6c16fb7a1f39ea34ffa6c620c9548",
@@ -39,7 +40,7 @@ do_not_mutate_patterns = [
     'logger\.\w+',
     # disable mutations of assert statements (for type narrowing...it often messes with the messages)
     'assert .+',
-    'f"Expected .+, got.+\{\(type\(.+\}.+\{.+',
+    'f"Expected .+, got.+\{type\(.+\}.+\{.+',
     # disable mutating untested exceptions
     'raise NotImplementedError.+',
     'raise AssertionError.+',
