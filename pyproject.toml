@@ -39,7 +39,7 @@ do_not_mutate_patterns = [
     'logger\.\w+',
     # disable mutations of assert statements (for type narrowing...it often messes with the messages)
     'assert .+',
-    'f"Expected .+, got.+\{\(type\(.+\}.+\{.+',
+    'f"Expected .+, got.+\{type\(.+\}.+\{.+',
     # disable mutating untested exceptions
     'raise NotImplementedError.+',
     'raise AssertionError.+',
