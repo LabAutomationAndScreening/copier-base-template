@@ -28,9 +28,7 @@ class ContextUpdater(ContextHook):
         context["pytest_randomly_version"] = ">=4.1.0"
         context["pytest_cov_version"] = ">=7.1.0"
         context["ty_version"] = ">=0.0.40"
-        context["mutmut_version"] = (
-            "@git+https://github.com/boxed/mutmut.git@e92d763eb8a6c16fb7a1f39ea34ffa6c620c9548"  # a critical config option (`do_not_mutate`) hasn't been released in latest (3.5), so pinning to main
-        )
+        context["mutmut_version"] = ">=3.6.0"
         context["pyrefly_version"] = ">=1.0.0"
         #######
         context["sphinx_version"] = "9.0.4"
@@ -56,7 +54,7 @@ class ContextUpdater(ContextHook):
         context["syrupy_version"] = ">=5.3.1"
         context["structlog_version"] = ">=26.1.0"
         context["httpx_version"] = ">=0.28.1"
-        context["httpx2_version"] = ">=2.2.0"
+        context["httpx2_version"] = ">=2.3.0"
         context["python_kiota_bundle_version"] = ">=1.10.2"
         context["vcrpy_version"] = ">=8.1.1"
         context["pytest_recording_version"] = ">=0.13.4"
@@ -79,11 +77,11 @@ class ContextUpdater(ContextHook):
         context["vitest_version"] = "^4.1.7"
         context["vitest_eslint_plugin_version"] = "^1.6.17"
         context["eslint_version"] = "^10.4.0"
-        context["nuxt_eslint_version"] = "^1.15.1"
+        context["nuxt_eslint_version"] = "^1.16.0"
         context["zod_version"] = "^4.3.6"
         context["zod_from_json_schema_version"] = "^0.5.1"
         context["nuxt_apollo_version"] = "5.0.0-alpha.15"
-        context["graphql_codegen_cli_version"] = "^6.3.0"
+        context["graphql_codegen_cli_version"] = "^7.1.2"
         context["graphql_tools_mock_version"] = "^9.1.0"
         context["tailwindcss_version"] = "^4.2.0"
         context["iconify_vue_version"] = "^5.0.0"
