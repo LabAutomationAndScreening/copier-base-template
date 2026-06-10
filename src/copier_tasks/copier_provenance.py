@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 from typing import Literal
 
-CommentType = Literal["hash", "markdown", "none"]
+CommentType = Literal["hash", "block", "markdown", "none"]
 Location = Literal["top", "bottom", "none"]
 
 
@@ -21,9 +21,16 @@ default_comment_format = CommentFormat("hash", "top")
 custom_file_handling: dict[str, CommentFormat] = {
     ".md": CommentFormat("markdown", "bottom"),
     ".sh": CommentFormat("hash", "bottom"),  # put at bottom to not mess with shebang
+    ".js": CommentFormat("block", "top"),
+    ".cjs": CommentFormat("block", "top"),
+    ".mjs": CommentFormat("block", "top"),
+    ".ts": CommentFormat("block", "top"),
+    ".cts": CommentFormat("block", "top"),
+    ".mts": CommentFormat("block", "top"),
     ".json": CommentFormat("none", "none"),
-    ".yaml": CommentFormat("none", "none"),
-    ".yml": CommentFormat("none", "none"),
+    ".jsonc": CommentFormat("none", "none"),
+    ".yaml": CommentFormat("hash", "top"),
+    ".yml": CommentFormat("hash", "top"),
 }
 
 HEADER = """\
@@ -60,6 +67,9 @@ class ProvenanceResult:
 def _build_specific_header(comment_type: CommentType) -> str | None:
     if comment_type == "hash":
         return "\n".join(f"# {line}" if line else "#" for line in HEADER.split("\n"))
+    if comment_type == "block":
+        body = "\n".join(f" * {line}" if line else " *" for line in HEADER.split("\n"))
+        return f"/*\n{body}\n */"
     if comment_type == "markdown":
         return f"<!--\n{HEADER}\n-->"
     return None

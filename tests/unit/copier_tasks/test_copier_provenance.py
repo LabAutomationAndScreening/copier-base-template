@@ -18,6 +18,16 @@ expected_hash_comment = """\
 # but if the change should be shared with other projects, please backport it to the template repo.
 # ====================================================================================================="""
 
+expected_block_comment = """\
+/*
+ * ============== WARNING ==============================================================================
+ * File is managed by a copier template. See .copier-managed-files.json for details.
+ *
+ * You are welcome to make changes to this file in your repo if they are custom to your project,
+ * but if the change should be shared with other projects, please backport it to the template repo.
+ * =====================================================================================================
+ */"""
+
 expected_markdown_comment = """\
 <!--
 ============== WARNING ==============================================================================
@@ -49,11 +59,15 @@ class TestCopierProvenanceViaSubprocess:
         [
             ("hash_comment.txt", "hash_comment.txt", "top", expected_hash_comment),
             ("testme.md", "testme.md", "bottom", expected_markdown_comment),
+            ("eslint.config.mjs", "eslint.config.mjs", "top", expected_block_comment),
+            ("config.yaml", "config.yaml", "top", expected_hash_comment),
             ("test.json", "test.json", "none", ""),
         ],
         ids=[
             "default-comments-are-on-top-and-use-hash-comment",
             "markdown-on-bottom-and-special-comment",
+            "mjs-uses-block-comment-on-top",
+            "yaml-uses-hash-comment-on-top",
             "json-files-must-not-have-comments",
         ],
     )
