@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 from typing import Literal
 
-CommentType = Literal["hash", "block", "markdown", "none"]
+CommentType = Literal["hash", "block", "jinja", "markdown", "none"]
 Location = Literal["top", "bottom", "none"]
 
 
@@ -31,6 +31,8 @@ custom_file_handling: dict[str, CommentFormat] = {
     ".vue": CommentFormat("markdown", "top"),
     ".html": CommentFormat("markdown", "top"),
     ".svg": CommentFormat("markdown", "top"),
+    ".jinja": CommentFormat("jinja", "top"),
+    ".jinja-base": CommentFormat("jinja", "top"),
     ".json": CommentFormat("none", "none"),
     ".jsonc": CommentFormat("none", "none"),
     ".yaml": CommentFormat("hash", "top"),
@@ -81,6 +83,10 @@ def _build_specific_header(comment_type: CommentType) -> str | None:
     if comment_type == "block":
         body = "\n".join(f" * {line}" if line else " *" for line in HEADER.split("\n"))
         return f"/*\n{body}\n */"
+    if comment_type == "jinja":
+        # Jinja renders {# ... #} to empty string, so this marker is invisible in rendered output.
+        body = "\n".join(f" {line}" if line else "" for line in HEADER.split("\n"))
+        return f"{{#\n{body}\n#}}"
     if comment_type == "markdown":
         return f"<!--\n{HEADER}\n-->"
     return None

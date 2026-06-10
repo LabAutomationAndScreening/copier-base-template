@@ -27,6 +27,16 @@ expected_block_comment = """\
  * =====================================================================================================
  */"""
 
+expected_jinja_comment = """\
+{#
+ ============== WARNING ==============================================================================
+ File is managed by a copier template. See .copier-managed-files.json for details.
+
+ You are welcome to make changes to this file in your repo if they are custom to your project,
+ but if the change should be shared with other projects, please backport it to the template repo.
+ =====================================================================================================
+#}"""
+
 expected_markdown_comment = """\
 <!--
 ============== WARNING ==============================================================================
@@ -67,6 +77,24 @@ class TestJinjaTemplateMatching:
         content = (dst_dir / "README.md").read_text(encoding="utf-8")
         assert content == file_content + "\n" + expected_markdown_comment + "\n"
 
+    def test_jinja_template_file_gets_jinja_comment(self, tmp_path: Path) -> None:
+        # Real scenario: base-template has README.md.jinja.jinja-base → base path README.md.jinja
+        # nuxt-template destination has README.md.jinja; it gets {# #} comment (invisible after Jinja render)
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "README.md.jinja.jinja-base").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        file_content = "some content\nmore\nstuff"
+        _ = (dst_dir / "README.md.jinja").write_text(file_content, encoding="utf-8")
+
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert result.returncode == 0
+        content = (dst_dir / "README.md.jinja").read_text(encoding="utf-8")
+        assert content == expected_jinja_comment + "\n" + file_content
+
     def test_jinja_if_check_filename_matched(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
         template_dir.mkdir()
@@ -82,7 +110,7 @@ class TestJinjaTemplateMatching:
 
         assert result.returncode == 0
         content = (dst_dir / ".coveragerc.jinja").read_text(encoding="utf-8")
-        assert content == expected_hash_comment + "\n" + file_content
+        assert content == expected_jinja_comment + "\n" + file_content
 
 
 class TestFileExtensionComments:
