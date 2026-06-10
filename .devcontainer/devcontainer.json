@@ -54,6 +54,7 @@
           "editor.formatOnSave": true,
           "editor.defaultFormatter": "charliermarsh.ruff"
         },
+        "python.terminal.activateEnvironment": false, // uv manages the environment
         "ruff.nativeServer": "on",
         // TODO: see if there's a way to specify different configurations for different folders
         "ruff.configuration": "/workspaces/copier-base-template/ruff-non-src.toml", // use the non-src configuration since it's less restrictive and won't show false positives and underline things
