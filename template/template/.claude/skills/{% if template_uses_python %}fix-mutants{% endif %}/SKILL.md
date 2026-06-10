@@ -153,8 +153,18 @@ For each group returned:
    - Some mutants are *equivalent* — the mutated code is behaviorally identical
      to the original (e.g. a mutation inside dead code, or a default that is
      always overridden). These cannot be killed and should be skipped, not
-     chased. Call them out explicitly; offer the user a `# pragma: no mutate`
-     on that line or a `do_not_mutate` entry as the durable suppression.
+     chased. Call them out explicitly; offer the user a pragma block or a
+     `do_not_mutate` entry as the durable suppression. Single-line
+     `# pragma: no mutate` trailing comments are unreliable — use the
+     start/end block form, with a comment explaining the rationale as the
+     first line inside the block:
+
+     ```python
+     # pragma: no mutate start
+     # rationale for why these lines cannot be meaningfully mutation-tested
+     line_to_exclude()
+     # pragma: no mutate end
+     ```
 
 3. **Strengthen the test** following the project's TDD discipline. The mutants
    *are* the failing cases: write/adjust the assertion so the test passes on the
