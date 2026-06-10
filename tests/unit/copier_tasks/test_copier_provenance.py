@@ -1,4 +1,3 @@
-# pylint: disable=duplicate-code  # duplication here is intentional — each case verifies its own expected content
 import json
 import subprocess
 from pathlib import Path
@@ -39,67 +38,19 @@ but if the change should be shared with other projects, please backport it to th
 -->"""
 
 
-class TestCopierProvenanceViaSubprocess:
-    def _run_script(
-        self,
-        *,
-        src_template_dir: Path,
-        dst_dir: Path,
-        template_src: str = "",
-    ) -> subprocess.CompletedProcess[str]:
-        args = [str(src_template_dir), str(dst_dir)]
-        if template_src:
-            args += ["--template-src", template_src]
-        return run_copier_task(_SCRIPT_PATH, *args)
+def _run_script(
+    *,
+    src_template_dir: Path,
+    dst_dir: Path,
+    template_src: str = "",
+) -> subprocess.CompletedProcess[str]:
+    args = [str(src_template_dir), str(dst_dir)]
+    if template_src:
+        args += ["--template-src", template_src]
+    return run_copier_task(_SCRIPT_PATH, *args)
 
-    # ─── file markers ────────────────────────────────────────────────────────
 
-    @pytest.mark.parametrize(
-        ("template_filename", "dst_filename", "expected_location", "expected_comment"),
-        [
-            ("hash_comment.txt", "hash_comment.txt", "top", expected_hash_comment),
-            ("testme.md", "testme.md", "bottom", expected_markdown_comment),
-            ("eslint.config.mjs", "eslint.config.mjs", "top", expected_block_comment),
-            ("config.yaml", "config.yaml", "top", expected_hash_comment),
-            ("test.json", "test.json", "none", ""),
-        ],
-        ids=[
-            "default-comments-are-on-top-and-use-hash-comment",
-            "markdown-on-bottom-and-special-comment",
-            "mjs-uses-block-comment-on-top",
-            "yaml-uses-hash-comment-on-top",
-            "json-files-must-not-have-comments",
-        ],
-    )
-    def test_add_comment(
-        self,
-        template_filename: str,
-        dst_filename: str,
-        expected_location: str,
-        expected_comment: str,
-        tmp_path: Path,
-    ) -> None:
-        template_dir = tmp_path / "template"
-        template_dir.mkdir()
-        (template_dir / template_filename).touch()
-
-        dst_dir = tmp_path / "destination"
-        dst_dir.mkdir()
-        file_content = "some content\nmore\nstuff"
-        _ = (dst_dir / dst_filename).write_text(file_content, encoding="utf-8")
-
-        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
-
-        assert result.returncode == 0
-        content = (dst_dir / dst_filename).read_text(encoding="utf-8")
-
-        if expected_location == "none":
-            assert content == file_content
-        elif expected_location == "bottom":
-            assert content == file_content + "\n" + expected_comment + "\n"
-        else:
-            assert content == expected_comment + "\n" + file_content
-
+class TestJinjaTemplateMatching:
     def test_jinja_base_suffix_stripped_when_matching(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
         template_dir.mkdir()
@@ -110,13 +61,13 @@ class TestCopierProvenanceViaSubprocess:
         file_content = "some content\nmore\nstuff"
         _ = (dst_dir / "README.md").write_text(file_content, encoding="utf-8")
 
-        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         assert result.returncode == 0
         content = (dst_dir / "README.md").read_text(encoding="utf-8")
         assert content == file_content + "\n" + expected_markdown_comment + "\n"
 
-    def test_add_comment_added_when_wrapped_in_jinja_if_check(self, tmp_path: Path) -> None:
+    def test_jinja_if_check_filename_matched(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
         template_dir.mkdir()
         template_file = template_dir / "{% if is_python_template %}.coveragerc.jinja{% endif %}.jinja-base"
@@ -127,11 +78,93 @@ class TestCopierProvenanceViaSubprocess:
         file_content = "some content\nmore\nstuff"
         _ = (dst_dir / ".coveragerc.jinja").write_text(file_content, encoding="utf-8")
 
-        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         assert result.returncode == 0
         content = (dst_dir / ".coveragerc.jinja").read_text(encoding="utf-8")
         assert content == expected_hash_comment + "\n" + file_content
+
+
+class TestFileExtensionComments:
+    @pytest.mark.parametrize(
+        ("filename", "expected_location", "expected_comment"),
+        [
+            # hash top (default for unknown types)
+            ("script.py", "top", expected_hash_comment),
+            ("config.yaml", "top", expected_hash_comment),
+            ("config.yml", "top", expected_hash_comment),
+            # hash bottom (shebang-sensitive extension default)
+            ("deploy.sh", "bottom", expected_hash_comment),
+            # block top (JS / TS / CSS)
+            ("eslint.config.mjs", "top", expected_block_comment),
+            ("config.js", "top", expected_block_comment),
+            ("module.cjs", "top", expected_block_comment),
+            ("config.ts", "top", expected_block_comment),
+            ("module.mts", "top", expected_block_comment),
+            ("module.cts", "top", expected_block_comment),
+            ("styles.css", "top", expected_block_comment),
+            # markdown top (HTML-like)
+            ("component.vue", "top", expected_markdown_comment),
+            ("index.html", "top", expected_markdown_comment),
+            ("icon.svg", "top", expected_markdown_comment),
+            # markdown bottom
+            ("README.md", "bottom", expected_markdown_comment),
+            # none — by extension (no comment syntax available)
+            ("data.json", "none", ""),
+            ("biome.jsonc", "none", ""),
+            # none — by filename (extensionless dotfiles with structured content)
+            (".python-version", "none", ""),
+            (".prettierrc", "none", ""),
+        ],
+        ids=[
+            "py-hash-top",
+            "yaml-hash-top",
+            "yml-hash-top",
+            "sh-hash-bottom",
+            "mjs-block-top",
+            "js-block-top",
+            "cjs-block-top",
+            "ts-block-top",
+            "mts-block-top",
+            "cts-block-top",
+            "css-block-top",
+            "vue-markdown-top",
+            "html-markdown-top",
+            "svg-markdown-top",
+            "md-markdown-bottom",
+            "json-none",
+            "jsonc-none",
+            "python-version-none",
+            "prettierrc-none",
+        ],
+    )
+    def test_comment_format_by_file_type(
+        self,
+        filename: str,
+        expected_location: str,
+        expected_comment: str,
+        tmp_path: Path,
+    ) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / filename).touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        file_content = "some content\nmore\nstuff"
+        _ = (dst_dir / filename).write_text(file_content, encoding="utf-8")
+
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert result.returncode == 0
+        content = (dst_dir / filename).read_text(encoding="utf-8")
+
+        if expected_location == "none":
+            assert content == file_content
+        elif expected_location == "bottom":
+            assert content == file_content + "\n" + expected_comment + "\n"
+        else:
+            assert content == expected_comment + "\n" + file_content
 
     @pytest.mark.parametrize(
         ("template_filename", "expected_location", "expected_comment"),
@@ -139,10 +172,7 @@ class TestCopierProvenanceViaSubprocess:
             ("hash_comment.txt", "top", expected_hash_comment),
             ("testme.md", "bottom", expected_markdown_comment),
         ],
-        ids=[
-            "existing-hash-comment-at-top",
-            "existing-markdown-comment-at-bottom",
-        ],
+        ids=["existing-hash-top", "existing-markdown-bottom"],
     )
     def test_comment_not_duplicated_when_already_present(
         self,
@@ -163,12 +193,12 @@ class TestCopierProvenanceViaSubprocess:
             file_content = "some content\nmore\nstuff\n" + expected_comment + "\n"
         _ = (dst_dir / template_filename).write_text(file_content, encoding="utf-8")
 
-        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         assert result.returncode == 0
         assert (dst_dir / template_filename).read_text(encoding="utf-8") == file_content
 
-    def test_add_comment_does_not_happen_if_not_a_template_file(self, tmp_path: Path) -> None:
+    def test_non_template_file_is_not_marked(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
         template_dir.mkdir()
         (template_dir / "template.txt").touch()
@@ -179,11 +209,13 @@ class TestCopierProvenanceViaSubprocess:
         non_template = dst_dir / "pre-existing-file-non-template-file.txt"
         _ = non_template.write_text(file_content, encoding="utf-8")
 
-        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         assert result.returncode == 0
         assert non_template.read_text(encoding="utf-8") == file_content
 
+
+class TestShebangHandling:
     @pytest.mark.parametrize(
         ("shebang_line", "expected_location"),
         [
@@ -216,7 +248,7 @@ class TestCopierProvenanceViaSubprocess:
         file_content = shebang_line + "print('hello')\n"
         _ = (dst_dir / "script.py").write_text(file_content, encoding="utf-8")
 
-        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         assert result.returncode == 0
         content = (dst_dir / "script.py").read_text(encoding="utf-8")
@@ -225,7 +257,7 @@ class TestCopierProvenanceViaSubprocess:
         else:
             assert content == expected_hash_comment + "\n" + file_content
 
-    def test_handles_migration_of_comment_location(self, tmp_path: Path) -> None:
+    def test_comment_location_migrated_when_wrong(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
         template_dir.mkdir()
         (template_dir / "test.sh").touch()
@@ -236,14 +268,14 @@ class TestCopierProvenanceViaSubprocess:
         # Force the existing comment at the top (wrong location for .sh)
         _ = (dst_dir / "test.sh").write_text(expected_hash_comment + "\n" + file_content, encoding="utf-8")
 
-        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         assert result.returncode == 0
         content = (dst_dir / "test.sh").read_text(encoding="utf-8")
         assert content == file_content + "\n" + expected_hash_comment + "\n"
 
-    # ─── manifest ────────────────────────────────────────────────────────────
 
+class TestManifest:
     def test_manifest_created_with_managed_files(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
         template_dir.mkdir()
@@ -258,7 +290,7 @@ class TestCopierProvenanceViaSubprocess:
         _ = (dst_dir / "c.json").write_text("{}", encoding="utf-8")
         _ = (dst_dir / "not-a-template.txt").write_text("content", encoding="utf-8")
 
-        result = self._run_script(
+        result = _run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/base-template",
@@ -280,12 +312,12 @@ class TestCopierProvenanceViaSubprocess:
         dst_dir.mkdir()
         _ = (dst_dir / "a.txt").write_text("content", encoding="utf-8")
 
-        _ = self._run_script(
+        _ = _run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/base-template",
         )
-        result = self._run_script(
+        result = _run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/base-template",
@@ -304,12 +336,12 @@ class TestCopierProvenanceViaSubprocess:
         dst_dir.mkdir()
         _ = (dst_dir / "a.txt").write_text("content", encoding="utf-8")
 
-        _ = self._run_script(
+        _ = _run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/base-template",
         )
-        result = self._run_script(
+        result = _run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/child-template",
@@ -331,17 +363,17 @@ class TestCopierProvenanceViaSubprocess:
         dst_dir.mkdir()
         _ = (dst_dir / "a.txt").write_text("content", encoding="utf-8")
 
-        _ = self._run_script(
+        _ = _run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/base-template",
         )
-        _ = self._run_script(
+        _ = _run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/child-template",
         )
-        result = self._run_script(
+        result = _run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/child-template",
@@ -360,7 +392,7 @@ class TestCopierProvenanceViaSubprocess:
         dst_dir = tmp_path / "destination"
         dst_dir.mkdir()
 
-        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         assert result.returncode == 0
         raw = (dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8")
