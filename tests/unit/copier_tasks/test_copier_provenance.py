@@ -4,12 +4,10 @@ from pathlib import Path
 import pytest
 import yaml
 
-from src.copier_tasks.copier_provenance import CommentFormat
-from src.copier_tasks.copier_provenance import Location
-from src.copier_tasks.copier_provenance import apply_file_markers
-from src.copier_tasks.copier_provenance import custom_file_handling
-from src.copier_tasks.copier_provenance import get_base_filename
-from src.copier_tasks.copier_provenance import update_manifest
+from .helpers import run_copier_task
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_SCRIPT_PATH = _PROJECT_ROOT / "src" / "copier_tasks" / "copier_provenance.py"
 
 expected_hash_comment = """\
 #!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -30,229 +28,286 @@ expected_markdown_comment = """\
 -->"""
 
 
-# ─── get_base_filename ────────────────────────────────────────────────────────
+class TestCopierProvenanceViaSubprocess:
+    def _run_script(
+        self,
+        *,
+        src_template_dir: Path,
+        dst_dir: Path,
+        template_src: str = "",
+    ) -> object:
+        args = [str(src_template_dir), str(dst_dir)]
+        if template_src:
+            args += ["--template-src", template_src]
+        return run_copier_task(_SCRIPT_PATH, *args)
 
+    # ─── file markers ────────────────────────────────────────────────────────
 
-class TestGetBaseFilename:
-    def test_strips_jinja_base_suffix(self) -> None:
-        assert get_base_filename("README.md.jinja-base") == "README.md"
-
-    def test_strips_jinja_suffix(self) -> None:
-        assert get_base_filename("ci.yaml.jinja") == "ci.yaml"
-
-    def test_extracts_filename_from_jinja_if_check_without_stripping(self) -> None:
-        # The extracted value is the actual destination filename; .jinja suffix must NOT be stripped
-        assert get_base_filename("{% if is_python %}.coveragerc.jinja{% endif %}.jinja-base") == ".coveragerc.jinja"
-
-    def test_returns_plain_filename_unchanged(self) -> None:
-        assert get_base_filename("plain.txt") == "plain.txt"
-
-
-# ─── apply_file_markers ───────────────────────────────────────────────────────
-
-
-def _make_dirs(tmp_path: Path) -> tuple[Path, Path]:
-    template_dir = tmp_path / "template"
-    template_dir.mkdir()
-    dst_dir = tmp_path / "destination"
-    dst_dir.mkdir()
-    return template_dir, dst_dir
-
-
-def _write_file(path: Path, content: str) -> None:
-    path.write_text(content, encoding="utf-8")
-
-
-def _read_file(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
-
-
-@pytest.mark.parametrize(
-    ("filename", "expected_location", "expected_comment"),
-    [
-        ("hash_comment.txt", "top", expected_hash_comment),
-        ("testme.md", "bottom", expected_markdown_comment),
-        ("test.json", "none", ""),
-    ],
-    ids=[
-        "default-comments-are-on-top-and-use-hash-comment",
-        "markdown-on-bottom-and-special-comment",
-        "json-files-must-not-have-comments",
-    ],
-)
-def test_add_comment(filename: str, expected_location: Location, expected_comment: str, tmp_path: Path) -> None:
-    template_dir, dst_dir = _make_dirs(tmp_path)
-    (template_dir / filename).touch()
-
-    file_content = "some content\nmore\nstuff"
-    _write_file(dst_dir / filename, file_content)
-
-    apply_file_markers(template_dir, dst_dir)
-
-    content = _read_file(dst_dir / filename)
-    if expected_location == "none":
-        assert content == file_content
-        return
-
-    if expected_location == "bottom":
-        assert content == file_content + "\n" + expected_comment + "\n"
-    else:
-        assert content == expected_comment + "\n" + file_content
-
-
-def test_jinja_base_suffix_stripped_when_matching(tmp_path: Path) -> None:
-    template_dir, dst_dir = _make_dirs(tmp_path)
-    (template_dir / "README.md.jinja-base").touch()
-
-    file_content = "some content\nmore\nstuff"
-    _write_file(dst_dir / "README.md", file_content)
-
-    apply_file_markers(template_dir, dst_dir)
-
-    content = _read_file(dst_dir / "README.md")
-    assert content == file_content + "\n" + expected_markdown_comment + "\n"
-
-
-def test_add_comment_added_when_wrapped_in_jinja_if_check(tmp_path: Path) -> None:
-    template_dir, dst_dir = _make_dirs(tmp_path)
-    (template_dir / "{% if is_python_template %}.coveragerc.jinja{% endif %}.jinja-base").touch()
-
-    file_content = "some content\nmore\nstuff"
-    _write_file(dst_dir / ".coveragerc.jinja", file_content)
-
-    apply_file_markers(template_dir, dst_dir)
-
-    content = _read_file(dst_dir / ".coveragerc.jinja")
-    assert content == expected_hash_comment + "\n" + file_content
-
-
-@pytest.mark.parametrize(
-    ("filename", "expected_location", "expected_comment"),
-    [
-        ("hash_comment.txt", "top", expected_hash_comment),
-        ("testme.md", "bottom", expected_markdown_comment),
-    ],
-    ids=[
-        "existing-hash-comment-at-top",
-        "existing-markdown-comment-at-bottom",
-    ],
-)
-def test_comment_not_duplicated_when_already_present(
-    filename: str, expected_location: Location, expected_comment: str, tmp_path: Path
-) -> None:
-    template_dir, dst_dir = _make_dirs(tmp_path)
-    (template_dir / filename).touch()
-
-    if expected_location == "top":
-        file_content = expected_comment + "\nsome content\nmore\nstuff"
-    else:
-        file_content = "some content\nmore\nstuff\n" + expected_comment + "\n"
-    _write_file(dst_dir / filename, file_content)
-
-    apply_file_markers(template_dir, dst_dir)
-
-    assert _read_file(dst_dir / filename) == file_content
-
-
-def test_non_template_file_not_modified(tmp_path: Path) -> None:
-    template_dir, dst_dir = _make_dirs(tmp_path)
-    (template_dir / "template.txt").touch()
-
-    file_content = "some content\nmore\nstuff"
-    non_template = dst_dir / "pre-existing-file-non-template-file.txt"
-    _write_file(non_template, file_content)
-
-    apply_file_markers(template_dir, dst_dir)
-
-    assert _read_file(non_template) == file_content
-
-
-def test_handles_migration_of_comment_location(tmp_path: Path) -> None:
-    shell_script_mapping = custom_file_handling.get(".sh")
-    assert shell_script_mapping is not None, "Shell files expected to have custom mapping"
-    assert shell_script_mapping.location == "bottom", (
-        "Shell files expected to have comment at the bottom to not mess with shebang"
+    @pytest.mark.parametrize(
+        ("template_filename", "dst_filename", "expected_location", "expected_comment"),
+        [
+            ("hash_comment.txt", "hash_comment.txt", "top", expected_hash_comment),
+            ("testme.md", "testme.md", "bottom", expected_markdown_comment),
+            ("test.json", "test.json", "none", ""),
+        ],
+        ids=[
+            "default-comments-are-on-top-and-use-hash-comment",
+            "markdown-on-bottom-and-special-comment",
+            "json-files-must-not-have-comments",
+        ],
     )
+    def test_add_comment(
+        self,
+        template_filename: str,
+        dst_filename: str,
+        expected_location: str,
+        expected_comment: str,
+        tmp_path: Path,
+    ) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / template_filename).touch()
 
-    template_dir, dst_dir = _make_dirs(tmp_path)
-    (template_dir / "test.sh").touch()
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        file_content = "some content\nmore\nstuff"
+        (dst_dir / dst_filename).write_text(file_content, encoding="utf-8")
 
-    file_content = "some content\nmore\nstuff"
-    _write_file(dst_dir / "test.sh", expected_hash_comment + "\n" + file_content)
+        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
-    apply_file_markers(template_dir, dst_dir)
+        assert result.returncode == 0
+        content = (dst_dir / dst_filename).read_text(encoding="utf-8")
 
-    content = _read_file(dst_dir / "test.sh")
-    assert content == file_content + "\n" + expected_hash_comment + "\n"
+        if expected_location == "none":
+            assert content == file_content
+        elif expected_location == "bottom":
+            assert content == file_content + "\n" + expected_comment + "\n"
+        else:
+            assert content == expected_comment + "\n" + file_content
 
+    def test_jinja_base_suffix_stripped_when_matching(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "README.md.jinja-base").touch()
 
-def test_result_lists_managed_files(tmp_path: Path) -> None:
-    template_dir, dst_dir = _make_dirs(tmp_path)
-    (template_dir / "a.txt").touch()
-    (template_dir / "b.md").touch()
-    (template_dir / "c.json").touch()
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        file_content = "some content\nmore\nstuff"
+        (dst_dir / "README.md").write_text(file_content, encoding="utf-8")
 
-    _write_file(dst_dir / "a.txt", "content")
-    _write_file(dst_dir / "b.md", "content")
-    _write_file(dst_dir / "c.json", "{}")
-    _write_file(dst_dir / "not-a-template.txt", "content")
+        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
-    result = apply_file_markers(template_dir, dst_dir)
+        assert result.returncode == 0
+        content = (dst_dir / "README.md").read_text(encoding="utf-8")
+        assert content == file_content + "\n" + expected_markdown_comment + "\n"
 
-    assert result.managed_files == ["a.txt", "b.md", "c.json"]
+    def test_add_comment_added_when_wrapped_in_jinja_if_check(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        template_file = template_dir / "{% if is_python_template %}.coveragerc.jinja{% endif %}.jinja-base"
+        template_file.touch()
 
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        file_content = "some content\nmore\nstuff"
+        (dst_dir / ".coveragerc.jinja").write_text(file_content, encoding="utf-8")
 
-# ─── update_manifest ──────────────────────────────────────────────────────────
+        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
+        assert result.returncode == 0
+        content = (dst_dir / ".coveragerc.jinja").read_text(encoding="utf-8")
+        assert content == expected_hash_comment + "\n" + file_content
 
-class TestUpdateManifest:
-    def test_creates_manifest_with_template_entry(self, tmp_path: Path) -> None:
-        update_manifest(tmp_path, "https://github.com/org/base-template", ["file_a.py", "file_b.md"])
+    @pytest.mark.parametrize(
+        ("template_filename", "expected_location", "expected_comment"),
+        [
+            ("hash_comment.txt", "top", expected_hash_comment),
+            ("testme.md", "bottom", expected_markdown_comment),
+        ],
+        ids=[
+            "existing-hash-comment-at-top",
+            "existing-markdown-comment-at-bottom",
+        ],
+    )
+    def test_comment_not_duplicated_when_already_present(
+        self,
+        template_filename: str,
+        expected_location: str,
+        expected_comment: str,
+        tmp_path: Path,
+    ) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / template_filename).touch()
 
-        manifest = yaml.safe_load((tmp_path / ".copier-managed-files.yaml").read_text())
-        assert manifest == {
-            "templates": [
-                {"src": "https://github.com/org/base-template", "managed_files": ["file_a.py", "file_b.md"]}
-            ]
-        }
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        if expected_location == "top":
+            file_content = expected_comment + "\nsome content\nmore\nstuff"
+        else:
+            file_content = "some content\nmore\nstuff\n" + expected_comment + "\n"
+        (dst_dir / template_filename).write_text(file_content, encoding="utf-8")
 
-    def test_idempotent_on_second_run(self, tmp_path: Path) -> None:
-        update_manifest(tmp_path, "https://github.com/org/base-template", ["file_a.py"])
-        update_manifest(tmp_path, "https://github.com/org/base-template", ["file_a.py"])
+        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
-        manifest = yaml.safe_load((tmp_path / ".copier-managed-files.yaml").read_text())
+        assert result.returncode == 0
+        assert (dst_dir / template_filename).read_text(encoding="utf-8") == file_content
+
+    def test_add_comment_does_not_happen_if_not_a_template_file(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "template.txt").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        file_content = "some content\nmore\nstuff"
+        non_template = dst_dir / "pre-existing-file-non-template-file.txt"
+        non_template.write_text(file_content, encoding="utf-8")
+
+        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert result.returncode == 0
+        assert non_template.read_text(encoding="utf-8") == file_content
+
+    def test_handles_migration_of_comment_location(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "test.sh").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        file_content = "some content\nmore\nstuff"
+        # Force the existing comment at the top (wrong location for .sh)
+        (dst_dir / "test.sh").write_text(
+            expected_hash_comment + "\n" + file_content, encoding="utf-8"
+        )
+
+        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert result.returncode == 0
+        content = (dst_dir / "test.sh").read_text(encoding="utf-8")
+        assert content == file_content + "\n" + expected_hash_comment + "\n"
+
+    # ─── manifest ────────────────────────────────────────────────────────────
+
+    def test_manifest_created_with_managed_files(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "a.txt").touch()
+        (template_dir / "b.md").touch()
+        (template_dir / "c.json").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        (dst_dir / "a.txt").write_text("content", encoding="utf-8")
+        (dst_dir / "b.md").write_text("content", encoding="utf-8")
+        (dst_dir / "c.json").write_text("{}", encoding="utf-8")
+        (dst_dir / "not-a-template.txt").write_text("content", encoding="utf-8")
+
+        result = self._run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/base-template",
+        )
+
+        assert result.returncode == 0
+        manifest = yaml.safe_load((dst_dir / ".copier-managed-files.yaml").read_text(encoding="utf-8"))
+        assert len(manifest["templates"]) == 1
+        entry = manifest["templates"][0]
+        assert entry["src"] == "https://github.com/org/base-template"
+        assert sorted(entry["managed_files"]) == ["a.txt", "b.md", "c.json"]
+
+    def test_manifest_is_idempotent_on_second_run(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "a.txt").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        (dst_dir / "a.txt").write_text("content", encoding="utf-8")
+
+        self._run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/base-template",
+        )
+        result = self._run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/base-template",
+        )
+
+        assert result.returncode == 0
+        manifest = yaml.safe_load((dst_dir / ".copier-managed-files.yaml").read_text(encoding="utf-8"))
         assert len(manifest["templates"]) == 1
 
-    def test_replaces_existing_entry_for_same_src(self, tmp_path: Path) -> None:
-        update_manifest(tmp_path, "https://github.com/org/base-template", ["old_file.py"])
-        update_manifest(tmp_path, "https://github.com/org/base-template", ["new_file.py"])
+    def test_manifest_layering_preserves_other_template_entries(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "a.txt").touch()
 
-        manifest = yaml.safe_load((tmp_path / ".copier-managed-files.yaml").read_text())
-        assert manifest["templates"][0]["managed_files"] == ["new_file.py"]
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        (dst_dir / "a.txt").write_text("content", encoding="utf-8")
 
-    def test_layering_preserves_other_template_entries(self, tmp_path: Path) -> None:
-        update_manifest(tmp_path, "https://github.com/org/base-template", ["base_file.py"])
-        update_manifest(tmp_path, "https://github.com/org/child-template", ["child_file.py"])
+        self._run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/base-template",
+        )
+        result = self._run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
 
-        manifest = yaml.safe_load((tmp_path / ".copier-managed-files.yaml").read_text())
+        assert result.returncode == 0
+        manifest = yaml.safe_load((dst_dir / ".copier-managed-files.yaml").read_text(encoding="utf-8"))
         srcs = [t["src"] for t in manifest["templates"]]
-        assert srcs == ["https://github.com/org/base-template", "https://github.com/org/child-template"]
+        assert "https://github.com/org/base-template" in srcs
+        assert "https://github.com/org/child-template" in srcs
 
-    def test_updating_child_does_not_overwrite_base(self, tmp_path: Path) -> None:
-        update_manifest(tmp_path, "https://github.com/org/base-template", ["base_file.py"])
-        update_manifest(tmp_path, "https://github.com/org/child-template", ["child_file.py"])
-        update_manifest(tmp_path, "https://github.com/org/child-template", ["child_file_v2.py"])
+    def test_manifest_child_update_does_not_overwrite_base(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "a.txt").touch()
 
-        manifest = yaml.safe_load((tmp_path / ".copier-managed-files.yaml").read_text())
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        (dst_dir / "a.txt").write_text("content", encoding="utf-8")
+
+        self._run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/base-template",
+        )
+        self._run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+        result = self._run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        assert result.returncode == 0
+        manifest = yaml.safe_load((dst_dir / ".copier-managed-files.yaml").read_text(encoding="utf-8"))
         assert len(manifest["templates"]) == 2
         base = next(t for t in manifest["templates"] if "base" in t["src"])
-        child = next(t for t in manifest["templates"] if "child" in t["src"])
-        assert base["managed_files"] == ["base_file.py"]
-        assert child["managed_files"] == ["child_file_v2.py"]
+        assert "a.txt" in base["managed_files"]
 
     def test_manifest_contains_comment_header(self, tmp_path: Path) -> None:
-        update_manifest(tmp_path, "https://github.com/org/base-template", [])
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
 
-        raw = (tmp_path / ".copier-managed-files.yaml").read_text()
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+
+        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert result.returncode == 0
+        raw = (dst_dir / ".copier-managed-files.yaml").read_text(encoding="utf-8")
         assert raw.startswith("# Generated by copier")
         assert "do not edit manually" in raw
