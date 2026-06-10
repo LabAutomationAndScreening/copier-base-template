@@ -167,4 +167,11 @@ bd export -o [relative path to repository root]/.claude/.beads/issues-dump.jsonl
 
 For more details, see README.md and docs/QUICKSTART.md.
 
+# Copier-Managed Files
+
+Files generated from an upstream copier template are listed in `.copier-managed-files.yaml` (if present).
+When reviewing a PR that modifies a file listed there, check whether the change is generic enough to
+backport to the upstream template. If so, note it in the PR description or open an issue against the
+template repo.
+
 <!-- END BEADS INTEGRATION -->
