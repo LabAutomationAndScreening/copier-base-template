@@ -41,7 +41,7 @@
 
         // Python
         "ms-python.python@2026.5.2026052901",
-        "ms-python.vscode-pylance@2026.2.104",
+        "meta.pyrefly@1.0.0",
         "ms-vscode-remote.remote-containers@0.414.0",
         "charliermarsh.ruff@2026.44.0",{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}
