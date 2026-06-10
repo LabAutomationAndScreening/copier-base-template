@@ -11,21 +11,21 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _SCRIPT_PATH = _PROJECT_ROOT / "src" / "copier_tasks" / "copier_provenance.py"
 
 expected_hash_comment = """\
-#!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#============== WARNING ==============================================================================
 # File is managed by a copier template. See .copier-managed-files.json for details.
 #
 # You are welcome to make changes to this file in your repo if they are custom to your project,
 # but if the change should be shared with other projects, please backport it to the template repo.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"""
+#====================================================================================================="""
 
 expected_markdown_comment = """\
 <!--
-!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+============== WARNING ==============================================================================
  File is managed by a copier template. See .copier-managed-files.json for details.
 
  You are welcome to make changes to this file in your repo if they are custom to your project,
  but if the change should be shared with other projects, please backport it to the template repo.
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+=====================================================================================================
 -->"""
 
 
