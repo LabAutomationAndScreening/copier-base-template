@@ -86,13 +86,20 @@ def apply_file_markers(
     src_template_directory: Path,
     dst_directory: Path,
 ) -> ProvenanceResult:
-    template_base_names = {get_base_filename(f.name) for f in src_template_directory.glob("**/*") if f.is_file()}
+    template_base_paths: set[Path] = set()
+    for f in src_template_directory.glob("**/*"):
+        if not f.is_file():
+            continue
+        parts = list(f.relative_to(src_template_directory).parts)
+        parts[-1] = get_base_filename(parts[-1])
+        template_base_paths.add(Path(*parts))
+
     managed: list[str] = []
 
     for file in sorted(dst_directory.glob("**/*")):
         if not file.is_file():
             continue
-        if file.name not in template_base_names:
+        if file.relative_to(dst_directory) not in template_base_paths:
             continue
 
         comment_formatting = custom_file_handling.get(file.suffix, default_comment_format)
