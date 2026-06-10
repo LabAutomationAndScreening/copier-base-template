@@ -169,9 +169,9 @@ For more details, see README.md and docs/QUICKSTART.md.
 
 # Copier-Managed Files
 
-Files generated from an upstream copier template are listed in `.copier-managed-files.json` (if present).
-When reviewing a PR that modifies a file listed there, check whether the change is generic enough to
-backport to the upstream template. If so, note it in the PR description or open an issue against the
-template repo.
+Files generated from an upstream copier templates are listed in `.copier-managed-files.json` (if present).
+When reviewing code or PR that modifies a file listed there, check whether the change is generic enough to
+backport to the upstream template. If so, add a single summary comment (not one per file) noting which of
+those files are template-managed and that the changes may warrant backporting to the relevant upstream template repo.
 
 <!-- END BEADS INTEGRATION -->
