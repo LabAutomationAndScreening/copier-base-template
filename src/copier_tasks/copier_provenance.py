@@ -1,7 +1,9 @@
 import argparse
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field
 from pathlib import Path
+from typing import Any
 from typing import Literal
 
 import yaml
@@ -53,7 +55,32 @@ def get_base_filename(template_filename: str) -> str:
 
 @dataclass
 class ProvenanceResult:
-    managed_files: list[str] = field(default_factory=list)
+    managed_files: list[str] = field(default_factory=list[str])
+
+
+def _build_specific_header(comment_type: CommentType) -> str | None:
+    if comment_type == "hash":
+        return "\n".join(f"#{line}" for line in HEADER.split("\n"))
+    if comment_type == "markdown":
+        return f"<!--\n{HEADER}\n-->"
+    return None
+
+
+def _write_file_marker(file: Path, comment_format: CommentFormat, specific_header: str) -> None:
+    with Path.open(file, "r+") as f:
+        content = f.read()
+        if comment_format.location == "top":
+            content = content.replace(f"{specific_header}\n", "")
+        elif comment_format.location == "bottom":
+            content = content.replace(f"\n{specific_header}\n", "")
+            content = content.replace(f"{specific_header}\n", "")
+        _ = f.seek(0)
+        _ = f.truncate()
+        if comment_format.location == "top":
+            _ = f.write(specific_header + "\n")
+        _ = f.write(content)
+        if comment_format.location == "bottom":
+            _ = f.write("\n" + specific_header + "\n")
 
 
 def apply_file_markers(
@@ -70,34 +97,17 @@ def apply_file_markers(
             continue
 
         comment_formatting = custom_file_handling.get(file.suffix, default_comment_format)
-        if comment_formatting.comment_type == "hash":
-            specific_header = "\n".join(f"#{line}" for line in HEADER.split("\n"))
-        elif comment_formatting.comment_type == "markdown":
-            specific_header = f"<!--\n{HEADER}\n-->"
-        else:
+        if comment_formatting.location == "top" and comment_formatting.comment_type != "none":
+            first_line = file.read_text(encoding="utf-8").split("\n", 1)[0]
+            if first_line.startswith("#!/"):
+                comment_formatting = CommentFormat(comment_formatting.comment_type, "bottom")
+
+        specific_header = _build_specific_header(comment_formatting.comment_type)
+        if specific_header is None:
             managed.append(str(file.relative_to(dst_directory)))
             continue
 
-        with Path.open(file, "r+") as f:
-            content = f.read()
-
-            # Strip any existing header to allow location migration without duplication.
-            # For bottom: strip "\n<header>\n" first (avoids leaving a stray trailing newline),
-            # then fall back to "<header>\n" in case it was added without a preceding newline.
-            if comment_formatting.location == "top":
-                content = content.replace(f"{specific_header}\n", "")
-            elif comment_formatting.location == "bottom":
-                content = content.replace(f"\n{specific_header}\n", "")
-                content = content.replace(f"{specific_header}\n", "")
-
-            f.seek(0)
-            f.truncate()
-            if comment_formatting.location == "top":
-                f.write(specific_header + "\n")
-            f.write(content)
-            if comment_formatting.location == "bottom":
-                f.write("\n" + specific_header + "\n")
-
+        _write_file_marker(file, comment_formatting, specific_header)
         managed.append(str(file.relative_to(dst_directory)))
 
     managed.sort()
@@ -107,12 +117,12 @@ def apply_file_markers(
 def update_manifest(dst_directory: Path, template_src: str, managed_files: list[str]) -> None:
     manifest_path = dst_directory / ".copier-managed-files.yaml"
 
-    existing: dict = {}
+    existing: dict[str, Any] = {}
     if manifest_path.exists():
         with manifest_path.open() as f:
             existing = yaml.safe_load(f) or {}
 
-    templates: list[dict] = existing.get("templates", [])
+    templates: list[dict[str, Any]] = existing.get("templates", [])
     templates = [t for t in templates if t.get("src") != template_src]
     templates.append({"src": template_src, "managed_files": managed_files})
 
@@ -123,15 +133,15 @@ def update_manifest(dst_directory: Path, template_src: str, managed_files: list[
     )
 
     with manifest_path.open("w") as f:
-        f.write(header_comment)
+        _ = f.write(header_comment)
         yaml.dump({"templates": templates}, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Add copier provenance markers and manifest")
-    parser.add_argument("src_template_dir", type=Path, help="Template source directory")
-    parser.add_argument("dst_dir", type=Path, help="Destination directory")
-    parser.add_argument("--template-src", default="", help="Template source identifier for the manifest")
+    _ = parser.add_argument("src_template_dir", type=Path, help="Template source directory")
+    _ = parser.add_argument("dst_dir", type=Path, help="Destination directory")
+    _ = parser.add_argument("--template-src", default="", help="Template source identifier for the manifest")
     args = parser.parse_args()
 
     result = apply_file_markers(args.src_template_dir, args.dst_dir)

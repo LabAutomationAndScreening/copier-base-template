@@ -1,4 +1,5 @@
 # pylint: disable=duplicate-code  # duplication here is intentional — each case verifies its own expected content
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -35,7 +36,7 @@ class TestCopierProvenanceViaSubprocess:
         src_template_dir: Path,
         dst_dir: Path,
         template_src: str = "",
-    ) -> object:
+    ) -> subprocess.CompletedProcess[str]:
         args = [str(src_template_dir), str(dst_dir)]
         if template_src:
             args += ["--template-src", template_src]
@@ -71,7 +72,7 @@ class TestCopierProvenanceViaSubprocess:
         dst_dir = tmp_path / "destination"
         dst_dir.mkdir()
         file_content = "some content\nmore\nstuff"
-        (dst_dir / dst_filename).write_text(file_content, encoding="utf-8")
+        _ = (dst_dir / dst_filename).write_text(file_content, encoding="utf-8")
 
         result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
@@ -93,7 +94,7 @@ class TestCopierProvenanceViaSubprocess:
         dst_dir = tmp_path / "destination"
         dst_dir.mkdir()
         file_content = "some content\nmore\nstuff"
-        (dst_dir / "README.md").write_text(file_content, encoding="utf-8")
+        _ = (dst_dir / "README.md").write_text(file_content, encoding="utf-8")
 
         result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
@@ -110,7 +111,7 @@ class TestCopierProvenanceViaSubprocess:
         dst_dir = tmp_path / "destination"
         dst_dir.mkdir()
         file_content = "some content\nmore\nstuff"
-        (dst_dir / ".coveragerc.jinja").write_text(file_content, encoding="utf-8")
+        _ = (dst_dir / ".coveragerc.jinja").write_text(file_content, encoding="utf-8")
 
         result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
@@ -146,7 +147,7 @@ class TestCopierProvenanceViaSubprocess:
             file_content = expected_comment + "\nsome content\nmore\nstuff"
         else:
             file_content = "some content\nmore\nstuff\n" + expected_comment + "\n"
-        (dst_dir / template_filename).write_text(file_content, encoding="utf-8")
+        _ = (dst_dir / template_filename).write_text(file_content, encoding="utf-8")
 
         result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
@@ -162,12 +163,53 @@ class TestCopierProvenanceViaSubprocess:
         dst_dir.mkdir()
         file_content = "some content\nmore\nstuff"
         non_template = dst_dir / "pre-existing-file-non-template-file.txt"
-        non_template.write_text(file_content, encoding="utf-8")
+        _ = non_template.write_text(file_content, encoding="utf-8")
 
         result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         assert result.returncode == 0
         assert non_template.read_text(encoding="utf-8") == file_content
+
+    @pytest.mark.parametrize(
+        ("shebang_line", "expected_location"),
+        [
+            ("#!/usr/bin/env python3\n", "bottom"),
+            ("#!/bin/bash\n", "bottom"),
+            ("# not a shebang\n", "top"),
+            ("#! not-a-path\n", "top"),
+            ("", "top"),
+        ],
+        ids=[
+            "python-shebang-goes-bottom",
+            "bash-shebang-goes-bottom",
+            "hash-comment-not-shebang-stays-top",
+            "hash-bang-without-slash-stays-top",
+            "no-shebang-stays-top",
+        ],
+    )
+    def test_shebang_forces_comment_to_bottom(
+        self,
+        shebang_line: str,
+        expected_location: str,
+        tmp_path: Path,
+    ) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "script.py").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        file_content = shebang_line + "print('hello')\n"
+        _ = (dst_dir / "script.py").write_text(file_content, encoding="utf-8")
+
+        result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert result.returncode == 0
+        content = (dst_dir / "script.py").read_text(encoding="utf-8")
+        if expected_location == "bottom":
+            assert content == file_content + "\n" + expected_hash_comment + "\n"
+        else:
+            assert content == expected_hash_comment + "\n" + file_content
 
     def test_handles_migration_of_comment_location(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
@@ -178,9 +220,7 @@ class TestCopierProvenanceViaSubprocess:
         dst_dir.mkdir()
         file_content = "some content\nmore\nstuff"
         # Force the existing comment at the top (wrong location for .sh)
-        (dst_dir / "test.sh").write_text(
-            expected_hash_comment + "\n" + file_content, encoding="utf-8"
-        )
+        _ = (dst_dir / "test.sh").write_text(expected_hash_comment + "\n" + file_content, encoding="utf-8")
 
         result = self._run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
@@ -199,10 +239,10 @@ class TestCopierProvenanceViaSubprocess:
 
         dst_dir = tmp_path / "destination"
         dst_dir.mkdir()
-        (dst_dir / "a.txt").write_text("content", encoding="utf-8")
-        (dst_dir / "b.md").write_text("content", encoding="utf-8")
-        (dst_dir / "c.json").write_text("{}", encoding="utf-8")
-        (dst_dir / "not-a-template.txt").write_text("content", encoding="utf-8")
+        _ = (dst_dir / "a.txt").write_text("content", encoding="utf-8")
+        _ = (dst_dir / "b.md").write_text("content", encoding="utf-8")
+        _ = (dst_dir / "c.json").write_text("{}", encoding="utf-8")
+        _ = (dst_dir / "not-a-template.txt").write_text("content", encoding="utf-8")
 
         result = self._run_script(
             src_template_dir=template_dir,
@@ -224,9 +264,9 @@ class TestCopierProvenanceViaSubprocess:
 
         dst_dir = tmp_path / "destination"
         dst_dir.mkdir()
-        (dst_dir / "a.txt").write_text("content", encoding="utf-8")
+        _ = (dst_dir / "a.txt").write_text("content", encoding="utf-8")
 
-        self._run_script(
+        _ = self._run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/base-template",
@@ -248,9 +288,9 @@ class TestCopierProvenanceViaSubprocess:
 
         dst_dir = tmp_path / "destination"
         dst_dir.mkdir()
-        (dst_dir / "a.txt").write_text("content", encoding="utf-8")
+        _ = (dst_dir / "a.txt").write_text("content", encoding="utf-8")
 
-        self._run_script(
+        _ = self._run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/base-template",
@@ -268,20 +308,21 @@ class TestCopierProvenanceViaSubprocess:
         assert "https://github.com/org/child-template" in srcs
 
     def test_manifest_child_update_does_not_overwrite_base(self, tmp_path: Path) -> None:
+        expected_num_manifests_in_project = 2
         template_dir = tmp_path / "template"
         template_dir.mkdir()
         (template_dir / "a.txt").touch()
 
         dst_dir = tmp_path / "destination"
         dst_dir.mkdir()
-        (dst_dir / "a.txt").write_text("content", encoding="utf-8")
+        _ = (dst_dir / "a.txt").write_text("content", encoding="utf-8")
 
-        self._run_script(
+        _ = self._run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/base-template",
         )
-        self._run_script(
+        _ = self._run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/child-template",
@@ -294,7 +335,7 @@ class TestCopierProvenanceViaSubprocess:
 
         assert result.returncode == 0
         manifest = yaml.safe_load((dst_dir / ".copier-managed-files.yaml").read_text(encoding="utf-8"))
-        assert len(manifest["templates"]) == 2
+        assert len(manifest["templates"]) == expected_num_manifests_in_project
         base = next(t for t in manifest["templates"] if "base" in t["src"])
         assert "a.txt" in base["managed_files"]
 
