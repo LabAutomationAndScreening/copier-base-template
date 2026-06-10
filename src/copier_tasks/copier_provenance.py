@@ -144,7 +144,21 @@ def apply_file_markers(
     return ProvenanceResult(managed_files=managed)
 
 
-def update_manifest(dst_directory: Path, template_src: str, managed_files: list[str]) -> None:
+def _read_parent_src(src_template_directory: Path) -> str | None:
+    answers_path = src_template_directory.parent / ".copier-answers.yml"
+    if not answers_path.exists():
+        return None
+    text = answers_path.read_text(encoding="utf-8")
+    m = re.search(r"^_src_path:\s*(.+)$", text, re.MULTILINE)
+    return m.group(1).strip() if m else None
+
+
+def update_manifest(
+    dst_directory: Path,
+    template_src: str,
+    managed_files: list[str],
+    parent_src: str | None = None,
+) -> None:
     manifest_path = dst_directory / ".copier-managed-files.json"
 
     existing: dict[str, Any] = {}
@@ -153,7 +167,12 @@ def update_manifest(dst_directory: Path, template_src: str, managed_files: list[
 
     templates: list[dict[str, Any]] = existing.get("templates", [])
     templates = [t for t in templates if t.get("src") != template_src]
-    templates.append({"src": template_src, "managed_files": managed_files})
+
+    entry: dict[str, Any] = {"src": template_src}
+    if parent_src:
+        entry["parent_src"] = parent_src
+    entry["managed_files"] = managed_files
+    templates.append(entry)
 
     _ = manifest_path.write_text(
         json.dumps({"templates": templates}, indent=2) + "\n",
@@ -169,7 +188,8 @@ def main() -> None:
     args = parser.parse_args()
 
     result = apply_file_markers(args.src_template_dir, args.dst_dir)
-    update_manifest(args.dst_dir, args.template_src or str(args.src_template_dir), result.managed_files)
+    parent_src = _read_parent_src(args.src_template_dir)
+    update_manifest(args.dst_dir, args.template_src or str(args.src_template_dir), result.managed_files, parent_src)
 
 
 if __name__ == "__main__":

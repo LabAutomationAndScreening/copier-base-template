@@ -385,16 +385,83 @@ class TestManifest:
         base = next(t for t in manifest["templates"] if "base" in t["src"])
         assert "a.txt" in base["managed_files"]
 
-    def test_manifest_is_valid_json(self, tmp_path: Path) -> None:
+    def test_manifest_src_matches_template_src_argument(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
         template_dir.mkdir()
 
         dst_dir = tmp_path / "destination"
         dst_dir.mkdir()
 
-        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+        result = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/my-template",
+        )
 
         assert result.returncode == 0
-        raw = (dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8")
-        parsed = json.loads(raw)
-        assert "templates" in parsed
+        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        entry = manifest["templates"][0]
+        assert entry["src"] == "https://github.com/org/my-template"
+
+    def test_manifest_structure_is_valid(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "a.txt").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "a.txt").write_text("content", encoding="utf-8")
+
+        result = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/my-template",
+        )
+
+        assert result.returncode == 0
+        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        assert isinstance(manifest["templates"], list)
+        for entry in manifest["templates"]:
+            assert isinstance(entry["src"], str)
+            assert isinstance(entry["managed_files"], list)
+            assert all(isinstance(f, str) for f in entry["managed_files"])
+
+    def test_manifest_parent_src_discovered_from_copier_answers(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        _ = (tmp_path / ".copier-answers.yml").write_text(
+            "_src_path: https://github.com/org/parent-template\n",
+            encoding="utf-8",
+        )
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+
+        result = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        assert result.returncode == 0
+        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        entry = manifest["templates"][0]
+        assert entry["parent_src"] == "https://github.com/org/parent-template"
+
+    def test_manifest_no_parent_src_when_no_copier_answers(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+
+        result = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/root-template",
+        )
+
+        assert result.returncode == 0
+        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        entry = manifest["templates"][0]
+        assert "parent_src" not in entry
