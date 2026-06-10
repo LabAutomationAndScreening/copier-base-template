@@ -24,13 +24,24 @@ custom_file_handling: dict[str, CommentFormat] = {
     ".js": CommentFormat("block", "top"),
     ".cjs": CommentFormat("block", "top"),
     ".mjs": CommentFormat("block", "top"),
+    ".css": CommentFormat("block", "top"),
     ".ts": CommentFormat("block", "top"),
     ".cts": CommentFormat("block", "top"),
     ".mts": CommentFormat("block", "top"),
+    ".vue": CommentFormat("markdown", "top"),
+    ".html": CommentFormat("markdown", "top"),
+    ".svg": CommentFormat("markdown", "top"),
     ".json": CommentFormat("none", "none"),
     ".jsonc": CommentFormat("none", "none"),
     ".yaml": CommentFormat("hash", "top"),
     ".yml": CommentFormat("hash", "top"),
+}
+# Per-filename overrides for dotfiles/extensionless files where suffix alone is insufficient.
+custom_filename_handling: dict[str, CommentFormat] = {
+    ".python-version": CommentFormat("none", "none"),
+    ".prettierrc": CommentFormat("none", "none"),
+    ".nvmrc": CommentFormat("none", "none"),
+    ".node-version": CommentFormat("none", "none"),
 }
 
 HEADER = """\
@@ -112,7 +123,10 @@ def apply_file_markers(
         if file.relative_to(dst_directory) not in template_base_paths:
             continue
 
-        comment_formatting = custom_file_handling.get(file.suffix, default_comment_format)
+        comment_formatting = custom_filename_handling.get(
+            file.name,
+            custom_file_handling.get(file.suffix, default_comment_format),
+        )
         if comment_formatting.location == "top" and comment_formatting.comment_type != "none":
             first_line = file.read_text(encoding="utf-8").split("\n", 1)[0]
             if first_line.startswith("#!/"):
