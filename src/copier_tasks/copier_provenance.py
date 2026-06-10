@@ -28,10 +28,10 @@ custom_file_handling: dict[str, CommentFormat] = {
 
 HEADER = """\
 ============== WARNING ==============================================================================
- File is managed by a copier template. See .copier-managed-files.json for details.
+File is managed by a copier template. See .copier-managed-files.json for details.
 
- You are welcome to make changes to this file in your repo if they are custom to your project,
- but if the change should be shared with other projects, please backport it to the template repo.
+You are welcome to make changes to this file in your repo if they are custom to your project,
+but if the change should be shared with other projects, please backport it to the template repo.
 ====================================================================================================="""
 
 
@@ -59,7 +59,7 @@ class ProvenanceResult:
 
 def _build_specific_header(comment_type: CommentType) -> str | None:
     if comment_type == "hash":
-        return "\n".join(f"#{line}" for line in HEADER.split("\n"))
+        return "\n".join(f"# {line}" if line else "#" for line in HEADER.split("\n"))
     if comment_type == "markdown":
         return f"<!--\n{HEADER}\n-->"
     return None
