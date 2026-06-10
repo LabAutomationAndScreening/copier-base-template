@@ -83,7 +83,7 @@ requires-dist = [
     { name = "copier", specifier = "==9.15.1" },
     { name = "copier-template-extensions", specifier = "==0.3.3" },
     { name = "faker", specifier = ">=40.21.0" },
-    { name = "mutmut", git = "https://github.com/boxed/mutmut.git?rev=e92d763eb8a6c16fb7a1f39ea34ffa6c620c9548" },
+    { name = "mutmut", specifier = ">=3.6.0" },
     { name = "pyrefly", specifier = ">=1.0.0" },
     { name = "pyright", extras = ["nodejs"], specifier = ">=1.1.410" },
     { name = "pytest", specifier = ">=9.0.3" },
@@ -377,8 +377,8 @@ wheels = [
 
 [[package]]
 name = "mutmut"
-version = "3.5.0"
-source = { git = "https://github.com/boxed/mutmut.git?rev=e92d763eb8a6c16fb7a1f39ea34ffa6c620c9548#e92d763eb8a6c16fb7a1f39ea34ffa6c620c9548" }
+version = "3.6.0"
+source = { registry = "https://pypi.org/simple/" }
 dependencies = [
     { name = "click" },
     { name = "coverage" },
@@ -386,6 +386,10 @@ dependencies = [
     { name = "pytest" },
     { name = "setproctitle" },
     { name = "textual" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/af/b0/ebcae42b90b07756b7aa10c4176835f436332e6c1cb28bc35bae83462382/mutmut-3.6.0.tar.gz", hash = "sha256:bcbd3e4d0d2d4edf3dfb42955417279a8866a3dbbcb87d619f2f3fd0ac7fafda", size = 51538, upload-time = "2026-06-06T07:44:51.798Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/5a/a0caa3f9db407b5d12c311bd4c87aa67fdd6e3f329377149e303108a1c51/mutmut-3.6.0-py3-none-any.whl", hash = "sha256:a9f5b8dcf6cbf9496769d7cf8bdbba37a0ec709ad98f88d103238b62f10bdf37", size = 47770, upload-time = "2026-06-06T07:44:50.038Z" },
 ]
 
 [[package]]
