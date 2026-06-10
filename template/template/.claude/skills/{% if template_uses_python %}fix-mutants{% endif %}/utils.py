@@ -52,6 +52,27 @@ def status_for_exit_code(exit_code: int | None) -> str:
     return STATUS_BY_EXIT_CODE.get(exit_code, "suspicious")
 
 
+def _declares_mutmut(pyproject: Path) -> bool:
+    if not pyproject.is_file():
+        return False
+    try:
+        content = pyproject.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return "[tool.mutmut]" in content
+
+
+def _mutmut_projects_below(cwd: Path) -> list[Path]:
+    matches: list[Path] = []
+    for pattern in ("*/pyproject.toml", "*/*/pyproject.toml"):
+        for pyproject in cwd.glob(pattern):
+            if "mutants" in pyproject.parts:
+                continue
+            if _declares_mutmut(pyproject):
+                matches.append(pyproject.parent)
+    return matches
+
+
 def find_backend_root() -> Path:
     """Locate the directory whose pyproject.toml declares a [tool.mutmut] table.
 
@@ -63,23 +84,10 @@ def find_backend_root() -> Path:
     cwd = Path.cwd()
 
     for candidate in [cwd, *cwd.parents]:
-        pyproject = candidate / "pyproject.toml"
-        if not pyproject.is_file():
-            continue
-        if "[tool.mutmut]" in pyproject.read_text(encoding="utf-8"):
+        if _declares_mutmut(candidate / "pyproject.toml"):
             return candidate
 
-    matches: list[Path] = []
-    for pattern in ("*/pyproject.toml", "*/*/pyproject.toml"):
-        for pyproject in cwd.glob(pattern):
-            if "mutants" in pyproject.parts:
-                continue
-            try:
-                content = pyproject.read_text(encoding="utf-8")
-            except OSError:
-                continue
-            if "[tool.mutmut]" in content:
-                matches.append(pyproject.parent)
+    matches = _mutmut_projects_below(cwd)
 
     if len(matches) == 1:
         return matches[0]
