@@ -507,4 +507,5 @@ class TestManifest:
         assert result.returncode == 0
         manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
         entry = manifest["templates"][0]
+        assert entry["src"] == "https://github.com/org/root-template"
         assert "parent_src" not in entry
