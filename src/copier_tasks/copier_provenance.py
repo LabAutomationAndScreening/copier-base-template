@@ -140,7 +140,11 @@ def apply_file_markers(
             custom_file_handling.get(file.suffix, default_comment_format),
         )
         if comment_formatting.location == "top" and comment_formatting.comment_type != "none":
-            first_line = file.read_text(encoding="utf-8").split("\n", 1)[0]
+            try:
+                first_line = file.read_text(encoding="utf-8").split("\n", 1)[0]
+            except UnicodeDecodeError:
+                managed.append(str(file.relative_to(dst_directory)))
+                continue
             if first_line.startswith("#!/"):
                 comment_formatting = CommentFormat(comment_formatting.comment_type, "bottom")
 
