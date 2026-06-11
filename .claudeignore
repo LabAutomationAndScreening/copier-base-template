@@ -1,0 +1,5 @@
+# Prevent Claude from loading skills/settings from the Copier template directory.
+# The template/.claude/ folder mirrors the project's .claude/ structure but is
+# template source — it should not be treated as active configuration.
+template/.claude/
+template/template/.claude/
