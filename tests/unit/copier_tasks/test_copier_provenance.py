@@ -527,3 +527,50 @@ class TestManifest:
         entry = manifest["templates"][0]
         assert entry["src"] == "https://github.com/org/root-template"
         assert "parent_src" not in entry
+
+    def test_ancestor_files_attributed_to_ancestor_template(self, tmp_path: Path) -> None:
+        # Simulate nuxt-python template updating bag-driver.
+        # nuxt-python's own manifest lists base-template as managing "shared.py".
+        # "app.py" is nuxt-specific. Expect two manifest entries with correct attribution.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "shared.py").touch()
+        (template_dir / "app.py").touch()
+
+        # Ancestor manifest (nuxt-python's .copier-managed-files.json in the template clone root)
+        _ = (tmp_path / ".copier-managed-files.json").write_text(
+            json.dumps(
+                {
+                    "templates": [
+                        {"src": "https://github.com/org/base-template", "managed_files": ["shared.py"]},
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "shared.py").write_text("x = 1\n", encoding="utf-8")
+        _ = (dst_dir / "app.py").write_text("y = 2\n", encoding="utf-8")
+
+        result = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/nuxt-template",
+        )
+
+        assert result.returncode == 0
+        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        srcs = {t["src"]: t for t in manifest["templates"]}
+        assert "https://github.com/org/base-template" in srcs
+        assert "https://github.com/org/nuxt-template" in srcs
+        assert srcs["https://github.com/org/base-template"]["managed_files"] == ["shared.py"]
+        assert srcs["https://github.com/org/nuxt-template"]["managed_files"] == ["app.py"]
+        # shared.py header references the base template URL
+        shared_content = (dst_dir / "shared.py").read_text(encoding="utf-8")
+        assert "https://github.com/org/base-template" in shared_content
+        assert "https://github.com/org/nuxt-template" not in shared_content
+        # app.py header references the nuxt template URL
+        app_content = (dst_dir / "app.py").read_text(encoding="utf-8")
+        assert "https://github.com/org/nuxt-template" in app_content

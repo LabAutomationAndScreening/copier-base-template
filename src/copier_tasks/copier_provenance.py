@@ -2,7 +2,6 @@ import argparse
 import json
 import re
 from dataclasses import dataclass
-from dataclasses import field
 from pathlib import Path
 from typing import Any
 from typing import Literal
@@ -49,13 +48,24 @@ custom_filename_handling: dict[str, CommentFormat] = {
     ".node-version": CommentFormat("none", "none"),
 }
 
-HEADER = """\
+_HEADER_BASE = """\
 ============== WARNING ==============================================================================
 File is managed by a copier template. See .copier-managed-files.json for details.
 
 You are welcome to make changes to this file in your repo if they are custom to your project,
 but if the change should be shared with other projects, please backport it to the template repo.
 ====================================================================================================="""
+
+
+def _build_header(template_src: str) -> str:
+    """Return the header text. With a template_src, embeds the URL on its own line."""
+    if not template_src:
+        return _HEADER_BASE
+    lines: list[str] = list(_HEADER_BASE.split("\n"))
+    # Replace the generic "File is managed" line with two lines: URL line + "See ..." line.
+    lines[1] = f"File is managed by copier template: {template_src}"
+    lines.insert(2, "See .copier-managed-files.json for details.")
+    return "\n".join(lines)
 
 
 def get_base_filename(template_filename: str) -> str:
@@ -75,36 +85,52 @@ def get_base_filename(template_filename: str) -> str:
     return template_filename
 
 
-@dataclass
-class ProvenanceResult:
-    managed_files: list[str] = field(default_factory=list[str])
-
-
-def _build_specific_header(comment_type: CommentType) -> str | None:
+def _build_specific_header(comment_type: CommentType, template_src: str = "") -> str | None:
+    header = _build_header(template_src)
     if comment_type == "hash":
-        return "\n".join(f"# {line}" if line else "#" for line in HEADER.split("\n"))
+        return "\n".join(f"# {line}" if line else "#" for line in header.split("\n"))
     if comment_type == "batch":
-        return "\n".join(f"REM {line}" if line else "REM" for line in HEADER.split("\n"))
+        return "\n".join(f"REM {line}" if line else "REM" for line in header.split("\n"))
     if comment_type == "block":
-        body = "\n".join(f" * {line}" if line else " *" for line in HEADER.split("\n"))
+        body = "\n".join(f" * {line}" if line else " *" for line in header.split("\n"))
         return f"/*\n{body}\n */"
     if comment_type == "jinja":
         # Jinja renders {# ... #} to empty string, so this marker is invisible in rendered output.
-        body = "\n".join(f" {line}" if line else "" for line in HEADER.split("\n"))
+        body = "\n".join(f" {line}" if line else "" for line in header.split("\n"))
         return f"{{#\n{body}\n#}}"
     if comment_type == "markdown":
-        return f"<!--\n{HEADER}\n-->"
+        return f"<!--\n{header}\n-->"
     return None
+
+
+def _strip_existing_header(content: str, comment_format: CommentFormat) -> str:
+    """Strip any existing copier header block regardless of template URL inside."""
+    t = comment_format.comment_type
+    loc = comment_format.location
+    if t == "hash":
+        pattern = r"# ={14} WARNING[^\n]*\n(?:.*\n)*?# ={50,}\n"
+    elif t == "batch":
+        pattern = r"REM ={14} WARNING[^\n]*\n(?:.*\n)*?REM ={50,}\n"
+    elif t == "block":
+        pattern = r"/\*\n(?:[^\n]*\n)*? \*/\n"
+    elif t == "jinja":
+        pattern = r"\{#\n(?:[^\n]*\n)*?#\}\n"
+    elif t == "markdown":
+        pattern = r"<!--\n(?:[^\n]*\n)*?-->\n"
+    else:
+        return content
+    if loc == "bottom":
+        result = re.sub(r"\n" + pattern, "", content, count=1)
+        if result == content:
+            result = re.sub(pattern, "", content, count=1)
+        return result
+    return re.sub(pattern, "", content, count=1)
 
 
 def _write_file_marker(file: Path, comment_format: CommentFormat, specific_header: str) -> None:
     with Path.open(file, "r+") as f:
         content = f.read()
-        if comment_format.location == "top":
-            content = content.replace(f"{specific_header}\n", "")
-        elif comment_format.location == "bottom":
-            content = content.replace(f"\n{specific_header}\n", "")
-            content = content.replace(f"{specific_header}\n", "")
+        content = _strip_existing_header(content, comment_format)
         _ = f.seek(0)
         _ = f.truncate()
         if comment_format.location == "top":
@@ -114,50 +140,79 @@ def _write_file_marker(file: Path, comment_format: CommentFormat, specific_heade
             _ = f.write("\n" + specific_header + "\n")
 
 
+def _resolve_file_src(
+    rel_str: str,
+    template_src: str,
+    ancestor_managed_by_src: dict[str, set[str]] | None,
+) -> str:
+    """Return the template src that originally contributed this file path."""
+    if ancestor_managed_by_src:
+        for origin_src, origin_files in ancestor_managed_by_src.items():
+            if rel_str in origin_files:
+                return origin_src
+    return template_src
+
+
+def _get_comment_format_for_file(file: Path, default_format: CommentFormat) -> CommentFormat | None:
+    """Return the effective CommentFormat, or None if the file is binary (track but skip marking)."""
+    if default_format.location != "top" or default_format.comment_type == "none":
+        return default_format
+    try:
+        first_line = file.read_text(encoding="utf-8").split("\n", 1)[0]
+    except UnicodeDecodeError:
+        return None
+    if first_line.startswith("#!/"):
+        return CommentFormat(default_format.comment_type, "bottom")
+    return default_format
+
+
 def apply_file_markers(
     *,
     src_template_directory: Path,
     dst_directory: Path,
-) -> ProvenanceResult:
+    template_src: str = "",
+    ancestor_managed_by_src: dict[str, set[str]] | None = None,
+) -> dict[str, list[str]]:
+    """Stamp managed files with provenance headers.
+
+    Returns files bucketed by originating template src. Files listed in
+    ancestor_managed_by_src are attributed to their originating ancestor template;
+    remaining files are attributed to template_src.
+    """
     template_base_paths: set[Path] = set()
     for f in src_template_directory.glob("**/*"):
         if not f.is_file():
             continue
-        parts = list(f.relative_to(src_template_directory).parts)
-        parts = [get_base_filename(p) for p in parts]
+        parts = [get_base_filename(p) for p in f.relative_to(src_template_directory).parts]
         template_base_paths.add(Path(*parts))
 
-    managed: list[str] = []
+    managed: dict[str, list[str]] = {}
 
     for file in sorted(dst_directory.glob("**/*")):
         if not file.is_file():
             continue
-        if file.relative_to(dst_directory) not in template_base_paths:
+        rel = file.relative_to(dst_directory)
+        if rel not in template_base_paths:
             continue
 
-        comment_formatting = custom_filename_handling.get(
-            file.name,
-            custom_file_handling.get(file.suffix, default_comment_format),
+        rel_str = str(rel)
+        file_src = _resolve_file_src(rel_str, template_src, ancestor_managed_by_src)
+        managed.setdefault(file_src, []).append(rel_str)
+
+        base_format = custom_filename_handling.get(
+            file.name, custom_file_handling.get(file.suffix, default_comment_format)
         )
-        if comment_formatting.location == "top" and comment_formatting.comment_type != "none":
-            try:
-                first_line = file.read_text(encoding="utf-8").split("\n", 1)[0]
-            except UnicodeDecodeError:
-                managed.append(str(file.relative_to(dst_directory)))
-                continue
-            if first_line.startswith("#!/"):
-                comment_formatting = CommentFormat(comment_formatting.comment_type, "bottom")
-
-        specific_header = _build_specific_header(comment_formatting.comment_type)
-        if specific_header is None:
-            managed.append(str(file.relative_to(dst_directory)))
+        comment_formatting = _get_comment_format_for_file(file, base_format)
+        if comment_formatting is None:
             continue
 
-        _write_file_marker(file, comment_formatting, specific_header)
-        managed.append(str(file.relative_to(dst_directory)))
+        specific_header = _build_specific_header(comment_formatting.comment_type, file_src)
+        if specific_header is not None:
+            _write_file_marker(file, comment_formatting, specific_header)
 
-    managed.sort()
-    return ProvenanceResult(managed_files=managed)
+    for file_list in managed.values():
+        file_list.sort()
+    return managed
 
 
 def _read_parent_src(src_template_directory: Path) -> str | None:
@@ -204,15 +259,36 @@ def main() -> None:
     _ = parser.add_argument("--template-src", default="", help="Template source identifier for the manifest")
     args = parser.parse_args()
 
-    result = apply_file_markers(src_template_directory=args.src_template_dir, dst_directory=args.dst_dir)
-    parent_src = _read_parent_src(args.src_template_dir)
-    template_src = args.template_src or str(args.src_template_dir)
-    update_manifest(
+    # header_src drives what URL appears in file headers (empty → generic "managed by a copier template" text).
+    # manifest_src is the key written to .copier-managed-files.json and is always non-empty.
+    header_src = args.template_src
+    manifest_src = args.template_src or str(args.src_template_dir)
+
+    ancestor_managed_by_src: dict[str, set[str]] = {}
+    ancestor_manifest_path = args.src_template_dir.parent / ".copier-managed-files.json"
+    if ancestor_manifest_path.exists():
+        data: dict[str, Any] = json.loads(ancestor_manifest_path.read_text(encoding="utf-8"))
+        for t in data.get("templates", []):
+            ancestor_managed_by_src[t["src"]] = set(t.get("managed_files", []))
+
+    managed_by_src = apply_file_markers(
+        src_template_directory=args.src_template_dir,
         dst_directory=args.dst_dir,
-        template_src=template_src,
-        managed_files=result.managed_files,
-        parent_src=parent_src,
+        template_src=header_src,
+        ancestor_managed_by_src=ancestor_managed_by_src or None,
     )
+    # Always write an entry for the current template even when no files matched.
+    _ = managed_by_src.setdefault(header_src, [])
+
+    parent_src = _read_parent_src(args.src_template_dir)
+    for src, files in managed_by_src.items():
+        effective_src = manifest_src if src == header_src else src
+        update_manifest(
+            dst_directory=args.dst_dir,
+            template_src=effective_src,
+            managed_files=files,
+            parent_src=parent_src if effective_src == manifest_src else None,
+        )
 
 
 if __name__ == "__main__":
