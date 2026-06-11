@@ -17,6 +17,14 @@ expected_hash_comment = """\
 # but if the change should be shared with other projects, please backport it to the template repo.
 # ====================================================================================================="""
 
+expected_batch_comment = """\
+REM ============== WARNING ==============================================================================
+REM File is managed by a copier template. See .copier-managed-files.json for details.
+REM
+REM You are welcome to make changes to this file in your repo if they are custom to your project,
+REM but if the change should be shared with other projects, please backport it to the template repo.
+REM ====================================================================================================="""
+
 expected_block_comment = """\
 /*
  * ============== WARNING ==============================================================================
@@ -123,6 +131,8 @@ class TestFileExtensionComments:
             ("config.yml", "top", expected_hash_comment),
             # hash bottom (shebang-sensitive extension default)
             ("deploy.sh", "bottom", expected_hash_comment),
+            # batch bottom (REM comments, @echo off at top)
+            ("sh.bat", "bottom", expected_batch_comment),
             # block top (JS / TS / CSS)
             ("eslint.config.mjs", "top", expected_block_comment),
             ("config.js", "top", expected_block_comment),
@@ -150,6 +160,7 @@ class TestFileExtensionComments:
             "yaml-hash-top",
             "yml-hash-top",
             "sh-hash-bottom",
+            "bat-batch-bottom",
             "mjs-block-top",
             "js-block-top",
             "cjs-block-top",

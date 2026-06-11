@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 from typing import Literal
 
-CommentType = Literal["hash", "block", "jinja", "markdown", "none"]
+CommentType = Literal["hash", "batch", "block", "jinja", "markdown", "none"]
 Location = Literal["top", "bottom", "none"]
 
 
@@ -21,6 +21,7 @@ default_comment_format = CommentFormat("hash", "top")
 custom_file_handling: dict[str, CommentFormat] = {
     ".md": CommentFormat("markdown", "bottom"),
     ".sh": CommentFormat("hash", "bottom"),  # put at bottom to not mess with shebang
+    ".bat": CommentFormat("batch", "bottom"),  # put at bottom to not mess with @echo off
     ".js": CommentFormat("block", "top"),
     ".cjs": CommentFormat("block", "top"),
     ".mjs": CommentFormat("block", "top"),
@@ -81,6 +82,8 @@ class ProvenanceResult:
 def _build_specific_header(comment_type: CommentType) -> str | None:
     if comment_type == "hash":
         return "\n".join(f"# {line}" if line else "#" for line in HEADER.split("\n"))
+    if comment_type == "batch":
+        return "\n".join(f"REM {line}" if line else "REM" for line in HEADER.split("\n"))
     if comment_type == "block":
         body = "\n".join(f" * {line}" if line else " *" for line in HEADER.split("\n"))
         return f"/*\n{body}\n */"
