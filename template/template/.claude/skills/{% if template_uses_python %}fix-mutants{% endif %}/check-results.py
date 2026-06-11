@@ -9,7 +9,8 @@ means mutmut has never been run (or the mutants/ directory was wiped).
 
 Outputs JSON to stdout:
   {
-    "has_results": true | false
+    "has_results": true | false,
+    "backend_root": "/abs/path/to/folder/containing/pyproject.toml"
   }
 """
 
@@ -26,7 +27,7 @@ def main() -> None:
     backend_root = find_backend_root()
     result = run_mutmut(["results"], backend_root, timeout=30)
     has_results = bool(result.stdout.strip())
-    emit({"has_results": has_results})
+    emit({"has_results": has_results, "backend_root": str(backend_root)})
 
 
 if __name__ == "__main__":

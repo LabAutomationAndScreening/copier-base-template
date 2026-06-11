@@ -17,22 +17,32 @@ When the user chooses to skip a line (equivalent mutant etc.), pass it as
 
 Multiple --skip-line flags are accepted for lines skipped in prior iterations.
 
-Outputs JSON to stdout:
+Outputs to stdout, when a group remains:
 
-  When a group remains:
-  {
-    "source_file": "src/backend_api/mdns.py",
-    "line": 42,
-    "remaining_lines": [42, 67],   # all still-unresolved lines (incl. this one)
-    "tests_for_line": ["tests/unit/foo.py::test_x", ...],
-    "mutants": [
-      {"key": "...__mutmut_1", "status": "survived", "diff": "..."},
-      ...
-    ]
-  }
+  1. A pre-rendered, user-facing briefing block between
+     `=== MUTANT BRIEFING — PASTE TO USER VERBATIM ===` and
+     `=== END MUTANT BRIEFING ===` marker lines. It contains the absolute
+     path:line, remaining-line count, original source, every mutant's diff,
+     and the exercising tests as absolute paths. The agent driving the skill
+     pastes this block to the user unchanged before doing anything else.
+  2. A `---MACHINE-READABLE---` delimiter line.
+  3. The JSON payload:
+     {
+       "backend_root": "/abs/path/to/folder/containing/pyproject.toml",
+       "source_file": "src/backend_api/mdns.py",
+       "line": 42,
+       "remaining_lines": [42, 67],   # all still-unresolved lines (incl. this one)
+       "tests_for_line": ["tests/unit/foo.py::test_x", ...],
+       "mutants": [
+         {"key": "...__mutmut_1", "status": "survived", "diff": "..."},
+         ...
+       ]
+     }
 
-  When all groups are resolved:
+When all groups are resolved, only the JSON is emitted:
+
   {
+    "backend_root": "/abs/path/to/folder/containing/pyproject.toml",
     "source_file": "src/backend_api/mdns.py",
     "done": true
   }
@@ -41,9 +51,7 @@ Reads cached mutants/*.meta — run run-mutmut.py first. Calls mutmut show and
 mutmut tests-for-mutant only for mutants on the returned line.
 """
 
-import re
 import sys
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -52,9 +60,8 @@ from utils import ACTIONABLE_STATUSES
 from utils import emit
 from utils import find_backend_root
 from utils import iter_mutant_records
+from utils import locate_changed_line
 from utils import run_mutmut
-
-HUNK_RE = re.compile(r"^@@ -(\d+)", re.MULTILINE)
 
 
 def parse_args() -> tuple[str, set[int]]:
@@ -78,9 +85,49 @@ def parse_args() -> tuple[str, set[int]]:
     return source_file, skip_lines
 
 
-def get_line_from_diff(diff: str) -> int:
-    hunk_match = HUNK_RE.search(diff)
-    return int(hunk_match.group(1)) if hunk_match else 0
+def extract_original_lines(diff: str) -> str:
+    removed: list[str] = []
+    for diff_line in diff.splitlines():
+        if not diff_line.startswith("-"):
+            continue
+        if diff_line.startswith("---"):
+            continue
+        removed.append(diff_line[1:])
+    return "\n".join(removed)
+
+
+def render_briefing(
+    *,
+    location: str,
+    remaining_count: int,
+    tests: list[str],
+    mutants: list[dict[str, str]],
+) -> str:
+    parts = [
+        f"{location} — {len(mutants)} mutant(s)",
+        f"({remaining_count} unresolved line(s) remaining in this file, incl. this one)",
+        "",
+        "Original code on this line:",
+        "```python",
+        extract_original_lines(mutants[0]["diff"]),
+        "```",
+    ]
+    for index, mutant in enumerate(mutants, start=1):
+        parts.extend(
+            [
+                "",
+                f"Mutant {index} — {mutant['key']} (status: {mutant['status']}):",
+                "```diff",
+                mutant["diff"],
+                "```",
+            ]
+        )
+    parts.extend(["", "Currently exercised by:"])
+    if tests:
+        parts.extend(f"- {test}" for test in tests)
+    else:
+        parts.append("- no tests")
+    return "\n".join(parts)
 
 
 def main() -> None:
@@ -94,8 +141,14 @@ def main() -> None:
     ]
 
     if not records:
-        emit({"source_file": target, "done": True})
+        emit({"backend_root": str(backend_root), "source_file": target, "done": True})
         return
+
+    try:
+        source_text = (backend_root / target).read_text(encoding="utf-8")
+    except OSError as exc:
+        _ = sys.stderr.write(f"Cannot read source file {backend_root / target}: {exc}\n")
+        sys.exit(1)
 
     # First pass: get line number for every record (requires mutmut show).
     keyed: list[tuple[int, dict[str, Any]]] = []
@@ -104,18 +157,19 @@ def main() -> None:
         if show.returncode != 0:
             _ = sys.stderr.write(f"`mutmut show {record['key']}` failed:\n{show.stderr}\n")
             sys.exit(1)
-        line = get_line_from_diff(show.stdout)
+        line = locate_changed_line(diff=show.stdout, source_text=source_text)
         keyed.append((line, {"record": record, "diff": show.stdout.rstrip("\n")}))
 
     all_lines = sorted({line for line, _ in keyed if line not in skip_lines})
 
     if not all_lines:
-        emit({"source_file": target, "done": True})
+        emit({"backend_root": str(backend_root), "source_file": target, "done": True})
         return
 
     target_line = all_lines[0]
 
-    by_line: dict[int, dict[str, object]] = defaultdict(lambda: {"mutants": [], "tests_for_line": set()})
+    group_mutants: list[dict[str, str]] = []
+    group_tests: set[str] = set()
 
     for line, data in keyed:
         if line != target_line:
@@ -127,17 +181,28 @@ def main() -> None:
         tests_result = run_mutmut(["tests-for-mutant", key], backend_root, timeout=120)
         tests = [t.strip() for t in tests_result.stdout.splitlines() if "::" in t]
 
-        group = by_line[target_line]
-        group["mutants"].append({"key": key, "status": record["status"], "diff": diff})  # type: ignore[union-attr]
-        group["tests_for_line"].update(tests)  # type: ignore[union-attr]
+        group_mutants.append({"key": key, "status": record["status"], "diff": diff})
+        group_tests.update(tests)
 
+    sorted_tests = sorted(group_tests)
+    briefing = render_briefing(
+        location=f"{backend_root}/{target}:{target_line}",
+        remaining_count=len(all_lines),
+        tests=[f"{backend_root}/{test}" for test in sorted_tests],
+        mutants=group_mutants,
+    )
+    _ = sys.stdout.write("=== MUTANT BRIEFING — PASTE TO USER VERBATIM ===\n")
+    _ = sys.stdout.write(briefing + "\n")
+    _ = sys.stdout.write("=== END MUTANT BRIEFING ===\n")
+    _ = sys.stdout.write("---MACHINE-READABLE---\n")
     emit(
         {
+            "backend_root": str(backend_root),
             "source_file": target,
             "line": target_line,
             "remaining_lines": all_lines,
-            "tests_for_line": sorted(by_line[target_line]["tests_for_line"]),  # type: ignore[arg-type]
-            "mutants": by_line[target_line]["mutants"],
+            "tests_for_line": sorted_tests,
+            "mutants": group_mutants,
         }
     )
 

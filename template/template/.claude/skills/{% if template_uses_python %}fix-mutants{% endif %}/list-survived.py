@@ -10,6 +10,7 @@ suspicious, ...) for a full picture.
 
 Outputs JSON to stdout:
   {
+    "backend_root": "/abs/path/to/folder/containing/pyproject.toml",
     "total_actionable": N,
     "by_file": {
       "src/backend_api/entrypoint/parser.py": [
@@ -58,7 +59,13 @@ def main() -> None:
             {"key": record["key"], "status": record["status"], "exit_code": record["exit_code"]}
         )
 
-    emit({"total_actionable": total, "by_file": dict(sorted(by_file.items()))})
+    emit(
+        {
+            "backend_root": str(backend_root),
+            "total_actionable": total,
+            "by_file": dict(sorted(by_file.items())),
+        }
+    )
 
 
 if __name__ == "__main__":

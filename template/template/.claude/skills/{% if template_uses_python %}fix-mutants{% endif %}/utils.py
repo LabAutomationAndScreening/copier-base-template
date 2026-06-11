@@ -10,10 +10,13 @@ Scripts in this skill are stdlib-only and run mutmut itself through
 """
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+
+HUNK_RE = re.compile(r"@@ -(\d+)")
 
 # Mirrors mutmut's status_by_exit_code (mutmut/__main__.py). Unknown codes map
 # to "suspicious", matching mutmut's defaultdict fallback.
@@ -50,6 +53,59 @@ def emit(obj: Any) -> None:  # noqa: ANN401 — serializes arbitrary JSON-shaped
 
 def status_for_exit_code(exit_code: int | None) -> str:
     return STATUS_BY_EXIT_CODE.get(exit_code, "suspicious")
+
+
+def _original_block(diff: str) -> tuple[list[str], int | None]:
+    """Reconstruct the original lines of the first hunk that removes a line.
+
+    Returns the block of original lines (context plus removed) and the index
+    of the first removed line within that block, or None if nothing is removed.
+    """
+    block: list[str] = []
+    removed_index: int | None = None
+    in_hunk = False
+    for diff_line in diff.splitlines():
+        if HUNK_RE.match(diff_line):
+            if removed_index is not None:
+                break
+            block = []
+            in_hunk = True
+            continue
+        if not in_hunk:
+            continue
+        if diff_line.startswith("+"):
+            continue
+        if diff_line.startswith("-"):
+            if removed_index is None:
+                removed_index = len(block)
+        block.append(diff_line[1:])
+    return block, removed_index
+
+
+def locate_changed_line(*, diff: str, source_text: str) -> int:
+    """File line number (1-based) of the first line a mutant diff removes.
+
+    mutmut generates its diff against the extracted function body, so the
+    `@@ -N` hunk headers carry function-relative line numbers, not file
+    positions. Recover the file position by matching the hunk's original
+    lines (context plus removed) against the real source text; fall back to
+    matching just the removed line if the full block is not found. Returns 0
+    if the diff removes nothing or no match exists.
+    """
+    block, removed_index = _original_block(diff)
+    if removed_index is None:
+        return 0
+
+    source_lines = source_text.splitlines()
+    for start in range(len(source_lines) - len(block) + 1):
+        if source_lines[start : start + len(block)] == block:
+            return start + removed_index + 1
+
+    needle = block[removed_index]
+    for index, source_line in enumerate(source_lines, start=1):
+        if source_line == needle:
+            return index
+    return 0
 
 
 def _declares_mutmut(pyproject: Path) -> bool:

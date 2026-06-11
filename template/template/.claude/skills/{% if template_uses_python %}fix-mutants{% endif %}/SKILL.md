@@ -35,14 +35,19 @@ gap is worth closing and writing the right assertion.
 
 ## Conventions
 
-**Show source paths to the user as absolute paths** so they are Ctrl+clickable
-in VS Code. The scripts emit project-relative `source_file` values (relative to
-the subfolder containing `pyproject.toml`); prepend the path to that subfolder before displaying. Capture the path to the
-subfolder once:
+**Always show file paths to the user as absolute paths, with the line number
+appended** (e.g. `/workspaces/my-app/backend/src/foo.py:55`) so they are
+Ctrl+clickable in VS Code. Relative paths (`src/foo.py`) are not clickable.
+This applies to every file path in a user-facing message: the mutated source
+file, the test files in `tests_for_line`, and any test file you edit.
 
-```bash
-.claude/skills/fix-mutants/run-mutmut.py   # its first run establishes mutants/ under the root
-```
+The scripts emit `source_file` values relative to the subfolder containing
+`pyproject.toml`, and every script also emits that subfolder as an absolute
+`backend_root` field. Construct displayed paths as
+`<backend_root>/<source_file>:<line>`. Exception: the briefing block rendered
+by `group-by-line.py` already contains absolute paths — paste it as-is; this
+construction rule is for paths you compose yourself (e.g. a test file you
+edited).
 
 ## Workflow
 
@@ -124,31 +129,64 @@ without resolving the current group just returns the same group. Accumulate
 .claude/skills/fix-mutants/group-by-line.py <source_file> [--skip-line N ...]
 ```
 
-When `done: true` is returned, all groups for this file are resolved.
+When a group remains, the script's stdout has two parts:
 
-For each group returned:
+1. A **pre-rendered briefing block** between the marker lines
+   `=== MUTANT BRIEFING — PASTE TO USER VERBATIM ===` and
+   `=== END MUTANT BRIEFING ===`. The script has already done all the
+   formatting work: absolute Ctrl+clickable `path:line` header, remaining-line
+   count, original source, every mutant's fenced diff, and exercising tests as
+   absolute paths. You never compose this block yourself.
+2. A `---MACHINE-READABLE---` delimiter followed by the JSON payload (use this
+   for `line`, mutant `key`s, and `tests_for_line`).
 
-1. **Read** the `source_file` around `line` and the tests in `tests_for_line`.
-   Form a view: *what observable behavior changes under these mutations, and why
+When `done: true` is returned (JSON only, no briefing), all groups for this
+file are resolved.
+
+> **STRICT ORDER per group — do not deviate:**
+> 1. Run `group-by-line.py`.
+> 2. **Paste the briefing block** into a normal text message.
+> 3. Read the source and tests; form a view.
+> 4. Emit `My plan: ...` as a normal text message.
+> 5. AskUserQuestion (short question only).
+>
+> **Never place any tool call between steps 1 and 2 — pasting the briefing is
+> the single next action after the script returns. Never call AskUserQuestion
+> before the briefing block appears in one of your text messages. Never
+> recompose, summarize, reformat, or trim the block — the script rendered it;
+> your only job is to relay it. The user cannot expand tool results: if you do
+> not paste the block, the user is deciding blind.**
+
+The five steps in detail:
+
+1. **Paste the briefing.** Copy everything between the two marker lines
+   (markers themselves excluded) into your next text message, byte-for-byte.
+   Do not wrap it in an outer code fence — it already contains its own fenced
+   blocks. This applies even when the situation seems obvious, the group is
+   small, or brevity/compression guidance (e.g. caveman mode) is active — the
+   block is skill-mandated payload, not prose to compress.
+
+2. **Read and analyze.** Only after the briefing is pasted: read the
+   `source_file` around `line` and the tests in `tests_for_line`. Form a
+   view: *what observable behavior changes under these mutations, and why
    does no current assertion notice?*
 
-2. **Decide and present** to the user before changing anything:
+3. **Present the plan.** Emit as a normal text message:
+
    ```
-   Line <line> of <subfolder_root>/<source_file> — <N> mutant(s)
-   (<remaining_lines> lines remaining incl. this one)
-
-   Mutant 1 (status: survived | no tests):
-   <diff>
-
-   Mutant 2 ...: <diff>
-
-   Currently exercised by: <tests_for_line, or "no tests">
-
    My plan: <which test to add/strengthen and the assertion that distinguishes
    original from all mutants on this line>
    ```
-   Ask via AskUserQuestion: **Strengthen test** / **Skip (equivalent or not worth it)**
-   / **Discuss first**.
+
+4. **Ask.** Use AskUserQuestion with exactly this shape:
+   - Question: `Strengthen the test for this line?` — only this short
+     question; never the diffs, facts, or plan.
+   - Options: **Strengthen test** / **Skip (equivalent or not worth it)** /
+     **Discuss first**.
+
+   Self-check before making this call: does one of your text messages for
+   *this* group contain a fenced diff and an absolute `path:line`? If not,
+   you skipped step 1 — paste the briefing now, then ask.
 
    - Some mutants are *equivalent* — the mutated code is behaviorally identical
      to the original (e.g. a mutation inside dead code, or a default that is
@@ -166,22 +204,22 @@ For each group returned:
      # pragma: no mutate end
      ```
 
-3. **Strengthen the test** following the project's TDD discipline. The mutants
+5. **Strengthen the test** following the project's TDD discipline. The mutants
    *are* the failing cases: write/adjust the assertion so the test passes on the
    original and would fail on every mutant in the group. Follow `AGENTS.md`
    testing rules (tight mock assertions, no magic values, presence-before-absence,
    etc.). Run the single affected test first (`uv run pytest <path>::<test>
    --no-cov`) and confirm it is green on real code.
 
-4. **Verify every mutant in the group is dead:**
+6. **Verify every mutant in the group is dead:**
    ```bash
    .claude/skills/fix-mutants/verify-mutant.py <mutant_name>
    ```
    Run for each mutant in the group. Exit 0 = killed. If any survive, the
-   assertion doesn't distinguish all variants — return to step 3. Do not call
+   assertion doesn't distinguish all variants — return to step 5. Do not call
    `group-by-line.py` again until all are killed (or the user agrees to skip).
 
-5. **Advance:** call `group-by-line.py` again (killed mutants are gone from meta;
+7. **Advance:** call `group-by-line.py` again (killed mutants are gone from meta;
    add `--skip-line <line>` if the user chose to skip this group). Process the
    next group returned, or stop if `done: true`.
 
@@ -200,6 +238,10 @@ tests. Report:
 **DO**
 - Treat each surviving mutant as a precise, executable description of a missing
   assertion.
+- Paste the script-rendered briefing block verbatim the moment
+  `group-by-line.py` returns — before any analysis or file reading, and well
+  before the AskUserQuestion. The question options alone are not enough
+  context to decide.
 - Verify every fix with `verify-mutant.py` before claiming the gap is closed.
 - Identify equivalent mutants honestly rather than contorting a test to kill an
   un-killable mutation.
@@ -213,13 +255,15 @@ tests. Report:
 - Suppress a mutant (`pragma`/`do_not_mutate`) without the user agreeing it is
   equivalent or out of scope.
 - Batch many test edits then one verify — verify per mutant.
+- Re-render, summarize, or restyle the briefing block — relay it exactly as
+  the script printed it.
 
 ## Checklist
 
 - [ ] `check-results.py` → ask user: clean / cached / use existing
 - [ ] `run-mutmut.py [--clean]` → baseline status breakdown (skip if using existing)
 - [ ] `list-survived.py` → actionable mutants by file; confirm scope with user (AskUserQuestion, required)
-- [ ] Per file: `group-by-line.py <source_file>` → iterate by_line in order → read source + tests → present plan → approve (AskUserQuestion, required)
+- [ ] Per file: `group-by-line.py <source_file>` → paste script-rendered briefing block verbatim as a text message (no tool calls in between) → read source + tests → present plan → approve (AskUserQuestion, required)
 - [ ] Strengthen the test; confirm it passes on real code
 - [ ] `verify-mutant.py <name>` for every mutant in group → all killed (exit 0) before advancing
 - [ ] Re-baseline; report killed / skipped-equivalent / remaining

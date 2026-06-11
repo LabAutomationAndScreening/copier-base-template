@@ -21,7 +21,6 @@ strengthen an assertion so the mutant is detected.
 Reads cached state — run run-mutmut.py first.
 """
 
-import re
 import sys
 from pathlib import Path
 
@@ -29,10 +28,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils import emit
 from utils import find_backend_root
 from utils import iter_mutant_records
+from utils import locate_changed_line
 from utils import run_mutmut
 
 EXPECTED_ARG_COUNT = 2
-HUNK_RE = re.compile(r"^@@ -(\d+)", re.MULTILINE)
 
 
 def main() -> None:
@@ -57,8 +56,13 @@ def main() -> None:
     tests = [line.strip() for line in tests_result.stdout.splitlines() if "::" in line]
 
     diff = show.stdout.rstrip("\n")
-    hunk_match = HUNK_RE.search(diff)
-    line_number = int(hunk_match.group(1)) if hunk_match else None
+    try:
+        source_text = (backend_root / record["source_file"]).read_text(encoding="utf-8")
+    except OSError as exc:
+        _ = sys.stderr.write(f"Cannot read source file {backend_root / record['source_file']}: {exc}\n")
+        sys.exit(1)
+    changed_line = locate_changed_line(diff=diff, source_text=source_text)
+    line_number = changed_line or None
 
     emit(
         {
