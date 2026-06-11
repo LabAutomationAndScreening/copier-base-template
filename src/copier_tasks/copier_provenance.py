@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -166,6 +167,17 @@ def _get_comment_format_for_file(file: Path, default_format: CommentFormat) -> C
     return default_format
 
 
+def _collect_template_base_paths(src_template_directory: Path) -> set[Path]:
+    """Walk src_template_directory (following symlinks) and return resolved base paths."""
+    paths: set[Path] = set()
+    for root, _, files in os.walk(src_template_directory, followlinks=True):
+        for fname in files:
+            f = Path(root) / fname
+            parts = [get_base_filename(p) for p in f.relative_to(src_template_directory).parts]
+            paths.add(Path(*parts))
+    return paths
+
+
 def apply_file_markers(
     *,
     src_template_directory: Path,
@@ -179,18 +191,15 @@ def apply_file_markers(
     ancestor_managed_by_src are attributed to their originating ancestor template;
     remaining files are attributed to template_src.
     """
-    template_base_paths: set[Path] = set()
-    for f in src_template_directory.glob("**/*"):
-        if not f.is_file():
-            continue
-        parts = [get_base_filename(p) for p in f.relative_to(src_template_directory).parts]
-        template_base_paths.add(Path(*parts))
+    template_base_paths = _collect_template_base_paths(src_template_directory)
 
     managed: dict[str, list[str]] = {}
 
-    for file in sorted(dst_directory.glob("**/*")):
-        if not file.is_file():
-            continue
+    dst_files: list[Path] = []
+    for root, _, files in os.walk(dst_directory, followlinks=True):
+        dst_files.extend(Path(root) / fname for fname in files)
+
+    for file in sorted(dst_files):
         rel = file.relative_to(dst_directory)
         if rel not in template_base_paths:
             continue

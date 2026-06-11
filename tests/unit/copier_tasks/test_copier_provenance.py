@@ -120,6 +120,27 @@ class TestJinjaTemplateMatching:
         content = (dst_dir / ".coveragerc.jinja").read_text(encoding="utf-8")
         assert content == expected_jinja_comment + "\n" + file_content
 
+    def test_symlinked_template_directory_traversed(self, tmp_path: Path) -> None:
+        # Simulates base-template's template/template/.claude → ../../.claude symlink pattern.
+        real_dir = tmp_path / "real_claude"
+        real_dir.mkdir()
+        (real_dir / "config.yaml").touch()
+
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / ".claude").symlink_to(real_dir, target_is_directory=True)
+
+        dst_dir = tmp_path / "destination"
+        dst_claude = dst_dir / ".claude"
+        dst_claude.mkdir(parents=True)
+        _ = (dst_claude / "config.yaml").write_text("key: value\n", encoding="utf-8")
+
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert result.returncode == 0
+        content = (dst_claude / "config.yaml").read_text(encoding="utf-8")
+        assert content.startswith(expected_hash_comment)
+
     def test_jinja_if_check_directory_matched(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
         cond_dir = template_dir / "{% if has_backend %}backend{% endif %}" / "src"
