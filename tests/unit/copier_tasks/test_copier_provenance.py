@@ -120,6 +120,24 @@ class TestJinjaTemplateMatching:
         content = (dst_dir / ".coveragerc.jinja").read_text(encoding="utf-8")
         assert content == expected_jinja_comment + "\n" + file_content
 
+    def test_jinja_if_check_directory_matched(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        cond_dir = template_dir / "{% if has_backend %}backend{% endif %}" / "src"
+        cond_dir.mkdir(parents=True)
+        (cond_dir / "__init__.py").touch()
+
+        dst_dir = tmp_path / "destination"
+        backend_src = dst_dir / "backend" / "src"
+        backend_src.mkdir(parents=True)
+        file_content = "x = 1\n"
+        _ = (backend_src / "__init__.py").write_text(file_content, encoding="utf-8")
+
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert result.returncode == 0
+        content = (backend_src / "__init__.py").read_text(encoding="utf-8")
+        assert content.startswith(expected_hash_comment)
+
 
 class TestFileExtensionComments:
     @pytest.mark.parametrize(

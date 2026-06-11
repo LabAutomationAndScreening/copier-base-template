@@ -124,7 +124,7 @@ def apply_file_markers(
         if not f.is_file():
             continue
         parts = list(f.relative_to(src_template_directory).parts)
-        parts[-1] = get_base_filename(parts[-1])
+        parts = [get_base_filename(p) for p in parts]
         template_base_paths.add(Path(*parts))
 
     managed: list[str] = []
