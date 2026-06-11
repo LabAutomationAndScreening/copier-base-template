@@ -268,8 +268,17 @@ def main() -> None:
     ancestor_manifest_path = args.src_template_dir.parent / ".copier-managed-files.json"
     if ancestor_manifest_path.exists():
         data: dict[str, Any] = json.loads(ancestor_manifest_path.read_text(encoding="utf-8"))
+        # The ancestor manifest may contain paths with a "template/" prefix (from self-stamp
+        # tasks that run with src=dst=template/). Strip that prefix so paths match the
+        # destination repo's layout (where "template/" doesn't exist).
+        subdir_prefix = args.src_template_dir.name + "/"
         for t in data.get("templates", []):
-            ancestor_managed_by_src[t["src"]] = set(t.get("managed_files", []))
+            path_set: set[str] = set()
+            for f in t.get("managed_files", []):
+                path_set.add(f)
+                if f.startswith(subdir_prefix):
+                    path_set.add(f[len(subdir_prefix) :])
+            ancestor_managed_by_src[t["src"]] = path_set
 
     managed_by_src = apply_file_markers(
         src_template_directory=args.src_template_dir,
