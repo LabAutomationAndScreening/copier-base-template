@@ -115,6 +115,7 @@ def _write_file_marker(file: Path, comment_format: CommentFormat, specific_heade
 
 
 def apply_file_markers(
+    *,
     src_template_directory: Path,
     dst_directory: Path,
 ) -> ProvenanceResult:
@@ -165,6 +166,7 @@ def _read_parent_src(src_template_directory: Path) -> str | None:
 
 
 def update_manifest(
+    *,
     dst_directory: Path,
     template_src: str,
     managed_files: list[str],
@@ -198,9 +200,15 @@ def main() -> None:
     _ = parser.add_argument("--template-src", default="", help="Template source identifier for the manifest")
     args = parser.parse_args()
 
-    result = apply_file_markers(args.src_template_dir, args.dst_dir)
+    result = apply_file_markers(src_template_directory=args.src_template_dir, dst_directory=args.dst_dir)
     parent_src = _read_parent_src(args.src_template_dir)
-    update_manifest(args.dst_dir, args.template_src or str(args.src_template_dir), result.managed_files, parent_src)
+    template_src = args.template_src or str(args.src_template_dir)
+    update_manifest(
+        dst_directory=args.dst_dir,
+        template_src=template_src,
+        managed_files=result.managed_files,
+        parent_src=parent_src,
+    )
 
 
 if __name__ == "__main__":
