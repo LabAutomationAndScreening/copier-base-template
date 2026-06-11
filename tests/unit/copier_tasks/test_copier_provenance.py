@@ -595,3 +595,86 @@ class TestManifest:
         # app.py header references the nuxt template URL
         app_content = (dst_dir / "app.py").read_text(encoding="utf-8")
         assert "https://github.com/org/nuxt-template" in app_content
+
+    def test_ancestor_jinja_suffix_resolved_for_attribution(self, tmp_path: Path) -> None:
+        # Ancestor manifest records "template/README.md.jinja" (base stamped nuxt with the
+        # .jinja-base-stripped name). Final-dest has "README.md" (jinja-rendered). The
+        # attribution lookup must strip both the "template/" prefix and ".jinja" suffix.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "README.md.jinja").touch()  # nuxt's template file (will render to README.md)
+
+        _ = (tmp_path / ".copier-managed-files.json").write_text(
+            json.dumps(
+                {
+                    "templates": [
+                        {"src": "https://github.com/org/base-template", "managed_files": ["template/README.md.jinja"]},
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "README.md").write_text("# hello\n", encoding="utf-8")
+
+        result = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/nuxt-template",
+        )
+
+        assert result.returncode == 0
+        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        srcs = {t["src"]: t for t in manifest["templates"]}
+        assert "README.md" in srcs["https://github.com/org/base-template"]["managed_files"]
+        assert "README.md" not in srcs.get("https://github.com/org/nuxt-template", {}).get("managed_files", [])
+
+    def test_full_chain_base_nuxt_final_attribution(self, tmp_path: Path) -> None:
+        # Full 3-level chain: base stamps nuxt (step 1), nuxt stamps final-dest (step 2).
+        # Files from base's template must end up under base in final-dest's manifest.
+        base_tmpl = tmp_path / "base_tmpl"
+        nuxt_repo = tmp_path / "nuxt_repo"
+        final_repo = tmp_path / "final_repo"
+
+        # Base template structure: config.yaml and template/README.md.jinja.jinja-base
+        (base_tmpl / "template").mkdir(parents=True)
+        (base_tmpl / "template" / "config.yaml").touch()
+        (base_tmpl / "template" / "template").mkdir()
+        (base_tmpl / "template" / "template" / "README.md.jinja.jinja-base").touch()
+
+        # Nuxt repo (as rendered by copier from base): config.yaml at root, README.md.jinja in template/
+        (nuxt_repo / "template").mkdir(parents=True)
+        _ = (nuxt_repo / "config.yaml").write_text("cfg", encoding="utf-8")
+        _ = (nuxt_repo / "template" / "README.md.jinja").write_text("# readme\n", encoding="utf-8")
+        _ = (nuxt_repo / "template" / "nuxt_only.py").write_text("x = 1\n", encoding="utf-8")
+
+        # Step 1: base stamps nuxt — populates nuxt's root .copier-managed-files.json
+        result1 = _run_script(
+            src_template_dir=base_tmpl / "template",
+            dst_dir=nuxt_repo,
+            template_src="https://github.com/org/base-template",
+        )
+        assert result1.returncode == 0
+        nuxt_manifest = json.loads((nuxt_repo / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        base_entry = next(t for t in nuxt_manifest["templates"] if "base" in t["src"])
+        assert "template/README.md.jinja" in base_entry["managed_files"]
+
+        # Final-dest (as rendered by copier from nuxt): README.md (rendered from .jinja) + nuxt_only.py
+        (final_repo).mkdir(parents=True)
+        _ = (final_repo / "README.md").write_text("# rendered\n", encoding="utf-8")
+        _ = (final_repo / "nuxt_only.py").write_text("x = 1\n", encoding="utf-8")
+
+        # Step 2: nuxt stamps final-dest — must attribute README.md to base, nuxt_only.py to nuxt
+        result2 = _run_script(
+            src_template_dir=nuxt_repo / "template",
+            dst_dir=final_repo,
+            template_src="https://github.com/org/nuxt-template",
+        )
+        assert result2.returncode == 0
+        final_manifest = json.loads((final_repo / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        srcs = {t["src"]: t for t in final_manifest["templates"]}
+        assert "README.md" in srcs["https://github.com/org/base-template"]["managed_files"]
+        assert "nuxt_only.py" in srcs["https://github.com/org/nuxt-template"]["managed_files"]
+        assert "README.md" not in srcs["https://github.com/org/nuxt-template"]["managed_files"]

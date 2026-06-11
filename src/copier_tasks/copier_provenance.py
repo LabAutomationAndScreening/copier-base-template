@@ -285,8 +285,14 @@ def main() -> None:
             path_set: set[str] = set()
             for f in t.get("managed_files", []):
                 path_set.add(f)
-                if f.startswith(subdir_prefix):
-                    path_set.add(f[len(subdir_prefix) :])
+                stripped = f.removeprefix(subdir_prefix)
+                path_set.add(stripped)
+                # Apply get_base_filename to each part so .jinja/.jinja-base suffixes
+                # and Jinja conditional names resolve to the final destination filename.
+                parts = Path(stripped).parts
+                if parts:
+                    resolved = str(Path(*[get_base_filename(p) for p in parts]))
+                    path_set.add(resolved)
             ancestor_managed_by_src[t["src"]] = path_set
 
     managed_by_src = apply_file_markers(
