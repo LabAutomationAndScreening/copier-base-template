@@ -41,6 +41,7 @@ custom_file_handling: dict[str, CommentFormat] = {
 }
 # Per-filename overrides for dotfiles/extensionless files where suffix alone is insufficient.
 custom_filename_handling: dict[str, CommentFormat] = {
+    ".copier-answers.yml": CommentFormat("none", "none"),
     ".coveragerc": CommentFormat("hash", "bottom"),
     ".python-version": CommentFormat("none", "none"),
     ".prettierrc": CommentFormat("none", "none"),

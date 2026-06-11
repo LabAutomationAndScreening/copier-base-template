@@ -151,6 +151,7 @@ class TestFileExtensionComments:
             ("data.json", "none", ""),
             ("biome.jsonc", "none", ""),
             # none — by filename (extensionless dotfiles with structured content)
+            (".copier-answers.yml", "none", ""),
             (".coveragerc", "bottom", expected_hash_comment),
             (".python-version", "none", ""),
             (".prettierrc", "none", ""),
@@ -174,6 +175,7 @@ class TestFileExtensionComments:
             "md-markdown-bottom",
             "json-none",
             "jsonc-none",
+            "copier-answers-none",
             "coveragerc-hash-bottom",
             "python-version-none",
             "prettierrc-none",
