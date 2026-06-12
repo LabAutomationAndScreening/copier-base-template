@@ -184,7 +184,16 @@ _tasks:
                     git update-index --chmod=+x "$script"
                 fi
             fi
-        done{% endraw %}{% if template_uses_typescript %}{% raw %}
+        done{% endraw %}{% if template_uses_python %}{% raw %}
+  - command: |
+        for script in .claude/skills/fix-mutants/check-results.py .claude/skills/fix-mutants/group-by-line.py .claude/skills/fix-mutants/list-survived.py .claude/skills/fix-mutants/run-mutmut.py .claude/skills/fix-mutants/show-mutant.py .claude/skills/fix-mutants/verify-mutant.py; do
+            if [ -f "$script" ]; then
+                chmod +x "$script"
+                if git ls-files --error-unmatch "$script" > /dev/null 2>&1; then
+                    git update-index --chmod=+x "$script"
+                fi
+            fi
+        done{% endraw %}{% endif %}{% raw %}{% endraw %}{% if template_uses_typescript %}{% raw %}
   - command: |
         export PNPM_PATTERNS='{{ pnpm_minimum_release_age_exclude }}'
         python3 '{{ _copier_conf.src_path }}/src/copier_tasks/ensure_pnpm_minimum_release_age_exclude.py' --patterns "$PNPM_PATTERNS"
