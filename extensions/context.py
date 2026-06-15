@@ -44,7 +44,7 @@ class ContextUpdater(ContextHook):
         context["pyinstaller_version"] = ">=6.20.0"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = ">=0.298.0"
-        context["fastapi_version"] = ">=0.136.3"
+        context["fastapi_version"] = ">=0.137.1"
         context["fastapi_offline_version"] = ">=1.7.4"
         context["uvicorn_version"] = ">=0.49.0"
         context["lab_auto_pulumi_version"] = ">=0.2.3"
@@ -61,7 +61,7 @@ class ContextUpdater(ContextHook):
         context["pytest_asyncio_version"] = ">=1.4.0"
         context["pytest_timeout_version"] = ">=2.4.0"
         context["pytest_reserial_version"] = ">=0.6.1"
-        context["python_faker_version"] = ">=40.22.0"
+        context["python_faker_version"] = ">=40.23.0"
         #######
         context["nuxt_ui_version"] = "^4.8.1"
         context["nuxt_version"] = "^4.4.6"
