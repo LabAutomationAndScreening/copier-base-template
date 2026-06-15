@@ -24,10 +24,9 @@ class ContextUpdater(ContextHook):
         context["nvm_version"] = "0.40.4"
         # These are duplicated in the pyproject.toml of this repository
         context["pyright_version"] = ">=1.1.410"
-        context["pytest_version"] = ">=9.0.3"
+        context["pytest_version"] = ">=9.1.0"
         context["pytest_randomly_version"] = ">=4.1.0"
         context["pytest_cov_version"] = ">=7.1.0"
-        context["ty_version"] = ">=0.0.40"
         context["mutmut_version"] = ">=3.6.0"
         context["pyrefly_version"] = ">=1.0.0"
         #######
