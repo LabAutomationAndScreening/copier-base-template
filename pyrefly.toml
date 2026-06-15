@@ -33,4 +33,4 @@ untyped-import = "ignore"
 matches = "**/tests/**"
 
 [sub-config.errors]
-implicitly-defined-attribute = "ignore"
+implicitly-defined-attribute = "ignore" # doesn't make any sense for test cases. See https://github.com/microsoft/pyright/discussions/4834#discussioncomment-8496931
