@@ -24,8 +24,7 @@ spec-compliant-overloads = true # not sure exactly what this does, but seems lik
 ignore-errors-in-generated-code = true # not sure yet how effective this is
 
 [errors]
-# reportPrivateUsage=false in pyright (already covered by ruff SLF001)
-no-access = "ignore"
+no-access = "ignore" # (already covered by ruff SLF001)
 # reportMissingTypeStubs=false in pyright
 untyped-import = "ignore"
 
