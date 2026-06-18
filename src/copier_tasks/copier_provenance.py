@@ -113,11 +113,11 @@ def _strip_existing_header(content: str, comment_format: CommentFormat) -> str:
     elif t == "batch":
         pattern = r"REM ={14} WARNING[^\n]*\n(?:.*\n)*?REM ={50,}\n"
     elif t == "block":
-        pattern = r"/\*\n(?:[^\n]*\n)*? \*/\n"
+        pattern = r"/\*\n \* ={14} WARNING[^\n]*\n(?: \*.*\n)*? \*/\n"
     elif t == "jinja":
-        pattern = r"\{#\n(?:[^\n]*\n)*?#\}\n"
+        pattern = r"\{#\n ={14} WARNING[^\n]*\n(?:.*\n)*?#\}\n"
     elif t == "markdown":
-        pattern = r"<!--\n(?:[^\n]*\n)*?-->\n"
+        pattern = r"<!--\n={14} WARNING[^\n]*\n(?:.*\n)*?-->\n"
     else:
         return content
     if loc == "bottom":

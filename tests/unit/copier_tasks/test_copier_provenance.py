@@ -3,6 +3,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from faker import Faker
 
 from .helpers import run_copier_task
 
@@ -355,6 +356,74 @@ class TestShebangHandling:
         assert result.returncode == 0
         content = (dst_dir / "test.sh").read_text(encoding="utf-8")
         assert content == file_content + "\n" + expected_hash_comment + "\n"
+
+
+class TestExistingUserCommentsPreserved:
+    @pytest.mark.parametrize(
+        ("filenames", "user_comment", "expected_marker"),
+        [
+            (("module.ts", "module.ts"), "/*\n * SPDX-License-Identifier: MIT\n */", expected_block_comment),
+            (("page.jinja.jinja-base", "page.jinja"), "{#\n a hand-written jinja note\n#}", expected_jinja_comment),
+            (("index.html", "index.html"), "<!--\n a hand-written html note\n-->", expected_markdown_comment),
+        ],
+        ids=["block-license-preserved", "jinja-note-preserved", "markdown-note-preserved"],
+    )
+    def test_non_marker_leading_comment_is_not_stripped(
+        self,
+        filenames: tuple[str, str],
+        user_comment: str,
+        expected_marker: str,
+        tmp_path: Path,
+        faker: Faker,
+    ) -> None:
+        template_filename, dst_filename = filenames
+        body = faker.sentence()
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / template_filename).touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        file_content = user_comment + "\n" + body + "\n"
+        _ = (dst_dir / dst_filename).write_text(file_content, encoding="utf-8")
+
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert result.returncode == 0
+        content = (dst_dir / dst_filename).read_text(encoding="utf-8")
+        assert content == expected_marker + "\n" + file_content
+
+    @pytest.mark.parametrize(
+        ("filenames", "expected_marker"),
+        [
+            (("module.ts", "module.ts"), expected_block_comment),
+            (("page.jinja.jinja-base", "page.jinja"), expected_jinja_comment),
+        ],
+        ids=["block-marker-not-duplicated", "jinja-marker-not-duplicated"],
+    )
+    def test_existing_marker_is_replaced_not_duplicated(
+        self,
+        filenames: tuple[str, str],
+        expected_marker: str,
+        tmp_path: Path,
+        faker: Faker,
+    ) -> None:
+        template_filename, dst_filename = filenames
+        body = faker.sentence()
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / template_filename).touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        file_content = expected_marker + "\n" + body + "\n"
+        _ = (dst_dir / dst_filename).write_text(file_content, encoding="utf-8")
+
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert result.returncode == 0
+        content = (dst_dir / dst_filename).read_text(encoding="utf-8")
+        assert content == file_content
 
 
 class TestManifest:
