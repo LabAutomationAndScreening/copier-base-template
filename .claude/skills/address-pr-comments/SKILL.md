@@ -215,7 +215,10 @@ Within a single Phase 2 invocation, the order below is strict. The invariants ap
 
      On `Edit first`: after user confirms edits done, run the footer check, Read the file, share opinion, then ask again: `Approve or edit again?` with options `Approve` / `Edit again`. Loop until approved.
    - **Commit** — one commit per comment, no batching, no exceptions. This applies to all changes including docs and markdown.
-   - Capture commit hash (`git rev-parse HEAD`) and repo URL (`git remote get-url origin`). Replace the `[COMMIT LINK]` placeholder in `<reply_file>` with the real link.
+   - Fill in the `[COMMIT LINK]` placeholder in `<reply_file>`:
+     ```bash
+     .claude/skills/address-pr-comments/commit-link.py <reply_file>
+     ```
    - Run footer check: `.claude/skills/address-pr-comments/check-footer.py <reply_file>`
    - Update bd issue description to store commit hash and reply: `bd update <id> --description="<existing description>\n\ncommit: <hash>\nreply: <intended reply text>" --json`
    - Close the bd issue (`bd close <id> --reason "Addressed in PR review" --json`)
