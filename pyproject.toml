@@ -5,14 +5,14 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12.7"
 dependencies = [
-    "pytest>=9.0.3",
+    "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "pytest-randomly>=4.1.0",
-    "faker>=40.22.0",
+    "faker>=40.23.0",
     "pyright[nodejs]>=1.1.410",
-    "pyrefly>=1.0.0",
+    "pyrefly>=1.1.1",
     "mutmut>=3.6.0",
-    "copier==9.15.1",
+    "copier==9.16.0",
     "copier-template-extensions==0.3.3",
     "pyyaml>=6.0.3"
 ]
