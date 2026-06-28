@@ -35,7 +35,7 @@ custom_file_handling: dict[str, CommentFormat] = {
     ".jinja": CommentFormat("jinja", "top"),
     ".jinja-base": CommentFormat("jinja", "top"),
     ".json": CommentFormat("none", "none"),
-    ".jsonc": CommentFormat("none", "none"),
+    ".jsonc": CommentFormat("block", "top"),
     ".yaml": CommentFormat("hash", "top"),
     ".yml": CommentFormat("hash", "top"),
 }
