@@ -74,7 +74,8 @@ def main() -> None:
     owner, repo = owner_repo_from_remote()
     pr = args.pr if args.pr is not None else detect_pr()
     commit = resolve_commit(args.commit)
-    link = f"https://github.com/{owner}/{repo}/pull/{pr}/commits/{commit}"
+    url = f"https://github.com/{owner}/{repo}/pull/{pr}/commits/{commit}"
+    link = f"[{commit[:7]}]({url})"
 
     try:
         _ = args.reply_file.write_text(content.replace(PLACEHOLDER, link), encoding="utf-8")
