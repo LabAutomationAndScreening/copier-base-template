@@ -186,6 +186,37 @@ def _get_comment_format_for_file(file: Path, default_format: CommentFormat) -> C
     return default_format
 
 
+def _read_copier_answers(dst_directory: Path) -> dict[str, Any]:
+    """Read boolean answers from .copier-answers.yml in dst_directory."""
+    answers_path = dst_directory / ".copier-answers.yml"
+    if not answers_path.exists():
+        return {}
+    result: dict[str, Any] = {}
+    for line in answers_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or ":" not in stripped:
+            continue
+        key, _, raw = stripped.partition(":")
+        key = key.strip()
+        if key.startswith("_"):
+            continue
+        raw = raw.strip()
+        if raw.lower() == "true":
+            result[key] = True
+        elif raw.lower() == "false":
+            result[key] = False
+    return result
+
+
+def _is_false_jinja_conditional(component: str, answers: dict[str, Any]) -> bool:
+    """Return True if this path component is a {% if var %}...{% endif %} whose var is false in answers."""
+    m = re.fullmatch(r"\{%-?\s*if\s+(\w+)\s*-?%\}.*?\{%-?\s*endif\s*-?%\}", component, re.DOTALL)
+    if not m:
+        return False
+    var_name = m.group(1)
+    return var_name in answers and not answers[var_name]
+
+
 def _collect_template_base_paths(src_template_directory: Path) -> set[Path]:
     """Walk src_template_directory (following symlinks) and return resolved base paths."""
     paths: set[Path] = set()
@@ -200,12 +231,29 @@ def _collect_template_base_paths(src_template_directory: Path) -> set[Path]:
     return paths
 
 
+def _collect_false_conditional_paths(
+    src_template_directory: Path,
+    answers: dict[str, Any],
+) -> set[Path]:
+    """Return resolved paths of files whose template directory condition is false in answers."""
+    excluded: set[Path] = set()
+    for root, _, files in os.walk(src_template_directory, followlinks=True):
+        for fname in files:
+            f = Path(root) / fname
+            rel_parts = list(f.relative_to(src_template_directory).parts)
+            if any(_is_false_jinja_conditional(p, answers) for p in rel_parts):
+                resolved = [get_base_filename_handling_jinja_syntax_and_extensions(p) for p in rel_parts]
+                excluded.add(Path(*resolved))
+    return excluded
+
+
 def apply_file_markers(
     *,
     src_template_directory: Path,
     dst_directory: Path,
     template_src: str = "",
     ancestor_managed_by_src: dict[str, set[str]] | None = None,
+    answers: dict[str, Any] | None = None,
 ) -> tuple[dict[str, list[str]], set[Path]]:
     """Stamp managed files with provenance headers.
 
@@ -214,6 +262,9 @@ def apply_file_markers(
     template; remaining files are attributed to template_src.
     """
     template_base_paths = _collect_template_base_paths(src_template_directory)
+    false_conditional_paths: set[Path] = (
+        _collect_false_conditional_paths(src_template_directory, answers) if answers else set()
+    )
 
     managed: dict[str, list[str]] = {}
 
@@ -225,6 +276,8 @@ def apply_file_markers(
         rel = file.relative_to(dst_directory)
         rel_base = Path(*map(get_base_filename_handling_jinja_syntax_and_extensions, rel.parts))
         if rel not in template_base_paths and rel_base not in template_base_paths:
+            continue
+        if rel in false_conditional_paths or rel_base in false_conditional_paths:
             continue
 
         rel_str = str(rel)
@@ -319,11 +372,14 @@ def main() -> None:
             if t.get("parent_src"):
                 ancestor_parent_by_src[t["src"]] = t["parent_src"]
 
+    answers = _read_copier_answers(args.dst_dir)
+
     managed_by_src, template_base_paths = apply_file_markers(
         src_template_directory=args.src_template_dir,
         dst_directory=args.dst_dir,
         template_src=header_src,
         ancestor_managed_by_src=ancestor_managed_by_src or None,
+        answers=answers or None,
     )
     # Always write an entry for the current template even when no files matched.
     _ = managed_by_src.setdefault(header_src, [])

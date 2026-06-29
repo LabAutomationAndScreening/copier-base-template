@@ -183,6 +183,54 @@ class TestJinjaTemplateMatching:
         content = (backend_src / "__init__.py").read_text(encoding="utf-8")
         assert content.startswith(expected_hash_comment)
 
+    def test_conditional_dir_files_excluded_when_answer_is_false(self, tmp_path: Path) -> None:
+        # Regression: template has {% if is_circuit_python_driver %}helm{% endif %}/Chart.yaml.jinja
+        # but the destination's .copier-answers.yml says is_circuit_python_driver: false.
+        # Files that happen to exist under deployment/helm/ (e.g. committed directly to the repo)
+        # must NOT be claimed as template-managed.
+        template_dir = tmp_path / "template"
+        helm_tmpl = template_dir / "deployment" / "{% if is_circuit_python_driver %}helm{% endif %}"
+        helm_tmpl.mkdir(parents=True)
+        (helm_tmpl / "Chart.yaml.jinja").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / ".copier-answers.yml").write_text("is_circuit_python_driver: false\n", encoding="utf-8")
+        helm_dst = dst_dir / "deployment" / "helm"
+        helm_dst.mkdir(parents=True)
+        original = "chart: manually added\n"
+        _ = (helm_dst / "Chart.yaml").write_text(original, encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        all_managed = [f for t in manifest["templates"] for f in t["managed_files"]]
+        assert "deployment/helm/Chart.yaml" not in all_managed
+        assert (helm_dst / "Chart.yaml").read_text(encoding="utf-8") == original
+
+    def test_conditional_dir_files_managed_when_answer_is_true(self, tmp_path: Path) -> None:
+        # Counterpart: when the condition is true, files under the conditional directory
+        # must still be claimed as managed and receive a provenance comment.
+        template_dir = tmp_path / "template"
+        helm_tmpl = template_dir / "deployment" / "{% if is_circuit_python_driver %}helm{% endif %}"
+        helm_tmpl.mkdir(parents=True)
+        (helm_tmpl / "Chart.yaml.jinja").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / ".copier-answers.yml").write_text("is_circuit_python_driver: true\n", encoding="utf-8")
+        helm_dst = dst_dir / "deployment" / "helm"
+        helm_dst.mkdir(parents=True)
+        _ = (helm_dst / "Chart.yaml").write_text("chart: template-generated\n", encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        all_managed = [f for t in manifest["templates"] for f in t["managed_files"]]
+        assert "deployment/helm/Chart.yaml" in all_managed
+        content = (helm_dst / "Chart.yaml").read_text(encoding="utf-8")
+        assert expected_hash_comment in content
+
 
 class TestFileExtensionComments:
     @pytest.mark.parametrize(
