@@ -65,7 +65,15 @@ def is_dirty() -> bool:
     return bool(result.stdout.strip())
 
 
+def check_gh_auth() -> None:
+    result = run(["gh", "auth", "status"], timeout=15)
+    if result.returncode != 0:
+        _ = sys.stderr.write("GitHub CLI is not authenticated. Run: gh auth login\n")
+        sys.exit(1)
+
+
 def find_pr(pr_number: int | None) -> dict[str, object] | None:
+    check_gh_auth()
     target = [] if pr_number is None else [str(pr_number)]
     result = run(["gh", "pr", "view", *target, "--json", "number,state,title"], timeout=30)
     if result.returncode != 0:
