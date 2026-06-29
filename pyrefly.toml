@@ -24,8 +24,7 @@ spec-compliant-overloads = true # not sure exactly what this does, but seems lik
 ignore-errors-in-generated-code = true # not sure yet how effective this is
 
 [errors]
-# reportPrivateUsage=false in pyright (already covered by ruff SLF001)
-no-access = "ignore"
+no-access = "ignore" # (already covered by ruff SLF001)
 # reportMissingTypeStubs=false in pyright
 untyped-import = "ignore"
 
@@ -33,4 +32,4 @@ untyped-import = "ignore"
 matches = "**/tests/**"
 
 [sub-config.errors]
-implicitly-defined-attribute = "ignore"
+implicitly-defined-attribute = "ignore" # doesn't make any sense for test cases. See https://github.com/microsoft/pyright/discussions/4834#discussioncomment-8496931

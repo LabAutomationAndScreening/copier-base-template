@@ -41,18 +41,8 @@
       "Bash(tar *)",
       "Bash(touch *)",
       "Bash(tree *)",
-      // Git & Version Control
-      "Bash(git add *)",
-      "Bash(git branch *)",
-      "Bash(git checkout *)",
-      "Bash(git commit *)",
-      "Bash(git diff *)",
-      "Bash(git log *)",
-      "Bash(git mv *)",
-      "Bash(git push)",
-      "Bash(git remote get-url origin)",
-      "Bash(git rev-parse *)",
-      "Bash(git status *)",
+      // Git & Version Control - anything not explicitly denied
+      "Bash(git *)",
       // Github
       "Bash(gh issue list *)",
       "Bash(gh issue view *)",

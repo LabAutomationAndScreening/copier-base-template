@@ -22,6 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils import owner_repo_from_remote
+from utils import run_cmd
 
 
 def main() -> None:
@@ -51,8 +52,8 @@ def main() -> None:
         endpoint = f"repos/{owner}/{repo}/issues/{args.pr}/comments"
 
     try:
-        result = subprocess.run(  # noqa: S603 — endpoint and body are constructed from validated inputs
-            [  # noqa: S607 — gh is expected on PATH
+        result = run_cmd(
+            [
                 "gh",
                 "api",
                 endpoint,
@@ -61,14 +62,9 @@ def main() -> None:
                 "--raw-field",
                 f"body={body}",
             ],
-            capture_output=True,
-            text=True,
-            check=True,
             timeout=30,
+            timeout_msg="gh api timed out while posting reply.",
         )
-    except subprocess.TimeoutExpired:
-        _ = sys.stderr.write("gh api timed out while posting reply.\n")
-        sys.exit(1)
     except subprocess.CalledProcessError as e:
         _ = sys.stderr.write(f"gh api error: {e.stderr}\n")
         sys.exit(1)

@@ -177,7 +177,7 @@ _tasks:
             fi
         fi
   - command: |
-        for script in .claude/skills/address-pr-comments/check-footer.py .claude/skills/address-pr-comments/fetch-pr-comments.py .claude/skills/address-pr-comments/post-reply.py; do
+        for script in .claude/skills/address-pr-comments/check-footer.py .claude/skills/address-pr-comments/commit-link.py .claude/skills/address-pr-comments/fetch-pr-comments.py .claude/skills/address-pr-comments/post-reply.py .claude/skills/address-pr-comments/verify-env.py; do
             if [ -f "$script" ]; then
                 chmod +x "$script"
                 if git ls-files --error-unmatch "$script" > /dev/null 2>&1; then
