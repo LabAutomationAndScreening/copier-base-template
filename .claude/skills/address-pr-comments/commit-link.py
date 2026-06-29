@@ -7,7 +7,7 @@ Everything is self-derived when the optional flags are omitted:
   --pr     auto-detected from the current branch via `gh pr view`
   --commit defaults to HEAD
 
-The link points at the commit *within the PR* (/pull/<pr>/changes/<hash>)
+The link points at the commit *within the PR* (/pull/<pr>/commits/<hash>)
 rather than the repo-wide commit view (/commit/<hash>), so replies posted
 against it are associated with the PR. Owner and repo are derived from the
 git remote automatically.
@@ -74,7 +74,7 @@ def main() -> None:
     owner, repo = owner_repo_from_remote()
     pr = args.pr if args.pr is not None else detect_pr()
     commit = resolve_commit(args.commit)
-    link = f"https://github.com/{owner}/{repo}/pull/{pr}/changes/{commit}"
+    link = f"https://github.com/{owner}/{repo}/pull/{pr}/commits/{commit}"
 
     try:
         _ = args.reply_file.write_text(content.replace(PLACEHOLDER, link), encoding="utf-8")
