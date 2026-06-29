@@ -205,7 +205,7 @@ Within a single Phase 2 invocation, the order below is strict. The invariants ap
    - **Commit** — one commit per comment, no batching, no exceptions. This applies to all changes including docs and markdown.
    - Fill in the `[COMMIT LINK]` placeholder in `<reply_file>`:
      ```bash
-     .claude/skills/address-pr-comments/commit-link.py <reply_file>
+     .claude/skills/address-pr-comments/commit-link.py <reply_file> --pr <pr_number>
      ```
    - Run footer check: `.claude/skills/address-pr-comments/check-footer.py <reply_file>`
    - Update bd issue description to store commit hash and reply: `bd update <id> --description="<existing description>\n\ncommit: <hash>\nreply: <intended reply text>" --json`
