@@ -28,15 +28,15 @@
         "-AmazonWebServices.aws-toolkit-vscode", // the AWS CLI feature installs this automatically, but it's causing problems in VS Code
         // basic tooling
         // "eamodio.gitlens@15.5.1",
-        "coderabbit.coderabbit-vscode@0.20.0",
+        "coderabbit.coderabbit-vscode@0.20.4",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
-        "anthropic.claude-code@2.1.169",
+        "anthropic.claude-code@2.1.195",
         // Python
         "ms-python.python@2026.5.2026052901",
-        "meta.pyrefly@1.0.0",
+        "meta.pyrefly@1.1.1",
         "ms-vscode-remote.remote-containers@0.414.0",
-        "charliermarsh.ruff@2026.44.0",
+        "charliermarsh.ruff@2026.56.0",
         // Misc file formats
         "bierner.markdown-mermaid@1.29.0",
         "samuelcolvin.jinjahtml@0.20.0",

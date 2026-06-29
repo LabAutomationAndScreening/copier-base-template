@@ -23,22 +23,18 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils import owner_repo_from_remote
+from utils import run_cmd
 
 PLACEHOLDER = "[COMMIT LINK]"
 
 
 def resolve_commit(ref: str) -> str:
     try:
-        result = subprocess.run(  # noqa: S603 — ref is a local default or operator-supplied commit ref
-            ["git", "rev-parse", ref],  # noqa: S607 — git is expected on PATH
-            capture_output=True,
-            text=True,
-            check=True,
+        result = run_cmd(
+            ["git", "rev-parse", ref],
             timeout=15,
+            timeout_msg=f"Timed out resolving commit ref '{ref}'.",
         )
-    except subprocess.TimeoutExpired:
-        _ = sys.stderr.write(f"Timed out resolving commit ref '{ref}'.\n")
-        sys.exit(1)
     except subprocess.CalledProcessError as e:
         _ = sys.stderr.write(f"Cannot resolve commit ref '{ref}': {e.stderr}\n")
         sys.exit(1)
@@ -47,16 +43,11 @@ def resolve_commit(ref: str) -> str:
 
 def detect_pr() -> int:
     try:
-        result = subprocess.run(
-            ["gh", "pr", "view", "--json", "number"],  # noqa: S607 — gh is expected on PATH
-            capture_output=True,
-            text=True,
-            check=True,
+        result = run_cmd(
+            ["gh", "pr", "view", "--json", "number"],
             timeout=30,
+            timeout_msg="Timed out detecting the PR for the current branch.",
         )
-    except subprocess.TimeoutExpired:
-        _ = sys.stderr.write("Timed out detecting the PR for the current branch.\n")
-        sys.exit(1)
     except subprocess.CalledProcessError as e:
         _ = sys.stderr.write(f"Cannot detect a PR for the current branch: {e.stderr}\nPass --pr explicitly.\n")
         sys.exit(1)
