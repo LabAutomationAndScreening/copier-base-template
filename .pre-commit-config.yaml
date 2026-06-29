@@ -295,6 +295,26 @@ repos:
         # print the number of files as a sanity-check
         verbose: true
 
+  - repo: local
+    hooks:
+      - id: pyrefly
+        name: pyrefly
+        entry: bash -c "uv run pyrefly check"
+        files: '.+\.py$'
+        exclude: |
+          (?x)^(
+              .*/generated/graphql/.*|
+              .*/generated/open[-_]api/.*|
+          )$
+        # don't pass filenames else the command line sees them twice
+        pass_filenames: false
+        language: system
+        types: [python]
+        # use require_serial so that script is only called once per commit
+        require_serial: true
+        # print the number of files as a sanity-check
+        verbose: true
+
   # Updating repo config/tooling files
   - repo: local
     hooks:
