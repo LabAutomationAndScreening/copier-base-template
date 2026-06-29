@@ -1,4 +1,5 @@
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -88,6 +89,8 @@ class TestJinjaTemplateMatching:
         assert content == file_content + "\n" + expected_markdown_comment + "\n"
 
     def test_jinja_template_file_gets_jinja_comment(self, tmp_path: Path) -> None:
+        # README.md.jinja → underlying extension is .md → markdown/bottom placement
+        # → jinja comment type, bottom location.
         template_dir = tmp_path / "template"
         template_dir.mkdir()
         (template_dir / "README.md.jinja.jinja-base").touch()
@@ -100,7 +103,7 @@ class TestJinjaTemplateMatching:
         _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         content = (dst_dir / "README.md.jinja").read_text(encoding="utf-8")
-        assert content == expected_jinja_comment + "\n" + file_content
+        assert content == file_content + "\n" + expected_jinja_comment + "\n"
 
     def test_plain_jinja_file_copied_as_is_matched(self, tmp_path: Path) -> None:
         # When the parent template uses .jinja-base as its suffix, plain .jinja files
@@ -126,6 +129,8 @@ class TestJinjaTemplateMatching:
         assert ".devcontainer/envs.json" not in managed_files
 
     def test_jinja_if_check_filename_matched(self, tmp_path: Path) -> None:
+        # .coveragerc.jinja → underlying name is .coveragerc → custom bottom placement
+        # → jinja comment type, bottom location.
         template_dir = tmp_path / "template"
         template_dir.mkdir()
         template_file = template_dir / "{% if is_python_template %}.coveragerc.jinja{% endif %}.jinja-base"
@@ -139,7 +144,7 @@ class TestJinjaTemplateMatching:
         _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         content = (dst_dir / ".coveragerc.jinja").read_text(encoding="utf-8")
-        assert content == expected_jinja_comment + "\n" + file_content
+        assert content == file_content + "\n" + expected_jinja_comment + "\n"
 
     def test_symlinked_template_directory_traversed(self, tmp_path: Path) -> None:
         # Simulates base-template's template/template/.claude → ../../.claude symlink pattern.
@@ -766,8 +771,8 @@ class TestManifest:
         child_tmpl = child_tmpl_repo / "template"
         helm_dir = child_tmpl / "deployment" / "{% if is_circuit_python_driver %}helm{% endif %}" / "templates"
         helm_dir.mkdir(parents=True)
-        (helm_dir.parent / "Chart.yaml.jinja").write_text("chart: content\n", encoding="utf-8")
-        (helm_dir / "deploy.yaml.jinja").write_text("deploy: content\n", encoding="utf-8")
+        _ = (helm_dir.parent / "Chart.yaml.jinja").write_text("chart: content\n", encoding="utf-8")
+        _ = (helm_dir / "deploy.yaml.jinja").write_text("deploy: content\n", encoding="utf-8")
 
         # Ancestor manifest: all helm files attributed to the ancestor template.
         _ = (child_tmpl_repo / ".copier-managed-files.json").write_text(
@@ -801,9 +806,6 @@ class TestManifest:
         manifest_after_true = json.loads((project / ".copier-managed-files.json").read_text(encoding="utf-8"))
         srcs_true = {t["src"]: t for t in manifest_after_true["templates"]}
         assert "deployment/helm/Chart.yaml" in srcs_true["https://github.com/org/ancestor-template"]["managed_files"]
-
-        # Second run: condition=false, copier deletes the helm directory.
-        import shutil
 
         shutil.rmtree(project / "deployment")
         _ = _run_script(
