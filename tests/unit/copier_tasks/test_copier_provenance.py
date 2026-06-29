@@ -117,7 +117,7 @@ class TestJinjaTemplateMatching:
         file_content = '{"key": "{{ value }}"}'
         _ = (dst_devcontainer / "envs.json.jinja").write_text(file_content, encoding="utf-8")
 
-        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
         managed_files = manifest["templates"][0]["managed_files"]
@@ -213,6 +213,11 @@ class TestFileExtensionComments:
             (".coveragerc", "bottom", expected_hash_comment),
             (".python-version", "none", ""),
             (".prettierrc", "none", ""),
+            # .jinja files: comment type is always jinja; location from underlying extension
+            ("deploy.sh.jinja", "bottom", expected_jinja_comment),
+            ("config.yaml.jinja", "top", expected_jinja_comment),
+            ("data.json.jinja", "none", ""),
+            (".python-version.jinja", "none", ""),
         ],
         ids=[
             "py-hash-top",
@@ -237,6 +242,10 @@ class TestFileExtensionComments:
             "coveragerc-hash-bottom",
             "python-version-none",
             "prettierrc-none",
+            "sh-jinja-jinja-bottom",
+            "yaml-jinja-jinja-top",
+            "json-jinja-none",
+            "python-version-jinja-none",
         ],
     )
     def test_comment_format_by_file_type(

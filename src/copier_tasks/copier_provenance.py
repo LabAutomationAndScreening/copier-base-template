@@ -32,8 +32,6 @@ custom_file_handling: dict[str, CommentFormat] = {
     ".vue": CommentFormat("markdown", "top"),
     ".html": CommentFormat("markdown", "top"),
     ".svg": CommentFormat("markdown", "top"),
-    ".jinja": CommentFormat("jinja", "top"),
-    ".jinja-base": CommentFormat("jinja", "top"),
     ".json": CommentFormat("none", "none"),
     ".jsonc": CommentFormat("block", "top"),
     ".yaml": CommentFormat("hash", "top"),
@@ -154,6 +152,27 @@ def _resolve_file_src(
     return template_src
 
 
+def _base_format_for_file(file: Path) -> CommentFormat:
+    """Return the base CommentFormat for a file.
+
+    For .jinja/.jinja-base files the comment type is always 'jinja', but the
+    location is derived from the underlying extension so that e.g. 'deploy.sh.jinja'
+    inherits bottom placement from '.sh' without any content sniffing.
+    """
+    if file.name in custom_filename_handling:
+        return custom_filename_handling[file.name]
+    suffix = file.suffix
+    if suffix not in (".jinja", ".jinja-base"):
+        return custom_file_handling.get(suffix, default_comment_format)
+    underlying = file.stem  # e.g. "deploy.sh" from "deploy.sh.jinja"
+    underlying_format = custom_filename_handling.get(
+        underlying, custom_file_handling.get(Path(underlying).suffix, default_comment_format)
+    )
+    if underlying_format.comment_type == "none":
+        return underlying_format
+    return CommentFormat("jinja", underlying_format.location)
+
+
 def _get_comment_format_for_file(file: Path, default_format: CommentFormat) -> CommentFormat | None:
     """Return the effective CommentFormat, or None if the file is binary (track but skip marking)."""
     if default_format.location != "top" or default_format.comment_type == "none":
@@ -173,7 +192,10 @@ def _collect_template_base_paths(src_template_directory: Path) -> set[Path]:
     for root, _, files in os.walk(src_template_directory, followlinks=True):
         for fname in files:
             f = Path(root) / fname
-            parts = [get_base_filename_handling_jinja_syntax_and_extensions(p) for p in f.relative_to(src_template_directory).parts]
+            parts = [
+                get_base_filename_handling_jinja_syntax_and_extensions(p)
+                for p in f.relative_to(src_template_directory).parts
+            ]
             paths.add(Path(*parts))
     return paths
 
@@ -209,9 +231,7 @@ def apply_file_markers(
         file_src = _resolve_file_src(rel_str, template_src, ancestor_managed_by_src)
         managed.setdefault(file_src, []).append(rel_str)
 
-        base_format = custom_filename_handling.get(
-            file.name, custom_file_handling.get(file.suffix, default_comment_format)
-        )
+        base_format = _base_format_for_file(file)
         comment_formatting = _get_comment_format_for_file(file, base_format)
         if comment_formatting is None:
             continue
