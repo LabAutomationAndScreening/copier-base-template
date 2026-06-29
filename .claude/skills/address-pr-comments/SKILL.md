@@ -35,7 +35,7 @@ Run the gate script once. Pass `--pr <number>` if the user supplied one; otherwi
 .claude/skills/address-pr-comments/verify-env.py [--pr <number>]
 ```
 
-It emits a JSON verdict: `repo_root`, `has_remote`, `branch`, `on_protected_branch`, `dirty`, and `pr` (`{number, state, title}` or `null`). This is the source for both the repo root (see [Conventions](#conventions)) and the PR — no separate `git rev-parse` or `gh pr view` calls are needed.
+It emits a JSON verdict: `repo_root`, `has_remote`, `branch`, `on_protected_branch`, `dirty`, and `pr` (`{number, state, title}` or `null`). This is the source for both the repo root (see [Conventions](#conventions)) and the PR
 
 **STOP if:**
 - `has_remote` is `false` → "This skill requires a GitHub remote. Please add one with `git remote add origin <url>` first."
