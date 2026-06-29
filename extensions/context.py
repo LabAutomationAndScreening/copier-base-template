@@ -17,7 +17,7 @@ class ContextUpdater(ContextHook):
         context["pre_commit_version"] = "4.5.1"
         context["pnpm_version"] = "11.9.0"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
-        context["copier_version"] = "==9.15.1"
+        context["copier_version"] = "==9.16.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
         context["npm_version"] = "11.13.0"
@@ -132,7 +132,7 @@ class ContextUpdater(ContextHook):
         context["alpine_image_version"] = "3.23"
         context["nginx_image_version"] = "1.30.1"
         #######
-        context["kiota_cli_version"] = "1.31.1"
+        context["kiota_cli_version"] = "1.31.4"
         # These also in the tests/data.yml files in this repository and in copier.yaml
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
         context["py313_version"] = "3.13.9"
