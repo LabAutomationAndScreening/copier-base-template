@@ -7,10 +7,11 @@ Everything is self-derived when the optional flags are omitted:
   --pr     auto-detected from the current branch via `gh pr view`
   --commit defaults to HEAD
 
-The link points at the commit *within the PR* (/pull/<pr>/commits/<hash>)
-rather than the repo-wide commit view (/commit/<hash>), so replies posted
-against it are associated with the PR. Owner and repo are derived from the
-git remote automatically.
+The link points at the commit *within the PR* (GitHub redirects
+/pull/<pr>/commits/<hash> to the PR-scoped changes view) rather than the
+repo-wide commit view (/commit/<hash>), so replies posted against it are
+associated with the PR. Owner and repo are derived from the git remote
+automatically.
 
 Prints "replaced" on success. Exits non-zero if the placeholder is absent.
 """
