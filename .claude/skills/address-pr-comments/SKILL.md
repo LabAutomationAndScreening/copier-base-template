@@ -15,7 +15,7 @@ Read PR review comments and address them by making code changes, answering quest
 ## Prerequisites
 
 - Must be on the PR's branch (not main/master)
-- PR must exist and not be merged (open or closed is fine)
+- PR must exist and be open
 
 ## Workflow
 
@@ -44,7 +44,7 @@ It emits a JSON verdict: `repo_root`, `has_remote`, `branch`, `on_protected_bran
 
 **PR resolution:**
 - `pr` is `null` → ask the user for a PR number, then re-run with `--pr <number>`.
-- `pr.state` is `MERGED` → inform the user the PR is already merged and stop. `OPEN` and `CLOSED` both proceed normally (a PR is sometimes closed while a large batch of comments is worked through).
+- `pr.state` is not `OPEN` → inform the user the PR must be open and stop.
 
 ### Resume Mode
 
@@ -269,7 +269,7 @@ Discuss with user, then post a reply explaining the reasoning if they want to pu
 
 ## Checklist
 
-- [ ] Run `verify-env.py`: feature branch (not main/master), remote exists, tree clean, PR identified and not merged
+- [ ] Run `verify-env.py`: feature branch (not main/master), remote exists, tree clean, PR identified and open
 - [ ] If `--resume`: build inventory, classify reply drafts (placeholder vs finalized vs orphan), prompt user for resume strategy
 - [ ] Fetch and display comments
 - [ ] Phase 1: collect decisions for all comments (reply-only comments posted in Phase 1)
