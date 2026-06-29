@@ -206,12 +206,12 @@ def apply_file_markers(
     dst_directory: Path,
     template_src: str = "",
     ancestor_managed_by_src: dict[str, set[str]] | None = None,
-) -> dict[str, list[str]]:
+) -> tuple[dict[str, list[str]], set[Path]]:
     """Stamp managed files with provenance headers.
 
-    Returns files bucketed by originating template src. Files listed in
-    ancestor_managed_by_src are attributed to their originating ancestor template;
-    remaining files are attributed to template_src.
+    Returns a tuple of (files bucketed by originating template src, template_base_paths).
+    Files listed in ancestor_managed_by_src are attributed to their originating ancestor
+    template; remaining files are attributed to template_src.
     """
     template_base_paths = _collect_template_base_paths(src_template_directory)
 
@@ -242,7 +242,7 @@ def apply_file_markers(
 
     for file_list in managed.values():
         file_list.sort()
-    return managed
+    return managed, template_base_paths
 
 
 def _read_parent_src(src_template_directory: Path) -> str | None:
@@ -319,7 +319,7 @@ def main() -> None:
             if t.get("parent_src"):
                 ancestor_parent_by_src[t["src"]] = t["parent_src"]
 
-    managed_by_src = apply_file_markers(
+    managed_by_src, template_base_paths = apply_file_markers(
         src_template_directory=args.src_template_dir,
         dst_directory=args.dst_dir,
         template_src=header_src,
@@ -327,6 +327,18 @@ def main() -> None:
     )
     # Always write an entry for the current template even when no files matched.
     _ = managed_by_src.setdefault(header_src, [])
+
+    # Ensure ancestors whose files overlap with this template's scope get their
+    # manifest entries updated even when all of their conditional files were deleted.
+    # Without this, if every ancestor-managed file is under a Jinja conditional
+    # directory (e.g. {% if is_circuit_python_driver %}helm{% endif %}) and the
+    # condition changes to false, the ancestor never appears in managed_by_src and
+    # its stale manifest entry (listing the now-deleted files) persists.
+    if ancestor_managed_by_src:
+        template_base_path_strs = {str(p) for p in template_base_paths}
+        for src, paths in ancestor_managed_by_src.items():
+            if paths & template_base_path_strs:
+                _ = managed_by_src.setdefault(src, [])
 
     parent_src = _read_parent_src(args.src_template_dir)
     for src, files in managed_by_src.items():

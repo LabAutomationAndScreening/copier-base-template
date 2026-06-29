@@ -755,3 +755,63 @@ class TestManifest:
         assert "README.md" in srcs["https://github.com/org/base-template"]["managed_files"]
         assert "child_only.py" in srcs["https://github.com/org/child-template"]["managed_files"]
         assert "README.md" not in srcs["https://github.com/org/child-template"]["managed_files"]
+
+    def test_stale_conditional_ancestor_entries_cleared_on_update(self, tmp_path: Path) -> None:
+        # Regression test: when an ancestor template's files are ALL under a Jinja
+        # conditional directory (e.g. {% if is_circuit_python_driver %}helm{% endif %})
+        # and the condition changes to false on update, the ancestor's manifest entry
+        # must be cleared. Previously, because managed_by_src never got an entry for
+        # the ancestor, update_manifest was never called for it and stale paths persisted.
+        child_tmpl_repo = tmp_path / "child_tmpl_repo"
+        child_tmpl = child_tmpl_repo / "template"
+        helm_dir = child_tmpl / "deployment" / "{% if is_circuit_python_driver %}helm{% endif %}" / "templates"
+        helm_dir.mkdir(parents=True)
+        (helm_dir.parent / "Chart.yaml.jinja").write_text("chart: content\n", encoding="utf-8")
+        (helm_dir / "deploy.yaml.jinja").write_text("deploy: content\n", encoding="utf-8")
+
+        # Ancestor manifest: all helm files attributed to the ancestor template.
+        _ = (child_tmpl_repo / ".copier-managed-files.json").write_text(
+            json.dumps(
+                {
+                    "templates": [
+                        {
+                            "src": "https://github.com/org/ancestor-template",
+                            "managed_files": [
+                                "template/deployment/{% if is_circuit_python_driver %}helm{% endif %}/Chart.yaml.jinja",
+                                "template/deployment/{% if is_circuit_python_driver %}helm{% endif %}/templates/deploy.yaml.jinja",
+                            ],
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        project = tmp_path / "project"
+
+        # First run: condition=true, helm files exist.
+        (project / "deployment" / "helm" / "templates").mkdir(parents=True)
+        _ = (project / "deployment" / "helm" / "Chart.yaml").write_text("c", encoding="utf-8")
+        _ = (project / "deployment" / "helm" / "templates" / "deploy.yaml").write_text("d", encoding="utf-8")
+        _ = _run_script(
+            src_template_dir=child_tmpl,
+            dst_dir=project,
+            template_src="https://github.com/org/child-template",
+        )
+        manifest_after_true = json.loads((project / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        srcs_true = {t["src"]: t for t in manifest_after_true["templates"]}
+        assert "deployment/helm/Chart.yaml" in srcs_true["https://github.com/org/ancestor-template"]["managed_files"]
+
+        # Second run: condition=false, copier deletes the helm directory.
+        import shutil
+
+        shutil.rmtree(project / "deployment")
+        _ = _run_script(
+            src_template_dir=child_tmpl,
+            dst_dir=project,
+            template_src="https://github.com/org/child-template",
+        )
+        manifest_after_false = json.loads((project / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        srcs_false = {t["src"]: t for t in manifest_after_false["templates"]}
+        # Stale helm entries must be gone from the ancestor's manifest entry.
+        assert srcs_false["https://github.com/org/ancestor-template"]["managed_files"] == []
