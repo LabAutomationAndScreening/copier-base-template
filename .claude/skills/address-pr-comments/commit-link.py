@@ -7,13 +7,10 @@ Everything is self-derived when the optional flags are omitted:
   --pr     auto-detected from the current branch via `gh pr view`
   --commit defaults to HEAD
 
-The link is a Markdown hyperlink pointing at the commit *within the PR*
-(/pull/<pr>/commits/<hash>) rather than the repo-wide commit view
-(/commit/<hash>), so replies posted against it are associated with the PR.
-Markdown format is required because GitHub auto-canonicalises bare URLs in
-comments, rewriting the PR-scoped path to the standalone /commit/<hash> view
-where review comments are not associated with the PR. Owner and repo are
-derived from the git remote automatically.
+The link points at the commit *within the PR* (/pull/<pr>/commits/<hash>)
+rather than the repo-wide commit view (/commit/<hash>), so replies posted
+against it are associated with the PR. Owner and repo are derived from the
+git remote automatically.
 
 Prints "replaced" on success. Exits non-zero if the placeholder is absent.
 """
@@ -78,6 +75,8 @@ def main() -> None:
     pr = args.pr if args.pr is not None else detect_pr()
     commit = resolve_commit(args.commit)
     url = f"https://github.com/{owner}/{repo}/pull/{pr}/commits/{commit}"
+    # Markdown format required: GitHub auto-canonicalises bare PR-scoped URLs to
+    # the standalone /commit/<hash> view, where comments are not PR-associated.
     link = f"[{commit[:7]}]({url})"
 
     try:
