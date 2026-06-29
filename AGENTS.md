@@ -167,4 +167,17 @@ bd export -o [relative path to repository root]/.claude/.beads/issues-dump.jsonl
 
 For more details, see README.md and docs/QUICKSTART.md.
 
+# Copier-Managed Files
+
+Files generated from upstream copier templates are listed in `.copier-managed-files.json` (if present).
+The manifest has a `templates` array — one entry per template in the chain. Each entry has `src` (the template URL),
+`managed_files` (files it placed), and optionally `parent_src` (the template that generated it, forming the chain).
+
+When a file appears in multiple entries, the **last entry in the array** is the authoritative owner for backporting —
+it is the most-specific template in the chain. `parent_src` lets you trace the full chain upward to the root.
+
+When reviewing a PR that modifies a file listed in the manifest, check whether the change is generic enough to
+backport to the owning template. If so, add a single summary comment (not one per file) noting which files are
+template-managed and which template repo the changes should be backported to.
+
 <!-- END BEADS INTEGRATION -->

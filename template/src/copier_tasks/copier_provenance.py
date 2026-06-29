@@ -1,0 +1,1 @@
+../../../src/copier_tasks/copier_provenance.py
