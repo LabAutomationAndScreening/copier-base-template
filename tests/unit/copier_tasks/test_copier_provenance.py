@@ -102,6 +102,29 @@ class TestJinjaTemplateMatching:
         content = (dst_dir / "README.md.jinja").read_text(encoding="utf-8")
         assert content == expected_jinja_comment + "\n" + file_content
 
+    def test_plain_jinja_file_copied_as_is_matched(self, tmp_path: Path) -> None:
+        # When the parent template uses .jinja-base as its suffix, plain .jinja files
+        # are copied as-is to the destination (not rendered). The destination keeps the
+        # .jinja extension, but template_base_paths strips it. Both the file and the
+        # manifest entry should use the stripped base name.
+        template_dir = tmp_path / "template"
+        (template_dir / ".devcontainer").mkdir(parents=True)
+        (template_dir / ".devcontainer" / "envs.json.jinja").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_devcontainer = dst_dir / ".devcontainer"
+        dst_devcontainer.mkdir(parents=True)
+        file_content = '{"key": "{{ value }}"}'
+        _ = (dst_devcontainer / "envs.json.jinja").write_text(file_content, encoding="utf-8")
+
+        result = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        managed_files = manifest["templates"][0]["managed_files"]
+        # Tracked under the actual filename on disk (with .jinja extension preserved).
+        assert ".devcontainer/envs.json.jinja" in managed_files
+        assert ".devcontainer/envs.json" not in managed_files
+
     def test_jinja_if_check_filename_matched(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
         template_dir.mkdir()

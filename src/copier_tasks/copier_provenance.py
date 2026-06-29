@@ -69,7 +69,7 @@ def _build_header(template_src: str) -> str:
     return "\n".join(lines)
 
 
-def get_base_filename(template_filename: str) -> str:
+def get_base_filename_handling_jinja_syntax_and_extensions(template_filename: str) -> str:
     """Return the destination filename for a template file.
 
     Handles two cases:
@@ -173,7 +173,7 @@ def _collect_template_base_paths(src_template_directory: Path) -> set[Path]:
     for root, _, files in os.walk(src_template_directory, followlinks=True):
         for fname in files:
             f = Path(root) / fname
-            parts = [get_base_filename(p) for p in f.relative_to(src_template_directory).parts]
+            parts = [get_base_filename_handling_jinja_syntax_and_extensions(p) for p in f.relative_to(src_template_directory).parts]
             paths.add(Path(*parts))
     return paths
 
@@ -201,7 +201,8 @@ def apply_file_markers(
 
     for file in sorted(dst_files):
         rel = file.relative_to(dst_directory)
-        if rel not in template_base_paths:
+        rel_base = Path(*map(get_base_filename_handling_jinja_syntax_and_extensions, rel.parts))
+        if rel not in template_base_paths and rel_base not in template_base_paths:
             continue
 
         rel_str = str(rel)
@@ -292,7 +293,7 @@ def main() -> None:
                 # and Jinja conditional names resolve to the final destination filename.
                 parts = Path(stripped).parts
                 if parts:
-                    resolved = str(Path(*[get_base_filename(p) for p in parts]))
+                    resolved = str(Path(*[get_base_filename_handling_jinja_syntax_and_extensions(p) for p in parts]))
                     path_set.add(resolved)
             ancestor_managed_by_src[t["src"]] = path_set
             if t.get("parent_src"):
