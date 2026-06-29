@@ -162,6 +162,7 @@
       // Git & Version Control
       "Bash(git push -f *)",
       "Bash(git push --force*)",
+      "Bash(git push --tags*)",
       // Node.js
       "Bash(npm publish *)",
       // System Administration
