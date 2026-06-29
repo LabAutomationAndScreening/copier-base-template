@@ -19,6 +19,7 @@ from the current branch.
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 
@@ -49,12 +50,20 @@ def current_branch() -> str:
     return result.stdout.strip()
 
 
+_GITHUB_URL_RE = re.compile(r"(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)[^/]+/[^/]+?(?:\.git)?/?")
+
+
 def has_remote() -> bool:
     result = run(["git", "remote"], timeout=15)
     if result.returncode != 0:
         _ = sys.stderr.write(f"Cannot read git remotes: {result.stderr.strip()}\n")
         sys.exit(1)
-    return bool(result.stdout.strip())
+    if "origin" not in result.stdout.split():
+        return False
+    url_result = run(["git", "remote", "get-url", "origin"], timeout=15)
+    if url_result.returncode != 0:
+        return False
+    return bool(_GITHUB_URL_RE.fullmatch(url_result.stdout.strip()))
 
 
 def is_dirty() -> bool:
