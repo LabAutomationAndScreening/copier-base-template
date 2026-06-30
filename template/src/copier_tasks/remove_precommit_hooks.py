@@ -1,1 +1,1 @@
-../../../src/copier_tasks/remove_precommit_hooks.py
+../../../src/copier_base_template/copier_tasks/remove_precommit_hooks.py

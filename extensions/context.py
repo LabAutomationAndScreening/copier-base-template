@@ -99,7 +99,7 @@ class ContextUpdater(ContextHook):
         context["gha_setup_python"] = "v6.2.0"
         context["gha_cache"] = "v5.0.5"
         context["gha_linux_runner"] = "ubuntu-24.04"
-        context["gha_setup_node"] = "v6.3.0"
+        context["gha_setup_node"] = "v6.4.0"
         #######
         context["gha_upload_artifact"] = "v7.0.1"
         context["gha_download_artifact"] = "v8.0.1"
@@ -132,7 +132,9 @@ class ContextUpdater(ContextHook):
         context["alpine_image_version"] = "3.23"
         context["nginx_image_version"] = "1.30.1"
         #######
-        context["kiota_cli_version"] = "1.32.4"
+        context["kiota_cli_version"] = (
+            "1.32.4"  # this is also in tests/unit/openapi/test_openapi_schema_simplifier.py and should be kept in sync with that
+        )
         # These also in the tests/data.yml files in this repository and in copier.yaml
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
         context["py313_version"] = "3.13.9"

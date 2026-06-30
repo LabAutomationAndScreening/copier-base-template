@@ -1,1 +1,1 @@
-../../../src/copier_tasks/__init__.py
+../../../src/copier_base_template/copier_tasks/__init__.py

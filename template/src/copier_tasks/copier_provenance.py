@@ -1,1 +1,1 @@
-../../../src/copier_tasks/copier_provenance.py
+../../../src/copier_base_template/copier_tasks/copier_provenance.py

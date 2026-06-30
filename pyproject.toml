@@ -17,6 +17,9 @@ dependencies = [
     "pyyaml>=6.0.3"
 ]
 
+[tool.uv]
+package = true
+
 [[tool.uv.index]]
 name = "pypi"
 url = "https://pypi.org/simple/"

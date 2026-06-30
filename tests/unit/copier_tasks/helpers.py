@@ -2,6 +2,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+SCRIPT_PATH_ROOT = PROJECT_ROOT / "src" / "copier_base_template" / "copier_tasks"
+
 
 def run_copier_task(
     script_path: Path,
