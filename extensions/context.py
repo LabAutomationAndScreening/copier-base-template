@@ -42,7 +42,9 @@ class ContextUpdater(ContextHook):
         context["pydantic_version"] = ">=2.13.4"
         context["pyinstaller_version"] = ">=6.20.0"
         context["setuptools_version"] = "80.7.1"
-        context["strawberry_graphql_version"] = ">=0.298.0"
+        context["strawberry_graphql_version"] = (
+            "==0.298.0"  # problems with strawberry pydantic in later versions...lost the context for exactly why...it was figured out a while ago, but has to do with being able to override resolvers and have the schema still keep the desired nullability
+        )
         context["fastapi_version"] = ">=0.137.1"
         context["fastapi_offline_version"] = ">=1.7.4"
         context["uvicorn_version"] = ">=0.49.0"
