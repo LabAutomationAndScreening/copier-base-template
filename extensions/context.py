@@ -17,7 +17,7 @@ class ContextUpdater(ContextHook):
         context["pre_commit_version"] = "4.5.1"
         context["pnpm_version"] = "11.9.0"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
-        context["copier_version"] = "==9.15.1"
+        context["copier_version"] = "==9.16.0"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
         context["npm_version"] = "11.13.0"
@@ -42,15 +42,17 @@ class ContextUpdater(ContextHook):
         context["pydantic_version"] = ">=2.13.4"
         context["pyinstaller_version"] = ">=6.20.0"
         context["setuptools_version"] = "80.7.1"
-        context["strawberry_graphql_version"] = ">=0.298.0"
-        context["fastapi_version"] = ">=0.137.1"
-        context["fastapi_offline_version"] = ">=1.7.4"
+        context["strawberry_graphql_version"] = (
+            "==0.298.0"  # problems with strawberry pydantic in later versions...lost the context for exactly why...it was figured out a while ago, but has to do with being able to override resolvers and have the schema still keep the desired nullability
+        )
+        context["fastapi_version"] = ">=0.138.2"
+        context["fastapi_offline_version"] = ">=1.7.7"
         context["uvicorn_version"] = ">=0.49.0"
         context["lab_auto_pulumi_version"] = ">=0.2.3"
         context["ariadne_codegen_version"] = ">=0.18.0"
         context["pytest_mock_version"] = ">=3.15.1"
-        context["uuid_utils_version"] = ">=0.16.0"
-        context["syrupy_version"] = ">=5.3.1"
+        context["uuid_utils_version"] = ">=0.16.2"
+        context["syrupy_version"] = ">=5.3.4"
         context["structlog_version"] = ">=26.1.0"
         context["httpx_version"] = ">=0.28.1"
         context["httpx2_version"] = ">=2.5.0"
@@ -99,7 +101,7 @@ class ContextUpdater(ContextHook):
         context["gha_setup_python"] = "v6.2.0"
         context["gha_cache"] = "v5.0.5"
         context["gha_linux_runner"] = "ubuntu-24.04"
-        context["gha_setup_node"] = "v6.3.0"
+        context["gha_setup_node"] = "v6.4.0"
         #######
         context["gha_upload_artifact"] = "v7.0.1"
         context["gha_download_artifact"] = "v8.0.1"
@@ -132,7 +134,9 @@ class ContextUpdater(ContextHook):
         context["alpine_image_version"] = "3.23"
         context["nginx_image_version"] = "1.30.1"
         #######
-        context["kiota_cli_version"] = "1.31.1"
+        context["kiota_cli_version"] = (
+            "1.32.4"  # this is also in tests/unit/openapi/test_openapi_schema_simplifier.py and should be kept in sync with that
+        )
         # These also in the tests/data.yml files in this repository and in copier.yaml
         context["py312_version"] = "3.12.7"  # ReadTheDocs does not yet support 3.12.8
         context["py313_version"] = "3.13.9"

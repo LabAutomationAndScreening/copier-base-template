@@ -1,0 +1,1 @@
+../../src/copier_base_template/openapi/openapi_schema_simplifier.py

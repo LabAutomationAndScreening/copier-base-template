@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 from faker import Faker
 
+from .helpers import SCRIPT_PATH_ROOT
 from .helpers import run_copier_task
 
-_PROJECT_ROOT = Path(__file__).resolve().parents[3]
-_SCRIPT_PATH = _PROJECT_ROOT / "src" / "copier_tasks" / "copier_provenance.py"
+_SCRIPT_PATH = SCRIPT_PATH_ROOT / "copier_provenance.py"
 
 expected_hash_comment = """\
 # ============== WARNING ==============================================================================

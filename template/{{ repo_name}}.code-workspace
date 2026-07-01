@@ -1,0 +1,21 @@
+{
+  "folders": [
+    {
+      "name": "root",
+      "path": ".",
+    },
+    {
+      "name": "template",
+      "path": "template",
+    },
+  ],
+  "settings": {
+    // Shows the workspace name in the status bar
+    "workbench.editor.labelFormat": "medium",
+
+    "files.exclude": {
+      // Excluding service dirs since they are imported as their own workspace folders
+      "template": true,
+    },
+  },
+}
