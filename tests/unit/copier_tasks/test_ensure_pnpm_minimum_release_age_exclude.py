@@ -4,10 +4,10 @@ from pathlib import Path
 import yaml
 from faker import Faker
 
+from .helpers import SCRIPT_PATH_ROOT
 from .helpers import run_copier_task
 
-_PROJECT_ROOT = Path(__file__).resolve().parents[3]
-_SCRIPT_PATH = _PROJECT_ROOT / "src" / "copier_tasks" / "ensure_pnpm_minimum_release_age_exclude.py"
+_SCRIPT_PATH = SCRIPT_PATH_ROOT / "ensure_pnpm_minimum_release_age_exclude.py"
 
 
 class TestEnsurePnpmMinimumReleaseAgeExcludeViaSubprocess:
