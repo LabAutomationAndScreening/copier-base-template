@@ -6,6 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from typing import Literal
+from typing import cast
+
+import yaml
 
 CommentType = Literal["hash", "batch", "block", "jinja", "markdown", "none"]
 Location = Literal["top", "bottom", "none"]
@@ -191,21 +194,11 @@ def _read_copier_answers(dst_directory: Path) -> dict[str, Any]:
     answers_path = dst_directory / ".copier-answers.yml"
     if not answers_path.exists():
         return {}
-    result: dict[str, Any] = {}
-    for line in answers_path.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped or ":" not in stripped:
-            continue
-        key, _, raw = stripped.partition(":")
-        key = key.strip()
-        if key.startswith("_"):
-            continue
-        raw = raw.strip()
-        if raw.lower() == "true":
-            result[key] = True
-        elif raw.lower() == "false":
-            result[key] = False
-    return result
+    raw = yaml.safe_load(answers_path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        return {}
+    data = cast("dict[str, Any]", raw)
+    return {k: v for k, v in data.items() if not k.startswith("_") and isinstance(v, bool)}
 
 
 def _is_false_jinja_conditional(component: str, answers: dict[str, Any]) -> bool:
@@ -302,9 +295,12 @@ def _read_parent_src(src_template_directory: Path) -> str | None:
     answers_path = src_template_directory.parent / ".copier-answers.yml"
     if not answers_path.exists():
         return None
-    text = answers_path.read_text(encoding="utf-8")
-    m = re.search(r"^_src_path:\s*(.+)$", text, re.MULTILINE)
-    return m.group(1).strip() if m else None
+    raw = yaml.safe_load(answers_path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        return None
+    data = cast("dict[str, Any]", raw)
+    src_path = data.get("_src_path")
+    return str(src_path) if src_path else None
 
 
 def update_manifest(
