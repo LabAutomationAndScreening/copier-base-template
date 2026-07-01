@@ -865,3 +865,48 @@ class TestManifest:
         srcs_false = {t["src"]: t for t in manifest_after_false["templates"]}
         # Stale helm entries must be gone from the ancestor's manifest entry.
         assert srcs_false["https://github.com/org/ancestor-template"]["managed_files"] == []
+
+    def test_stale_ancestor_entries_cleared_when_path_removed_from_child_template(self, tmp_path: Path) -> None:
+        # Regression test: an overlap heuristic ("only refresh an ancestor's manifest
+        # entry if its paths still appear somewhere in the child template's own base
+        # paths") missed the case where the child template drops a path entirely
+        # (not just behind a now-false Jinja conditional). _collect_template_base_paths
+        # always resolves conditional dirnames as if true, so a still-present-but-false
+        # conditional dir always "overlaps"; only a path removed outright from the
+        # child template fails the overlap check. Ancestor entries must be refreshed
+        # unconditionally every run so this case can't leave stale paths behind.
+        child_tmpl_repo = tmp_path / "child_tmpl_repo"
+        child_tmpl = child_tmpl_repo / "template"
+        child_tmpl.mkdir(parents=True)
+        _ = (child_tmpl / "a.txt").touch()
+
+        # Ancestor manifest: a file under a path the child template no longer has at all.
+        _ = (child_tmpl_repo / ".copier-managed-files.json").write_text(
+            json.dumps(
+                {
+                    "templates": [
+                        {
+                            "src": "https://github.com/org/ancestor-template",
+                            "managed_files": ["template/legacy/old_ancestor_file.txt"],
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        project = tmp_path / "project"
+        project.mkdir()
+        _ = (project / "a.txt").write_text("content", encoding="utf-8")
+        (project / "legacy").mkdir()
+        _ = (project / "legacy" / "old_ancestor_file.txt").write_text("stale", encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=child_tmpl,
+            dst_dir=project,
+            template_src="https://github.com/org/child-template",
+        )
+        manifest = json.loads((project / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        srcs = {t["src"]: t for t in manifest["templates"]}
+        # The ancestor's entry must exist and be refreshed to empty, not skipped/missing.
+        assert srcs["https://github.com/org/ancestor-template"]["managed_files"] == []

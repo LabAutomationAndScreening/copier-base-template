@@ -370,7 +370,7 @@ def main() -> None:
 
     answers = _read_copier_answers(args.dst_dir)
 
-    managed_by_src, template_base_paths = apply_file_markers(
+    managed_by_src, _ = apply_file_markers(
         src_template_directory=args.src_template_dir,
         dst_directory=args.dst_dir,
         template_src=header_src,
@@ -380,17 +380,18 @@ def main() -> None:
     # Always write an entry for the current template even when no files matched.
     _ = managed_by_src.setdefault(header_src, [])
 
-    # Ensure ancestors whose files overlap with this template's scope get their
-    # manifest entries updated even when all of their conditional files were deleted.
-    # Without this, if every ancestor-managed file is under a Jinja conditional
-    # directory (e.g. {% if is_circuit_python_driver %}helm{% endif %}) and the
-    # condition changes to false, the ancestor never appears in managed_by_src and
-    # its stale manifest entry (listing the now-deleted files) persists.
-    if ancestor_managed_by_src:
-        template_base_path_strs = {str(p) for p in template_base_paths}
-        for src, paths in ancestor_managed_by_src.items():
-            if paths & template_base_path_strs:
-                _ = managed_by_src.setdefault(src, [])
+    # Every ancestor discoverable from this template's own manifest gets its entry
+    # refreshed on every run, not just when this run happened to re-attribute files
+    # to it. Relying on an overlap heuristic left a gap: if an ancestor's files were
+    # all under a Jinja conditional directory (e.g. {% if is_circuit_python_driver %}
+    # helm{% endif %}) and that overlap check missed a case, the ancestor never
+    # appeared in managed_by_src and its stale manifest entry (listing now-deleted
+    # files) would persist indefinitely. Unconditionally seeding every known ancestor
+    # here guarantees update_manifest() is called for it every run, so its entry is
+    # always a fresh, fully-recomputed reflection of current state (empty if nothing
+    # is attributed to it), never a carryover from a previous run.
+    for src in ancestor_managed_by_src:
+        _ = managed_by_src.setdefault(src, [])
 
     parent_src = _read_parent_src(args.src_template_dir)
     for src, files in managed_by_src.items():
