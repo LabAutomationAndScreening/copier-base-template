@@ -159,6 +159,16 @@ pnpm_minimum_release_age_exclude:
     default: ""{% endraw %}{% endif %}{% raw %}
 
 
+_skip_if_exists:
+    # .copier-managed-files.json is regenerated fresh by the provenance task on every update, not
+    # rendered by Copier's own template engine. `skip_if_exists` entries are also passed as
+    # `git apply --exclude` patterns during Copier's update patch step (see Copier's
+    # `_apply_update`), which diffs a fresh old-template render against the pre-update commit and
+    # re-applies that diff on top of what the task just wrote. Without this exclusion, that patch
+    # step can reintroduce stale entries the task already corrected, since this file isn't really
+    # template source content and shouldn't be diffed/patched like one.
+    - .copier-managed-files.json
+
 _tasks:
   - command: |
         python3 '{{ _copier_conf.src_path }}/src/copier_tasks/remove_precommit_hooks.py' \
