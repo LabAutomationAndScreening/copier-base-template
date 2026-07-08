@@ -199,13 +199,13 @@ _tasks:
         python3 '{{ _copier_conf.src_path }}/src/copier_tasks/ensure_pnpm_minimum_release_age_exclude.py' --patterns "$PNPM_PATTERNS"
     when: "{{ pnpm_minimum_release_age_exclude }}"{% endraw %}{% endif %}{% raw %}
   - command: |
-        if [ -f ruff.toml ]; then
+        if [ -f .config/ruff.toml ]; then
             echo "Updating ruff target-version from python_version..."
             py_major_minor="$(printf '%s' '{{ python_version }}' | cut -d. -f1,2)"
             py_tag="py$(printf '%s' "$py_major_minor" | tr -d '.')"
-            sed -i -E 's/^target-version = "py[0-9]+"/target-version = "'"$py_tag"'"/' ruff.toml
+            sed -i -E 's/^target-version = "py[0-9]+"/target-version = "'"$py_tag"'"/' .config/ruff.toml
         else
-            echo "ruff.toml not found; skipping Ruff target-version update."
+            echo ".config/ruff.toml not found; skipping Ruff target-version update."
         fi
   - command: |
         python3 '{{ _copier_conf.src_path }}/src/copier_tasks/copier_provenance.py' \

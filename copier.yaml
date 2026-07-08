@@ -115,13 +115,13 @@ _tasks:
             fi
         done
   - command: |
-        if [ -f ruff.toml ]; then
+        if [ -f .config/ruff.toml ]; then
             echo "Updating ruff target-version from python_version..."
             py_major_minor="$(printf '%s' '{{ python_version }}' | cut -d. -f1,2)"
             py_tag="py$(printf '%s' "$py_major_minor" | tr -d '.')"
-            sed -i -E 's/^target-version = "py[0-9]+"/target-version = "'"$py_tag"'"/' ruff.toml
+            sed -i -E 's/^target-version = "py[0-9]+"/target-version = "'"$py_tag"'"/' .config/ruff.toml
         else
-            echo "ruff.toml not found; skipping Ruff target-version update."
+            echo ".config/ruff.toml not found; skipping Ruff target-version update."
         fi
   - command: |
         python3 '{{ _copier_conf.src_path }}/src/copier_base_template/copier_tasks/copier_provenance.py' \
