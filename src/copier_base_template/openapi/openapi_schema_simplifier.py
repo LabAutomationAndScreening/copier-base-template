@@ -3,6 +3,20 @@ from pydantic import JsonValue
 # This is unit tested in the https://github.com/LabAutomationAndScreening/copier-base-template repo. It is excluded from coverage checks in other repos, so be cautious about making changes downstream as opposed to the copier base template...really it's for parsing OpenAPI schema...so I can't think of a reason you'd need custom changes that are repo-specific that shouldn't be backported to the template
 
 
+def _merge_typed_members(typed_dicts: list[dict[str, JsonValue]]) -> dict[str, JsonValue] | None:
+    merged: dict[str, JsonValue] = {}
+    for typed_member in typed_dicts:
+        for key, value in typed_member.items():
+            if key == "type":
+                continue
+            if key not in merged:
+                merged[key] = value
+                continue
+            if merged[key] != value:
+                return None  # branches disagree on this key; a single merged schema would silently drop one value
+    return merged
+
+
 def _collapse_anyof(schema: dict[str, JsonValue]) -> None:
     any_of = schema.get("anyOf")
     if not isinstance(any_of, list):
@@ -24,9 +38,11 @@ def _collapse_anyof(schema: dict[str, JsonValue]) -> None:
             return  # enum/const apply to every type, so merging them would wrongly reject null and the sibling types
         typed_dicts.append(member)
         member_types.append(member_type)
+    merged = _merge_typed_members(typed_dicts)
+    if merged is None:
+        return  # branches carry conflicting per-key values; collapsing would be lossy, so leave the union as-is
     del schema["anyOf"]
-    for typed_member in typed_dicts:
-        schema.update({key: value for key, value in typed_member.items() if key != "type"})
+    schema.update(merged)
     schema["type"] = [*member_types, "null"]
 
 

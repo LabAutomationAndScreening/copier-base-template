@@ -105,6 +105,21 @@ class TestCollapseSafety:
         assert "anyOf" in field
         assert "type" not in field
 
+    def test_Given_branches_disagree_on_a_key__When_collapsed__Then_anyof_left_untouched(self):
+        field: dict[str, JsonValue] = {
+            "anyOf": [
+                {"type": "string", "format": "date-time"},
+                {"type": "string", "format": "date"},
+                {"type": "null"},
+            ]
+        }
+        document: dict[str, JsonValue] = {"value": field}
+
+        openapi_schema_simplifier.collapse_nullable_anyof(document)
+
+        assert "anyOf" in field
+        assert "type" not in field
+
 
 class TestKiotaGeneration:
     def test_Given_nullable_integer__When_collapsed_and_generated__Then_no_member1_wrapper(self, tmp_path: Path):
