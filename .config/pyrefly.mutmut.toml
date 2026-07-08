@@ -4,7 +4,7 @@
 use-ignore-files = false
 disable-project-excludes-heuristics = true
 python-platform = "linux"
-project-includes = ["mutants/src/**"]
+project-includes = ["../mutants/src/**"]
 project-excludes = [
     "**/generated/**",
 ]

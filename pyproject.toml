@@ -41,7 +41,7 @@ do_not_mutate = [   "*/generated/*" , # do not mutate generated code, this is cr
 # mutants tree and excludes do_not_mutate files, so every reported type error falls inside a mutant
 # function and mutmut can attribute it. Without it, pyrefly checks the real source from the mutants/
 # cwd and reports errors on non-mutant lines, crashing with "Could not find mutant for type error".
-type_check_command = ['uv', 'run', 'pyrefly', 'check', '--output-format=json', '-c', '../pyrefly.mutmut.toml']
+type_check_command = ['uv', 'run', 'pyrefly', 'check', '--output-format=json', '-c', '../.config/pyrefly.mutmut.toml']
 do_not_mutate_patterns = [
     # disable mutations of all logger.info/debug/... statements
     'logger\.\w+',
