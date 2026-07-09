@@ -85,7 +85,7 @@ template_publishes_releases:
 
 copier_answers_directory:
     type: str
-    help: What directory within the instantiated template contains the .copier-answers.yml file? Use '.' for the root, or a subdirectory path (e.g. '.frontend').
+    help: What directory within the instantiated template contains the .copier-answers.yml file? Use '.' for the root, or a subdirectory path (e.g. 'frontend').
     default: ".config"
 
 _tasks:
@@ -131,7 +131,7 @@ _tasks:
 
 _min_copier_version: "9.8"
 
-_answers_file: "{{ copier_answers_directory }}/.copier-answers.yml"
+_answers_file: ".config/.copier-answers.yml"
 
 _subdirectory: template
 
