@@ -153,7 +153,7 @@ jobs:
 
       - name: Confirm instantiated template has copier answers file
         run: |
-          if [ ! -f "./new-template/.copier-answers.yml" ]; then
+          if [ ! -f "./new-template/.config/.copier-answers.yml" ]; then
             echo "Copier answers file not found in instantiated template location"
             exit 1
           fi

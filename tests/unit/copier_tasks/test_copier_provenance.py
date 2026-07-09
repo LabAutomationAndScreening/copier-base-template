@@ -559,7 +559,30 @@ class TestManifest:
             assert isinstance(entry["managed_files"], list)
             assert all(isinstance(f, str) for f in entry["managed_files"])
 
-    def test_manifest_parent_src_discovered_from_copier_answers(self, tmp_path: Path) -> None:
+    def test_manifest_parent_src_discovered_from_config_copier_answers(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        config_dir = tmp_path / ".config"
+        config_dir.mkdir()
+        _ = (config_dir / ".copier-answers.yml").write_text(
+            "_src_path: https://github.com/org/parent-template\n",
+            encoding="utf-8",
+        )
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        entry = manifest["templates"][0]
+        assert entry["parent_src"] == "https://github.com/org/parent-template"
+
+    def test_manifest_parent_src_falls_back_to_root_copier_answers(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
         template_dir.mkdir()
         _ = (tmp_path / ".copier-answers.yml").write_text(

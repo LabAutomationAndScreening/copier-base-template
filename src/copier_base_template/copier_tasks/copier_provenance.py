@@ -225,7 +225,10 @@ def apply_file_markers(
 
 
 def _read_parent_src(src_template_directory: Path) -> str | None:
-    answers_path = src_template_directory.parent / ".copier-answers.yml"
+    template_root = src_template_directory.parent
+    answers_path = template_root / ".config" / ".copier-answers.yml"
+    if not answers_path.exists():
+        answers_path = template_root / ".copier-answers.yml"
     if not answers_path.exists():
         return None
     text = answers_path.read_text(encoding="utf-8")
