@@ -12,7 +12,7 @@ _SCRIPT_PATH = SCRIPT_PATH_ROOT / "copier_provenance.py"
 
 expected_hash_comment = """\
 # ============== WARNING ==============================================================================
-# File is managed by a copier template. See .copier-managed-files.json for details.
+# File is managed by a copier template. See .config/.copier-managed-files.json for details.
 #
 # You are welcome to make changes to this file in your repo if they are custom to your project,
 # but if the change should be shared with other projects, please backport it to the template repo.
@@ -20,7 +20,7 @@ expected_hash_comment = """\
 
 expected_batch_comment = """\
 REM ============== WARNING ==============================================================================
-REM File is managed by a copier template. See .copier-managed-files.json for details.
+REM File is managed by a copier template. See .config/.copier-managed-files.json for details.
 REM
 REM You are welcome to make changes to this file in your repo if they are custom to your project,
 REM but if the change should be shared with other projects, please backport it to the template repo.
@@ -29,7 +29,7 @@ REM ============================================================================
 expected_block_comment = """\
 /*
  * ============== WARNING ==============================================================================
- * File is managed by a copier template. See .copier-managed-files.json for details.
+ * File is managed by a copier template. See .config/.copier-managed-files.json for details.
  *
  * You are welcome to make changes to this file in your repo if they are custom to your project,
  * but if the change should be shared with other projects, please backport it to the template repo.
@@ -39,7 +39,7 @@ expected_block_comment = """\
 expected_jinja_comment = """\
 {#
  ============== WARNING ==============================================================================
- File is managed by a copier template. See .copier-managed-files.json for details.
+ File is managed by a copier template. See .config/.copier-managed-files.json for details.
 
  You are welcome to make changes to this file in your repo if they are custom to your project,
  but if the change should be shared with other projects, please backport it to the template repo.
@@ -49,7 +49,7 @@ expected_jinja_comment = """\
 expected_markdown_comment = """\
 <!--
 ============== WARNING ==============================================================================
-File is managed by a copier template. See .copier-managed-files.json for details.
+File is managed by a copier template. See .config/.copier-managed-files.json for details.
 
 You are welcome to make changes to this file in your repo if they are custom to your project,
 but if the change should be shared with other projects, please backport it to the template repo.
@@ -435,7 +435,7 @@ class TestManifest:
             template_src="https://github.com/org/base-template",
         )
 
-        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        manifest = json.loads((dst_dir / ".config" / ".copier-managed-files.json").read_text(encoding="utf-8"))
         assert len(manifest["templates"]) == 1
         entry = manifest["templates"][0]
         assert entry["src"] == "https://github.com/org/base-template"
@@ -461,7 +461,7 @@ class TestManifest:
             template_src="https://github.com/org/base-template",
         )
 
-        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        manifest = json.loads((dst_dir / ".config" / ".copier-managed-files.json").read_text(encoding="utf-8"))
         assert len(manifest["templates"]) == 1
 
     def test_manifest_layering_preserves_other_template_entries(self, tmp_path: Path) -> None:
@@ -484,7 +484,7 @@ class TestManifest:
             template_src="https://github.com/org/child-template",
         )
 
-        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        manifest = json.loads((dst_dir / ".config" / ".copier-managed-files.json").read_text(encoding="utf-8"))
         srcs = [t["src"] for t in manifest["templates"]]
         assert "https://github.com/org/base-template" in srcs
         assert "https://github.com/org/child-template" in srcs
@@ -515,7 +515,7 @@ class TestManifest:
             template_src="https://github.com/org/child-template",
         )
 
-        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        manifest = json.loads((dst_dir / ".config" / ".copier-managed-files.json").read_text(encoding="utf-8"))
         assert len(manifest["templates"]) == expected_num_manifests_in_project
         base = next(t for t in manifest["templates"] if "base" in t["src"])
         assert "a.txt" in base["managed_files"]
@@ -533,7 +533,7 @@ class TestManifest:
             template_src="https://github.com/org/my-template",
         )
 
-        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        manifest = json.loads((dst_dir / ".config" / ".copier-managed-files.json").read_text(encoding="utf-8"))
         entry = manifest["templates"][0]
         assert entry["src"] == "https://github.com/org/my-template"
 
@@ -552,7 +552,7 @@ class TestManifest:
             template_src="https://github.com/org/my-template",
         )
 
-        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        manifest = json.loads((dst_dir / ".config" / ".copier-managed-files.json").read_text(encoding="utf-8"))
         assert isinstance(manifest["templates"], list)
         for entry in manifest["templates"]:
             assert isinstance(entry["src"], str)
@@ -578,7 +578,7 @@ class TestManifest:
             template_src="https://github.com/org/child-template",
         )
 
-        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        manifest = json.loads((dst_dir / ".config" / ".copier-managed-files.json").read_text(encoding="utf-8"))
         entry = manifest["templates"][0]
         assert entry["parent_src"] == "https://github.com/org/parent-template"
 
@@ -599,7 +599,7 @@ class TestManifest:
             template_src="https://github.com/org/child-template",
         )
 
-        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        manifest = json.loads((dst_dir / ".config" / ".copier-managed-files.json").read_text(encoding="utf-8"))
         entry = manifest["templates"][0]
         assert entry["parent_src"] == "https://github.com/org/parent-template"
 
@@ -616,7 +616,7 @@ class TestManifest:
             template_src="https://github.com/org/root-template",
         )
 
-        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        manifest = json.loads((dst_dir / ".config" / ".copier-managed-files.json").read_text(encoding="utf-8"))
         entry = manifest["templates"][0]
         assert entry["src"] == "https://github.com/org/root-template"
         assert "parent_src" not in entry
@@ -653,7 +653,7 @@ class TestManifest:
             template_src="https://github.com/org/child-template",
         )
 
-        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        manifest = json.loads((dst_dir / ".config" / ".copier-managed-files.json").read_text(encoding="utf-8"))
         srcs = {t["src"]: t for t in manifest["templates"]}
         assert "https://github.com/org/base-template" in srcs
         assert "https://github.com/org/child-template" in srcs
@@ -696,7 +696,7 @@ class TestManifest:
             template_src="https://github.com/org/child-template",
         )
 
-        manifest = json.loads((dst_dir / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        manifest = json.loads((dst_dir / ".config" / ".copier-managed-files.json").read_text(encoding="utf-8"))
         srcs = {t["src"]: t for t in manifest["templates"]}
         assert "README.md" in srcs["https://github.com/org/base-template"]["managed_files"]
         assert "README.md" not in srcs.get("https://github.com/org/child-template", {}).get("managed_files", [])
@@ -720,13 +720,13 @@ class TestManifest:
         _ = (child_repo / "template" / "README.md.jinja").write_text("# readme\n", encoding="utf-8")
         _ = (child_repo / "template" / "child_only.py").write_text("x = 1\n", encoding="utf-8")
 
-        # Step 1: base stamps child — populates child's root .copier-managed-files.json
+        # Step 1: base stamps child — populates child's .config/.copier-managed-files.json
         _ = _run_script(
             src_template_dir=base_tmpl / "template",
             dst_dir=child_repo,
             template_src="https://github.com/org/base-template",
         )
-        child_manifest = json.loads((child_repo / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        child_manifest = json.loads((child_repo / ".config" / ".copier-managed-files.json").read_text(encoding="utf-8"))
         base_entry = next(t for t in child_manifest["templates"] if "base" in t["src"])
         assert "template/README.md.jinja" in base_entry["managed_files"]
 
@@ -741,7 +741,7 @@ class TestManifest:
             dst_dir=final_repo,
             template_src="https://github.com/org/child-template",
         )
-        final_manifest = json.loads((final_repo / ".copier-managed-files.json").read_text(encoding="utf-8"))
+        final_manifest = json.loads((final_repo / ".config" / ".copier-managed-files.json").read_text(encoding="utf-8"))
         srcs = {t["src"]: t for t in final_manifest["templates"]}
         assert "README.md" in srcs["https://github.com/org/base-template"]["managed_files"]
         assert "child_only.py" in srcs["https://github.com/org/child-template"]["managed_files"]
