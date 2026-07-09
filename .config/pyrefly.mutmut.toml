@@ -6,5 +6,6 @@ disable-project-excludes-heuristics = true
 python-platform = "linux"
 project-includes = ["../mutants/src/**"]
 project-excludes = [
-    "**/generated/**",
+    # paths are relative to this config file (in .config/), so prefix with ../ to anchor at the repo root
+    "../**/generated/**",
 ]

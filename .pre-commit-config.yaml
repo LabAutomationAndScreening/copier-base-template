@@ -300,7 +300,7 @@ repos:
     hooks:
       - id: pyrefly
         name: pyrefly
-        entry: bash -c "uv run pyrefly check"
+        entry: bash -c "uv run pyrefly check -c ./.config/pyrefly.toml"
         files: '.+\.py$'
         exclude: |
           (?x)^(
