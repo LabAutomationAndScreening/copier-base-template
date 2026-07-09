@@ -45,6 +45,7 @@ repos:
     rev: 359573a3ff38f71c93e160f2ace96d118f6ff42e  # frozen: v1
     hooks:
       - id: typos
+        args: [--config, .config/_typos.toml]
         exclude: |
           (?x)^(
               .*\.min.js|
