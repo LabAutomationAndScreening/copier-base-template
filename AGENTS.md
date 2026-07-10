@@ -170,7 +170,7 @@ For more details, see README.md and docs/QUICKSTART.md.
 
 # Copier-Managed Files
 
-Files generated from upstream copier templates are listed in `.copier-managed-files.json` (if present).
+Files generated from upstream copier templates are listed in `.config/.copier-managed-files.json` (if present).
 The manifest has a `templates` array — one entry per template in the chain. Each entry has `src` (the template URL),
 `managed_files` (files it placed), and optionally `parent_src` (the template that generated it, forming the chain).
 

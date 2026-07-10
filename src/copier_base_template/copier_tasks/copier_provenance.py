@@ -49,9 +49,19 @@ custom_filename_handling: dict[str, CommentFormat] = {
     ".node-version": CommentFormat("none", "none"),
 }
 
+_MANIFEST_RELPATH = Path(".config") / ".copier-managed-files.json"
+
+
+def _find_manifest(base_directory: Path) -> Path:
+    config_manifest = base_directory / _MANIFEST_RELPATH
+    if config_manifest.exists():
+        return config_manifest
+    return base_directory / ".copier-managed-files.json"
+
+
 _HEADER_BASE = """\
 ============== WARNING ==============================================================================
-File is managed by a copier template. See .copier-managed-files.json for details.
+File is managed by a copier template. See .config/.copier-managed-files.json for details.
 
 You are welcome to make changes to this file in your repo if they are custom to your project,
 but if the change should be shared with other projects, please backport it to the template repo.
@@ -65,7 +75,7 @@ def _build_header(template_src: str) -> str:
     lines: list[str] = list(_HEADER_BASE.split("\n"))
     # Replace the generic "File is managed" line with two lines: URL line + "See ..." line.
     lines[1] = f"File is managed by copier template: {template_src}"
-    lines.insert(2, "See .copier-managed-files.json for details.")
+    lines.insert(2, "See .config/.copier-managed-files.json for details.")
     return "\n".join(lines)
 
 
@@ -225,7 +235,10 @@ def apply_file_markers(
 
 
 def _read_parent_src(src_template_directory: Path) -> str | None:
-    answers_path = src_template_directory.parent / ".copier-answers.yml"
+    template_root = src_template_directory.parent
+    answers_path = template_root / ".config" / ".copier-answers.yml"
+    if not answers_path.exists():
+        answers_path = template_root / ".copier-answers.yml"
     if not answers_path.exists():
         return None
     text = answers_path.read_text(encoding="utf-8")
@@ -240,7 +253,8 @@ def update_manifest(
     managed_files: list[str],
     parent_src: str | None = None,
 ) -> None:
-    manifest_path = dst_directory / ".copier-managed-files.json"
+    manifest_path = dst_directory / _MANIFEST_RELPATH
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
 
     existing: dict[str, Any] = {}
     if manifest_path.exists():
@@ -269,13 +283,13 @@ def main() -> None:
     args = parser.parse_args()
 
     # header_src drives what URL appears in file headers (empty → generic "managed by a copier template" text).
-    # manifest_src is the key written to .copier-managed-files.json and is always non-empty.
+    # manifest_src is the key written to .config/.copier-managed-files.json and is always non-empty.
     header_src = args.template_src
     manifest_src = args.template_src or str(args.src_template_dir)
 
     ancestor_managed_by_src: dict[str, set[str]] = {}
     ancestor_parent_by_src: dict[str, str] = {}
-    ancestor_manifest_path = args.src_template_dir.parent / ".copier-managed-files.json"
+    ancestor_manifest_path = _find_manifest(args.src_template_dir.parent)
     if ancestor_manifest_path.exists():
         data: dict[str, Any] = json.loads(ancestor_manifest_path.read_text(encoding="utf-8"))
         # The ancestor manifest may contain paths with a "template/" prefix (from self-stamp

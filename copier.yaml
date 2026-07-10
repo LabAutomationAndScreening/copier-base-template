@@ -86,7 +86,7 @@ template_publishes_releases:
 copier_answers_directory:
     type: str
     help: What directory within the instantiated template contains the .copier-answers.yml file? Use '.' for the root, or a subdirectory path (e.g. 'frontend').
-    default: "."
+    default: ".config"
 
 _tasks:
   - command: |
@@ -115,13 +115,13 @@ _tasks:
             fi
         done
   - command: |
-        if [ -f ruff.toml ]; then
+        if [ -f .config/ruff.toml ]; then
             echo "Updating ruff target-version from python_version..."
             py_major_minor="$(printf '%s' '{{ python_version }}' | cut -d. -f1,2)"
             py_tag="py$(printf '%s' "$py_major_minor" | tr -d '.')"
-            sed -i -E 's/^target-version = "py[0-9]+"/target-version = "'"$py_tag"'"/' ruff.toml
+            sed -i -E 's/^target-version = "py[0-9]+"/target-version = "'"$py_tag"'"/' .config/ruff.toml
         else
-            echo "ruff.toml not found; skipping Ruff target-version update."
+            echo ".config/ruff.toml not found; skipping Ruff target-version update."
         fi
   - command: |
         python3 '{{ _copier_conf.src_path }}/src/copier_base_template/copier_tasks/copier_provenance.py' \
@@ -130,6 +130,8 @@ _tasks:
             --template-src '{{ _src_path }}'
 
 _min_copier_version: "9.8"
+
+_answers_file: ".config/.copier-answers.yml"
 
 _subdirectory: template
 
