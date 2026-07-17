@@ -32,6 +32,9 @@ exclude = [
 line-length = 120
 indent-width = 4
 
+# resolved relative to the cwd where ruff runs (repo root under pre-commit), so this nests the cache under .config
+cache-dir = ".config/.ruff_cache"
+
 target-version = "py312"
 
 [lint]
