@@ -18,7 +18,7 @@ This project is a Copier template used to generate other copier templates. It is
 
 - Always include type hints.
 - Respect the pyrefly unused-call-result check; assign unneeded return values to `_`
-- Avoid `d.get(key, default)` — coverage tools see a function call, not a branch, so they can't tell whether both the found and fallback paths ran. Use `if key in d:` / `else` so each path is covered.
+- Prefer explicit `if`/`else` over one-line forms that collapse branches: a ternary, `d.get(key, default)`, returning a boolean expression `return b > 5`/`return bool(b)`. `coverage.py` tracks branches as line-to-line arcs, so a single-line expression hides the untaken path.
 - When filtering logic combines multiple `and`-joined guards (e.g. a null check alongside a value check), prefer a loop with explicit `if`/`continue` branches over a single-line comprehension. A compound boolean filter on one line hides individual branches from line coverage — each guard condition should be its own statement so missing test cases are surfaced.
 
 ## Testing
