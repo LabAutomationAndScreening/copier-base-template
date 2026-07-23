@@ -9,12 +9,16 @@ This project is a Copier template used to generate other copier templates. It is
 - Comments should be used very rarely. Code should generally express its intent.
 - Never write a one-line docstring — either the name is sufficient or the behavior warrants a full explanation.
 - Don't sort or remove imports manually — pre-commit handles it.
-- Always include type hints in Python
-- Respect the pyrefly unused-call-result check; assign unneeded return values to `_`
 - Prefer keyword-only parameters (unless a very clear single-argument function): use `*` in Python signatures and destructured options objects in TypeScript.
 - When disabling a linting rule with an inline directive, provide a comment at the end of the line (or on the line above for tools that don't allow extra text after an inline directive) describing the reasoning for disabling the rule.
 - Avoid telling the type checker what a type is rather than letting it prove it. This includes type assertions (`as SomeType` in TypeScript, `cast()` in Python) and variable annotations that override inference. Prefer approaches that let the type checker verify the type itself: `isinstance`/`instanceof` narrowing, restructuring code so the correct type flows naturally, or using discriminated unions. When there is genuinely no alternative, add a comment explaining why the workaround is necessary and why it is safe.
 - Avoid `||` (TypeScript) or `or` (Python) in `if`/`elif` conditions, and avoid `x in ['a', 'b']`-style membership tests in implementation code — coverage tools treat these as a single branch, silently masking untested paths and producing false 100% branch coverage. Use separate `if`/`elif` branches instead so each condition is independently covered.
+
+### Python
+
+- Always include type hints.
+- Respect the pyrefly unused-call-result check; assign unneeded return values to `_`
+- Avoid `d.get(key, default)` — coverage tools see a function call, not a branch, so they can't tell whether both the found and fallback paths ran. Use `if key in d:` / `else` so each path is covered.
 - When filtering logic combines multiple `and`-joined guards (e.g. a null check alongside a value check), prefer a loop with explicit `if`/`continue` branches over a single-line comprehension. A compound boolean filter on one line hides individual branches from line coverage — each guard condition should be its own statement so missing test cases are surfaced.
 
 ## Testing
