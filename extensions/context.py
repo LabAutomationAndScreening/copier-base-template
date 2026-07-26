@@ -99,7 +99,7 @@ class ContextUpdater(ContextHook):
         context["tanstack_vue_table_version"] = "^8.21.3"
         context["unplugin_auto_import_version"] = "^21.0.0"
         context["openapi_types_version"] = "^12.1.3"
-        
+
         #######
         # These are duplicated in the CI files for this repository
         context["default_node_version"] = "24.11.1"
