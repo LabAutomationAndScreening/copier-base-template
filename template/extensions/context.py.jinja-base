@@ -57,6 +57,7 @@ class ContextUpdater(ContextHook):
         context["python_faker_version"] = "{{ python_faker_version }}"
         context["mutmut_version"] = "{{ mutmut_version }}"
         context["pyrefly_version"] = "{{ pyrefly_version }}"
+        context["vacuum_openapi_version"] = "{{ vacuum_openapi_version }}"
 
         context["default_node_version"] = "{{ default_node_version }}"
         context["nuxt_ui_version"] = "{{ nuxt_ui_version }}"
@@ -89,6 +90,10 @@ class ContextUpdater(ContextHook):
         context["vue_eslint_parser_version"] = "{{ vue_eslint_parser_version }}"
         context["happy_dom_version"] = "{{ happy_dom_version }}"
         context["node_kiota_bundle_version"] = "{{ node_kiota_bundle_version }}"
+        context["labsync_nuxt_common_version"] = "{{ labsync_nuxt_common_version }}"
+        context["tanstack_vue_table_version"] = "{{ tanstack_vue_table_version }}"
+        context["unplugin_auto_import_version"] = "{{ unplugin_auto_import_version }}"
+        context["openapi_types_version"] = "{{ openapi_types_version }}"
 
         context["gha_checkout"] = "{{ gha_checkout }}"
         context["gha_setup_python"] = "{{ gha_setup_python }}"
