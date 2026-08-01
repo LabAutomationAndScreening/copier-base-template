@@ -228,6 +228,9 @@ repos:
     hooks:
       - id: hadolint-docker
         name: Lint Dockerfiles
+        # The hadolint pre-commit has a problem where it just always pulls the `latest` image at runtime.
+        # Explicitly pinning the image here to the same rev as the hook to patch it until https://github.com/hadolint/hadolint/pull/1177 gets resolved.
+        entry: ghcr.io/hadolint/hadolint:v2.14.0@sha256:27086352fd5e1907ea2b934eb1023f217c5ae087992eb59fde121dce9c9ff21e hadolint
         exclude: .*\.jinja$
         description: Runs hadolint to lint Dockerfiles
 
