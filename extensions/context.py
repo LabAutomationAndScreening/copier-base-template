@@ -13,9 +13,9 @@ class ContextUpdater(ContextHook):
         self, context: dict[Any, Any]
     ) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.11.25"
+        context["uv_version"] = "0.12.1"
         context["pre_commit_version"] = "4.5.1"
-        context["pnpm_version"] = "11.9.0"
+        context["pnpm_version"] = "11.20.0"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
         context["copier_version"] = "==9.17.0"
         context["copier_template_extensions_version"] = "==0.3.3"
@@ -63,7 +63,7 @@ class ContextUpdater(ContextHook):
         context["pytest_asyncio_version"] = ">=1.4.0"
         context["pytest_timeout_version"] = ">=2.4.0"
         context["pytest_reserial_version"] = ">=0.6.1"
-        context["python_faker_version"] = ">=40.35.0"
+        context["python_faker_version"] = ">=40.36.0"
         context["vacuum_openapi_version"] = "0.30.0"
         #######
         context["nuxt_ui_version"] = "^4.10.0"

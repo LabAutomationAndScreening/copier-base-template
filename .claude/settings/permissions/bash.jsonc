@@ -101,6 +101,7 @@
       "Bash(just *)",
       "Bash(lsof *)",
       "Bash(test *)",
+      "Bash(xxd *)",
       "Bash(zk *)",
       // Node.js
       "Bash(pnpm list *)",
