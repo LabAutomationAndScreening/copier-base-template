@@ -30,7 +30,6 @@ source_paths = [ "src/" ]
 pytest_add_cli_args_test_selection = [ "tests/unit/" ]
 pytest_add_cli_args = [ "--no-cov" ]
 also_copy = [
-    "uv.lock", # can remove when this is resolved https://github.com/boxed/mutmut/issues/529
     ".pre-commit-config.yaml"
 ]
 mutate_only_covered_lines = true
