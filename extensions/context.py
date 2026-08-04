@@ -23,7 +23,6 @@ class ContextUpdater(ContextHook):
         context["npm_version"] = "11.13.0"
         context["nvm_version"] = "0.40.5"
         # These are duplicated in the pyproject.toml of this repository
-        context["pyright_version"] = ">=1.1.411"
         context["pytest_version"] = ">=9.1.1"
         context["pytest_randomly_version"] = ">=4.1.0"
         context["pytest_cov_version"] = ">=7.1.0"
