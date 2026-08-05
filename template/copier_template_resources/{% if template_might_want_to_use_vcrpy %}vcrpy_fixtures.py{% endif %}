@@ -3,13 +3,12 @@ import logging
 import os
 import traceback
 from typing import Any
-from typing import cast
 
 import pytest
 from vcr import VCR
 from vcr import matchers as _vcr_matchers
 from vcr.request import Request as VCRRequest
-from vcr.util import read_body as _vcr_read_body  # pyright: ignore[reportUnknownVariableType] # vcrpy is untyped
+from vcr.util import read_body as _vcr_read_body
 
 logger = logging.getLogger(__name__)
 
@@ -41,17 +40,17 @@ def vcr_config() -> dict[str, list[str]]:
 
 
 def _read_body_as_str(request: VCRRequest) -> str:
-    raw = _vcr_read_body(request)  # pyright: ignore[reportUnknownVariableType] # vcrpy is untyped
+    raw = _vcr_read_body(request)
     if raw is None:
         return ""
     if isinstance(raw, bytes):
         return raw.decode("utf-8")
-    return str(raw)  # pyright: ignore[reportUnknownArgumentType] # vcrpy is untyped
+    return str(raw)
 
 
 def _logging_body_matcher(r1: VCRRequest, r2: VCRRequest) -> None:
     try:
-        _vcr_matchers.body(r1, r2)  # pyright: ignore[reportUnknownMemberType] # vcrpy is untyped
+        _vcr_matchers.body(r1, r2)
     except AssertionError as err:
         tb_frames = traceback.extract_tb(err.__traceback__)
         if (
@@ -81,12 +80,7 @@ def pytest_recording_configure(
     config: pytest.Config,  # noqa: ARG001 # the config argument MUST be present (even when unused) or pytest-recording throws an error
     vcr: VCR,
 ):
-    vcr.match_on = cast(tuple[str, ...], vcr.match_on)  # pyright: ignore[reportUnknownMemberType] # I know vcr.match_on is unknown, that's why I'm casting and isinstance-ing it...not sure if there's a different approach pyright prefers
-    assert isinstance(vcr.match_on, tuple), (
-        f"vcr.match_on is not a tuple, it is a {type(vcr.match_on)} with value {vcr.match_on}"
-    )
-
-    vcr.register_matcher("logging_body", _logging_body_matcher)  # pyright: ignore[reportUnknownMemberType] # vcrpy is not fully typed
+    vcr.register_matcher("logging_body", _logging_body_matcher)
     vcr.match_on += ("logging_body",)  # body is not included by default, but it seems relevant
 
     def before_record_response(response: dict[str, str | dict[str, Any]]) -> dict[str, str | dict[str, Any]]:

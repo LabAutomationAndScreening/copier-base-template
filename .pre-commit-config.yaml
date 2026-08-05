@@ -83,7 +83,6 @@ repos:
               .devcontainer/devcontainer.json|
               .devcontainer/devcontainer-lock.json|
               .*devcontainer.json|
-              .*pyrightconfig.json|
               .*tsconfig.json|
               .*biome.jsonc|
               .*/generated/open[-_]api/.*|
@@ -102,7 +101,6 @@ repos:
               .*generated/graphql.ts|
               .*/generated/open[-_]api/.*|
               .*/schema.graphql|
-              .*pyrightconfig\.json|
           )$
 
   - repo: https://github.com/rbubley/mirrors-prettier
@@ -116,7 +114,6 @@ repos:
               .devcontainer/devcontainer.json|
               .devcontainer/devcontainer-lock.json|
               .*devcontainer.json|
-              .*pyrightconfig.json|
               .*tsconfig.json|
               .*/__snapshots__/.*|
               .*.min.js|
@@ -160,7 +157,6 @@ repos:
               .devcontainer/devcontainer.json|
               .devcontainer/devcontainer-lock.json|
               .*devcontainer.json|
-              .*pyrightconfig.json|
               .*tsconfig.json|
           )$
       - id: check-yaml
@@ -191,7 +187,6 @@ repos:
               .devcontainer/devcontainer.json|
               .devcontainer/devcontainer-lock.json|
               .*devcontainer.json|
-              .*pyrightconfig.json|
               .*tsconfig.json|
           )$
 
@@ -279,26 +274,6 @@ repos:
           )$
         args:
           - --rcfile=./.config/pylintrc.toml
-        verbose: true
-
-  - repo: local
-    hooks:
-      - id: pyright
-        name: pyright
-        entry: bash -c "uv run pyright"
-        files: '.+\.py$'
-        exclude: |
-          (?x)^(
-              .*/generated/graphql/.*|
-              .*/generated/open[-_]api/.*|
-          )$
-        # don't pass filenames else the command line sees them twice
-        pass_filenames: false
-        language: system
-        types: [python]
-        # use require_serial so that script is only called once per commit
-        require_serial: true
-        # print the number of files as a sanity-check
         verbose: true
 
   - repo: local
