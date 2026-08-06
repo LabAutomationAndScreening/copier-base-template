@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 // PreToolUse hook: blocks command chaining in Bash tool calls
 // Enforces AGENTS.md: "execute exactly one command per tool call"
-// Quoted spans and backslash-escapes are removed before scanning, so a `;` inside a string
-// literal (or the trailing `\;` of `find -exec`) is not mistaken for a chain.
+// Quoted spans and backslash-escapes are replaced with a space before scanning, so a `;` inside a
+// string literal (or the trailing `\;` of `find -exec`) is not mistaken for a chain. Replacing with
+// a space rather than deleting keeps tokens separate, so `printf hi >\x&` cannot collapse to
+// `printf hi >&` and hide the backgrounding `&` behind the redirection lookbehind.
 // Once https://github.com/anthropics/claude-code/issues/16561 is resolved, this should no longer be necessary
 // Improvements based on https://github.com/iandunn/dotfiles/blob/main/claude/hooks/block-chained-commands.js
 
@@ -10,7 +12,7 @@ const CHAIN_OPERATORS = /&&|\|\||;/; // a single `|` is a pipe, which is allowed
 const BACKGROUND_AMPERSAND = /(?<![<>])&(?!>)/; // a lone `&` backgrounds the command, but `2>&1` and `&>file` are redirections
 
 function stripQuotedAndEscaped(command) {
-  return command.replace(/\\.|'[^']*'|"(?:\\.|[^"\\])*"/g, "");
+  return command.replace(/\\.|'[^']*'|"(?:\\.|[^"\\])*"/g, " ");
 }
 
 let input = "";
