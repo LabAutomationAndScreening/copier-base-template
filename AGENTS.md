@@ -51,7 +51,6 @@ This project is a Copier template used to generate other copier templates. It is
 
 ### Python Testing
 
-- Keep every behavioral `assert` inside the test function body — never factor assertions into helper functions or fixtures. pytest's assertion rewriting (the rich failure diff) only applies to asserts located in the test module (or conftest/registered plugins), so an `assert` hidden in an ordinary helper reports an opaque failure with no useful diff.
 - Do not apply the keyword-only parameter rule (`*`) to test functions or fixtures — pytest injects its parameters, so `*` has no effect.
 - When using `mocker.spy` on a class-level method (including inherited ones), the spy records the unbound call, so assertions need `ANY` as the first argument to match self: `spy.assert_called_once_with(ANY, expected_arg)`
 - Before writing new mock/spy helpers, check the `tests/unit/` folder for pre-built helpers in files like `fixtures.py` or `*mocks.py`
