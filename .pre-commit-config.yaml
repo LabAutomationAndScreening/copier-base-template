@@ -77,19 +77,6 @@ repos:
               .*\.svg|
               .*/vendor_files/.*|
           )$
-      - id: pretty-format-json
-        exclude: |
-          (?x)^(
-              .devcontainer/devcontainer.json|
-              .devcontainer/devcontainer-lock.json|
-              .*devcontainer.json|
-              .*tsconfig.json|
-              .*biome.jsonc|
-              .*/generated/open[-_]api/.*|
-              .*tests/.*/__snapshots__/.*|
-              .*/vendor_files/.*|
-          )$
-        args: [--autofix, --no-sort-keys]
 
   - repo: https://github.com/biomejs/pre-commit
     rev: a450e9c04887b1305951c298db5999cd30155f74  # frozen: v2.1.1
