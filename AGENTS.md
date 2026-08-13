@@ -65,7 +65,7 @@ This project is a Copier template used to generate other copier templates. It is
 ### Frontend Testing
 
 - Key `data-testid` selectors off unique IDs (e.g. UUIDs), not human-readable names which may collide or change.
-- In DOM-based tests, scope queries to the tightest relevant container. Only query `document` or `document.body` directly to find the top-level portal/popup element (e.g. a Reka UI dialog via `[role="dialog"][data-state="open"]`); all further queries should run on that element, not on `document.body` again.
+- In DOM-based unit tests, scope queries to the tightest relevant container. Only query `document` or `document.body` directly to find the top-level portal/popup element (e.g. a Reka UI dialog via `[role="dialog"][data-state="open"]`); all further queries should run on that element, not on `document.body` again. Browser automation (e.g. Playwright) fails an ambiguous locator outright, so a unique `data-testid` looked up from the page is enough there.
 
 # Agent Implementations & Configurations
 
