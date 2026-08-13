@@ -13,11 +13,11 @@ class ContextUpdater(ContextHook):
         self, context: dict[Any, Any]
     ) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.12.1"
+        context["uv_version"] = "0.12.3"
         context["pre_commit_version"] = "4.5.1"
-        context["pnpm_version"] = "11.20.0"
+        context["pnpm_version"] = "11.21.0"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
-        context["copier_version"] = "==9.17.0"
+        context["copier_version"] = "==9.17.1"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
         context["npm_version"] = "11.13.0"
@@ -44,20 +44,20 @@ class ContextUpdater(ContextHook):
         context["strawberry_graphql_version"] = (
             "==0.298.0"  # problems with strawberry pydantic in later versions...lost the context for exactly why...it was figured out a while ago, but has to do with being able to override resolvers and have the schema still keep the desired nullability
         )
-        context["fastapi_version"] = ">=0.139.0"
+        context["fastapi_version"] = ">=0.141.1"
         context["fastapi_offline_version"] = ">=1.7.7"
         context["starlette_version"] = ">=1.3.1"
-        context["uvicorn_version"] = ">=0.51.0"
+        context["uvicorn_version"] = ">=0.52.3"
         context["lab_auto_pulumi_version"] = ">=0.2.3"
         context["ariadne_codegen_version"] = ">=0.18.0"
         context["pytest_mock_version"] = ">=3.15.1"
         context["uuid_utils_version"] = ">=0.16.2"
-        context["syrupy_version"] = ">=5.3.4"
+        context["syrupy_version"] = ">=5.5.3"
         context["structlog_version"] = ">=26.1.0"
         context["httpx_version"] = ">=0.28.1"
-        context["httpx2_version"] = ">=2.5.0"
+        context["httpx2_version"] = ">=2.10.0"
         context["python_kiota_bundle_version"] = ">=1.11.6"
-        context["vcrpy_version"] = ">=8.2.1"
+        context["vcrpy_version"] = ">=8.3.0"
         context["pytest_recording_version"] = ">=0.13.4"
         context["pytest_asyncio_version"] = ">=1.4.0"
         context["pytest_timeout_version"] = ">=2.4.0"
