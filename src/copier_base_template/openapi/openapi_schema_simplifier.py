@@ -34,7 +34,7 @@ def _collapse_anyof(schema: dict[str, JsonValue]) -> None:
         member_type = member.get("type")
         if not isinstance(member_type, str):
             return  # a $ref/composed member can't be expressed in the type-array form
-        if cross_type_constraints & member.keys():
+        if len(cross_type_constraints & member.keys()) > 0:
             return  # enum/const apply to every type, so merging them would wrongly reject null and the sibling types
         typed_dicts.append(member)
         member_types.append(member_type)

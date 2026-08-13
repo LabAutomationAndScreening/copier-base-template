@@ -8,7 +8,9 @@ HOOK_ID_LINE = re.compile(r"^-\s+id:\s")
 
 
 def _is_matching_hook_block(block_lines: list[str], hook_id_pattern: re.Pattern[str]) -> bool:
-    return bool(hook_id_pattern.search(block_lines[0])) if block_lines else False
+    if len(block_lines) == 0:
+        return False
+    return hook_id_pattern.search(block_lines[0]) is not None
 
 
 def remove_hook_blocks(config_path: Path, hook_id_pattern: re.Pattern[str]) -> int:
@@ -24,7 +26,7 @@ def remove_hook_blocks(config_path: Path, hook_id_pattern: re.Pattern[str]) -> i
         stripped = line.lstrip()
         indentation = len(line) - len(stripped)
 
-        if HOOK_ID_LINE.match(stripped):
+        if HOOK_ID_LINE.match(stripped) is not None:
             block_start = index
             block_end = index + 1
 
@@ -32,10 +34,12 @@ def remove_hook_blocks(config_path: Path, hook_id_pattern: re.Pattern[str]) -> i
                 next_line = lines[block_end]
                 next_stripped = next_line.lstrip()
                 next_indentation = len(next_line) - len(next_stripped)
-                if HOOK_ID_LINE.match(next_stripped) and next_indentation == indentation:
-                    break
-                if next_stripped and next_indentation < indentation:
-                    break
+                if HOOK_ID_LINE.match(next_stripped) is not None:
+                    if next_indentation == indentation:
+                        break
+                if next_stripped != "":
+                    if next_indentation < indentation:
+                        break
                 block_end += 1
 
             block_lines = lines[block_start:block_end]
