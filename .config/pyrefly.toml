@@ -33,3 +33,9 @@ matches = "../**/tests/**"
 
 [sub-config.errors]
 implicitly-defined-attribute = "ignore" # doesn't make any sense for test cases. See https://github.com/microsoft/pyright/discussions/4834#discussioncomment-8496931
+# Tests are self-asserting: a value that isn't what the test assumed fails the very next assertion,
+# pointing at the exact line. The unknowns these rules flag also come almost entirely from mocking, where the value
+# genuinely is `Any` and no upstream typing fix is possible --- `spy_return` is set dynamically on the mock,
+# and `call_args[0]` is untyped by construction --- so enforcing here only buys narrowing ceremony at every spy.
+unknown-variable-type = "ignore"
+unknown-argument-type = "ignore"
