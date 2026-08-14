@@ -24,8 +24,7 @@ ignore-errors-in-generated-code = true # not sure yet how effective this is
 
 [errors]
 no-access = "ignore" # (already covered by ruff SLF001)
-# reportMissingTypeStubs=false in pyright
-untyped-import = "ignore"
+untyped-import = "ignore" # equivalent of reportMissingTypeStubs=false in pyright
 unannotated-return = "ignore" # ruff ANN2xx already requires this, but with suppress-none-returning so that None-returning functions don't need the noise. pyrefly has no equivalent option---the error kind is all-or-nothing.
 
 [[sub-config]]
