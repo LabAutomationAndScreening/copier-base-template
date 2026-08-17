@@ -49,7 +49,7 @@ jobs:
 
       - name: Restore Pre-commit hooks cache # no mutex needed; concurrent cache reads are safe, only writes cause trouble
         id: cache-probe
-        uses: actions/cache/restore@v5.0.5
+        uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ env.PRE_COMMIT_HOME }}
           key: ${{ env.CACHE_KEY }}
@@ -65,7 +65,7 @@ jobs:
       - name: Re-restore Pre-commit hooks cache # another job may have created the exact-key cache while we waited on the mutex
         id: cache-recheck
         if: ${{ steps.cache-probe.outputs.cache-hit != 'true' }}
-        uses: actions/cache/restore@v5.0.5
+        uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ env.PRE_COMMIT_HOME }}
           key: ${{ env.CACHE_KEY }}
@@ -83,7 +83,7 @@ jobs:
 
       - name: Save Pre-commit hooks cache
         if: ${{ steps.cache-probe.outputs.cache-hit != 'true' && steps.cache-recheck.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v5.0.5
+        uses: actions/cache/save@v6.1.0
         with:
           path: ${{ env.PRE_COMMIT_HOME }}
           key: ${{ env.CACHE_KEY }}
@@ -214,7 +214,7 @@ jobs:
 
       - name: Restore Pre-commit hooks cache # no mutex needed; concurrent cache reads are safe, only writes cause trouble
         id: cache-probe
-        uses: actions/cache/restore@v5.0.5
+        uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ env.PRE_COMMIT_HOME }}
           key: ${{ env.CACHE_KEY }}
@@ -230,7 +230,7 @@ jobs:
       - name: Re-restore Pre-commit hooks cache # another job may have created the exact-key cache while we waited on the mutex
         id: cache-recheck
         if: ${{ steps.cache-probe.outputs.cache-hit != 'true' }}
-        uses: actions/cache/restore@v5.0.5
+        uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ env.PRE_COMMIT_HOME }}
           key: ${{ env.CACHE_KEY }}
@@ -243,7 +243,7 @@ jobs:
 
       - name: Save Pre-commit hooks cache
         if: ${{ steps.cache-probe.outputs.cache-hit != 'true' && steps.cache-recheck.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v5.0.5
+        uses: actions/cache/save@v6.1.0
         with:
           path: ${{ env.PRE_COMMIT_HOME }}
           key: ${{ env.CACHE_KEY }}

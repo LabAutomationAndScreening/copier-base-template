@@ -105,7 +105,7 @@ class ContextUpdater(ContextHook):
         context["default_node_version"] = "24.11.1"
         context["gha_checkout"] = "v6.0.2"
         context["gha_setup_python"] = "v6.2.0"
-        context["gha_cache"] = "v5.0.5"
+        context["gha_cache"] = "v6.1.0"
         context["gha_linux_runner"] = "ubuntu-24.04"
         context["gha_setup_node"] = "v6.4.0"
         #######
