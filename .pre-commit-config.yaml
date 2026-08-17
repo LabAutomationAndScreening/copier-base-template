@@ -257,6 +257,7 @@ repos:
           (?x)^(
               .*/generated/graphql/.*|
               .*/generated/open[-_]api/.*|
+              .*__init__\.py| # flagging duplicate code for __all__ lists is a false positive
               template/.*|
           )$
         args:
