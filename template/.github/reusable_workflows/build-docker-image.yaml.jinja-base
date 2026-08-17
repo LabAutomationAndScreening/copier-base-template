@@ -120,14 +120,7 @@ jobs:
           echo "Image name without slashes: ${IMAGE_NAME_NO_SLASHES}"
           echo "full_image_tag=${{ inputs.repository }}/${{ inputs.image_name }}:context-${BUILD_HASH}" >> "$GITHUB_OUTPUT"
 
-      - name: Set up mutex # Github concurrency management is horrible, things get arbitrarily cancelled if queued up. So using mutex until github fixes itself. When multiple jobs are modifying cache at once, weird things can happen.  possible issue is https://github.com/actions/toolkit/issues/658
-        if: ${{ inputs.push-role-name != 'no-push' }}
-        uses: ben-z/gh-action-mutex@{% endraw %}{{ gha_mutex }}{% raw %}
-        with:
-          branch: mutex-${{ inputs.repository }}-${{ inputs.image_name }}
-        timeout-minutes: {% endraw %}{{ gha_medium_timeout_minutes }}{% raw %}  # this is the amount of time this action will wait to attempt to acquire the mutex lock before failing, e.g. if other jobs are queued up in front of it
-
-      - name: Test if docker image exists
+      - name: Test if docker image exists # deliberately before the mutex; describe-images is a read, so it is safe to run concurrently
         if: ${{ inputs.push-role-name != 'no-push' }}
         id: check-if-exists
         run: |
@@ -141,24 +134,55 @@ jobs:
             echo "status=notfound" >> $GITHUB_OUTPUT
           fi
 
+      - name: Set up mutex # Github concurrency management is horrible, things get arbitrarily cancelled if queued up. So using mutex until github fixes itself. When multiple jobs are modifying cache at once, weird things can happen.  possible issue is https://github.com/actions/toolkit/issues/658
+        if: ${{ inputs.push-role-name != 'no-push' && steps.check-if-exists.outputs.status == 'notfound' }} # only serialize when this job may have to build and push a new image
+        uses: ben-z/gh-action-mutex@{% endraw %}{{ gha_mutex }}{% raw %}
+        with:
+          branch: mutex-${{ inputs.repository }}-${{ inputs.image_name }}
+        timeout-minutes: {% endraw %}{{ gha_medium_timeout_minutes }}{% raw %}  # this is the amount of time this action will wait to attempt to acquire the mutex lock before failing, e.g. if other jobs are queued up in front of it
+
+      - name: Re-test if docker image exists # another job may have pushed this exact build context while we waited on the mutex
+        if: ${{ inputs.push-role-name != 'no-push' && steps.check-if-exists.outputs.status == 'notfound' }}
+        id: recheck-if-exists
+        run: |
+          BUILD_HASH=${{ steps.calculate-build-context-hash.outputs.build_context_tag }}
+          echo Checking for : $BUILD_HASH
+          if aws ecr describe-images --region ${{ steps.parse_ecr_url.outputs.aws_region }} --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids=imageTag=$BUILD_HASH; then \
+            echo "Image was found in ECR"; \
+            echo "status=found" >> $GITHUB_OUTPUT
+          else \
+            echo "Image was not found in ECR"; \
+            echo "status=notfound" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Resolve whether the image needs building # collapses the two probes into the single status the rest of the job keys off
+        if: ${{ inputs.push-role-name != 'no-push' }}
+        id: image-status
+        run: |
+          if [ "${{ steps.check-if-exists.outputs.status }}" = "found" ]; then
+            echo "status=found" >> $GITHUB_OUTPUT
+          else
+            echo "status=${{ steps.recheck-if-exists.outputs.status }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Pull existing image to package as artifact
-        if: ${{ inputs.save-as-artifact && steps.check-if-exists.outputs.status == 'found' }}
+        if: ${{ inputs.save-as-artifact && steps.image-status.outputs.status == 'found' }}
         run: |
           docker pull ${{ steps.calculate-build-context-hash.outputs.full_image_tag }}
 
       - name: Set up Docker Buildx
-        if: ${{ (inputs.save-as-artifact && inputs.push-role-name == 'no-push') || steps.check-if-exists.outputs.status == 'notfound' }}
+        if: ${{ (inputs.save-as-artifact && inputs.push-role-name == 'no-push') || steps.image-status.outputs.status == 'notfound' }}
         uses: docker/setup-buildx-action@{% endraw %}{{ gha_setup_buildx }}{% raw %}
         with:
           version: {% endraw %}{{ buildx_version }}{% raw %}
 
       - name: Build Docker Image
-        if: ${{ (inputs.save-as-artifact && inputs.push-role-name == 'no-push') || steps.check-if-exists.outputs.status == 'notfound' }}
+        if: ${{ (inputs.save-as-artifact && inputs.push-role-name == 'no-push') || steps.image-status.outputs.status == 'notfound' }}
         uses: docker/build-push-action@{% endraw %}{{ gha_docker_build_push }}{% raw %}
         with:
           context: ${{ inputs.context }}
           build-contexts: ${{ inputs.build-contexts }}
-          push: ${{ inputs.push-role-name != 'no-push' && steps.check-if-exists.outputs.status == 'notfound' }}
+          push: ${{ inputs.push-role-name != 'no-push' && steps.image-status.outputs.status == 'notfound' }}
           load: ${{ inputs.save-as-artifact }} # make the image available later for the `docker save` step
           tags: ${{ steps.calculate-build-context-hash.outputs.full_image_tag }}
 
