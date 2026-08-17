@@ -5,8 +5,8 @@ import traceback
 from typing import Any
 
 import pytest
-from vcr import VCR
 from vcr import matchers as _vcr_matchers
+from vcr.config import VCR
 from vcr.request import Request as VCRRequest
 from vcr.util import read_body as _vcr_read_body
 
