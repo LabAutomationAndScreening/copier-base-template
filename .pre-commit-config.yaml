@@ -252,12 +252,14 @@ repos:
     hooks:
       - id: pylint
         name: pylint
+        # exclude any generated code
+        # flagging duplicate code for __all__ lists is a false positive
         # exclude the template files---duplication within them will be discovered during CI of that template instantiation
         exclude: |
           (?x)^(
               .*/generated/graphql/.*|
               .*/generated/open[-_]api/.*|
-              .*__init__\.py| # flagging duplicate code for __all__ lists is a false positive
+              .*__init__\.py|
               template/.*|
           )$
         args:
