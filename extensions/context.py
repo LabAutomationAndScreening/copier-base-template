@@ -14,7 +14,7 @@ class ContextUpdater(ContextHook):
     ) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
         context["uv_version"] = "0.12.3"
-        context["pre_commit_version"] = "4.5.1"
+        context["pre_commit_version"] = "4.6.2"
         context["pnpm_version"] = "11.21.0"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
         context["copier_version"] = "==9.17.1"
