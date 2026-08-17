@@ -10,10 +10,11 @@ _WORKSPACE_FILENAME = "pnpm-workspace.yaml"
 def _parse_patterns(raw: str) -> list[str]:
     patterns: list[str] = []
     for raw_pattern in raw.split(","):
-        stripped = raw_pattern.strip()
-        if stripped == "":
+        # Quotes are removed before the emptiness check so a quoted-empty entry doesn't yield an empty pattern.
+        pattern = raw_pattern.strip().strip('"').strip("'")
+        if pattern == "":
             continue
-        patterns.append(stripped.strip('"').strip("'"))
+        patterns.append(pattern)
     return patterns
 
 
