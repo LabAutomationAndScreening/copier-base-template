@@ -4,11 +4,22 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 from typing import Literal
+from typing import NotRequired
+from typing import TypedDict
 
 CommentType = Literal["hash", "batch", "block", "jinja", "markdown", "none"]
 Location = Literal["top", "bottom", "none"]
+
+
+class TemplateEntry(TypedDict):
+    src: str
+    parent_src: NotRequired[str]
+    managed_files: list[str]
+
+
+class Manifest(TypedDict):
+    templates: list[TemplateEntry]
 
 
 @dataclass
@@ -70,7 +81,7 @@ but if the change should be shared with other projects, please backport it to th
 
 def _build_header(template_src: str) -> str:
     """Return the header text. With a template_src, embeds the URL on its own line."""
-    if not template_src:
+    if template_src == "":
         return _HEADER_BASE
     lines: list[str] = list(_HEADER_BASE.split("\n"))
     # Replace the generic "File is managed" line with two lines: URL line + "See ..." line.
@@ -88,7 +99,8 @@ def get_base_filename(template_filename: str) -> str:
     - Plain template file: README.md.jinja-base → README.md (strip template suffix).
     """
     result = re.findall(r"%\}(.*?)\{%", template_filename, re.DOTALL)
-    if result:
+    if len(result) > 0:
+        assert isinstance(result[0], str)
         return result[0]
     for suffix in [".jinja-base", ".jinja"]:
         if template_filename.endswith(suffix):
@@ -99,15 +111,15 @@ def get_base_filename(template_filename: str) -> str:
 def _build_specific_header(comment_type: CommentType, template_src: str = "") -> str | None:
     header = _build_header(template_src)
     if comment_type == "hash":
-        return "\n".join(f"# {line}" if line else "#" for line in header.split("\n"))
+        return "\n".join(f"# {line}" if line != "" else "#" for line in header.split("\n"))
     if comment_type == "batch":
-        return "\n".join(f"REM {line}" if line else "REM" for line in header.split("\n"))
+        return "\n".join(f"REM {line}" if line != "" else "REM" for line in header.split("\n"))
     if comment_type == "block":
-        body = "\n".join(f" * {line}" if line else " *" for line in header.split("\n"))
+        body = "\n".join(f" * {line}" if line != "" else " *" for line in header.split("\n"))
         return f"/*\n{body}\n */"
     if comment_type == "jinja":
         # Jinja renders {# ... #} to empty string, so this marker is invisible in rendered output.
-        body = "\n".join(f" {line}" if line else "" for line in header.split("\n"))
+        body = "\n".join(f" {line}" if line != "" else "" for line in header.split("\n"))
         return f"{{#\n{body}\n#}}"
     if comment_type == "markdown":
         return f"<!--\n{header}\n-->"
@@ -157,7 +169,7 @@ def _resolve_file_src(
     ancestor_managed_by_src: dict[str, set[str]] | None,
 ) -> str:
     """Return the template src that originally contributed this file path."""
-    if ancestor_managed_by_src:
+    if ancestor_managed_by_src is not None:
         for origin_src, origin_files in ancestor_managed_by_src.items():
             if rel_str in origin_files:
                 return origin_src
@@ -243,7 +255,9 @@ def _read_parent_src(src_template_directory: Path) -> str | None:
         return None
     text = answers_path.read_text(encoding="utf-8")
     m = re.search(r"^_src_path:\s*(.+)$", text, re.MULTILINE)
-    return m.group(1).strip() if m else None
+    if m is None:
+        return None
+    return m.group(1).strip()
 
 
 def update_manifest(
@@ -256,17 +270,21 @@ def update_manifest(
     manifest_path = dst_directory / _MANIFEST_RELPATH
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
 
-    existing: dict[str, Any] = {}
+    existing: Manifest = {"templates": []}
     if manifest_path.exists():
         existing = json.loads(manifest_path.read_text(encoding="utf-8"))
 
-    templates: list[dict[str, Any]] = existing.get("templates", [])
-    templates = [t for t in templates if t.get("src") != template_src]
+    templates: list[TemplateEntry] = []
+    for t in existing["templates"]:
+        if t["src"] == template_src:
+            continue
+        templates.append(t)
 
-    entry: dict[str, Any] = {"src": template_src}
-    if parent_src:
-        entry["parent_src"] = parent_src
-    entry["managed_files"] = managed_files
+    # Both branches spell the whole entry out so the JSON key order stays src, parent_src, managed_files.
+    if parent_src is None:
+        entry: TemplateEntry = {"src": template_src, "managed_files": managed_files}
+    else:
+        entry = {"src": template_src, "parent_src": parent_src, "managed_files": managed_files}
     templates.append(entry)
 
     _ = manifest_path.write_text(
@@ -275,60 +293,90 @@ def update_manifest(
     )
 
 
+def _read_ancestor_manifest(src_template_dir: Path) -> tuple[dict[str, set[str]], dict[str, str]]:
+    """Return each ancestor template's managed paths and its own parent, keyed by template src.
+
+    The ancestor manifest may contain paths with a "template/" prefix (from self-stamp tasks that run
+    with src=dst=template/). Both the prefixed and stripped spellings are recorded so lookups match the
+    destination repo's layout (where "template/" doesn't exist).
+    """
+    ancestor_managed_by_src: dict[str, set[str]] = {}
+    ancestor_parent_by_src: dict[str, str] = {}
+    ancestor_manifest_path = _find_manifest(src_template_dir.parent)
+    if not ancestor_manifest_path.exists():
+        return ancestor_managed_by_src, ancestor_parent_by_src
+
+    data: Manifest = json.loads(ancestor_manifest_path.read_text(encoding="utf-8"))
+    subdir_prefix = src_template_dir.name + "/"
+    for t in data["templates"]:
+        path_set: set[str] = set()
+        for f in t["managed_files"]:
+            path_set.add(f)
+            stripped = f.removeprefix(subdir_prefix)
+            path_set.add(stripped)
+            # Apply get_base_filename to each part so .jinja/.jinja-base suffixes
+            # and Jinja conditional names resolve to the final destination filename.
+            parts = Path(stripped).parts
+            if len(parts) > 0:
+                resolved = str(Path(*[get_base_filename(p) for p in parts]))
+                path_set.add(resolved)
+        ancestor_managed_by_src[t["src"]] = path_set
+        ancestor_parent = t.get("parent_src")
+        if ancestor_parent is not None:
+            ancestor_parent_by_src[t["src"]] = ancestor_parent
+    return ancestor_managed_by_src, ancestor_parent_by_src
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Add copier provenance markers and manifest")
     _ = parser.add_argument("src_template_dir", type=Path, help="Template source directory")
     _ = parser.add_argument("dst_dir", type=Path, help="Destination directory")
     _ = parser.add_argument("--template-src", default="", help="Template source identifier for the manifest")
     args = parser.parse_args()
+    assert isinstance(args.src_template_dir, Path)
+    assert isinstance(args.dst_dir, Path)
+    assert isinstance(args.template_src, str)
+    src_template_dir = args.src_template_dir
+    dst_dir = args.dst_dir
+    template_src = args.template_src
 
     # header_src drives what URL appears in file headers (empty → generic "managed by a copier template" text).
     # manifest_src is the key written to .config/.copier-managed-files.json and is always non-empty.
-    header_src = args.template_src
-    manifest_src = args.template_src or str(args.src_template_dir)
+    header_src = template_src
+    if template_src == "":
+        manifest_src = str(src_template_dir)
+    else:
+        manifest_src = template_src
 
-    ancestor_managed_by_src: dict[str, set[str]] = {}
-    ancestor_parent_by_src: dict[str, str] = {}
-    ancestor_manifest_path = _find_manifest(args.src_template_dir.parent)
-    if ancestor_manifest_path.exists():
-        data: dict[str, Any] = json.loads(ancestor_manifest_path.read_text(encoding="utf-8"))
-        # The ancestor manifest may contain paths with a "template/" prefix (from self-stamp
-        # tasks that run with src=dst=template/). Strip that prefix so paths match the
-        # destination repo's layout (where "template/" doesn't exist).
-        subdir_prefix = args.src_template_dir.name + "/"
-        for t in data.get("templates", []):
-            path_set: set[str] = set()
-            for f in t.get("managed_files", []):
-                path_set.add(f)
-                stripped = f.removeprefix(subdir_prefix)
-                path_set.add(stripped)
-                # Apply get_base_filename to each part so .jinja/.jinja-base suffixes
-                # and Jinja conditional names resolve to the final destination filename.
-                parts = Path(stripped).parts
-                if parts:
-                    resolved = str(Path(*[get_base_filename(p) for p in parts]))
-                    path_set.add(resolved)
-            ancestor_managed_by_src[t["src"]] = path_set
-            if t.get("parent_src"):
-                ancestor_parent_by_src[t["src"]] = t["parent_src"]
+    ancestor_managed_by_src, ancestor_parent_by_src = _read_ancestor_manifest(src_template_dir)
+
+    ancestor_argument: dict[str, set[str]] | None = None
+    if len(ancestor_managed_by_src) > 0:
+        ancestor_argument = ancestor_managed_by_src
 
     managed_by_src = apply_file_markers(
-        src_template_directory=args.src_template_dir,
-        dst_directory=args.dst_dir,
+        src_template_directory=src_template_dir,
+        dst_directory=dst_dir,
         template_src=header_src,
-        ancestor_managed_by_src=ancestor_managed_by_src or None,
+        ancestor_managed_by_src=ancestor_argument,
     )
     # Always write an entry for the current template even when no files matched.
     _ = managed_by_src.setdefault(header_src, [])
 
-    parent_src = _read_parent_src(args.src_template_dir)
+    parent_src = _read_parent_src(src_template_dir)
     for src, files in managed_by_src.items():
-        effective_src = manifest_src if src == header_src else src
+        if src == header_src:
+            effective_src = manifest_src
+        else:
+            effective_src = src
         # Current template's parent comes from copier-answers; ancestor entries carry
         # their own parent_src forward from the ancestor manifest so the chain survives.
-        effective_parent = parent_src if effective_src == manifest_src else ancestor_parent_by_src.get(src)
+        if effective_src == manifest_src:
+            effective_parent = parent_src
+        else:
+            effective_parent = ancestor_parent_by_src.get(src)
         update_manifest(
-            dst_directory=args.dst_dir,
+            dst_directory=dst_dir,
             template_src=effective_src,
             managed_files=files,
             parent_src=effective_parent,

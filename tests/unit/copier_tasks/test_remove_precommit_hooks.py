@@ -67,7 +67,7 @@ class TestRemovePrecommitHooksViaSubprocess:
 
         hook_id_regex = r"^\s*-\s+id:\s+check-"
         original = config_path.read_text(encoding="utf-8")
-        expected_removed = sum(1 for line in original.splitlines() if re.match(hook_id_regex, line))
+        expected_removed = len([line for line in original.splitlines() if re.match(hook_id_regex, line) is not None])
         assert expected_removed > 1
 
         result = self._run_script(hook_id_regex=hook_id_regex, target_file=config_path)

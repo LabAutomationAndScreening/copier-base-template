@@ -50,6 +50,7 @@ export const vitestConfig = {
         severity === "off" ? [rule, "off"] : [rule, "error"],
       ),
     ),
+    "vitest/max-expects": ["error", { max: 10 }], // 5 is too low. There are legitimate reasons to have several assertions (especially with DOM tests) that share the same Arrange/Act
     "vitest/unbound-method": "off", // requires typed linting (parserOptions.project), not configured in this project
     "vitest/require-mock-type-parameters": "off", // stylistic; vi.fn() inferred type is sufficient and explicit generics add noise on trivial mocks
     "vitest/prefer-describe-function-title": "off", // autofix rewrites string titles to identifier references, which then conflicts with vitest/valid-title for default-imported functions

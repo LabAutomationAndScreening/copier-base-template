@@ -51,6 +51,20 @@ class TestEnsurePnpmMinimumReleaseAgeExcludeViaSubprocess:
         parsed = yaml.safe_load(workspace.read_text(encoding="utf-8"))
         assert parsed["minimumReleaseAgeExclude"] == f"{existing},{new}"
 
+    def test_When_patterns_include_a_quoted_empty_entry__Then_only_the_real_pattern_is_set(
+        self, tmp_path: Path, faker: Faker
+    ) -> None:
+        plain = faker.name()
+        workspace = tmp_path / "pnpm-workspace.yaml"
+        _ = workspace.write_text("packages:\n  - frontend\n", encoding="utf-8")
+
+        result = self._run_script(patterns=f'"",{plain}', target_dir=tmp_path)
+
+        parsed = yaml.safe_load(workspace.read_text(encoding="utf-8"))
+
+        assert result.returncode == 0
+        assert parsed["minimumReleaseAgeExclude"] == plain
+
     def test_When_patterns_provided__Then_sets_value_in_workspace(self, tmp_path: Path, faker: Faker) -> None:
         scoped = f"{faker.name()}/{faker.name()}"
         plain = faker.name()

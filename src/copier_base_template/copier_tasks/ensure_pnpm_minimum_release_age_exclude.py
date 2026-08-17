@@ -8,7 +8,14 @@ _WORKSPACE_FILENAME = "pnpm-workspace.yaml"
 
 
 def _parse_patterns(raw: str) -> list[str]:
-    return [p.strip().strip('"').strip("'") for p in raw.split(",") if p.strip()]
+    patterns: list[str] = []
+    for raw_pattern in raw.split(","):
+        # Quotes are removed before the emptiness check so a quoted-empty entry doesn't yield an empty pattern.
+        pattern = raw_pattern.strip().strip('"').strip("'")
+        if pattern == "":
+            continue
+        patterns.append(pattern)
+    return patterns
 
 
 def ensure_minimum_release_age_exclude(*, workspace_dir: Path, patterns: list[str]) -> None:
