@@ -46,7 +46,7 @@ def main():
             # invoke installer in a pwsh process
             _ = subprocess.run(  # noqa: S603 # this is all our own input
                 [
-                    pwsh,  # type: ignore[reportPossiblyUnboundVariable] # this matches the conditional above that defines pwsh
+                    pwsh,
                     "-NoProfile",
                     "-NonInteractive",
                     "-Command",
