@@ -54,22 +54,34 @@ jobs:
           skip-installing-ssm-plugin-manager: true
           skip-installing-pulumi-cli: true
 
+      - name: Compute Pre-commit cache key # must run after checkout, since hashFiles needs the file on disk
+        run: |
+          echo "CACHE_RESTORE_KEY={% endraw %}{{ gha_linux_runner }}{% raw %}-py${{ inputs.python-version }}-node-${{ inputs.node-version}}-cache-pre-commit-hooks-" >> "$GITHUB_ENV"
+          echo "CACHE_KEY={% endraw %}{{ gha_linux_runner }}{% raw %}-py${{ inputs.python-version }}-node-${{ inputs.node-version}}-cache-pre-commit-hooks-${{ hashFiles('.pre-commit-config.yaml') }}" >> "$GITHUB_ENV"
+
+      - name: Restore Pre-commit hooks cache # no mutex needed; concurrent cache reads are safe, only writes cause trouble
+        id: cache-probe
+        uses: actions/cache/restore@{% endraw %}{{ gha_cache }}{% raw %}
+        with:
+          path: ${{ env.PRE_COMMIT_HOME }}
+          key: ${{ env.CACHE_KEY }}
+          restore-keys: ${{ env.CACHE_RESTORE_KEY }}
+
       - name: Set up mutex # Github concurrency management is horrible, things get arbitrarily cancelled if queued up. So using mutex until github fixes itself. When multiple jobs are modifying cache at once, weird things can happen.  possible issue is https://github.com/actions/toolkit/issues/658
-        if: ${{ runner.os != 'Windows' }} # we're just gonna have to YOLO on Windows, because this action doesn't support it yet https://github.com/ben-z/gh-action-mutex/issues/14
+        if: ${{ runner.os != 'Windows' && steps.cache-probe.outputs.cache-hit != 'true' }} # we're just gonna have to YOLO on Windows, because this action doesn't support it yet https://github.com/ben-z/gh-action-mutex/issues/14. Only serialize when this job will have to write a new cache entry.
         uses: ben-z/gh-action-mutex@{% endraw %}{{ gha_mutex }}{% raw %}
         with:
           branch: mutex-venv-{% endraw %}{{ gha_linux_runner }}{% raw %}-py${{ inputs.python-version }}-nodejs-${{ inputs.node-version }}
         timeout-minutes: {% endraw %}{{ gha_medium_timeout_minutes }}{% raw %}  # this is the amount of time this action will wait to attempt to acquire the mutex lock before failing, e.g. if other jobs are queued up in front of it
 
-      - name: Cache Pre-commit hooks
-        uses: actions/cache@{% endraw %}{{ gha_cache }}{% raw %}
-        env:
-          cache-name: cache-pre-commit-hooks
+      - name: Re-restore Pre-commit hooks cache # another job may have created the exact-key cache while we waited on the mutex
+        id: cache-recheck
+        if: ${{ steps.cache-probe.outputs.cache-hit != 'true' }}
+        uses: actions/cache/restore@{% endraw %}{{ gha_cache }}{% raw %}
         with:
           path: ${{ env.PRE_COMMIT_HOME }}
-          key: {% endraw %}{{ gha_linux_runner }}{% raw %}-py${{ inputs.python-version }}-node-${{ inputs.node-version}}-${{ env.cache-name }}-${{ hashFiles('.pre-commit-config.yaml') }}
-          restore-keys: |
-            {% endraw %}{{ gha_linux_runner }}{% raw %}-py${{ inputs.python-version }}-node-${{ inputs.node-version}}-${{ env.cache-name }}-
+          key: ${{ env.CACHE_KEY }}
+          restore-keys: ${{ env.CACHE_RESTORE_KEY }}
 
       - name: Run pre-commit
         run: |
@@ -79,4 +91,11 @@ jobs:
             echo "Showing git diff:"
             git --no-pager diff
             exit $PRE_COMMIT_EXIT_CODE
-          fi{% endraw %}
+          fi
+
+      - name: Save Pre-commit hooks cache
+        if: ${{ steps.cache-probe.outputs.cache-hit != 'true' && steps.cache-recheck.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@{% endraw %}{{ gha_cache }}{% raw %}
+        with:
+          path: ${{ env.PRE_COMMIT_HOME }}
+          key: ${{ env.CACHE_KEY }}{% endraw %}

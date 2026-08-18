@@ -14,7 +14,7 @@ class ContextUpdater(ContextHook):
     ) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
         context["uv_version"] = "0.12.3"
-        context["pre_commit_version"] = "4.5.1"
+        context["pre_commit_version"] = "4.6.2"
         context["pnpm_version"] = "11.21.0"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
         context["copier_version"] = "==9.17.1"
@@ -105,7 +105,7 @@ class ContextUpdater(ContextHook):
         context["default_node_version"] = "24.11.1"
         context["gha_checkout"] = "v6.0.2"
         context["gha_setup_python"] = "v6.2.0"
-        context["gha_cache"] = "v5.0.5"
+        context["gha_cache"] = "v6.1.0"
         context["gha_linux_runner"] = "ubuntu-24.04"
         context["gha_setup_node"] = "v6.4.0"
         #######
