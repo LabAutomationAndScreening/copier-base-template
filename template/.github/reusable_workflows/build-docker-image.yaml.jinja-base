@@ -194,7 +194,17 @@ jobs:
             echo "Tag $GIT_SHA_TAG already exists in ECR, skipping"
           else
             aws ecr batch-get-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids imageTag=${{ steps.calculate-build-context-hash.outputs.build_context_tag }} --query 'images[].imageManifest' --output text > manifest.json
-            aws ecr put-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-tag "$GIT_SHA_TAG" --image-manifest file://manifest.json
+            # Every job on the push path tags the git sha, and jobs that find their image already in ECR no longer serialize on the mutex,
+            # so another job can apply this same tag between the check above and the put below. ECR reports that as
+            # ImageAlreadyExistsException, which by definition means the tag already points at this exact manifest, so it is safe to ignore.
+            # ImageTagAlreadyExistsException (a different manifest on an immutable repository) is a real conflict and still fails the step.
+            if ! aws ecr put-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-tag "$GIT_SHA_TAG" --image-manifest file://manifest.json 2> put-image-error.txt; then
+              cat put-image-error.txt
+              if ! grep -q 'ImageAlreadyExistsException' put-image-error.txt; then
+                exit 1
+              fi
+              echo "Tag $GIT_SHA_TAG was applied concurrently by another job, nothing to do"
+            fi
           fi
 
       - name: Add tag for Production
