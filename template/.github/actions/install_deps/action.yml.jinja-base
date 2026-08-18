@@ -2,55 +2,44 @@
 description: Setup Python and/or Node, and install dependencies based on the devcontainer specification
 inputs:
   python-version:
-    type: string
     description: Python version to install
     required: false # if this is set, then assume you want python dependencies installed
     default: 'notUsing'
   node-version:
-    type: string
     description: Node version to install
     required: false # if this is set, then assume you want node dependencies installed
     default: 'notUsing'
   package-json-file:
-    type: string
     description: Relative path to a package.json to read the pnpm version from (its `packageManager` or `devEngines.packageManager` field). When unset, the pnpm version pinned by the template is used instead.
     required: false
     default: 'notUsing'
   install-deps:
     required: false
     default: true
-    type: boolean
     description: Whether to run the setup-deps script, or just to setup basic CI tooling
   skip-installing-ssm-plugin-manager:
     required: false
     default: false
-    type: boolean
     description: Whether to explicitly skip installing the SSM Plugin manager when setting up basic CI tooling
   project-dir:
-    type: string
     description: What's the relative path to the project?
     required: false
     default: ./
   code-artifact-auth-role-name:
-    type: string
     description: What's the role name to use for CodeArtifact authentication?
     required: false
     default: no-code-artifact
   code-artifact-auth-role-account-id:
-    type: string
     description: What's the AWS Account ID that the role is in?
     required: false
   code-artifact-auth-region:
-    type: string
     description: What region should the role use?
     required: false
   skip-updating-devcontainer-hash:
-    type: boolean
     description: Whether to skip updating the hash when running manual-setup-deps.py
     default: true
     required: false
   skip-installing-pulumi-cli:
-    type: boolean
     description: Whether to skip installing the Pulumi CLI even if the lock file references it
     default: false
     required: false
