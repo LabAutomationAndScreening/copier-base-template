@@ -13,9 +13,9 @@ inputs:
     default: 'notUsing'
   package-json-file:
     type: string
-    description: Relative path to the package.json that pnpm/setup should read configuration from
+    description: Relative path to a package.json to read the pnpm version from (its `packageManager` or `devEngines.packageManager` field). When unset, the pnpm version pinned by the template is used instead.
     required: false
-    default: package.json
+    default: 'notUsing'
   install-deps:
     required: false
     default: true
@@ -87,9 +87,10 @@ runs:
       if: ${{ inputs.node-version != 'notUsing' }}
       uses: pnpm/setup@{% endraw %}{{ gha_pnpm_setup }}{% raw %}
       with:
-        version: {% endraw %}{{ pnpm_version }}{% raw %}
+        # an empty version makes pnpm/setup read it from package-json-file instead. Passing both a version and a package.json with a conflicting `packageManager` field is a hard error in pnpm/setup.
+        version: ${{ inputs.package-json-file == 'notUsing' && '{% endraw %}{{ pnpm_version }}{% raw %}' || '' }}
+        package-json-file: ${{ inputs.package-json-file == 'notUsing' && 'package.json' || inputs.package-json-file }}
         runtime: node@${{ inputs.node-version }}
-        package-json-file: ${{ inputs.package-json-file }}
         cache: ${{ steps.pnpm-lock-probe.outputs.exists }}
         install: false # dependency installation is handled by manual-setup-deps.py, which knows about every environment in the repo
 
