@@ -108,6 +108,7 @@ class ContextUpdater(ContextHook):
         context["gha_cache"] = "v6.1.0"
         context["gha_linux_runner"] = "ubuntu-24.04"
         context["gha_setup_node"] = "v6.4.0"
+        context["gha_pnpm_setup"] = "v2.0.2"
         #######
         context["gha_upload_artifact"] = "v7.0.1"
         context["gha_download_artifact"] = "v8.0.1"

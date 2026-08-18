@@ -11,6 +11,11 @@ inputs:
     description: Node version to install
     required: false # if this is set, then assume you want node dependencies installed
     default: 'notUsing'
+  package-json-file:
+    type: string
+    description: Relative path to the package.json that pnpm/setup should read configuration from
+    required: false
+    default: package.json
   install-deps:
     required: false
     default: true
@@ -67,15 +72,31 @@ runs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: Setup node
+    - name: Check for a pnpm lock file # pnpm/setup can only cache the store when there's a lock file at the repo root to key the cache off of
+      id: pnpm-lock-probe
       if: ${{ inputs.node-version != 'notUsing' }}
-      uses: actions/setup-node@{% endraw %}{{ gha_setup_node }}{% raw %}
+      run: |
+        if [ -f pnpm-lock.yaml ]; then
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+        fi
+      shell: bash
+
+    - name: Setup pnpm and node # this action installs both pnpm and the node runtime, so actions/setup-node is not needed
+      if: ${{ inputs.node-version != 'notUsing' }}
+      uses: pnpm/setup@{% endraw %}{{ gha_pnpm_setup }}{% raw %}
       with:
-        node-version: ${{ inputs.node-version }}
+        version: {% endraw %}{{ pnpm_version }}{% raw %}
+        runtime: node@${{ inputs.node-version }}
+        package-json-file: ${{ inputs.package-json-file }}
+        cache: ${{ steps.pnpm-lock-probe.outputs.exists }}
+        install: false # dependency installation is handled by manual-setup-deps.py, which knows about every environment in the repo
 
     - name: Install tooling
       # the funky syntax is github action ternary
-      run: python .devcontainer/install-ci-tooling.py ${{ inputs.python-version == 'notUsing' && '--no-python' || '' }} ${{ inputs.node-version == 'notUsing' && '--no-node' || '' }} ${{ inputs.skip-installing-ssm-plugin-manager && '--skip-installing-ssm-plugin' || '' }}
+      # --no-node is always passed because the only node tooling this script installs is pnpm, which pnpm/setup above already installed
+      run: python .devcontainer/install-ci-tooling.py ${{ inputs.python-version == 'notUsing' && '--no-python' || '' }} --no-node ${{ inputs.skip-installing-ssm-plugin-manager && '--skip-installing-ssm-plugin' || '' }}
       shell: pwsh
 
     - name: OIDC Auth for CodeArtifact
