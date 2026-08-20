@@ -13,9 +13,9 @@ class ContextUpdater(ContextHook):
         self, context: dict[Any, Any]
     ) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.12.3"
+        context["uv_version"] = "0.12.5"
         context["pre_commit_version"] = "4.6.2"
-        context["pnpm_version"] = "11.21.0"
+        context["pnpm_version"] = "11.22.0"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
         context["copier_version"] = "==9.17.1"
         context["copier_template_extensions_version"] = "==0.3.3"
@@ -39,14 +39,14 @@ class ContextUpdater(ContextHook):
         context["boto3_version"] = ">=1.42.92"
         context["ephemeral_pulumi_deploy_version"] = ">=0.0.7"
         context["pydantic_version"] = ">=2.13.4"
-        context["pyinstaller_version"] = ">=6.20.0"
+        context["pyinstaller_version"] = ">=6.22.2"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = (
             "==0.298.0"  # problems with strawberry pydantic in later versions...lost the context for exactly why...it was figured out a while ago, but has to do with being able to override resolvers and have the schema still keep the desired nullability
         )
         context["fastapi_version"] = ">=0.141.1"
         context["fastapi_offline_version"] = ">=1.7.7"
-        context["starlette_version"] = ">=1.3.1"
+        context["starlette_version"] = ">=1.6.0"
         context["uvicorn_version"] = ">=0.52.3"
         context["lab_auto_pulumi_version"] = ">=0.2.3"
         context["ariadne_codegen_version"] = ">=0.18.0"
@@ -108,6 +108,7 @@ class ContextUpdater(ContextHook):
         context["gha_cache"] = "v6.1.0"
         context["gha_linux_runner"] = "ubuntu-24.04"
         context["gha_setup_node"] = "v6.4.0"
+        context["gha_pnpm_setup"] = "v2.0.2"
         #######
         context["gha_upload_artifact"] = "v7.0.1"
         context["gha_download_artifact"] = "v8.0.1"
