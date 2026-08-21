@@ -5,6 +5,11 @@ paths:
 ---
 # Python Testing
 
+Python-specific testing mechanics. General principles live in `testing.md`.
+
+- Targeted single-test invocation: a specific test function, e.g. `uv run pytest path/to/test.py::test_name --no-cov`. When running a subset, disable coverage with `--no-cov` so the run doesn't fail on insufficient coverage.
+- Tight mock/spy argument matchers, in order of preference: (1) `assert_called_once_with`; (2) multiple calls — assert the count then use `assert_has_calls` with `call_args_list[n]`; (3) last resort `assert_called_with`.
+- Asserting a raised exception's message: use the `match` parameter in `pytest.raises`. When the message is fixed with no variable data, prefer a specific exception subclass over `match` — the subclass type is the full assertion, and matching a hardcoded string duplicates the exception class without adding value; suppress PT011 with an inline `# noqa: PT011` comment explaining why.
 - Do not apply the keyword-only parameter rule (`*`) to test functions or fixtures — pytest injects its parameters, so `*` has no effect.
 - When using `mocker.spy` on a class-level method (including inherited ones), the spy records the unbound call, so assertions need `ANY` as the first argument to match self: `spy.assert_called_once_with(ANY, expected_arg)`
 - Before writing new mock/spy helpers, check the `tests/unit/` folder for pre-built helpers in files like `fixtures.py` or `*mocks.py`
