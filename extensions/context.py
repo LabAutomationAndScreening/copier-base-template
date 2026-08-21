@@ -103,8 +103,8 @@ class ContextUpdater(ContextHook):
         #######
         # These are duplicated in the CI files for this repository
         context["default_node_version"] = "24.11.1"
-        context["gha_checkout"] = "v6.0.2"
-        context["gha_setup_python"] = "v6.2.0"
+        context["gha_checkout"] = "v7.0.1"
+        context["gha_setup_python"] = "v7.0.0"
         context["gha_cache"] = "v6.1.0"
         context["gha_linux_runner"] = "ubuntu-24.04"
         context["gha_setup_node"] = "v6.4.0"
@@ -116,8 +116,8 @@ class ContextUpdater(ContextHook):
         context["gha_setup_buildx"] = "v4.0.0"
         context["buildx_version"] = "v0.33.0"
         context["gha_docker_build_push"] = "v7.1.0"
-        context["gha_configure_aws_credentials"] = "v6.1.0"
-        context["gha_amazon_ecr_login"] = "v2.1.5"
+        context["gha_configure_aws_credentials"] = "v6.2.3"
+        context["gha_amazon_ecr_login"] = "v2.1.7"
         context["gha_action_gh_release"] = "v3.0.0"
         context["gha_codecov"] = "v7.0.0"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"

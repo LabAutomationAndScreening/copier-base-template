@@ -8,6 +8,7 @@ This project is a Copier template used to generate other copier templates. It is
 
 - Comments should be used very rarely. Code should generally express its intent.
 - Never write a one-line docstring — either the name is sufficient or the behavior warrants a full explanation.
+- Don't name a value that is used once where the literal is already self-explanatory at the point of use — the extra variable adds a line and a hop without adding meaning.
 - Prefer keyword-only parameters (unless a very clear single-argument function): use `*` in Python signatures and destructured options objects in TypeScript.
 - When disabling a linting rule with an inline directive, provide a comment at the end of the line (or on the line above for tools that don't allow extra text after an inline directive) describing the reasoning for disabling the rule.
 - Avoid telling the type checker what a type is rather than letting it prove it. This includes type assertions (`as SomeType` in TypeScript, `cast()` in Python) and variable annotations that override inference. Prefer approaches that let the type checker verify the type itself: `isinstance`/`instanceof` narrowing, restructuring code so the correct type flows naturally, or using discriminated unions. When there is genuinely no alternative, add a comment explaining why the workaround is necessary and why it is safe.

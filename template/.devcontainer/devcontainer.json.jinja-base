@@ -37,11 +37,11 @@
         "coderabbit.coderabbit-vscode@0.21.3",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",{% endraw %}{% if install_claude_cli %}{% raw %}
-        "anthropic.claude-code@2.1.220",{% endraw %}{% endif %}{% raw %}{% endraw %}{% if (is_child_of_copier_base_template is defined and is_child_of_copier_base_template is sameas(true)) or (is_child_of_copier_base_template is not defined and template_uses_python is defined and template_uses_python is sameas(true)) %}{% raw %}
+        "anthropic.claude-code@2.1.238",{% endraw %}{% endif %}{% raw %}{% endraw %}{% if (is_child_of_copier_base_template is defined and is_child_of_copier_base_template is sameas(true)) or (is_child_of_copier_base_template is not defined and template_uses_python is defined and template_uses_python is sameas(true)) %}{% raw %}
 
         // Python
         "ms-python.python@2026.5.2026052901",
-        "meta.pyrefly@1.1.9003",
+        "meta.pyrefly@1.2.9002",
         "ms-vscode-remote.remote-containers@0.414.0",
         "charliermarsh.ruff@2026.68.0",{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}
