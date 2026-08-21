@@ -40,6 +40,7 @@
         "anthropic.claude-code@2.1.238",{% endraw %}{% endif %}{% raw %}{% endraw %}{% if (is_child_of_copier_base_template is defined and is_child_of_copier_base_template is sameas(true)) or (is_child_of_copier_base_template is not defined and template_uses_python is defined and template_uses_python is sameas(true)) %}{% raw %}
 
         // Python
+        "-ms-python.vscode-pylance", // pyrefly is the language server for this project; ms-python.python auto-installs Pylance via its extension pack, and Pylance then warns on every boot that it's disabled
         "ms-python.python@2026.5.2026052901",
         "meta.pyrefly@1.2.9002",
         "ms-vscode-remote.remote-containers@0.414.0",
