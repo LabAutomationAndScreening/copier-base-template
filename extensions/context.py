@@ -103,7 +103,7 @@ class ContextUpdater(ContextHook):
         #######
         # These are duplicated in the CI files for this repository
         context["default_node_version"] = "24.11.1"
-        context["gha_checkout"] = "v6.0.2"
+        context["gha_checkout"] = "v7.0.1"
         context["gha_setup_python"] = "v7.0.0"
         context["gha_cache"] = "v6.1.0"
         context["gha_linux_runner"] = "ubuntu-24.04"
