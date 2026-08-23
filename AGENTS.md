@@ -7,14 +7,13 @@ This project is a Copier template used to generate other copier templates. It is
 ## Code Style
 
 - Comments should be used very rarely. Code should generally express its intent.
-- Never write a one-line docstring — either the name is sufficient or the behavior warrants a full explanation.
 - Don't name a value that is used once where the literal is already self-explanatory at the point of use — the extra variable adds a line and a hop without adding meaning.
-- Prefer keyword-only parameters (unless a very clear single-argument function): use `*` in Python signatures and destructured options objects in TypeScript.
+- Prefer keyword-only parameters (unless a very clear single-argument function). See the language rules for the idiom.
 - When disabling a linting rule with an inline directive, provide a comment at the end of the line (or on the line above for tools that don't allow extra text after an inline directive) describing the reasoning for disabling the rule.
-- Avoid telling the type checker what a type is rather than letting it prove it. This includes type assertions (`as SomeType` in TypeScript, `cast()` in Python) and variable annotations that override inference. Prefer approaches that let the type checker verify the type itself: `isinstance`/`instanceof` narrowing, restructuring code so the correct type flows naturally, or using discriminated unions. When there is genuinely no alternative, add a comment explaining why the workaround is necessary and why it is safe.
-- In non-test code — anything coverage measures — avoid `||` (TypeScript) or `or` (Python) in `if`/`elif` conditions, and avoid `x in ['a', 'b']`-style membership tests. Coverage tools treat these as a single branch, silently masking untested paths and producing false 100% branch coverage. Use separate `if`/`elif` branches instead so each condition is independently covered. Files under a test directory are exempt because coverage never measures them, so collapsing a condition there hides nothing.
+- Avoid telling the type checker what a type is rather than letting it prove it — prefer type narrowing, restructuring, or discriminated unions over assertions and inference-overriding annotations. See the language rules for specifics.
+- In non-test code — anything coverage measures — avoid collapsing multiple conditions into a single branch (compound boolean `if` conditions, membership tests); coverage tools treat them as one branch and silently mask untested paths. See the language rules for specifics.
 
-Path-specific guidance (Python, testing, frontend, firmware) lives in `.claude/rules/*.md` and loads on demand when Claude reads matching files. Other tools that read only AGENTS.md should also consult `.claude/rules/`.
+Language- and path-specific guidance (Python, TypeScript, testing, frontend) lives in `.claude/rules/*.md` and loads on demand when Claude reads matching files. Other tools that read only AGENTS.md should also consult `.claude/rules/`.
 
 # Agent Implementations & Configurations
 
