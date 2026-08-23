@@ -1,6 +1,5 @@
 ---
 paths:
-  - "frontend/**"
   - "**/*.spec.ts"
   - "**/*.test.ts"
 ---
@@ -8,6 +7,7 @@ paths:
 
 Frontend (TypeScript) testing mechanics. General principles live in `testing.md`.
 
+- Run tests with an explicit path, e.g. `pnpm test-unit tests/unit`.
 - Targeted single-test invocation: a file path plus name filter, e.g. `pnpm test-unit path/to/test.spec.ts -t "test name" --no-coverage`. When running a subset, disable coverage with `--no-coverage` so the run doesn't fail on insufficient coverage.
 - Tight mock/spy argument matchers, in order of preference: (1) `toHaveBeenCalledExactlyOnceWith`; (2) multiple calls — `nthCalledWith` / `lastCalledWith`; (3) last resort `toHaveBeenCalledWith`.
 - Asserting a thrown error's message: use a regex or substring in `toThrow`, or catch and assert on error properties individually.

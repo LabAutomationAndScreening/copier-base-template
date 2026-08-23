@@ -7,7 +7,9 @@ paths:
 
 Python-specific testing mechanics. General principles live in `testing.md`.
 
+- Run tests with an explicit path, e.g. `uv run pytest tests/unit`.
 - Targeted single-test invocation: a specific test function, e.g. `uv run pytest path/to/test.py::test_name --no-cov`. When running a subset, disable coverage with `--no-cov` so the run doesn't fail on insufficient coverage.
+- Magic values in test comparisons are flagged by ruff rule PLR2004; `1` and `0` are exempt.
 - Tight mock/spy argument matchers, in order of preference: (1) `assert_called_once_with`; (2) multiple calls — assert the count then use `assert_has_calls` with `call_args_list[n]`; (3) last resort `assert_called_with`.
 - Asserting a raised exception's message: use the `match` parameter in `pytest.raises`. When the message is fixed with no variable data, prefer a specific exception subclass over `match` — the subclass type is the full assertion, and matching a hardcoded string duplicates the exception class without adding value; suppress PT011 with an inline `# noqa: PT011` comment explaining why.
 - Do not apply the keyword-only parameter rule (`*`) to test functions or fixtures — pytest injects its parameters, so `*` has no effect.
