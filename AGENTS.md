@@ -42,6 +42,18 @@ Language- and path-specific guidance (Python, TypeScript, testing, frontend) liv
 - **Never manually edit files in any `generated/` folder.** These files are produced by codegen tooling (typically Kiota) and any manual changes will be overwritten. If a generated file needs to change, update the source (e.g. the OpenAPI schema) and re-run the generator.
 - Leave `import` statement ordering and unused-import removal to pre-commit — don't edit them yourself.
 - In GitHub Codespaces, the injected `GITHUB_TOKEN` is a repo-scoped app token, so `gh`/`git` cannot reach other repos in the org. It lives in the container process environment (not any dotfile), so `unset` inside a Bash tool call does not persist. To grant broader access, ask the user to run `env -u GITHUB_TOKEN -u GH_TOKEN gh auth login --hostname github.com --git-protocol https --web` in their shell (the `--web` flags are required — `gh auth login` alone needs a TTY that the Bash tool does not provide, and it refuses to store credentials while `GITHUB_TOKEN` is set). Afterwards, prefix your own `gh`/`git` calls with `env -u GITHUB_TOKEN -u GH_TOKEN` so they use the stored GitHub CLI credentials instead of the app token — `GH_TOKEN` also has to be cleared because `gh` gives it precedence over both `GITHUB_TOKEN` and stored credentials. Where those credentials live depends on the environment (`gh` prefers the OS credential store and the config dir follows `GH_CONFIG_DIR`), but in these devcontainers they usually land in plain text at `~/.config/gh/hosts.yml`; `gh auth status` reports the active source.
+# Copier-Managed Files
+
+Files generated from upstream copier templates are listed in `.config/.copier-managed-files.json` (if present).
+The manifest has a `templates` array — one entry per template in the chain. Each entry has `src` (the template URL),
+`managed_files` (files it placed), and optionally `parent_src` (the template that generated it, forming the chain).
+
+When a file appears in multiple entries, the **last entry in the array** is the authoritative owner for backporting —
+it is the most-specific template in the chain. `parent_src` lets you trace the full chain upward to the root.
+
+When reviewing a PR that modifies a file listed in the manifest, check whether the change is generic enough to
+backport to the owning template. If so, add a single summary comment (not one per file) noting which files are
+template-managed and which template repo the changes should be backported to.
 
 <!-- BEGIN BEADS INTEGRATION -->
 ## Issue Tracking with bd (beads)
@@ -127,18 +139,4 @@ bd export -o [relative path to repository root]/.claude/.beads/issues-dump.jsonl
 - ❌ Do NOT duplicate tracking systems
 
 For more details, see README.md and docs/QUICKSTART.md.
-
-# Copier-Managed Files
-
-Files generated from upstream copier templates are listed in `.config/.copier-managed-files.json` (if present).
-The manifest has a `templates` array — one entry per template in the chain. Each entry has `src` (the template URL),
-`managed_files` (files it placed), and optionally `parent_src` (the template that generated it, forming the chain).
-
-When a file appears in multiple entries, the **last entry in the array** is the authoritative owner for backporting —
-it is the most-specific template in the chain. `parent_src` lets you trace the full chain upward to the root.
-
-When reviewing a PR that modifies a file listed in the manifest, check whether the change is generic enough to
-backport to the owning template. If so, add a single summary comment (not one per file) noting which files are
-template-managed and which template repo the changes should be backported to.
-
 <!-- END BEADS INTEGRATION -->
