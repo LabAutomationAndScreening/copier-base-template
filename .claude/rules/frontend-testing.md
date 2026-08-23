@@ -1,6 +1,8 @@
 ---
 paths:
   - "frontend/**"
+  - "**/*.spec.ts"
+  - "**/*.test.ts"
 ---
 # Frontend Testing
 
