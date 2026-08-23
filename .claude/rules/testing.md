@@ -9,13 +9,13 @@ paths:
 
 Language-neutral testing principles. Python-specific mechanics live in `python-testing.md`; frontend (TypeScript) mechanics live in `frontend-testing.md`.
 
-- Always run tests with an explicit path (e.g. `uv run pytest tests/unit`, `pnpm test-unit tests/unit`) — test runners discover all types (unit, integration, E2E...) by default.
+- Always run tests with an explicit path — test runners discover all types (unit, integration, E2E...) by default. Use the language-specific invocation (see the per-language testing rules).
 - Never manually start services prior to running E2E tests. The test harness boots and tears down its own services (backend, frontend, supporting services) via session fixtures.
 - When iterating on a single test, run that test in isolation first and confirm it is in the expected state (red or green) before widening to the full suite. Use the most targeted invocation available for the language (see the language-specific testing rules). Only run the full suite once the target test behaves as expected.
 - Test coverage requirements are usually at 100%, so when running a subset of tests, always disable test coverage to avoid the test run failing for insufficient coverage.
-- Avoid magic values in comparisons in tests in all languages (like ruff rule PLR2004 specifies). Note: `1` and `0` are not magic numbers (according to PLR2004)
+- Avoid magic values in comparisons in tests. Note: `1` and `0` are not magic numbers.
 - Prefer using random values in tests rather than arbitrary ones (e.g. faker, UUIDs, random integers) when possible. For enums, pick randomly rather than hardcoding one value.
-- Avoid loops in tests — assert each item explicitly so failures pinpoint the exact element. When verifying a condition across all items in a collection, collect the violations into a list and assert it's empty (e.g., assert [x for x in items if bad_condition(x)] == []).
+- Avoid loops in tests — assert each item explicitly so failures pinpoint the exact element. When verifying a condition across all items in a collection, collect the violations into a list and assert it is empty.
 - When a test's final assertion is an absence (e.g., element is `null`, list is empty, modal is closed), include a prior presence assertion confirming the expected state existed before the action that removed it. A test whose only assertion is an absence check can pass vacuously if setup silently failed.
 - When asserting a mock or spy was called with specific arguments, constrain as tightly as possible, in order of preference: (1) assert it was called exactly once with those args; (2) if multiple calls are expected, assert the total call count and use a positional or last-call assertion; (3) a plain "called with at any point" assertion is a last resort, only when neither the call count nor the call order can reasonably be constrained. See the language-specific testing rules for the matchers.
 - When asserting an exception is raised, verify the error message includes all key constructor arguments — not just one identifying field. This ensures the error message is fully populated and catches cases where arguments are swapped or missing. See the language-specific testing rules for how.
