@@ -217,13 +217,12 @@ def apply_file_markers(
 
     managed: dict[str, list[str]] = {}
 
-    dst_files: list[Path] = []
-    for root, _, files in os.walk(dst_directory, followlinks=True):
-        dst_files.extend(Path(root) / fname for fname in files)
-
-    for file in sorted(dst_files):
-        rel = file.relative_to(dst_directory)
-        if rel not in template_base_paths:
+    # Iterate the template paths and probe the destination rather than walking the destination:
+    # a destination repo can contain symlink cycles (e.g. pnpm workspace node_modules farms) that
+    # make os.walk(followlinks=True) never terminate.
+    for rel in sorted(template_base_paths):
+        file = dst_directory / rel
+        if not file.is_file():
             continue
 
         rel_str = str(rel)

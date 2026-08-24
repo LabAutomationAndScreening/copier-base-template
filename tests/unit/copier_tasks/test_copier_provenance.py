@@ -177,6 +177,50 @@ class TestJinjaTemplateMatching:
         assert content.startswith(expected_hash_comment)
 
 
+class TestDestinationSymlinks:
+    def test_symlink_cycle_in_destination_does_not_prevent_stamping(self, tmp_path: Path) -> None:
+        # A pnpm workspace whose sub-package depends on the root package produces exactly this cycle,
+        # which made a followlinks walk of the destination recurse until the process was OOM-killed.
+        # Two links back to the root rather than one: a single link is bounded by the kernel's ELOOP
+        # limit, whereas branching makes the traversal grow exponentially and never finish.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "README.md.jinja-base").touch()
+
+        dst_dir = tmp_path / "destination"
+        node_modules = dst_dir / "node_modules"
+        node_modules.mkdir(parents=True)
+        (node_modules / "pkg-a").symlink_to(dst_dir, target_is_directory=True)
+        (node_modules / "pkg-b").symlink_to(dst_dir, target_is_directory=True)
+        file_content = "some content\n"
+        _ = (dst_dir / "README.md").write_text(file_content, encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        content = (dst_dir / "README.md").read_text(encoding="utf-8")
+        assert content == file_content + "\n" + expected_markdown_comment + "\n"
+
+    def test_broken_symlink_at_managed_path_is_skipped(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "config.yaml.jinja-base").touch()
+        (template_dir / "keep.yaml.jinja-base").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        broken = dst_dir / "config.yaml"
+        broken.symlink_to(dst_dir / "does-not-exist.yaml")
+        _ = (dst_dir / "keep.yaml").write_text("key: value\n", encoding="utf-8")
+        assert broken.is_symlink()
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        manifest = _read_manifest(dst_dir)
+
+        assert (dst_dir / "keep.yaml").read_text(encoding="utf-8").startswith(expected_hash_comment)
+        assert manifest["templates"][0]["managed_files"] == ["keep.yaml"]
+
+
 class TestFileExtensionComments:
     @pytest.mark.parametrize(
         ("filename", "expected_location", "expected_comment"),

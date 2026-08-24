@@ -12,11 +12,14 @@ def run_copier_task(
     script_path: Path,
     *args: str,
     env: dict[str, str] | None = None,
+    timeout: float = 60,
 ) -> subprocess.CompletedProcess[str]:
+    """Run a copier task script. The timeout turns a runaway traversal into a failure, not a wedged runner."""
     return subprocess.run(  # noqa: S603 -- these are our own scripts
         [sys.executable, str(script_path), *args],
         check=False,
         capture_output=True,
         text=True,
         env=env,
+        timeout=timeout,
     )
