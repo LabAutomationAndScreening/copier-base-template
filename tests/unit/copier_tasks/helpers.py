@@ -12,6 +12,8 @@ def run_copier_task(
     script_path: Path,
     *args: str,
     env: dict[str, str] | None = None,
+    # bounded so a runaway traversal fails the test rather than wedging the runner
+    timeout: float = 60,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(  # noqa: S603 -- these are our own scripts
         [sys.executable, str(script_path), *args],
@@ -19,4 +21,5 @@ def run_copier_task(
         capture_output=True,
         text=True,
         env=env,
+        timeout=timeout,
     )
