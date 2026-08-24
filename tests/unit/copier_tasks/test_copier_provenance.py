@@ -177,8 +177,8 @@ class TestJinjaTemplateMatching:
         assert content.startswith(expected_hash_comment)
 
 
-class TestDestinationSymlinks:
-    def test_symlink_cycle_in_destination_does_not_prevent_stamping(self, tmp_path: Path) -> None:
+class TestWhenTaskRunAgainstDestination:
+    def test_Given_symlink_cycle__Then_managed_file_stamped(self, tmp_path: Path) -> None:
         # Two links back to the root rather than one: a single link is bounded by the kernel's ELOOP
         # limit, so it would terminate on its own and catch no regression.
         template_dir = tmp_path / "template"
@@ -198,7 +198,7 @@ class TestDestinationSymlinks:
         content = (dst_dir / "README.md").read_text(encoding="utf-8")
         assert content == file_content + "\n" + expected_markdown_comment + "\n"
 
-    def test_broken_symlink_at_managed_path_is_skipped(self, tmp_path: Path) -> None:
+    def test_Given_broken_symlink_at_managed_path__Then_path_skipped(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
         template_dir.mkdir()
         (template_dir / "config.yaml.jinja-base").touch()
