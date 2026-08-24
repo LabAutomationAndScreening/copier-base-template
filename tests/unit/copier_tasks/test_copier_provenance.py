@@ -179,10 +179,8 @@ class TestJinjaTemplateMatching:
 
 class TestDestinationSymlinks:
     def test_symlink_cycle_in_destination_does_not_prevent_stamping(self, tmp_path: Path) -> None:
-        # A pnpm workspace whose sub-package depends on the root package produces exactly this cycle,
-        # which made a followlinks walk of the destination recurse until the process was OOM-killed.
         # Two links back to the root rather than one: a single link is bounded by the kernel's ELOOP
-        # limit, whereas branching makes the traversal grow exponentially and never finish.
+        # limit, so it would terminate on its own and catch no regression.
         template_dir = tmp_path / "template"
         template_dir.mkdir()
         (template_dir / "README.md.jinja-base").touch()
