@@ -90,6 +90,7 @@ This project is a Copier template used to generate other copier templates. It is
 - Never use backslash line continuations in shell commands — always write the full command on a single line. Backslashes break the permission allow-list matcher.
 - **Never manually edit files in any `generated/` folder.** These files are produced by codegen tooling (typically Kiota) and any manual changes will be overwritten. If a generated file needs to change, update the source (e.g. the OpenAPI schema) and re-run the generator.
 - Leave `import` statement ordering and unused-import removal to pre-commit — don't edit them yourself.
+- In GitHub Codespaces, the injected `GITHUB_TOKEN` is a repo-scoped app token, so `gh`/`git` cannot reach other repos in the org. It lives in the container process environment (not any dotfile), so `unset` inside a Bash tool call does not persist. To grant broader access, ask the user to run `env -u GITHUB_TOKEN gh auth login --hostname github.com --git-protocol https --web` in their shell (the `--web` flags are required — `gh auth login` alone needs a TTY that the Bash tool does not provide, and it refuses to store credentials while `GITHUB_TOKEN` is set). Afterwards, prefix your own `gh`/`git` calls with `env -u GITHUB_TOKEN` so they use the stored credentials in `~/.config/gh/hosts.yml` instead of the app token.
 
 <!-- BEGIN BEADS INTEGRATION -->
 ## Issue Tracking with bd (beads)
