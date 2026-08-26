@@ -5,7 +5,6 @@ tasks:
     desc: Pull the latest updates from the upstream copier template into this repo
     cmds:
       - copier update --answers-file .config/.copier-answers.yml --trust --conflict rej --defaults {{.CLI_ARGS}} # pass extra copier flags through as `task copier-update -- -r some-branch`
-      - task: prune-copier-rejects
 
   prune-copier-rejects:
     desc: Delete .rej files whose target file is unchanged, failing if any real conflict is left to resolve
