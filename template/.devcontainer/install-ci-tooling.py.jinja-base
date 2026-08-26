@@ -114,20 +114,9 @@ def main():
             env=uv_env,
         )
     if not args.no_node:
-        pnpm_install_sequence = ["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"]
-        for cmd in pnpm_install_sequence:
-            run_cmd = (
-                [
-                    pwsh,  # type: ignore[reportPossiblyUnboundVariable] # this matches the conditional above that defines pwsh
-                    "-NoProfile",
-                    "-NonInteractive",
-                    "-Command",
-                    cmd,
-                ]
-                if is_windows
-                else [cmd]
-            )
-            _ = subprocess.run(run_cmd, shell=True, check=True)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
+        run_node_cmds(["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"], pwsh=pwsh)
+    # Task is installed outside the --no-node branch because CI always passes --no-node (pnpm/setup handles pnpm there), and every job still needs the task runner
+    run_node_cmds([f"npm install -g @go-task/cli@{TASK_VERSION}", "task --version"], pwsh=pwsh)
     if INSTALL_SSM_PLUGIN_BY_DEFAULT and not args.skip_installing_ssm_plugin:
         with tempfile.TemporaryDirectory() as tmp_dir:
             if is_windows:
