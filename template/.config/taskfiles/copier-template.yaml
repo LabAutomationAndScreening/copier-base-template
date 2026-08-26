@@ -1,0 +1,13 @@
+version: '3'
+
+tasks:
+  copier-update:
+    desc: Pull the latest updates from the upstream copier template into this repo
+    cmds:
+      - copier update --answers-file .config/.copier-answers.yml --trust --conflict rej --defaults
+      - task: prune-copier-rejects
+
+  prune-copier-rejects:
+    desc: Delete .rej files whose target file is unchanged, failing if any real conflict is left to resolve
+    cmds:
+      - ./scripts/delete_false_positive_rej.py

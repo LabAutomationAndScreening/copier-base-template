@@ -5,5 +5,5 @@ version: '3'
 
 includes:
   copier:
-    taskfile: ./.config/taskfiles/copier-template.yml
+    taskfile: ./.config/taskfiles/copier-template.yaml
     flatten: true
