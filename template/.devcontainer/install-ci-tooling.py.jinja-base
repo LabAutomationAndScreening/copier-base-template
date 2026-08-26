@@ -39,12 +39,22 @@ _ = parser.add_argument(
 )
 
 
+def run_node_cmds(cmds: list[str], *, pwsh: str | None) -> None:
+    for cmd in cmds:
+        if pwsh is None:
+            run_cmd = [cmd]
+        else:
+            run_cmd = [pwsh, "-NoProfile", "-NonInteractive", "-Command", cmd]
+        _ = subprocess.run(run_cmd, shell=True, check=True)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
+
+
 def main():
     args = parser.parse_args(sys.argv[1:])
     is_windows = platform.system() == "Windows"
     uv_env = dict(os.environ)
     uv_env.update({"UV_PYTHON": args.python_version, "UV_PYTHON_PREFERENCE": "only-system"})
     uv_path = ((GITHUB_WINDOWS_RUNNER_BIN_PATH + "\\") if is_windows else "") + "uv"
+    pwsh = None
     if is_windows:
         pwsh = shutil.which("pwsh") or shutil.which("powershell")
         if not pwsh:
