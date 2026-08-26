@@ -1,6 +1,7 @@
 {% raw %}import argparse
 import os
 import platform
+import shlex
 import shutil
 import subprocess
 import sys
@@ -74,22 +75,30 @@ def install_task(*, is_windows: bool) -> None:
         archive_url = (
             f"https://github.com/go-task/task/releases/download/v{TASK_VERSION}/task_windows_{windows_arch}.zip"
         )
+        # The bin directory is handed over as an environment variable rather than interpolated into the
+        # script text: PowerShell single quotes take no escapes, so an apostrophe in the home directory
+        # would terminate the string early. A variable reference is one argument whatever it contains
+        task_env = dict(os.environ)
+        task_env.update({"TASK_BIN_DIR": str(LOCAL_BIN_DIR)})
         _ = subprocess.run(  # noqa: S603 # this is all our own input
             pwsh_cmd(
                 "$ErrorActionPreference = 'Stop'; "
                 "$archive = Join-Path $env:TEMP 'task-release.zip'; "
                 f"Invoke-WebRequest -UseBasicParsing -Uri '{archive_url}' -OutFile $archive; "
-                f"Expand-Archive -Path $archive -DestinationPath '{LOCAL_BIN_DIR}' -Force; "
+                "Expand-Archive -Path $archive -DestinationPath $env:TASK_BIN_DIR -Force; "
                 "Remove-Item $archive"
             ),
             check=True,
+            env=task_env,
             timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
         task_path = LOCAL_BIN_DIR / "task.exe"
     else:
-        # The installer resolves the pinned tag against the published checksums, so the archive is verified
+        # The installer resolves the pinned tag against the published checksums, so the archive is verified.
+        # The bin directory is shell-quoted because a space or apostrophe in the home directory would
+        # otherwise split it into multiple arguments, or unbalance the quoting outright
         _ = subprocess.run(  # noqa: S602 # we need to set shell to true to use the pipe operator, and this is all our own input
-            f"curl -fsSL --connect-timeout 20 --max-time 40 --retry 3 --retry-delay 5 --retry-connrefused --proto '=https' https://taskfile.dev/install.sh | sh -s -- -b {LOCAL_BIN_DIR} v{TASK_VERSION}",
+            f"curl -fsSL --connect-timeout 20 --max-time 40 --retry 3 --retry-delay 5 --retry-connrefused --proto '=https' https://taskfile.dev/install.sh | sh -s -- -b {shlex.quote(str(LOCAL_BIN_DIR))} v{TASK_VERSION}",
             check=True,
             shell=True,
             timeout=DOWNLOAD_TIMEOUT_SECONDS,

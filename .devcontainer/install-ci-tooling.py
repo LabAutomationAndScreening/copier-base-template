@@ -1,6 +1,7 @@
 import argparse
 import os
 import platform
+import shlex
 import shutil
 import subprocess
 import sys
@@ -57,9 +58,11 @@ def install_task() -> None:
     `GITHUB_PATH` so that later steps in the same CI job can invoke `task` by name.
     """
     LOCAL_BIN_DIR.mkdir(parents=True, exist_ok=True)
-    # The installer resolves the pinned tag against the published checksums, so the archive is verified
+    # The installer resolves the pinned tag against the published checksums, so the archive is verified.
+    # The bin directory is shell-quoted because a space or apostrophe in the home directory would
+    # otherwise split it into multiple arguments, or unbalance the quoting outright
     _ = subprocess.run(  # noqa: S602 # we need to set shell to true to use the pipe operator, and this is all our own input
-        f"curl -fsSL --connect-timeout 20 --max-time 40 --retry 3 --retry-delay 5 --retry-connrefused --proto '=https' https://taskfile.dev/install.sh | sh -s -- -b {LOCAL_BIN_DIR} v{TASK_VERSION}",
+        f"curl -fsSL --connect-timeout 20 --max-time 40 --retry 3 --retry-delay 5 --retry-connrefused --proto '=https' https://taskfile.dev/install.sh | sh -s -- -b {shlex.quote(str(LOCAL_BIN_DIR))} v{TASK_VERSION}",
         check=True,
         shell=True,
         timeout=DOWNLOAD_TIMEOUT_SECONDS,
