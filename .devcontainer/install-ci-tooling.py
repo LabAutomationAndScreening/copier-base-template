@@ -12,6 +12,11 @@ COPIER_VERSION = "9.17.1"
 COPIER_TEMPLATE_EXTENSIONS_VERSION = "0.3.3"
 PRE_COMMIT_VERSION = "4.6.2"
 TASK_VERSION = "3.53.1"
+# Bounds every command that fetches over the network. Downloads here take a few seconds, so this is
+# generous, while still failing inside the CI jobs' budget -- they cap at 8 minutes and share that
+# with a mutex wait, so an unbounded fetch gets killed by the job timeout with no indication of which
+# one hung. `TimeoutExpired` names the command instead.
+DOWNLOAD_TIMEOUT_SECONDS = 90
 # Where both uv's and Task's installers place binaries. Resolves from USERPROFILE on Windows, so it
 # matches the runner's home directory without assuming its user name. Already on PATH on POSIX, but
 # not on Windows, which is why uv is invoked through an absolute path there.
@@ -57,6 +62,7 @@ def install_task() -> None:
         f"curl -fsSL --connect-timeout 20 --max-time 40 --retry 3 --retry-delay 5 --retry-connrefused --proto '=https' https://taskfile.dev/install.sh | sh -s -- -b {LOCAL_BIN_DIR} v{TASK_VERSION}",
         check=True,
         shell=True,
+        timeout=DOWNLOAD_TIMEOUT_SECONDS,
     )
     _ = subprocess.run([str(LOCAL_BIN_DIR / "task"), "--version"], check=True)  # noqa: S603 # this is all our own input
     if "GITHUB_PATH" in os.environ:
@@ -76,7 +82,7 @@ def main():
 
     pnpm_install_sequence = ["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"]
     for cmd in pnpm_install_sequence:
-        _ = subprocess.run([cmd], shell=True, check=True)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
+        _ = subprocess.run([cmd], shell=True, check=True, timeout=DOWNLOAD_TIMEOUT_SECONDS)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
     if not args.no_python:
         if is_windows:
             uv_env.update({"PATH": rf"{LOCAL_BIN_DIR};{uv_env['PATH']}"})
@@ -85,6 +91,7 @@ def main():
                 pwsh_cmd(f"irm https://astral.sh/uv/{UV_VERSION}/install.ps1 | iex"),
                 check=True,
                 env=uv_env,
+                timeout=DOWNLOAD_TIMEOUT_SECONDS,
             )
         else:
             _ = subprocess.run(  # noqa: S602 # we need to set shell to true to use the pipe operator, and this is all our own input
@@ -92,6 +99,7 @@ def main():
                 check=True,
                 shell=True,
                 env=uv_env,
+                timeout=DOWNLOAD_TIMEOUT_SECONDS,
             )
             # TODO: add uv autocompletion to the shell https://docs.astral.sh/uv/getting-started/installation/#shell-autocompletion
         _ = subprocess.run(  # noqa: S603 # this is all our own input
@@ -105,6 +113,7 @@ def main():
             ],
             check=True,
             env=uv_env,
+            timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
         _ = subprocess.run(  # noqa: S603 # this is all our own input
             [
@@ -115,6 +124,7 @@ def main():
             ],
             check=True,
             env=uv_env,
+            timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
         _ = subprocess.run(  # noqa: S603 # this is all our own input
             [

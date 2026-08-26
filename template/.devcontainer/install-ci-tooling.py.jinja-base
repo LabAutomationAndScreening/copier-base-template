@@ -13,6 +13,11 @@ COPIER_VERSION = "{% endraw %}{{ copier_version }}{% raw %}"
 COPIER_TEMPLATE_EXTENSIONS_VERSION = "{% endraw %}{{ copier_template_extensions_version }}{% raw %}"
 PRE_COMMIT_VERSION = "{% endraw %}{{ pre_commit_version }}{% raw %}"
 TASK_VERSION = "{% endraw %}{{ task_version }}{% raw %}"
+# Bounds every command that fetches over the network. Downloads here take a few seconds, so this is
+# generous, while still failing inside the CI jobs' budget -- they cap at 8 minutes and share that
+# with a mutex wait, so an unbounded fetch gets killed by the job timeout with no indication of which
+# one hung. `TimeoutExpired` names the command instead.
+DOWNLOAD_TIMEOUT_SECONDS = 90
 # Where both uv's and Task's installers place binaries. Resolves from USERPROFILE on Windows, so it
 # matches the runner's home directory without assuming its user name. Already on PATH on POSIX, but
 # not on Windows, which is why uv is invoked through an absolute path there.
@@ -78,6 +83,7 @@ def install_task(*, is_windows: bool) -> None:
                 "Remove-Item $archive"
             ),
             check=True,
+            timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
         task_path = LOCAL_BIN_DIR / "task.exe"
     else:
@@ -86,6 +92,7 @@ def install_task(*, is_windows: bool) -> None:
             f"curl -fsSL --connect-timeout 20 --max-time 40 --retry 3 --retry-delay 5 --retry-connrefused --proto '=https' https://taskfile.dev/install.sh | sh -s -- -b {LOCAL_BIN_DIR} v{TASK_VERSION}",
             check=True,
             shell=True,
+            timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
         task_path = LOCAL_BIN_DIR / "task"
     _ = subprocess.run([str(task_path), "--version"], check=True)  # noqa: S603 # this is all our own input
@@ -100,7 +107,7 @@ def run_node_cmds(cmds: list[str], *, is_windows: bool) -> None:
             run_cmd = pwsh_cmd(cmd)
         else:
             run_cmd = [cmd]
-        _ = subprocess.run(run_cmd, shell=True, check=True)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
+        _ = subprocess.run(run_cmd, shell=True, check=True, timeout=DOWNLOAD_TIMEOUT_SECONDS)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
 
 
 def main():
@@ -119,6 +126,7 @@ def main():
                 pwsh_cmd(f"irm https://astral.sh/uv/{UV_VERSION}/install.ps1 | iex"),
                 check=True,
                 env=uv_env,
+                timeout=DOWNLOAD_TIMEOUT_SECONDS,
             )
         else:
             _ = subprocess.run(  # noqa: S602 # we need to set shell to true to use the pipe operator, and this is all our own input
@@ -126,6 +134,7 @@ def main():
                 check=True,
                 shell=True,
                 env=uv_env,
+                timeout=DOWNLOAD_TIMEOUT_SECONDS,
             )
             # TODO: add uv autocompletion to the shell https://docs.astral.sh/uv/getting-started/installation/#shell-autocompletion
         _ = subprocess.run(  # noqa: S603 # this is all our own input
@@ -139,6 +148,7 @@ def main():
             ],
             check=True,
             env=uv_env,
+            timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
         _ = subprocess.run(  # noqa: S603 # this is all our own input
             [
@@ -149,6 +159,7 @@ def main():
             ],
             check=True,
             env=uv_env,
+            timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
         _ = subprocess.run(  # noqa: S603 # this is all our own input
             [
@@ -177,6 +188,7 @@ def main():
                         f"{local_package_path}",
                     ],
                     check=True,
+                    timeout=DOWNLOAD_TIMEOUT_SECONDS,
                 )
                 _ = subprocess.run(  # noqa: S603 # this is all our own input
                     [str(local_package_path), "/quiet"],
@@ -194,6 +206,7 @@ def main():
                         f"{local_package_path}",
                     ],
                     check=True,
+                    timeout=DOWNLOAD_TIMEOUT_SECONDS,
                 )
                 _ = subprocess.run(  # noqa: S603 # this is all our own input
                     [  # noqa: S607 # sudo should always be on PATH
