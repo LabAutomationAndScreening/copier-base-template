@@ -10,6 +10,7 @@ PNPM_VERSION = "11.22.0"
 COPIER_VERSION = "9.17.1"
 COPIER_TEMPLATE_EXTENSIONS_VERSION = "0.3.3"
 PRE_COMMIT_VERSION = "4.6.2"
+TASK_VERSION = "3.53.1"
 GITHUB_WINDOWS_RUNNER_BIN_PATH = r"C:\Users\runneradmin\.local\bin"
 parser = argparse.ArgumentParser(description="Install CI tooling for the repo")
 _ = parser.add_argument(
@@ -37,8 +38,14 @@ def main():
         if not pwsh:
             raise FileNotFoundError("Neither 'pwsh' nor 'powershell' found on PATH")
 
-    pnpm_install_sequence = ["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"]
-    for cmd in pnpm_install_sequence:
+    node_install_sequence = [
+        "npm -v",
+        f"npm install -g pnpm@{PNPM_VERSION}",
+        "pnpm -v",
+        f"npm install -g @go-task/cli@{TASK_VERSION}",
+        "task --version",
+    ]
+    for cmd in node_install_sequence:
         _ = subprocess.run([cmd], shell=True, check=True)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
     if not args.no_python:
         if is_windows:

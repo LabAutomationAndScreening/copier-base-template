@@ -16,6 +16,7 @@ class ContextUpdater(ContextHook):
         context["uv_version"] = "0.12.6"
         context["pre_commit_version"] = "4.6.2"
         context["pnpm_version"] = "11.22.0"
+        context["task_version"] = "3.53.1"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
         context["copier_version"] = "==9.17.1"
         context["copier_template_extensions_version"] = "==0.3.3"
@@ -29,7 +30,6 @@ class ContextUpdater(ContextHook):
         context["mutmut_version"] = ">=3.7.0"
         context["pyrefly_version"] = ">=1.2.0"
         #######
-        context["task_version"] = "3.53.1"
         context["sphinx_version"] = "9.0.4"
         context["pulumi_version"] = ">=3.245.0"
         context["pulumi_aws_version"] = ">=7.32.0"
