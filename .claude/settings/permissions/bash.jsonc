@@ -100,6 +100,7 @@
       "Bash(jq *)",
       "Bash(just *)",
       "Bash(lsof *)",
+      "Bash(task *)",
       "Bash(test *)",
       "Bash(xxd)", // this invocation can be used to read, but not to write (so no " *" after it)
       "Bash(zk *)",
