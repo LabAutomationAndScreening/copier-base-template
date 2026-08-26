@@ -12,7 +12,10 @@ COPIER_VERSION = "9.17.1"
 COPIER_TEMPLATE_EXTENSIONS_VERSION = "0.3.3"
 PRE_COMMIT_VERSION = "4.6.2"
 TASK_VERSION = "3.53.1"
-GITHUB_WINDOWS_RUNNER_BIN_PATH = r"C:\Users\runneradmin\.local\bin"
+# Where both uv's and Task's installers place binaries. Resolves from USERPROFILE on Windows, so it
+# matches the runner's home directory without assuming its user name. Already on PATH on POSIX, but
+# not on Windows, which is why uv is invoked through an absolute path there.
+LOCAL_BIN_DIR = Path.home() / ".local" / "bin"
 parser = argparse.ArgumentParser(description="Install CI tooling for the repo")
 _ = parser.add_argument(
     "--no-python",
@@ -35,8 +38,10 @@ def pwsh_cmd(cmd: str) -> list[str]:
     return [pwsh, "-NoProfile", "-NonInteractive", "-Command", cmd]
 
 
-def install_task(*, is_windows: bool) -> None:
+def install_task() -> None:
     """Install the pinned Task release into a bin directory that is already on PATH.
+
+    POSIX only, unlike the equivalent in the template: this repo's CI never runs on Windows.
 
     Deliberately not `npm install -g @go-task/cli`: that writes to the global prefix of whichever
     node is on PATH, and in CI that is the pnpm-managed node installed by `pnpm/setup`, whose prefix
@@ -46,41 +51,17 @@ def install_task(*, is_windows: bool) -> None:
     Verification uses the absolute path rather than PATH, and the bin directory is appended to
     `GITHUB_PATH` so that later steps in the same CI job can invoke `task` by name.
     """
-    if is_windows:
-        bin_dir = Path(GITHUB_WINDOWS_RUNNER_BIN_PATH)
-        bin_dir.mkdir(parents=True, exist_ok=True)
-        if platform.machine().lower() == "arm64":
-            windows_arch = "arm64"
-        else:
-            windows_arch = "amd64"
-        archive_url = (
-            f"https://github.com/go-task/task/releases/download/v{TASK_VERSION}/task_windows_{windows_arch}.zip"
-        )
-        _ = subprocess.run(  # noqa: S603 # this is all our own input
-            pwsh_cmd(
-                "$ErrorActionPreference = 'Stop'; "
-                "$archive = Join-Path $env:TEMP 'task-release.zip'; "
-                f"Invoke-WebRequest -UseBasicParsing -Uri '{archive_url}' -OutFile $archive; "
-                f"Expand-Archive -Path $archive -DestinationPath '{bin_dir}' -Force; "
-                "Remove-Item $archive"
-            ),
-            check=True,
-        )
-        task_path = bin_dir / "task.exe"
-    else:
-        bin_dir = Path.home() / ".local" / "bin"
-        bin_dir.mkdir(parents=True, exist_ok=True)
-        # The installer resolves the pinned tag against the published checksums, so the archive is verified
-        _ = subprocess.run(  # noqa: S602 # we need to set shell to true to use the pipe operator, and this is all our own input
-            f"curl -fsSL --connect-timeout 20 --max-time 40 --retry 3 --retry-delay 5 --retry-connrefused --proto '=https' https://taskfile.dev/install.sh | sh -s -- -b {bin_dir} v{TASK_VERSION}",
-            check=True,
-            shell=True,
-        )
-        task_path = bin_dir / "task"
-    _ = subprocess.run([str(task_path), "--version"], check=True)  # noqa: S603 # this is all our own input
+    LOCAL_BIN_DIR.mkdir(parents=True, exist_ok=True)
+    # The installer resolves the pinned tag against the published checksums, so the archive is verified
+    _ = subprocess.run(  # noqa: S602 # we need to set shell to true to use the pipe operator, and this is all our own input
+        f"curl -fsSL --connect-timeout 20 --max-time 40 --retry 3 --retry-delay 5 --retry-connrefused --proto '=https' https://taskfile.dev/install.sh | sh -s -- -b {LOCAL_BIN_DIR} v{TASK_VERSION}",
+        check=True,
+        shell=True,
+    )
+    _ = subprocess.run([str(LOCAL_BIN_DIR / "task"), "--version"], check=True)  # noqa: S603 # this is all our own input
     if "GITHUB_PATH" in os.environ:
         with Path(os.environ["GITHUB_PATH"]).open("a", encoding="utf-8") as github_path_file:
-            _ = github_path_file.write(f"{bin_dir}\n")
+            _ = github_path_file.write(f"{LOCAL_BIN_DIR}\n")
 
 
 def main():
@@ -88,14 +69,17 @@ def main():
     is_windows = platform.system() == "Windows"
     uv_env = dict(os.environ)
     uv_env.update({"UV_PYTHON_PREFERENCE": "only-system", "UV_PYTHON": args.python_version})
-    uv_path = ((GITHUB_WINDOWS_RUNNER_BIN_PATH + "\\") if is_windows else "") + "uv"
+    if is_windows:
+        uv_path = str(LOCAL_BIN_DIR / "uv")
+    else:
+        uv_path = "uv"
 
     pnpm_install_sequence = ["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"]
     for cmd in pnpm_install_sequence:
         _ = subprocess.run([cmd], shell=True, check=True)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
     if not args.no_python:
         if is_windows:
-            uv_env.update({"PATH": rf"{GITHUB_WINDOWS_RUNNER_BIN_PATH};{uv_env['PATH']}"})
+            uv_env.update({"PATH": rf"{LOCAL_BIN_DIR};{uv_env['PATH']}"})
             # invoke installer in a pwsh process
             _ = subprocess.run(  # noqa: S603 # this is all our own input
                 pwsh_cmd(f"irm https://astral.sh/uv/{UV_VERSION}/install.ps1 | iex"),
@@ -141,7 +125,7 @@ def main():
             check=True,
             env=uv_env,
         )
-    install_task(is_windows=is_windows)
+    install_task()
 
 
 if __name__ == "__main__":
