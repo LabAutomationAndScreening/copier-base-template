@@ -5,6 +5,6 @@
   "permissions": {
     "allow": ["Write(/tmp/**/*)", "Write(/workspaces/**/tmp/**)", "Write(tmp/**)"],
     // Agents are allowed to run any task, but this provides some basic protection against editing a task to do something nefarious that's normally forbidden.
-    "ask": ["Write(Taskfile.yml)", "Write(.config/taskfiles/**)", "Edit(Taskfile.yml)", "Edit(.config/taskfiles/**)"],
+    "ask": ["Write(Taskfile.yaml)", "Write(.config/taskfiles/**)", "Edit(Taskfile.yaml)", "Edit(.config/taskfiles/**)"],
   },
 }
