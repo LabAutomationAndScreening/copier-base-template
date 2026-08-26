@@ -95,12 +95,10 @@
       "Bash(amp *)",
       "Bash(atuin *)",
       "Bash(bc *)",
-      "Bash(chezmoi *)",
       "Bash(diff *)",
       "Bash(jq *)",
-      "Bash(just *)",
       "Bash(lsof *)",
-      "Bash(task *)",
+      "Bash(task *)", // Task runner invocation is freely allowed.  Write access to the taskfiles themselves is protected by Ask.
       "Bash(test *)",
       "Bash(xxd)", // this invocation can be used to read, but not to write (so no " *" after it)
       "Bash(zk *)",
