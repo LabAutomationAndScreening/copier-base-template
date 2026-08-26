@@ -17,6 +17,7 @@ class ContextUpdater(ContextHook):
         context["npm_version"] = "{{ npm_version }}"
         context["nvm_version"] = "{{ nvm_version }}"
         context["pre_commit_version"] = "{{ pre_commit_version }}"
+        context["task_version"] = "{{ task_version }}"
         context["pytest_version"] = "{{ pytest_version }}"
         context["pytest_randomly_version"] = "{{ pytest_randomly_version }}"
         context["pytest_cov_version"] = "{{ pytest_cov_version }}"

@@ -29,6 +29,7 @@ class ContextUpdater(ContextHook):
         context["mutmut_version"] = ">=3.7.0"
         context["pyrefly_version"] = ">=1.2.0"
         #######
+        context["task_version"] = "3.53.1"
         context["sphinx_version"] = "9.0.4"
         context["pulumi_version"] = ">=3.245.0"
         context["pulumi_aws_version"] = ">=7.32.0"
