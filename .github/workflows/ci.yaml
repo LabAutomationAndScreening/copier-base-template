@@ -250,7 +250,7 @@ jobs:
 
       - name: Upload pre-commit log if failure
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: pre-commit-log--${{ github.jobs.lint-matrix.name }}
           path: "${{ github.workspace }}/.precommit_cache/pre-commit.log"

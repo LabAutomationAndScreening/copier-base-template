@@ -20,7 +20,8 @@ To create a new repository using this template:
 
 # Development
 
+Multi-step workflows are defined as [Task](https://taskfile.dev) tasks. Run `task --list` to see them; the definitions live in `.config/taskfiles/`, and `Taskfile.yaml` in the repo root is only a shim that includes them.
+
 
 ## Updating from the template
-This repository uses a copier template. To pull in the latest updates from the template, use the command:
-`copier update --answers-file .config/.copier-answers.yml --trust --conflict rej --defaults`{% endraw %}
+This repository uses a copier template. To pull in the latest updates from the template, run `task copier-update`{% endraw %}

@@ -13,9 +13,10 @@ class ContextUpdater(ContextHook):
         self, context: dict[Any, Any]
     ) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.12.5"
+        context["uv_version"] = "0.12.6"
         context["pre_commit_version"] = "4.6.2"
         context["pnpm_version"] = "11.22.0"
+        context["task_version"] = "3.53.1"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
         context["copier_version"] = "==9.17.1"
         context["copier_template_extensions_version"] = "==0.3.3"
@@ -55,7 +56,7 @@ class ContextUpdater(ContextHook):
         context["syrupy_version"] = ">=5.5.3"
         context["structlog_version"] = ">=26.1.0"
         context["httpx_version"] = ">=0.28.1"
-        context["httpx2_version"] = ">=2.10.0"
+        context["httpx2_version"] = ">=2.12.0"
         context["python_kiota_bundle_version"] = ">=1.11.6"
         context["vcrpy_version"] = ">=8.3.0"
         context["pytest_recording_version"] = ">=0.13.4"
@@ -109,8 +110,8 @@ class ContextUpdater(ContextHook):
         context["gha_linux_runner"] = "ubuntu-24.04"
         context["gha_setup_node"] = "v6.4.0"
         context["gha_pnpm_setup"] = "v2.0.2"
-        #######
         context["gha_upload_artifact"] = "v7.0.1"
+        #######
         context["gha_download_artifact"] = "v8.0.1"
         context["gha_github_script"] = "v7.0.1"
         context["gha_setup_buildx"] = "v4.0.0"
