@@ -4,7 +4,7 @@ tasks:
   copier-update:
     desc: Pull the latest updates from the upstream copier template into this repo
     cmds:
-      - copier update --answers-file .config/.copier-answers.yml --trust --conflict rej --defaults
+      - copier update --answers-file .config/.copier-answers.yml --trust --conflict rej --defaults {{.CLI_ARGS}} # pass extra copier flags through as `task copier-update -- -r some-branch`
       - task: prune-copier-rejects
 
   prune-copier-rejects:
