@@ -87,7 +87,7 @@ Use Beads MCP to:
 - Create issues with `bd create "description"`
 - Track dependencies with `bd dep add`
 
-See <https://github.com/steveyegge/beads> for more information.
+See <https://github.com/gastownhall/beads> for more information.
 
 ## TDD Fundamentals
 
