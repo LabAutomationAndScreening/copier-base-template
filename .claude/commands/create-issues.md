@@ -15,7 +15,7 @@ Create structured implementation plan that bridges product thinking (PRD) with t
 - Write natural, descriptive code without meta-commentary about the development process
 - The code should speak for itself - TDD is the process, not the product
 
-Beads is available for task tracking. Use `mcp__beads__*` tools to manage issues (the user interacts via `bd` commands).
+Beads is available for task tracking. Use `bd` CLI commands to manage issues.
 
 ## Plan File Restriction
 
@@ -149,8 +149,10 @@ bd create "Task title" \
 
 **Dependencies**: Link related issues
 
+The first argument is the issue that becomes blocked; the second is the blocker it waits on.
+
 ```bash
-bd dep add ISSUE-123 ISSUE-456 --type blocks
+bd dep add <blocked-id> <blocker-id> --type blocks
 ```
 
 ### Validation
@@ -179,7 +181,7 @@ After creating issues, verify:
 
 ### Beads Integration
 
-Use Beads MCP to:
+Use the `bd` CLI to:
 
 - Track work with `bd ready` to find next task
 - Create issues with `bd create "description"`
@@ -192,4 +194,4 @@ See <https://github.com/gastownhall/beads> for more information.
 - **Before /create-issues**: Use `/spike` if you need technical exploration first
 - **After /create-issues**: Use `/red` to start TDD on first task
 - **During work**: Use `bd update` to add notes/findings back to issues
-- **When stuck**: Check `bd show ISSUE-ID` to review acceptance criteria
+- **When stuck**: Check `bd show <id>` to review acceptance criteria

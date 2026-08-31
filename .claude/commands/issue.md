@@ -13,7 +13,7 @@ Analyze GitHub issue and create TDD implementation plan.
 - Write natural, descriptive code without meta-commentary about the development process
 - The code should speak for itself - TDD is the process, not the product
 
-Beads is available for task tracking. Use `mcp__beads__*` tools to manage issues (the user interacts via `bd` commands).
+Beads is available for task tracking. Use `bd` CLI commands to manage issues.
 
 ## Plan File Restriction
 
@@ -81,7 +81,7 @@ Understand the requirement by asking (use AskUserQuestion if needed):
 
 ### Beads Integration
 
-Use Beads MCP to:
+Use the `bd` CLI to:
 
 - Track work with `bd ready` to find next task
 - Create issues with `bd create "description"`
