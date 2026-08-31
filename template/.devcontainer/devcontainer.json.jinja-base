@@ -34,10 +34,10 @@
         "-AmazonWebServices.aws-toolkit-vscode", // the AWS CLI feature installs this automatically, but it's causing problems in VS Code{% endraw %}{% endif %}{% raw %}
         // basic tooling
         // "eamodio.gitlens@15.5.1",
-        "coderabbit.coderabbit-vscode@0.21.3",
+        "coderabbit.coderabbit-vscode@0.21.5",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",{% endraw %}{% if install_claude_cli %}{% raw %}
-        "anthropic.claude-code@2.1.238",{% endraw %}{% endif %}{% raw %}{% endraw %}{% if (is_child_of_copier_base_template is defined and is_child_of_copier_base_template is sameas(true)) or (is_child_of_copier_base_template is not defined and template_uses_python is defined and template_uses_python is sameas(true)) %}{% raw %}
+        "anthropic.claude-code@2.1.252",{% endraw %}{% endif %}{% raw %}{% endraw %}{% if (is_child_of_copier_base_template is defined and is_child_of_copier_base_template is sameas(true)) or (is_child_of_copier_base_template is not defined and template_uses_python is defined and template_uses_python is sameas(true)) %}{% raw %}
 
         // Python
         "-ms-python.vscode-pylance", // pyrefly is the language server for this project; ms-python.python auto-installs Pylance via its extension pack, and Pylance then warns on every boot that it's disabled

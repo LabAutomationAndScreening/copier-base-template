@@ -63,7 +63,7 @@ class ContextUpdater(ContextHook):
         context["pytest_asyncio_version"] = ">=1.4.0"
         context["pytest_timeout_version"] = ">=2.4.0"
         context["pytest_reserial_version"] = ">=0.6.1"
-        context["python_faker_version"] = ">=40.36.0"
+        context["python_faker_version"] = ">=40.37.0"
         context["vacuum_openapi_version"] = "0.30.0"
         #######
         context["nuxt_ui_version"] = "^4.10.0"
