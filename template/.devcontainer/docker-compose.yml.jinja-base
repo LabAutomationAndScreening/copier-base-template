@@ -33,7 +33,8 @@
       - beads_dolt_data:/var/lib/dolt
     environment:
       - DOLT_ROOT_HOST=%
-      - DOLT_DATABASE=beads_work{% endraw %}{% endif %}{% raw %}
+      - DOLT_DATABASE=beads_work
+      - DOLT_DISABLE_EVENT_FLUSH=1 # dolt contacts doltremoteapi.dolthub.com with usage metrics by default, even with no remotes configured (see beads SECURITY.md){% endraw %}{% endif %}{% raw %}
 
 
 volumes:{% endraw %}{% if install_claude_cli %}{% raw %}

@@ -28,6 +28,7 @@ services:
     environment:
       - DOLT_ROOT_HOST=%
       - DOLT_DATABASE=beads_work
+      - DOLT_DISABLE_EVENT_FLUSH=1 # dolt contacts doltremoteapi.dolthub.com with usage metrics by default, even with no remotes configured (see beads SECURITY.md)
 
 volumes:
   beads_dolt_data: {}
