@@ -85,7 +85,7 @@ Use the `bd` CLI to:
 
 - Track work with `bd ready` to find next task
 - Create issues with `bd create "description"`
-- Track dependencies with `bd dep add`
+- Track dependencies with `bd dep add <blocked-id> <blocker-id>`
 
 See <https://github.com/gastownhall/beads> for more information.
 
