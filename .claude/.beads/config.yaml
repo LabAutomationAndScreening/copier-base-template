@@ -19,11 +19,6 @@
 # Default actor for audit trails (overridden by BD_ACTOR or --actor)
 # actor: ""
 
-# Events journal (audit trail) written to .beads/events.jsonl
-# When enabled, new events are appended incrementally using a high-water mark.
-# Use 'bd events export' to trigger manually regardless of this setting.
-# events-journal: false
-
 # Multi-repo configuration (experimental - bd-307)
 # Allows hydrating from multiple repositories and routing writes to the correct JSONL
 # repos:
