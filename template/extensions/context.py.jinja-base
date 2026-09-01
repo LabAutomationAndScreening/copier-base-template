@@ -131,6 +131,9 @@ class ContextUpdater(ContextHook):
         context["alpine_image_version"] = "{{ alpine_image_version }}"
         context["nginx_image_version"] = "{{ nginx_image_version }}"
 
+        context["beads_version"] = "{{ beads_version }}"
+        context["dolt_image_version"] = "{{ dolt_image_version }}"
+
         context["kiota_cli_version"] = "{{ kiota_cli_version }}"
 
         context["py312_version"] = "{{ py312_version }}"
