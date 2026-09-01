@@ -113,7 +113,7 @@ For each task, create a bd issue with:
 
 ```bash
 bd create "Task title" \
-  --type [feature|bug|task|chore] \
+  --type [feature|bug|task|epic|chore|decision] \
   --priority [1-3] \
   --description "Context and what needs to be built" \
   --design "Technical approach, architecture notes" \
