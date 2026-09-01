@@ -21,8 +21,12 @@ class ContextUpdater(ContextHook):
         context["copier_version"] = "==9.17.1"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
-        context["npm_version"] = "11.13.0"
-        context["nvm_version"] = "0.40.5"
+        # These two move in lockstep, and are consumed from separate files in this repository (.devcontainer/docker-compose.yml and
+        # .devcontainer/on-create-command.sh). The dolt image must be the one the pinned beads release tests against,
+        # declared in internal/testutil/testdoltcommon.go of gastownhall/beads.
+        context["beads_version"] = "1.2.2"
+        context["dolt_image_version"] = "2.1.0"
+        #######
         # These are duplicated in the pyproject.toml of this repository
         context["pytest_version"] = ">=9.1.1"
         context["pytest_randomly_version"] = ">=4.1.0"
@@ -66,6 +70,8 @@ class ContextUpdater(ContextHook):
         context["pytest_reserial_version"] = ">=0.6.1"
         context["vacuum_openapi_version"] = "0.30.0"
         #######
+        context["npm_version"] = "11.13.0"
+        context["nvm_version"] = "0.40.5"
         context["nuxt_ui_version"] = "^4.10.0"
         context["nuxt_version"] = "^4.4.6"
         context["nuxt_icon_version"] = "^2.2.1"

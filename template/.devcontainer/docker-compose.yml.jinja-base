@@ -28,7 +28,7 @@
 
 
   beads-dolt:
-    image: dolthub/dolt-sql-server:2.1.0 # the version beads 1.2.2 pins for its own integration tests (internal/testutil/testdoltcommon.go)
+    image: dolthub/dolt-sql-server:{% endraw %}{{ dolt_image_version }}{% raw %} # kept in lockstep with beads_version; both are defined in extensions/context.py
     volumes:
       - beads_dolt_data:/var/lib/dolt
     environment:

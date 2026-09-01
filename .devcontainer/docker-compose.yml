@@ -22,7 +22,7 @@ services:
       - BD_DISABLE_METRICS=1 # bd >=1.0 sends anonymous usage metrics by default
 
   beads-dolt:
-    image: dolthub/dolt-sql-server:2.1.0 # the version beads 1.2.2 pins for its own integration tests (internal/testutil/testdoltcommon.go)
+    image: dolthub/dolt-sql-server:2.1.0 # this repo is not copier-generated, so the version is literal here; keep it matching dolt_image_version in extensions/context.py, which explains the lockstep with the beads version
     volumes:
       - beads_dolt_data:/var/lib/dolt
     environment:

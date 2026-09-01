@@ -15,7 +15,7 @@ chgrp -R 0 "$repo_root/.claude" || true
 npm --prefix "$repo_root/.claude" ci
 
 # Install beads for use in Claude planning
-npm install -g @beads/bd@1.2.2 # no specific reason for this version, just pinning for best practice
+npm install -g @beads/bd@1.2.2 # this repo is not copier-generated, so the version is literal here; keep it matching beads_version in extensions/context.py, which explains the lockstep with the dolt image
 
 python .devcontainer/manual-setup-deps.py --optionally-check-lock --allow-uv-to-install-python
 
