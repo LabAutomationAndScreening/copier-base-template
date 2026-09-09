@@ -37,6 +37,14 @@ ruleTester.run("istanbul-ignore-if-must-throw", rule, {
       name: "istanbul ignore else is left alone",
       code: `function f(x) {\n  /* istanbul ignore else -- @preserve */\n  if (!x) {\n    doSomething();\n  } else {\n    doOther();\n  }\n}`,
     },
+    {
+      name: "nested if/else where both branches always throw",
+      code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    if (x === null) {\n      throw new Error("null");\n    } else {\n      throw new Error("bad");\n    }\n  }\n}`,
+    },
+    {
+      name: "non-exiting nested if followed by a real throw",
+      code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    if (x === null) {\n      logIt();\n    }\n    throw new Error("bad");\n  }\n}`,
+    },
   ],
   invalid: [
     {
@@ -52,6 +60,21 @@ ruleTester.run("istanbul-ignore-if-must-throw", rule, {
     {
       name: "silent return under istanbul ignore next on an if",
       code: `function f(x) {\n  /* istanbul ignore next -- @preserve */\n  if (!x) return;\n}`,
+      errors: [{ messageId: "mustThrow" }],
+    },
+    {
+      name: "recoverable return reachable before a final throw",
+      code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    if (x === null) return;\n    throw new Error("bad");\n  }\n}`,
+      errors: [{ messageId: "mustThrow" }],
+    },
+    {
+      name: "nested if throws but its else silently returns",
+      code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    if (x === null) {\n      throw new Error("null");\n    } else {\n      return;\n    }\n  }\n}`,
+      errors: [{ messageId: "mustThrow" }],
+    },
+    {
+      name: "nested block statement returns silently before a later throw",
+      code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    {\n      return;\n    }\n    throw new Error("bad");\n  }\n}`,
       errors: [{ messageId: "mustThrow" }],
     },
   ],

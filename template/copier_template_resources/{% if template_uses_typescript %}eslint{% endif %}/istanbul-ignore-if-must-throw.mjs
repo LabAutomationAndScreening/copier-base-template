@@ -12,11 +12,46 @@
 const IGNORE_IF_OR_NEXT = /istanbul ignore (if|next)\b/;
 const RETURN_OK = /\breturn-ok\b/;
 
-function consequentAlwaysThrows(consequent) {
-  if (consequent.type === "ThrowStatement") return true;
-  if (consequent.type === "BlockStatement") {
-    const last = consequent.body.at(-1);
-    return last !== undefined && last.type === "ThrowStatement";
+// A block's last statement doesn't prove it always throws: a nested `if` with no `else` can
+// return before a later throw is ever reached. These two functions walk `if`/block nesting to
+// check that every reachable path throws.
+function stmtAlwaysThrows(stmt) {
+  if (stmt.type === "ThrowStatement") return true;
+  if (stmt.type === "BlockStatement") return blockAlwaysThrows(stmt.body);
+  if (stmt.type === "IfStatement") {
+    return stmt.alternate !== null && stmtAlwaysThrows(stmt.consequent) && stmtAlwaysThrows(stmt.alternate);
+  }
+  return false;
+}
+
+function stmtMayReturnWithoutThrowing(stmt) {
+  if (stmt.type === "ReturnStatement") return true;
+  if (stmt.type === "ThrowStatement") return false;
+  if (stmt.type === "BlockStatement") return blockMayReturnWithoutThrowing(stmt.body);
+  if (stmt.type === "IfStatement") {
+    if (stmtAlwaysThrows(stmt.consequent)) {
+      return stmt.alternate !== null && stmtMayReturnWithoutThrowing(stmt.alternate);
+    }
+    return (
+      stmtMayReturnWithoutThrowing(stmt.consequent) ||
+      (stmt.alternate !== null && stmtMayReturnWithoutThrowing(stmt.alternate))
+    );
+  }
+  return false;
+}
+
+function blockAlwaysThrows(body) {
+  for (const stmt of body) {
+    if (stmtAlwaysThrows(stmt)) return true;
+    if (stmtMayReturnWithoutThrowing(stmt)) return false;
+  }
+  return false;
+}
+
+function blockMayReturnWithoutThrowing(body) {
+  for (const stmt of body) {
+    if (stmtAlwaysThrows(stmt)) return false;
+    if (stmtMayReturnWithoutThrowing(stmt)) return true;
   }
   return false;
 }
@@ -42,7 +77,7 @@ export default {
         const ignoreComment = leading.find((comment) => IGNORE_IF_OR_NEXT.test(comment.value));
         if (ignoreComment === undefined) return;
         if (RETURN_OK.test(ignoreComment.value)) return;
-        if (consequentAlwaysThrows(node.consequent)) return;
+        if (stmtAlwaysThrows(node.consequent)) return;
         context.report({ node, messageId: "mustThrow" });
       },
     };
