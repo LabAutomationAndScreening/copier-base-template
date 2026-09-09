@@ -4,12 +4,8 @@ import fs from "node:fs";
 
 import vitest from "@vitest/eslint-plugin";
 
-// Local rule modules live in their own files, rendered to `.config/eslint-rules/` at the repo
-// root. Downstream templates render eslint.shared.mjs at different depths below that root (nested
-// under a frontend dir for the nuxt template, directly at the repo root for
-// copier-vue-package-template), so a fixed number of `../` can't reach it for every consumer.
-// Walk up from this file's own location to find that directory, then load every rule module in
-// it, rather than hardcoding each rule's filename here too.
+// Consumers render this file at different depths below the repo root, so no fixed number of `../`
+// reaches `.config/eslint-rules/` for all of them.
 function findLocalRulesDir() {
   let dir = path.dirname(fileURLToPath(import.meta.url));
   for (;;) {

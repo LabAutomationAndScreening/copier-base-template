@@ -2,9 +2,11 @@
  * Enforces the defensive-assertion contract for coverage-ignored branches:
  *
  * A branch marked `istanbul ignore if` (or `istanbul ignore next` when it sits on
- * an `if`) must throw. Coverage-ignoring a guard means "this is unreachable"; a
- * silent `return` there hides a real bug instead of surfacing it. If a silent exit
- * is genuinely intentional, the author must opt out with `return-ok` in the ignore
+ * an `if`) must throw: per ESLint's code path analysis, the end of the branch is
+ * unreachable and no reachable return/break/continue inside it targets a construct
+ * outside it. Coverage-ignoring a guard means "this is unreachable"; a silent
+ * `return` there hides a real bug instead of surfacing it. If a silent exit is
+ * genuinely intentional, the author must opt out with `return-ok` in the ignore
  * comment. Ignore comments on anything other than an `if` are left alone — the rule
  * only makes a claim about branches whose shape it can verify.
  */
@@ -13,12 +15,8 @@ const IGNORE_IF_OR_NEXT = /istanbul ignore (if|next)\b/;
 const RETURN_OK = /\breturn-ok\b/;
 
 const LOOP_TYPES = new Set(["ForStatement", "ForInStatement", "ForOfStatement", "WhileStatement", "DoWhileStatement"]);
-// Statements that leave the branch without throwing.
 const SILENT_EXIT_TYPES = new Set(["ReturnStatement", "BreakStatement", "ContinueStatement"]);
 
-// "The branch always throws" is two reachability facts, both read off ESLint's code path analysis
-// rather than re-deriving control flow here: the end of the consequent must be unreachable, and no
-// reachable return/break/continue inside it may target a construct outside it.
 function isExitTarget(exit, ancestor) {
   if (exit.label !== null) {
     return ancestor.type === "LabeledStatement" && ancestor.label.name === exit.label.name;
@@ -27,9 +25,9 @@ function isExitTarget(exit, ancestor) {
   return LOOP_TYPES.has(ancestor.type);
 }
 
-function exitEscapesBranch(exit, consequent) {
+function leavesBranch(exit, branch) {
   if (exit.type === "ReturnStatement") return true;
-  for (let cur = exit.parent; cur !== consequent.parent; cur = cur.parent) {
+  for (let cur = exit.parent; cur !== branch.parent; cur = cur.parent) {
     if (isExitTarget(exit, cur)) return false;
   }
   return true;
@@ -51,8 +49,7 @@ export default {
   create(context) {
     const sourceCode = context.sourceCode;
     const segmentStacks = [];
-    // Ignored ifs can nest, and AST traversal is depth-first, so the innermost branch under check is
-    // always the top of this stack; it's popped when its consequent ends.
+    // Ignored ifs can nest; depth-first traversal keeps the innermost one on top.
     const branchStack = [];
 
     function isReachable() {
@@ -69,7 +66,7 @@ export default {
       const entry = branchStack.at(-1);
       // Depth check keeps exits inside a nested function (its own code path) from counting.
       if (entry === undefined || entry.depth !== segmentStacks.length) return;
-      if (isReachable() && exitEscapesBranch(node, entry.consequent)) report(entry);
+      if (isReachable() && leavesBranch(node, entry.consequent)) report(entry);
     }
 
     return {
