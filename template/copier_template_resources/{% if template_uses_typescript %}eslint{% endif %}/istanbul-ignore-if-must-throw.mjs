@@ -15,18 +15,14 @@ const RETURN_OK = /\breturn-ok\b/;
 const LOOP_TYPES = new Set(["ForStatement", "ForInStatement", "ForOfStatement", "WhileStatement", "DoWhileStatement"]);
 
 // A block's last statement doesn't prove it always throws: a nested `if` with no `else` can
-// return before a later throw is ever reached. stmtAlwaysThrows/blockAlwaysThrows walk `if`/block/
-// try/switch nesting to check that every reachable path throws.
+// return before a later throw is ever reached. stmtAlwaysThrows/blockAlwaysThrows walk if/block/
+// try/switch nesting to check every path throws.
 //
-// exitKinds/blockExitKinds answer a companion question: what silent (non-throwing) exits -
-// `return`, `break`, `continue`, or an unresolvable labeled jump - are reachable from a statement?
-// A `break`/`continue` doesn't escape a block the way `return` does: it's absorbed by its nearest
-// loop (both) or `switch` (`break` only), then execution just resumes at the next statement after
-// that construct, same as if nothing had happened. So loopExitKinds/switchExitKinds strip out
-// whichever kinds their construct absorbs before the result bubbles up to whatever contains them.
-// A labeled break/continue is treated as always escaping - resolving which construct a label
-// actually targets isn't worth the complexity here, and treating it as "may escape" is the safe
-// direction (a missed report, not a missed bug).
+// exitKinds/blockExitKinds track which silent exits (return/break/continue/an unresolvable
+// labeled jump) are reachable. break/continue don't escape like return does: a loop absorbs both,
+// a switch absorbs only break, so loopExitKinds/switchExitKinds strip those out before bubbling up.
+// A labeled break/continue is conservatively treated as always escaping (safe direction: a missed
+// report, not a missed bug).
 function stmtAlwaysThrows(stmt) {
   if (stmt.type === "ThrowStatement") return true;
   if (stmt.type === "BlockStatement") return blockAlwaysThrows(stmt.body);
@@ -40,9 +36,7 @@ function stmtAlwaysThrows(stmt) {
 }
 
 function tryAlwaysThrows(node) {
-  // A `return`/`break`/`continue` in `finally` suppresses whatever the try/catch was doing, per JS
-  // semantics, so it's authoritative: throwing there means always-throws regardless of try/catch;
-  // exiting silently there means never always-throws, regardless of try/catch.
+  // A return/break/continue in finally overrides try/catch entirely, per JS semantics.
   if (node.finalizer !== null) {
     if (stmtAlwaysThrows(node.finalizer)) return true;
     if (exitKinds(node.finalizer).size > 0) return false;
@@ -53,10 +47,8 @@ function tryAlwaysThrows(node) {
 }
 
 function switchAlwaysThrows(node) {
-  // Fallthrough between cases is real JS behavior, but tracing which cases chain into which is
-  // more CFG than this rule needs; requiring every case (default included) to throw on its own is
-  // a conservative approximation that can flag a legitimately-throwing fallthrough switch as
-  // needing a rewrite, never the reverse.
+  // Doesn't trace case fallthrough; requires every case (default included) to throw on its own.
+  // Errs toward false positives on a legitimately-throwing fallthrough switch, never false negatives.
   if (!node.cases.some((c) => c.test === null)) return false;
   return node.cases.every((c) => blockAlwaysThrows(c.consequent));
 }
