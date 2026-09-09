@@ -6,7 +6,7 @@ RuleTester.describe = describe;
 RuleTester.it = it;
 
 const ruleTester = new RuleTester({
-  languageOptions: { ecmaVersion: 2022, sourceType: "module" },
+  languageOptions: { ecmaVersion: "latest", sourceType: "module" },
 });
 
 // RuleTester.run registers its own describe/it blocks and must be called at module top level, not inside a hook.
@@ -45,6 +45,26 @@ ruleTester.run("istanbul-ignore-if-must-throw", rule, {
       name: "non-exiting nested if followed by a real throw",
       code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    if (x === null) {\n      logIt();\n    }\n    throw new Error("bad");\n  }\n}`,
     },
+    {
+      name: "try and catch both always throw",
+      code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    try {\n      throw new Error("a");\n    } catch {\n      throw new Error("b");\n    }\n  }\n}`,
+    },
+    {
+      name: "finally always throws regardless of the try block",
+      code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    try {\n      doStuff();\n    } finally {\n      throw new Error("bad");\n    }\n  }\n}`,
+    },
+    {
+      name: "switch with a default where every case always throws",
+      code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    switch (x) {\n      case 1:\n        throw new Error("one");\n      default:\n        throw new Error("other");\n    }\n  }\n}`,
+    },
+    {
+      name: "break inside switch cases is absorbed, real throw follows",
+      code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    switch (x) {\n      case 1:\n        doStuff();\n        break;\n      default:\n        doOther();\n    }\n    throw new Error("bad");\n  }\n}`,
+    },
+    {
+      name: "break inside a nested loop is absorbed, real throw follows",
+      code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    for (const item of items) {\n      if (bad(item)) break;\n    }\n    throw new Error("bad");\n  }\n}`,
+    },
   ],
   invalid: [
     {
@@ -75,6 +95,26 @@ ruleTester.run("istanbul-ignore-if-must-throw", rule, {
     {
       name: "nested block statement returns silently before a later throw",
       code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    {\n      return;\n    }\n    throw new Error("bad");\n  }\n}`,
+      errors: [{ messageId: "mustThrow" }],
+    },
+    {
+      name: "recoverable break reachable before a final throw",
+      code: `function f(x) {\n  for (;;) {\n    /* istanbul ignore if -- @preserve */\n    if (!x) {\n      if (x === null) break;\n      throw new Error("bad");\n    }\n  }\n}`,
+      errors: [{ messageId: "mustThrow" }],
+    },
+    {
+      name: "recoverable continue reachable before a final throw",
+      code: `function f(x) {\n  for (;;) {\n    /* istanbul ignore if -- @preserve */\n    if (!x) {\n      if (x === null) continue;\n      throw new Error("bad");\n    }\n  }\n}`,
+      errors: [{ messageId: "mustThrow" }],
+    },
+    {
+      name: "return inside a nested loop reaches past a later throw",
+      code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    for (const item of items) {\n      if (bad(item)) return;\n    }\n    throw new Error("bad");\n  }\n}`,
+      errors: [{ messageId: "mustThrow" }],
+    },
+    {
+      name: "continue inside a switch case is not absorbed by the switch",
+      code: `function f(x) {\n  for (;;) {\n    /* istanbul ignore if -- @preserve */\n    if (!x) {\n      switch (x) {\n        case 1:\n          continue;\n        default:\n          break;\n      }\n      throw new Error("bad");\n    }\n  }\n}`,
       errors: [{ messageId: "mustThrow" }],
     },
   ],

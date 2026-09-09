@@ -1,17 +1,48 @@
-// The rule module lives in its own file (rendered to `.config/eslint-rules/` at the repo root);
-// this path is resolved from the rendered location of eslint.shared.mjs (the frontend dir).
+import { fileURLToPath, pathToFileURL } from "node:url";
+import path from "node:path";
+import fs from "node:fs";
 
 import vitest from "@vitest/eslint-plugin";
-import istanbulIgnoreIfMustThrow from "../.config/eslint-rules/istanbul-ignore-if-must-throw.mjs";
+
+// Local rule modules live in their own files, rendered to `.config/eslint-rules/` at the repo
+// root. Downstream templates render eslint.shared.mjs at different depths below that root (nested
+// under a frontend dir for the nuxt template, directly at the repo root for
+// copier-vue-package-template), so a fixed number of `../` can't reach it for every consumer.
+// Walk up from this file's own location to find that directory, then load every rule module in
+// it, rather than hardcoding each rule's filename here too.
+function findLocalRulesDir() {
+  let dir = path.dirname(fileURLToPath(import.meta.url));
+  for (;;) {
+    const candidate = path.join(dir, ".config", "eslint-rules");
+    if (fs.existsSync(candidate)) return candidate;
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      throw new Error(`Could not find .config/eslint-rules above ${import.meta.url}`);
+    }
+    dir = parent;
+  }
+}
+
+async function loadLocalRules() {
+  const rulesDir = findLocalRulesDir();
+  const entries = fs.readdirSync(rulesDir).filter((entry) => entry.endsWith(".mjs"));
+  const rules = {};
+  for (const entry of entries) {
+    const ruleName = entry.slice(0, -".mjs".length);
+    const module = await import(pathToFileURL(path.join(rulesDir, entry)).href);
+    rules[ruleName] = module.default;
+  }
+  return rules;
+}
+
+const localRules = await loadLocalRules();
 
 /** @type {import("eslint").Linter.Config} */
 export const istanbulIgnoreIfMustThrowConfig = {
   files: ["**/*.{ts,vue}"],
   plugins: {
     local: {
-      rules: {
-        "istanbul-ignore-if-must-throw": istanbulIgnoreIfMustThrow,
-      },
+      rules: localRules,
     },
   },
   rules: {

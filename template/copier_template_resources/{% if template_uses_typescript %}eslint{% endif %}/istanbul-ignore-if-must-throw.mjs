@@ -12,48 +12,117 @@
 const IGNORE_IF_OR_NEXT = /istanbul ignore (if|next)\b/;
 const RETURN_OK = /\breturn-ok\b/;
 
+const LOOP_TYPES = new Set(["ForStatement", "ForInStatement", "ForOfStatement", "WhileStatement", "DoWhileStatement"]);
+
 // A block's last statement doesn't prove it always throws: a nested `if` with no `else` can
-// return before a later throw is ever reached. These two functions walk `if`/block nesting to
-// check that every reachable path throws.
+// return before a later throw is ever reached. stmtAlwaysThrows/blockAlwaysThrows walk `if`/block/
+// try/switch nesting to check that every reachable path throws.
+//
+// exitKinds/blockExitKinds answer a companion question: what silent (non-throwing) exits -
+// `return`, `break`, `continue`, or an unresolvable labeled jump - are reachable from a statement?
+// A `break`/`continue` doesn't escape a block the way `return` does: it's absorbed by its nearest
+// loop (both) or `switch` (`break` only), then execution just resumes at the next statement after
+// that construct, same as if nothing had happened. So loopExitKinds/switchExitKinds strip out
+// whichever kinds their construct absorbs before the result bubbles up to whatever contains them.
+// A labeled break/continue is treated as always escaping - resolving which construct a label
+// actually targets isn't worth the complexity here, and treating it as "may escape" is the safe
+// direction (a missed report, not a missed bug).
 function stmtAlwaysThrows(stmt) {
   if (stmt.type === "ThrowStatement") return true;
   if (stmt.type === "BlockStatement") return blockAlwaysThrows(stmt.body);
+  if (stmt.type === "LabeledStatement") return stmtAlwaysThrows(stmt.body);
   if (stmt.type === "IfStatement") {
     return stmt.alternate !== null && stmtAlwaysThrows(stmt.consequent) && stmtAlwaysThrows(stmt.alternate);
   }
+  if (stmt.type === "TryStatement") return tryAlwaysThrows(stmt);
+  if (stmt.type === "SwitchStatement") return switchAlwaysThrows(stmt);
   return false;
 }
 
-function stmtMayReturnWithoutThrowing(stmt) {
-  if (stmt.type === "ReturnStatement") return true;
-  if (stmt.type === "ThrowStatement") return false;
-  if (stmt.type === "BlockStatement") return blockMayReturnWithoutThrowing(stmt.body);
-  if (stmt.type === "IfStatement") {
-    if (stmtAlwaysThrows(stmt.consequent)) {
-      return stmt.alternate !== null && stmtMayReturnWithoutThrowing(stmt.alternate);
-    }
-    return (
-      stmtMayReturnWithoutThrowing(stmt.consequent) ||
-      (stmt.alternate !== null && stmtMayReturnWithoutThrowing(stmt.alternate))
-    );
+function tryAlwaysThrows(node) {
+  // A `return`/`break`/`continue` in `finally` suppresses whatever the try/catch was doing, per JS
+  // semantics, so it's authoritative: throwing there means always-throws regardless of try/catch;
+  // exiting silently there means never always-throws, regardless of try/catch.
+  if (node.finalizer !== null) {
+    if (stmtAlwaysThrows(node.finalizer)) return true;
+    if (exitKinds(node.finalizer).size > 0) return false;
   }
-  return false;
+  const blockThrows = stmtAlwaysThrows(node.block);
+  const handlerThrows = node.handler === null ? true : stmtAlwaysThrows(node.handler.body);
+  return blockThrows && handlerThrows;
+}
+
+function switchAlwaysThrows(node) {
+  // Fallthrough between cases is real JS behavior, but tracing which cases chain into which is
+  // more CFG than this rule needs; requiring every case (default included) to throw on its own is
+  // a conservative approximation that can flag a legitimately-throwing fallthrough switch as
+  // needing a rewrite, never the reverse.
+  if (!node.cases.some((c) => c.test === null)) return false;
+  return node.cases.every((c) => blockAlwaysThrows(c.consequent));
+}
+
+function exitKinds(stmt) {
+  if (stmt.type === "ReturnStatement") return new Set(["return"]);
+  if (stmt.type === "BreakStatement") return new Set([stmt.label === null ? "break" : "labeled"]);
+  if (stmt.type === "ContinueStatement") return new Set([stmt.label === null ? "continue" : "labeled"]);
+  if (stmt.type === "ThrowStatement") return new Set();
+  if (stmt.type === "BlockStatement") return blockExitKinds(stmt.body);
+  if (stmt.type === "LabeledStatement") return exitKinds(stmt.body);
+  if (stmt.type === "IfStatement") {
+    const consequentKinds = stmtAlwaysThrows(stmt.consequent) ? new Set() : exitKinds(stmt.consequent);
+    const alternateKinds =
+      stmt.alternate === null || stmtAlwaysThrows(stmt.alternate) ? new Set() : exitKinds(stmt.alternate);
+    return union(consequentKinds, alternateKinds);
+  }
+  if (stmt.type === "TryStatement") return tryExitKinds(stmt);
+  if (stmt.type === "SwitchStatement") return switchExitKinds(stmt);
+  if (LOOP_TYPES.has(stmt.type)) return withoutKinds(exitKinds(stmt.body), ["break", "continue"]);
+  return new Set();
+}
+
+function tryExitKinds(node) {
+  if (node.finalizer !== null) {
+    if (stmtAlwaysThrows(node.finalizer)) return new Set();
+    const finallyKinds = exitKinds(node.finalizer);
+    if (finallyKinds.size > 0) return finallyKinds;
+  }
+  const blockKinds = stmtAlwaysThrows(node.block) ? new Set() : exitKinds(node.block);
+  const handlerKinds =
+    node.handler === null || stmtAlwaysThrows(node.handler.body) ? new Set() : exitKinds(node.handler.body);
+  return union(blockKinds, handlerKinds);
+}
+
+function switchExitKinds(node) {
+  let kinds = new Set();
+  for (const c of node.cases) {
+    kinds = union(kinds, blockExitKinds(c.consequent));
+  }
+  return withoutKinds(kinds, ["break"]);
+}
+
+function union(a, b) {
+  return new Set([...a, ...b]);
+}
+
+function withoutKinds(kinds, excluded) {
+  return new Set([...kinds].filter((kind) => !excluded.includes(kind)));
 }
 
 function blockAlwaysThrows(body) {
   for (const stmt of body) {
     if (stmtAlwaysThrows(stmt)) return true;
-    if (stmtMayReturnWithoutThrowing(stmt)) return false;
+    if (exitKinds(stmt).size > 0) return false;
   }
   return false;
 }
 
-function blockMayReturnWithoutThrowing(body) {
+function blockExitKinds(body) {
   for (const stmt of body) {
-    if (stmtAlwaysThrows(stmt)) return false;
-    if (stmtMayReturnWithoutThrowing(stmt)) return true;
+    if (stmtAlwaysThrows(stmt)) return new Set();
+    const kinds = exitKinds(stmt);
+    if (kinds.size > 0) return kinds;
   }
-  return false;
+  return new Set();
 }
 
 /** @type {import("eslint").Rule.RuleModule} */
