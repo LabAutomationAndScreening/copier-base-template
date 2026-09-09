@@ -69,8 +69,31 @@ ruleTester.run("istanbul-ignore-if-must-throw", rule, {
       name: "break inside a nested loop is absorbed, real throw follows",
       code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    for (const item of items) {\n      if (bad(item)) break;\n    }\n    throw new Error("bad");\n  }\n}`,
     },
+    {
+      name: "nested ignored ifs that both throw",
+      code: `function f(a, b) {\n  /* istanbul ignore if -- @preserve */\n  if (!a) {\n    /* istanbul ignore if -- @preserve */\n    if (!b) throw new Error("b");\n    throw new Error("a");\n  }\n}`,
+    },
+    {
+      name: "nested return-ok if whose break stays inside the outer branch",
+      code: `function f(a, items) {\n  /* istanbul ignore if -- @preserve */\n  if (!a) {\n    for (const item of items) {\n      /* istanbul ignore if -- @preserve return-ok: stop scanning */\n      if (!item) break;\n    }\n    throw new Error("a");\n  }\n}`,
+    },
   ],
   invalid: [
+    {
+      name: "nested ignored if throws but the outer one falls through after it",
+      code: `function f(a, b) {\n  /* istanbul ignore if -- @preserve */\n  if (!a) {\n    /* istanbul ignore if -- @preserve */\n    if (!b) throw new Error("b");\n    log(a);\n  }\n}`,
+      errors: [{ messageId: "mustThrow", line: 3 }],
+    },
+    {
+      name: "nested ignored if returns silently; reported on the inner if only",
+      code: `function f(a, b) {\n  /* istanbul ignore if -- @preserve */\n  if (!a) {\n    /* istanbul ignore if -- @preserve */\n    if (!b) return;\n    throw new Error("a");\n  }\n}`,
+      errors: [{ messageId: "mustThrow", line: 5 }],
+    },
+    {
+      name: "nested return-ok if excuses itself but not the outer branch it escapes",
+      code: `function f(a, b) {\n  /* istanbul ignore if -- @preserve */\n  if (!a) {\n    /* istanbul ignore if -- @preserve return-ok: b absent is fine */\n    if (!b) return;\n    throw new Error("a");\n  }\n}`,
+      errors: [{ messageId: "mustThrow", line: 3 }],
+    },
     {
       name: "silent return under istanbul ignore if",
       code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) return;\n}`,
