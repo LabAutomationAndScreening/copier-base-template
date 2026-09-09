@@ -6,7 +6,7 @@ RuleTester.describe = describe;
 RuleTester.it = it;
 
 const ruleTester = new RuleTester({
-  languageOptions: { ecmaVersion: 2022, sourceType: "module" },
+  languageOptions: { ecmaVersion: "latest", sourceType: "module" },
 });
 
 // RuleTester.run registers its own describe/it blocks and must be called at module top level, not inside a hook.
