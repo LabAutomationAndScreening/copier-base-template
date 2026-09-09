@@ -95,6 +95,14 @@ ruleTester.run("istanbul-ignore-if-must-throw", rule, {
       errors: [{ messageId: "mustThrow", line: 3 }],
     },
     {
+      name: "every violating ignored if in a file is reported, a compliant one between them is not",
+      code: `function f(a, b, c) {\n  /* istanbul ignore if -- @preserve */\n  if (!a) return;\n  /* istanbul ignore if -- @preserve */\n  if (!b) throw new Error("b");\n  /* istanbul ignore if -- @preserve */\n  if (!c) {\n    log(c);\n  }\n}`,
+      errors: [
+        { messageId: "mustThrow", line: 3 },
+        { messageId: "mustThrow", line: 7 },
+      ],
+    },
+    {
       name: "silent return under istanbul ignore if",
       code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) return;\n}`,
       errors: [{ messageId: "mustThrow" }],
