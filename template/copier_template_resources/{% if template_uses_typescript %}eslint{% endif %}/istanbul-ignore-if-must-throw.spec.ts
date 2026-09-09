@@ -62,6 +62,10 @@ ruleTester.run("istanbul-ignore-if-must-throw", rule, {
       code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    switch (x) {\n      case 1:\n        doStuff();\n        break;\n      default:\n        doOther();\n    }\n    throw new Error("bad");\n  }\n}`,
     },
     {
+      name: "return inside a nested function belongs to that function, real throw follows",
+      code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    const describe = () => {\n      return "missing";\n    };\n    throw new Error(describe());\n  }\n}`,
+    },
+    {
       name: "break inside a nested loop is absorbed, real throw follows",
       code: `function f(x) {\n  /* istanbul ignore if -- @preserve */\n  if (!x) {\n    for (const item of items) {\n      if (bad(item)) break;\n    }\n    throw new Error("bad");\n  }\n}`,
     },

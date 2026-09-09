@@ -13,108 +13,26 @@ const IGNORE_IF_OR_NEXT = /istanbul ignore (if|next)\b/;
 const RETURN_OK = /\breturn-ok\b/;
 
 const LOOP_TYPES = new Set(["ForStatement", "ForInStatement", "ForOfStatement", "WhileStatement", "DoWhileStatement"]);
+// Statements that leave the branch without throwing.
+const SILENT_EXIT_TYPES = new Set(["ReturnStatement", "BreakStatement", "ContinueStatement"]);
 
-// A block's last statement doesn't prove it always throws: a nested `if` with no `else` can
-// return before a later throw is ever reached. stmtAlwaysThrows/blockAlwaysThrows walk if/block/
-// try/switch nesting to check every path throws.
-//
-// exitKinds/blockExitKinds track which silent exits (return/break/continue/an unresolvable
-// labeled jump) are reachable. break/continue don't escape like return does: a loop absorbs both,
-// a switch absorbs only break, so loopExitKinds/switchExitKinds strip those out before bubbling up.
-// A labeled break/continue is conservatively treated as always escaping (safe direction: a missed
-// report, not a missed bug).
-function stmtAlwaysThrows(stmt) {
-  if (stmt.type === "ThrowStatement") return true;
-  if (stmt.type === "BlockStatement") return blockAlwaysThrows(stmt.body);
-  if (stmt.type === "LabeledStatement") return stmtAlwaysThrows(stmt.body);
-  if (stmt.type === "IfStatement") {
-    return stmt.alternate !== null && stmtAlwaysThrows(stmt.consequent) && stmtAlwaysThrows(stmt.alternate);
+// "The branch always throws" is two reachability facts, both read off ESLint's code path analysis
+// rather than re-deriving control flow here: the end of the consequent must be unreachable, and no
+// reachable return/break/continue inside it may target a construct outside it.
+function isExitTarget(exit, ancestor) {
+  if (exit.label !== null) {
+    return ancestor.type === "LabeledStatement" && ancestor.label.name === exit.label.name;
   }
-  if (stmt.type === "TryStatement") return tryAlwaysThrows(stmt);
-  if (stmt.type === "SwitchStatement") return switchAlwaysThrows(stmt);
-  return false;
+  if (exit.type === "BreakStatement") return LOOP_TYPES.has(ancestor.type) || ancestor.type === "SwitchStatement";
+  return LOOP_TYPES.has(ancestor.type);
 }
 
-function tryAlwaysThrows(node) {
-  // A return/break/continue in finally overrides try/catch entirely, per JS semantics.
-  if (node.finalizer !== null) {
-    if (stmtAlwaysThrows(node.finalizer)) return true;
-    if (exitKinds(node.finalizer).size > 0) return false;
+function exitEscapesBranch(exit, consequent) {
+  if (exit.type === "ReturnStatement") return true;
+  for (let cur = exit.parent; cur !== consequent.parent; cur = cur.parent) {
+    if (isExitTarget(exit, cur)) return false;
   }
-  const blockThrows = stmtAlwaysThrows(node.block);
-  const handlerThrows = node.handler === null ? true : stmtAlwaysThrows(node.handler.body);
-  return blockThrows && handlerThrows;
-}
-
-function switchAlwaysThrows(node) {
-  // Doesn't trace case fallthrough; requires every case (default included) to throw on its own.
-  // Errs toward false positives on a legitimately-throwing fallthrough switch, never false negatives.
-  if (!node.cases.some((c) => c.test === null)) return false;
-  return node.cases.every((c) => blockAlwaysThrows(c.consequent));
-}
-
-function exitKinds(stmt) {
-  if (stmt.type === "ReturnStatement") return new Set(["return"]);
-  if (stmt.type === "BreakStatement") return new Set([stmt.label === null ? "break" : "labeled"]);
-  if (stmt.type === "ContinueStatement") return new Set([stmt.label === null ? "continue" : "labeled"]);
-  if (stmt.type === "ThrowStatement") return new Set();
-  if (stmt.type === "BlockStatement") return blockExitKinds(stmt.body);
-  if (stmt.type === "LabeledStatement") return exitKinds(stmt.body);
-  if (stmt.type === "IfStatement") {
-    const consequentKinds = stmtAlwaysThrows(stmt.consequent) ? new Set() : exitKinds(stmt.consequent);
-    const alternateKinds =
-      stmt.alternate === null || stmtAlwaysThrows(stmt.alternate) ? new Set() : exitKinds(stmt.alternate);
-    return union(consequentKinds, alternateKinds);
-  }
-  if (stmt.type === "TryStatement") return tryExitKinds(stmt);
-  if (stmt.type === "SwitchStatement") return switchExitKinds(stmt);
-  if (LOOP_TYPES.has(stmt.type)) return withoutKinds(exitKinds(stmt.body), ["break", "continue"]);
-  return new Set();
-}
-
-function tryExitKinds(node) {
-  if (node.finalizer !== null) {
-    if (stmtAlwaysThrows(node.finalizer)) return new Set();
-    const finallyKinds = exitKinds(node.finalizer);
-    if (finallyKinds.size > 0) return finallyKinds;
-  }
-  const blockKinds = stmtAlwaysThrows(node.block) ? new Set() : exitKinds(node.block);
-  const handlerKinds =
-    node.handler === null || stmtAlwaysThrows(node.handler.body) ? new Set() : exitKinds(node.handler.body);
-  return union(blockKinds, handlerKinds);
-}
-
-function switchExitKinds(node) {
-  let kinds = new Set();
-  for (const c of node.cases) {
-    kinds = union(kinds, blockExitKinds(c.consequent));
-  }
-  return withoutKinds(kinds, ["break"]);
-}
-
-function union(a, b) {
-  return new Set([...a, ...b]);
-}
-
-function withoutKinds(kinds, excluded) {
-  return new Set([...kinds].filter((kind) => !excluded.includes(kind)));
-}
-
-function blockAlwaysThrows(body) {
-  for (const stmt of body) {
-    if (stmtAlwaysThrows(stmt)) return true;
-    if (exitKinds(stmt).size > 0) return false;
-  }
-  return false;
-}
-
-function blockExitKinds(body) {
-  for (const stmt of body) {
-    if (stmtAlwaysThrows(stmt)) return new Set();
-    const kinds = exitKinds(stmt);
-    if (kinds.size > 0) return kinds;
-  }
-  return new Set();
+  return true;
 }
 
 /** @type {import("eslint").Rule.RuleModule} */
@@ -132,15 +50,68 @@ export default {
   },
   create(context) {
     const sourceCode = context.sourceCode;
+    const segmentStacks = [];
+    // Ignored ifs can nest, and AST traversal is depth-first, so the innermost branch under check is
+    // always the top of this stack; it's popped when its consequent ends.
+    const branchStack = [];
+
+    function isReachable() {
+      return [...segmentStacks.at(-1)].some((segment) => segment.reachable);
+    }
+
+    function report(entry) {
+      if (entry.reported) return;
+      entry.reported = true;
+      context.report({ node: entry.node, messageId: "mustThrow" });
+    }
+
+    function onSilentExit(node) {
+      const entry = branchStack.at(-1);
+      // Depth check keeps exits inside a nested function (its own code path) from counting.
+      if (entry === undefined || entry.depth !== segmentStacks.length) return;
+      if (isReachable() && exitEscapesBranch(node, entry.consequent)) report(entry);
+    }
+
     return {
+      onCodePathStart() {
+        segmentStacks.push(new Set());
+      },
+      onCodePathEnd() {
+        segmentStacks.pop();
+      },
+      onCodePathSegmentStart(segment) {
+        segmentStacks.at(-1).add(segment);
+      },
+      onCodePathSegmentEnd(segment) {
+        segmentStacks.at(-1).delete(segment);
+      },
+      onUnreachableCodePathSegmentStart(segment) {
+        segmentStacks.at(-1).add(segment);
+      },
+      onUnreachableCodePathSegmentEnd(segment) {
+        segmentStacks.at(-1).delete(segment);
+      },
       IfStatement(node) {
         const leading = sourceCode.getCommentsBefore(node);
         const ignoreComment = leading.find((comment) => IGNORE_IF_OR_NEXT.test(comment.value));
         if (ignoreComment === undefined) return;
         if (RETURN_OK.test(ignoreComment.value)) return;
-        if (stmtAlwaysThrows(node.consequent)) return;
-        context.report({ node, messageId: "mustThrow" });
+        branchStack.push({ node, consequent: node.consequent, depth: segmentStacks.length, reported: false });
       },
+      ":statement:exit"(node) {
+        if (node !== branchStack.at(-1)?.consequent) return;
+        const entry = branchStack.pop();
+        // ESLint applies a throw/return/break/continue to the code path only after emitting that
+        // node's :exit, so for a braceless consequent the segments seen here are still the ones
+        // from before it. A bare throw satisfies the rule; a bare silent exit was already judged
+        // by onSilentExit on entry.
+        const { type } = entry.consequent;
+        if (type === "ThrowStatement" || SILENT_EXIT_TYPES.has(type)) return;
+        if (isReachable()) report(entry);
+      },
+      ReturnStatement: onSilentExit,
+      BreakStatement: onSilentExit,
+      ContinueStatement: onSilentExit,
     };
   },
 };
