@@ -1,6 +1,6 @@
-import { fileURLToPath, pathToFileURL } from "node:url";
-import path from "node:path";
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import vitest from "@vitest/eslint-plugin";
 
