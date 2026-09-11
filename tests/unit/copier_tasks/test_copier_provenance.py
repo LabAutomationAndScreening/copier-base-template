@@ -1024,7 +1024,11 @@ class TestManifestPruning:
         ancestor_manifest = tmp_path / ".copier-managed-files.json"
         _ = ancestor_manifest.write_text(
             json.dumps(
-                {"templates": [{"src": "https://github.com/org/base-template", "managed_files": ["shared.py"]}]}
+                {
+                    "templates": [
+                        {"src": "https://github.com/org/base-template", "managed_files": ["template/shared.py"]}
+                    ]
+                }
             ),
             encoding="utf-8",
         )
@@ -1226,7 +1230,8 @@ class TestManifestPruning:
 
     def test_ancestor_files_attributed_to_ancestor_template(self, tmp_path: Path) -> None:
         # Simulate child template updating a grandchild project.
-        # The child template's own manifest lists base-template as managing "shared.py".
+        # The child template's own manifest lists base-template as managing "template/shared.py",
+        # i.e. a file inside the child's template directory, which is what gets handed down.
         # "app.py" is child-specific. Expect two manifest entries with correct attribution.
         template_dir = tmp_path / "template"
         template_dir.mkdir()
@@ -1238,7 +1243,7 @@ class TestManifestPruning:
             json.dumps(
                 {
                     "templates": [
-                        {"src": "https://github.com/org/base-template", "managed_files": ["shared.py"]},
+                        {"src": "https://github.com/org/base-template", "managed_files": ["template/shared.py"]},
                     ]
                 }
             ),
@@ -1269,6 +1274,48 @@ class TestManifestPruning:
         # app.py header references the child template URL
         app_content = (dst_dir / "app.py").read_text(encoding="utf-8")
         assert "https://github.com/org/child-template" in app_content
+
+    def test_ancestor_repo_root_file_does_not_claim_a_colliding_grandchild_file(self, tmp_path: Path) -> None:
+        # An ancestor entry holds two kinds of path: files it manages in the child template repo
+        # itself (its tooling -- pyproject.toml, .github/workflows/ci.yaml) and files under the
+        # child's template/ directory, which are the only ones handed down to a grandchild.
+        # Attribution used to match either spelling, so a grandchild file was credited to the
+        # ancestor purely because a same-named file happened to exist at the child repo's root.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "handed_down.py").touch()
+        (template_dir / "Taskfile.yaml").touch()
+
+        _ = (tmp_path / ".copier-managed-files.json").write_text(
+            json.dumps(
+                {
+                    "templates": [
+                        {
+                            "src": "https://github.com/org/base-template",
+                            "managed_files": ["Taskfile.yaml", "template/handed_down.py"],
+                        },
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "handed_down.py").write_text("x = 1\n", encoding="utf-8")
+        _ = (dst_dir / "Taskfile.yaml").write_text("version: '3'\n", encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        srcs = {t["src"]: t for t in _read_manifest(dst_dir)["templates"]}
+        assert srcs["https://github.com/org/base-template"]["managed_files"] == ["handed_down.py"]
+        assert srcs["https://github.com/org/child-template"]["managed_files"] == ["Taskfile.yaml"]
+        # The header has to agree with the manifest, or the two disagree about who owns the file.
+        assert "https://github.com/org/child-template" in (dst_dir / "Taskfile.yaml").read_text(encoding="utf-8")
 
     def test_ancestor_jinja_suffix_resolved_for_attribution(self, tmp_path: Path) -> None:
         # Ancestor manifest records "template/README.md.jinja" (base stamped child template with the

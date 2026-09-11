@@ -423,11 +423,19 @@ def update_manifest(
 
 
 def _read_ancestor_manifest(src_template_dir: Path) -> tuple[dict[str, set[str]], dict[str, str]]:
-    """Return each ancestor template's managed paths and its own parent, keyed by template src.
+    """Return each ancestor template's handed-down paths and its own parent, keyed by template src.
 
-    The ancestor manifest may contain paths with a "template/" prefix (from self-stamp tasks that run
-    with src=dst=template/). Both the prefixed and stripped spellings are recorded so lookups match the
-    destination repo's layout (where "template/" doesn't exist).
+    An ancestor entry in a template repo's manifest holds two different kinds of path:
+
+    - files the ancestor manages in the template repo itself: its own tooling, such as pyproject.toml
+      or .github/workflows/ci.yaml. These are not handed down to anything.
+    - files under the template repo's template/ subdirectory. These are the ones that get rendered
+      into a project, so they are the only ones a destination file can have come from.
+
+    Only the second kind is returned, re-rooted to the destination layout (where "template/" does not
+    exist). Matching the first kind too meant a destination file was credited to the ancestor purely
+    because a same-named file happened to exist at the template repo's root, which made attribution
+    depend on an unrelated coincidence -- and move between entries whenever that coincidence changed.
     """
     ancestor_managed_by_src: dict[str, set[str]] = {}
     ancestor_parent_by_src: dict[str, str] = {}
@@ -440,7 +448,8 @@ def _read_ancestor_manifest(src_template_dir: Path) -> tuple[dict[str, set[str]]
     for t in data["templates"]:
         path_set: set[str] = set()
         for f in t["managed_files"]:
-            path_set.add(f)
+            if not f.startswith(subdir_prefix):
+                continue
             stripped = f.removeprefix(subdir_prefix)
             path_set.add(stripped)
             # Apply get_base_filename to each part so .jinja/.jinja-base suffixes
