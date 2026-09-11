@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -20,6 +21,12 @@ class TemplateEntry(TypedDict):
 
 class Manifest(TypedDict):
     templates: list[TemplateEntry]
+
+
+@dataclass
+class MarkerResult:
+    managed: dict[str, list[str]]
+    failures: list[str]
 
 
 @dataclass
@@ -225,12 +232,14 @@ def _resolve_file_src(
 
 def _get_comment_format_for_file(file: Path, default_format: CommentFormat) -> CommentFormat | None:
     """Return the effective CommentFormat, or None if the file is binary (track but skip marking)."""
-    if default_format.location != "top" or default_format.comment_type == "none":
-        return default_format
+    # The decode probe runs for every format, not just the top-location ones: the marker write reads
+    # the file back in all cases, so an undecodable file has to be recognized here whatever its format.
     try:
         first_line = file.read_text(encoding="utf-8").split("\n", 1)[0]
     except UnicodeDecodeError:
         return None
+    if default_format.location != "top" or default_format.comment_type == "none":
+        return default_format
     if first_line.startswith("#!/"):
         return CommentFormat(default_format.comment_type, "bottom")
     return default_format
@@ -253,16 +262,17 @@ def apply_file_markers(
     dst_directory: Path,
     template_src: str = "",
     ancestor_managed_by_src: dict[str, set[str]] | None = None,
-) -> dict[str, list[str]]:
+) -> MarkerResult:
     """Stamp managed files with provenance headers.
 
-    Returns files bucketed by originating template src. Files listed in
-    ancestor_managed_by_src are attributed to their originating ancestor template;
-    remaining files are attributed to template_src.
+    Returns files bucketed by originating template src, plus a description of any file that could not
+    be stamped. Files listed in ancestor_managed_by_src are attributed to their originating ancestor
+    template; remaining files are attributed to template_src.
     """
     template_base_paths = _collect_template_base_paths(src_template_directory)
 
     managed: dict[str, list[str]] = {}
+    failures: list[str] = []
 
     # Iterate the template paths and probe the destination rather than walking the destination:
     # a destination repo can contain symlink cycles (e.g. pnpm workspace node_modules farms) that
@@ -276,21 +286,31 @@ def apply_file_markers(
         file_src = _resolve_file_src(rel_str, template_src, ancestor_managed_by_src)
         managed.setdefault(file_src, []).append(rel_str)
 
-        lookup_name = _format_lookup_name(file.name)
-        base_format = custom_filename_handling.get(
-            lookup_name, custom_file_handling.get(Path(lookup_name).suffix, default_comment_format)
-        )
-        comment_formatting = _get_comment_format_for_file(file, base_format)
-        if comment_formatting is None:
-            continue
-
-        # Called even when the format emits no marker, so a marker left behind by an older template
-        # version still gets stripped from a file that no longer takes one.
-        _write_file_marker(file, comment_formatting, _build_specific_header(comment_formatting.comment_type, file_src))
+        # One unstampable file must not cost the rest of the run, so anything this file raises is
+        # recorded and the walk continues. main() reports the failures and exits non-zero, but only
+        # after the manifest has been written.
+        try:
+            _stamp_one_file(file, file_src)
+        except Exception as exc:  # noqa: BLE001 -- deliberately broad: no single file may abort the run
+            failures.append(f"{rel_str}: {type(exc).__name__}: {exc}")
 
     for file_list in managed.values():
         file_list.sort()
-    return managed
+    return MarkerResult(managed=managed, failures=failures)
+
+
+def _stamp_one_file(file: Path, file_src: str) -> None:
+    lookup_name = _format_lookup_name(file.name)
+    base_format = custom_filename_handling.get(
+        lookup_name, custom_file_handling.get(Path(lookup_name).suffix, default_comment_format)
+    )
+    comment_formatting = _get_comment_format_for_file(file, base_format)
+    if comment_formatting is None:
+        return
+
+    # Called even when the format emits no marker, so a marker left behind by an older template
+    # version still gets stripped from a file that no longer takes one.
+    _write_file_marker(file, comment_formatting, _build_specific_header(comment_formatting.comment_type, file_src))
 
 
 def _read_parent_src(src_template_directory: Path) -> str | None:
@@ -401,12 +421,13 @@ def main() -> None:
     if len(ancestor_managed_by_src) > 0:
         ancestor_argument = ancestor_managed_by_src
 
-    managed_by_src = apply_file_markers(
+    result = apply_file_markers(
         src_template_directory=src_template_dir,
         dst_directory=dst_dir,
         template_src=header_src,
         ancestor_managed_by_src=ancestor_argument,
     )
+    managed_by_src = result.managed
     # Always write an entry for the current template even when no files matched.
     _ = managed_by_src.setdefault(header_src, [])
 
@@ -428,6 +449,14 @@ def main() -> None:
             managed_files=files,
             parent_src=effective_parent,
         )
+
+    # Reported only after the manifest is on disk, so a single unstampable file cannot also cost the
+    # run its record of what is managed.
+    if len(result.failures) > 0:
+        print(f"Failed to stamp {len(result.failures)} file(s):", file=sys.stderr)  # noqa: T201 -- task output is meant for the copier console
+        for failure in result.failures:
+            print(f"  {failure}", file=sys.stderr)  # noqa: T201 -- task output is meant for the copier console
+        sys.exit(1)
 
 
 if __name__ == "__main__":

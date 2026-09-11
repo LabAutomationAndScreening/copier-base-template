@@ -84,12 +84,13 @@ def _run_script(
     src_template_dir: Path,
     dst_dir: Path,
     template_src: str = "",
+    expected_returncode: int = 0,
 ) -> subprocess.CompletedProcess[str]:
     args = [str(src_template_dir), str(dst_dir)]
     if template_src != "":
         args += ["--template-src", template_src]
     result = run_copier_task(_SCRIPT_PATH, *args)
-    assert result.returncode == 0, result.stderr
+    assert result.returncode == expected_returncode, result.stderr
     return result
 
 
@@ -691,6 +692,70 @@ class TestStaleMarkersRemoved:
 
         assert stamped.stat().st_mtime == 0, "already-correct file was rewritten"
         assert untouched.stat().st_mtime == 0, "file that takes no marker was rewritten"
+
+
+class TestResilience:
+    """One unstampable file must not cost the whole run."""
+
+    def test_undecodable_file_in_a_bottom_format_is_tracked_but_not_stamped(self, tmp_path: Path) -> None:
+        # The decode probe only ran for top-location formats, so an undecodable file in a
+        # bottom-location format (.md, .sh, .bat, .coveragerc) raised instead of being skipped.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "aaa.py").touch()
+        (template_dir / "mmm.md").touch()
+        (template_dir / "zzz.py").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "aaa.py").write_text("a = 1\n", encoding="utf-8")
+        _ = (dst_dir / "mmm.md").write_bytes(b"\xff\xfe\x00binary\x00")
+        _ = (dst_dir / "zzz.py").write_text("z = 1\n", encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/base-template",
+        )
+
+        for name in ("aaa.py", "zzz.py"):
+            assert (dst_dir / name).read_text(encoding="utf-8").startswith("# ============== WARNING")
+        assert (dst_dir / "mmm.md").read_bytes() == b"\xff\xfe\x00binary\x00"
+        entry = _read_manifest(dst_dir)["templates"][0]
+        assert entry["managed_files"] == ["aaa.py", "mmm.md", "zzz.py"]
+
+    def test_unreadable_file_does_not_abort_the_run(self, tmp_path: Path) -> None:
+        # Files are visited in sorted order and the manifest was only written after the loop, so a
+        # raise part-way through left later files unstamped and no manifest on disk at all.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "aaa.py").touch()
+        (template_dir / "mmm.py").touch()
+        (template_dir / "zzz.py").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "aaa.py").write_text("a = 1\n", encoding="utf-8")
+        unreadable = dst_dir / "mmm.py"
+        _ = unreadable.write_text("m = 1\n", encoding="utf-8")
+        _ = (dst_dir / "zzz.py").write_text("z = 1\n", encoding="utf-8")
+        unreadable.chmod(0o000)
+
+        try:
+            result = _run_script(
+                src_template_dir=template_dir,
+                dst_dir=dst_dir,
+                template_src="https://github.com/org/base-template",
+                expected_returncode=1,
+            )
+        finally:
+            unreadable.chmod(0o644)
+
+        assert "mmm.py" in result.stderr
+        for name in ("aaa.py", "zzz.py"):
+            assert (dst_dir / name).read_text(encoding="utf-8").startswith("# ============== WARNING")
+        entry = _read_manifest(dst_dir)["templates"][0]
+        assert entry["managed_files"] == ["aaa.py", "mmm.py", "zzz.py"]
 
 
 class TestManifest:
