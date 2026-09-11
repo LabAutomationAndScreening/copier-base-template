@@ -178,16 +178,29 @@ def _strip_existing_header(content: str, comment_format: CommentFormat) -> str:
 
 
 def _write_file_marker(file: Path, comment_format: CommentFormat, specific_header: str) -> None:
-    with Path.open(file, "r+") as f:
-        content = f.read()
-        content = _strip_existing_header(content, comment_format)
+    # newline="" disables newline translation in both directions, so a CRLF file is not silently
+    # rewritten to LF. The strip/insert work happens on an LF-normalized copy (the header patterns are
+    # written against "\n") and the file's original ending is restored on the way out. A file with
+    # mixed endings is normalized to whichever ending it uses for the majority of its lines.
+    with Path.open(file, "r+", encoding="utf-8", newline="") as f:
+        raw = f.read()
+        newline = _dominant_newline(raw)
+        content = _strip_existing_header(raw.replace("\r\n", "\n"), comment_format)
+        if comment_format.location == "top":
+            content = specific_header + "\n" + content
+        elif comment_format.location == "bottom":
+            content = content + "\n" + specific_header + "\n"
         _ = f.seek(0)
         _ = f.truncate()
-        if comment_format.location == "top":
-            _ = f.write(specific_header + "\n")
-        _ = f.write(content)
-        if comment_format.location == "bottom":
-            _ = f.write("\n" + specific_header + "\n")
+        _ = f.write(content.replace("\n", newline) if newline != "\n" else content)
+
+
+def _dominant_newline(raw: str) -> str:
+    crlf_count = raw.count("\r\n")
+    lf_count = raw.count("\n") - crlf_count
+    if crlf_count > lf_count:
+        return "\r\n"
+    return "\n"
 
 
 def _resolve_file_src(

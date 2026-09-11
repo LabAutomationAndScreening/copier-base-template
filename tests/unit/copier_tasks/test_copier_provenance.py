@@ -429,6 +429,63 @@ class TestFileExtensionComments:
         assert non_template.read_text(encoding="utf-8") == file_content
 
 
+class TestByteFidelity:
+    """Stamping must not rewrite anything about a file other than inserting the marker."""
+
+    def _stamp(self, tmp_path: Path, filename: str, raw: bytes) -> Path:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / filename).touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        dst_file = dst_dir / filename
+        _ = dst_file.write_bytes(raw)
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+        return dst_file
+
+    def test_crlf_line_endings_preserved(self, tmp_path: Path) -> None:
+        # sh.bat and deployment/deploy.bat are CRLF on purpose; text-mode writes silently
+        # converted them to LF, so every stamped .bat file came back as a whole-file diff.
+        dst_file = self._stamp(tmp_path, "run.bat", b"@echo off\r\nrem hi\r\n")
+
+        raw = dst_file.read_bytes()
+        assert b"REM ============== WARNING" in raw
+        assert raw.replace(b"\r\n", b"").count(b"\n") == 0, "file gained bare LF line endings"
+
+    def test_lf_line_endings_not_converted_to_crlf(self, tmp_path: Path) -> None:
+        dst_file = self._stamp(tmp_path, "script.sh", b"echo hi\n")
+
+        raw = dst_file.read_bytes()
+        assert b"# ============== WARNING" in raw
+        assert b"\r" not in raw
+
+    def test_crlf_stamping_is_idempotent(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "run.bat").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        dst_file = dst_dir / "run.bat"
+        _ = dst_file.write_bytes(b"@echo off\r\nrem hi\r\n")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+        after_first = dst_file.read_bytes()
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert dst_file.read_bytes() == after_first
+
+    def test_non_ascii_content_preserved(self, tmp_path: Path) -> None:
+        # The file was opened without an explicit encoding, so a non-UTF-8 locale would mangle this.
+        body = "s = 'café 中文 🙂'\n"
+        dst_file = self._stamp(tmp_path, "unicode.py", body.encode("utf-8"))
+
+        content = dst_file.read_text(encoding="utf-8")
+        assert content == expected_hash_comment + "\n" + body
+
+
 class TestShebangHandling:
     @pytest.mark.parametrize(
         ("shebang_line", "expected_location"),
