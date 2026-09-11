@@ -86,7 +86,6 @@ def _run_script(
     template_src: str = "",
     exclude: tuple[str, ...] = (),
     templates_suffix: str | None = None,
-    expected_returncode: int = 0,
 ) -> subprocess.CompletedProcess[str]:
     args = [str(src_template_dir), str(dst_dir)]
     if template_src != "":
@@ -96,7 +95,19 @@ def _run_script(
     if templates_suffix is not None:
         args += ["--templates-suffix", templates_suffix]
     result = run_copier_task(_SCRIPT_PATH, *args)
-    assert result.returncode == expected_returncode, result.stderr
+    assert result.returncode == 0, result.stderr
+    return result
+
+
+def _run_script_expecting_failure(
+    *,
+    src_template_dir: Path,
+    dst_dir: Path,
+    template_src: str,
+) -> subprocess.CompletedProcess[str]:
+    """Run the task expecting it to report unstampable files and exit 1, having still done its work."""
+    result = run_copier_task(_SCRIPT_PATH, str(src_template_dir), str(dst_dir), "--template-src", template_src)
+    assert result.returncode == 1, f"expected a reported failure, got rc={result.returncode}: {result.stderr}"
     return result
 
 
@@ -927,11 +938,10 @@ class TestResilience:
         unreadable.chmod(0o000)
 
         try:
-            result = _run_script(
+            result = _run_script_expecting_failure(
                 src_template_dir=template_dir,
                 dst_dir=dst_dir,
                 template_src="https://github.com/org/base-template",
-                expected_returncode=1,
             )
         finally:
             unreadable.chmod(0o644)
@@ -1474,3 +1484,163 @@ class TestManifestPruning:
         assert "README.md" in srcs["https://github.com/org/base-template"]["managed_files"]
         assert "child_only.py" in srcs["https://github.com/org/child-template"]["managed_files"]
         assert "README.md" not in srcs["https://github.com/org/child-template"]["managed_files"]
+
+
+_BASE_SRC = "https://github.com/org/base-template"
+_CHILD_SRC = "https://github.com/org/child-template"
+
+
+class TestChainStabilityAcrossTemplateVersions:
+    """The three reported symptoms, exercised together over a base -> child -> grandchild chain.
+
+    Each of the three had its own root cause, but they only show up in combination: a repo two levels
+    down from the base template, updated more than once. These tests drive the real filename shapes
+    the templates use, including the raw-escaped conditional name and the literal trailing .jinja that
+    base hands to a child.
+    """
+
+    def _build_base_template(self, base_tmpl: Path, *, extra_grandchild_file: str | None = None) -> None:
+        child_level = base_tmpl / "template"
+        grandchild_level = child_level / "template"
+        (grandchild_level / ".github").mkdir(parents=True, exist_ok=True)
+        # Child-level: base's own tooling for the child template repo. Never handed down.
+        (child_level / "pyproject.toml.jinja-base").touch()
+        (child_level / "Taskfile.yaml").touch()
+        # Grandchild-level: handed down to projects. The trailing .jinja is literal here.
+        (grandchild_level / "Taskfile.yaml.jinja").touch()
+        (grandchild_level / "shared.py").touch()
+        (grandchild_level / "{% raw %}{% if is_open_source %}LICENSE{% endif %}{% endraw %}").touch()
+        if extra_grandchild_file is not None:
+            (grandchild_level / extra_grandchild_file).touch()
+
+    def _build_child_repo(self, child_repo: Path, *, extra_template_file: str | None = None) -> None:
+        template_dir = child_repo / "template"
+        (template_dir / ".github").mkdir(parents=True, exist_ok=True)
+        # Rendered from base's child-level template.
+        _ = (child_repo / "pyproject.toml").write_text("[project]\n", encoding="utf-8")
+        _ = (child_repo / "Taskfile.yaml").write_text("version: '3'\n", encoding="utf-8")
+        # Rendered from base's grandchild-level template: names survive for the child to render later.
+        _ = (template_dir / "Taskfile.yaml.jinja").write_text("version: '3'\n", encoding="utf-8")
+        _ = (template_dir / "shared.py").write_text("shared = 1\n", encoding="utf-8")
+        _ = (template_dir / "{% if is_open_source %}LICENSE{% endif %}").write_text("Apache\n", encoding="utf-8")
+        # The child template's own contribution.
+        _ = (template_dir / "app.py").write_text("app = 1\n", encoding="utf-8")
+        if extra_template_file is not None:
+            _ = (template_dir / extra_template_file).write_text("added = 1\n", encoding="utf-8")
+
+    def _build_grandchild_repo(self, repo: Path, *, extra_file: str | None = None) -> None:
+        repo.mkdir(parents=True, exist_ok=True)
+        _ = (repo / "Taskfile.yaml").write_text("version: '3'\n", encoding="utf-8")
+        _ = (repo / "shared.py").write_text("shared = 1\n", encoding="utf-8")
+        _ = (repo / "LICENSE").write_text("Apache\n", encoding="utf-8")
+        _ = (repo / "app.py").write_text("app = 1\n", encoding="utf-8")
+        if extra_file is not None:
+            _ = (repo / extra_file).write_text("added = 1\n", encoding="utf-8")
+
+    def _stamp_chain(self, base_tmpl: Path, child_repo: Path, grandchild: Path) -> None:
+        _ = _run_script(
+            src_template_dir=base_tmpl / "template",
+            dst_dir=child_repo,
+            template_src=_BASE_SRC,
+            templates_suffix=".jinja-base",
+        )
+        _ = _run_script(
+            src_template_dir=child_repo / "template",
+            dst_dir=grandchild,
+            template_src=_CHILD_SRC,
+            templates_suffix=".jinja",
+        )
+
+    def test_grandchild_attribution_follows_the_real_owner(self, tmp_path: Path) -> None:
+        base_tmpl = tmp_path / "base_tmpl"
+        child_repo = tmp_path / "child_repo"
+        grandchild = tmp_path / "grandchild"
+        self._build_base_template(base_tmpl)
+        self._build_child_repo(child_repo)
+        self._build_grandchild_repo(grandchild)
+
+        self._stamp_chain(base_tmpl, child_repo, grandchild)
+
+        srcs = {t["src"]: t for t in _read_manifest(grandchild)["templates"]}
+        # Taskfile.yaml is handed down by base, and must not be stolen by the child template merely
+        # because the child repo also has a root Taskfile.yaml of its own.
+        assert srcs[_BASE_SRC]["managed_files"] == ["LICENSE", "Taskfile.yaml", "shared.py"]
+        assert srcs[_CHILD_SRC]["managed_files"] == ["app.py"]
+
+    def test_no_file_is_claimed_by_two_templates(self, tmp_path: Path) -> None:
+        base_tmpl = tmp_path / "base_tmpl"
+        child_repo = tmp_path / "child_repo"
+        grandchild = tmp_path / "grandchild"
+        self._build_base_template(base_tmpl)
+        self._build_child_repo(child_repo)
+        self._build_grandchild_repo(grandchild)
+
+        self._stamp_chain(base_tmpl, child_repo, grandchild)
+
+        entries = _read_manifest(grandchild)["templates"]
+        claimed = [path for t in entries for path in t["managed_files"]]
+        assert sorted(claimed) == sorted(set(claimed)), "a file is listed under more than one template"
+
+    def test_every_managed_file_carries_exactly_one_marker(self, tmp_path: Path) -> None:
+        base_tmpl = tmp_path / "base_tmpl"
+        child_repo = tmp_path / "child_repo"
+        grandchild = tmp_path / "grandchild"
+        self._build_base_template(base_tmpl)
+        self._build_child_repo(child_repo)
+        self._build_grandchild_repo(grandchild)
+
+        self._stamp_chain(base_tmpl, child_repo, grandchild)
+
+        for t in _read_manifest(grandchild)["templates"]:
+            for rel in t["managed_files"]:
+                content = (grandchild / rel).read_text(encoding="utf-8")
+                assert content.count("============== WARNING") == 1, f"{rel} has the wrong marker count"
+                # The marker has to name the same template the manifest does, or the file and the
+                # manifest disagree about who owns it.
+                assert t["src"] in content, f"{rel} marker does not name {t['src']}"
+
+    def test_second_update_at_the_same_version_changes_nothing(self, tmp_path: Path) -> None:
+        base_tmpl = tmp_path / "base_tmpl"
+        child_repo = tmp_path / "child_repo"
+        grandchild = tmp_path / "grandchild"
+        self._build_base_template(base_tmpl)
+        self._build_child_repo(child_repo)
+        self._build_grandchild_repo(grandchild)
+
+        self._stamp_chain(base_tmpl, child_repo, grandchild)
+        before = {p: p.read_bytes() for p in sorted(grandchild.rglob("*")) if p.is_file()}
+        self._stamp_chain(base_tmpl, child_repo, grandchild)
+        after = {p: p.read_bytes() for p in sorted(grandchild.rglob("*")) if p.is_file()}
+
+        assert after == before
+
+    def test_template_version_bump_only_adds_the_new_file(self, tmp_path: Path) -> None:
+        # The reported symptom was files moving between manifest entries, and markers disappearing,
+        # on an update that should only have added something.
+        base_tmpl = tmp_path / "base_tmpl"
+        child_repo = tmp_path / "child_repo"
+        grandchild = tmp_path / "grandchild"
+        self._build_base_template(base_tmpl)
+        self._build_child_repo(child_repo)
+        self._build_grandchild_repo(grandchild)
+        self._stamp_chain(base_tmpl, child_repo, grandchild)
+
+        manifest_before = _read_manifest(grandchild)
+        markers_before = {
+            rel: (grandchild / rel).read_text(encoding="utf-8")
+            for t in manifest_before["templates"]
+            for rel in t["managed_files"]
+        }
+
+        # Base ships a new grandchild-level file, which flows through the child template.
+        self._build_base_template(base_tmpl, extra_grandchild_file="added.py")
+        self._build_child_repo(child_repo, extra_template_file="added.py")
+        self._build_grandchild_repo(grandchild, extra_file="added.py")
+        self._stamp_chain(base_tmpl, child_repo, grandchild)
+
+        srcs = {t["src"]: t for t in _read_manifest(grandchild)["templates"]}
+        assert srcs[_BASE_SRC]["managed_files"] == ["LICENSE", "Taskfile.yaml", "added.py", "shared.py"]
+        assert srcs[_CHILD_SRC]["managed_files"] == ["app.py"]
+        # Nothing that was already stamped may have changed.
+        for rel, content in markers_before.items():
+            assert (grandchild / rel).read_text(encoding="utf-8") == content, f"{rel} changed unexpectedly"
