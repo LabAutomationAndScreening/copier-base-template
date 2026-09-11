@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import NotRequired
@@ -608,6 +609,88 @@ class TestExistingUserCommentsPreserved:
 
         content = (dst_dir / dst_filename).read_text(encoding="utf-8")
         assert content == file_content
+
+
+class TestStaleMarkersRemoved:
+    """A marker written by an older version of this task must be removed, not left to accumulate."""
+
+    def test_marker_in_a_different_comment_format_is_replaced_not_doubled(self, tmp_path: Path) -> None:
+        # .jsonc moved from the hash format to the block format. Only the current format's pattern was
+        # stripped, so the old marker stayed put and the new one was added alongside it.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "biome.jsonc").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        dst_file = dst_dir / "biome.jsonc"
+        body = '{"a": 1}\n'
+        _ = dst_file.write_text(expected_hash_comment + "\n" + body, encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        content = dst_file.read_text(encoding="utf-8")
+        assert content.count("============== WARNING") == 1
+        assert content == expected_block_comment + "\n" + body
+
+    def test_stacked_duplicate_markers_are_all_removed(self, tmp_path: Path) -> None:
+        # Stripping was capped at one occurrence, so a file that ever acquired two markers kept one
+        # of them permanently.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "settings.py").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        dst_file = dst_dir / "settings.py"
+        body = "x = 1\n"
+        _ = dst_file.write_text(
+            expected_hash_comment + "\n" + expected_hash_comment + "\n" + body,
+            encoding="utf-8",
+        )
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        content = dst_file.read_text(encoding="utf-8")
+        assert content.count("============== WARNING") == 1
+        assert content == expected_hash_comment + "\n" + body
+
+    def test_marker_removed_when_file_type_no_longer_takes_one(self, tmp_path: Path) -> None:
+        # .python-version and friends moved to the "none" format. The task returned early without
+        # stripping, so a marker stamped by an earlier version was stuck in the file forever.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / ".python-version").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        dst_file = dst_dir / ".python-version"
+        body = "3.12.7\n"
+        _ = dst_file.write_text(expected_hash_comment + "\n" + body, encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert dst_file.read_text(encoding="utf-8") == body
+
+    def test_unchanged_file_is_not_rewritten(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "a.py").touch()
+        (template_dir / "c.json").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        stamped = dst_dir / "a.py"
+        _ = stamped.write_text(expected_hash_comment + "\n" + "x = 1\n", encoding="utf-8")
+        untouched = dst_dir / "c.json"
+        _ = untouched.write_text("{}\n", encoding="utf-8")
+        for path in (stamped, untouched):
+            os.utime(path, (0, 0))
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert stamped.stat().st_mtime == 0, "already-correct file was rewritten"
+        assert untouched.stat().st_mtime == 0, "file that takes no marker was rewritten"
 
 
 class TestManifest:

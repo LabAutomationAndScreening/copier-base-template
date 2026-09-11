@@ -153,31 +153,31 @@ def _build_specific_header(comment_type: CommentType, template_src: str = "") ->
     return None
 
 
-def _strip_existing_header(content: str, comment_format: CommentFormat) -> str:
-    """Strip any existing copier header block regardless of template URL inside."""
-    t = comment_format.comment_type
-    loc = comment_format.location
-    if t == "hash":
-        pattern = r"# ={14} WARNING[^\n]*\n(?:.*\n)*?# ={50,}\n"
-    elif t == "batch":
-        pattern = r"REM ={14} WARNING[^\n]*\n(?:.*\n)*?REM ={50,}\n"
-    elif t == "block":
-        pattern = r"/\*\n \* ={14} WARNING[^\n]*\n(?: \*.*\n)*? \*/\n"
-    elif t == "jinja":
-        pattern = r"\{#\n ={14} WARNING[^\n]*\n(?:.*\n)*?#\}\n"
-    elif t == "markdown":
-        pattern = r"<!--\n={14} WARNING[^\n]*\n(?:.*\n)*?-->\n"
-    else:
-        return content
-    if loc == "bottom":
-        result = re.sub(r"\n" + pattern, "", content, count=1)
-        if result == content:
-            result = re.sub(pattern, "", content, count=1)
-        return result
-    return re.sub(pattern, "", content, count=1)
+# Every marker spelling this task has ever written, not just the one the current format would produce.
+# A file whose comment format changed between template versions (.jsonc went hash → block) or whose
+# format became "none" (.python-version) otherwise keeps the old marker forever, either stacked
+# underneath the new one or stranded in a file that is no longer supposed to carry one at all.
+# The leading "\n?" takes the blank separator line that precedes a bottom marker.
+_MARKER_PATTERNS = tuple(
+    re.compile(r"\n?" + pattern)
+    for pattern in (
+        r"# ={14} WARNING[^\n]*\n(?:.*\n)*?# ={50,}\n",
+        r"REM ={14} WARNING[^\n]*\n(?:.*\n)*?REM ={50,}\n",
+        r"/\*\n \* ={14} WARNING[^\n]*\n(?: \*.*\n)*? \*/\n",
+        r"\{#\n ={14} WARNING[^\n]*\n(?:.*\n)*?#\}\n",
+        r"<!--\n={14} WARNING[^\n]*\n(?:.*\n)*?-->\n",
+    )
+)
 
 
-def _write_file_marker(file: Path, comment_format: CommentFormat, specific_header: str) -> None:
+def _strip_existing_header(content: str) -> str:
+    """Strip every copier marker block, in any comment format, regardless of the URL inside."""
+    for pattern in _MARKER_PATTERNS:
+        content = pattern.sub("", content)
+    return content
+
+
+def _write_file_marker(file: Path, comment_format: CommentFormat, specific_header: str | None) -> None:
     # newline="" disables newline translation in both directions, so a CRLF file is not silently
     # rewritten to LF. The strip/insert work happens on an LF-normalized copy (the header patterns are
     # written against "\n") and the file's original ending is restored on the way out. A file with
@@ -185,14 +185,21 @@ def _write_file_marker(file: Path, comment_format: CommentFormat, specific_heade
     with Path.open(file, "r+", encoding="utf-8", newline="") as f:
         raw = f.read()
         newline = _dominant_newline(raw)
-        content = _strip_existing_header(raw.replace("\r\n", "\n"), comment_format)
-        if comment_format.location == "top":
-            content = specific_header + "\n" + content
-        elif comment_format.location == "bottom":
-            content = content + "\n" + specific_header + "\n"
+        content = _strip_existing_header(raw.replace("\r\n", "\n"))
+        if specific_header is not None:
+            if comment_format.location == "top":
+                content = specific_header + "\n" + content
+            elif comment_format.location == "bottom":
+                content = content + "\n" + specific_header + "\n"
+        if newline != "\n":
+            content = content.replace("\n", newline)
+        if content == raw:
+            # Nothing to do. Skipping the write keeps mtime stable so a copier run does not look like
+            # it touched every managed file.
+            return
         _ = f.seek(0)
         _ = f.truncate()
-        _ = f.write(content.replace("\n", newline) if newline != "\n" else content)
+        _ = f.write(content)
 
 
 def _dominant_newline(raw: str) -> str:
@@ -277,9 +284,9 @@ def apply_file_markers(
         if comment_formatting is None:
             continue
 
-        specific_header = _build_specific_header(comment_formatting.comment_type, file_src)
-        if specific_header is not None:
-            _write_file_marker(file, comment_formatting, specific_header)
+        # Called even when the format emits no marker, so a marker left behind by an older template
+        # version still gets stripped from a file that no longer takes one.
+        _write_file_marker(file, comment_formatting, _build_specific_header(comment_formatting.comment_type, file_src))
 
     for file_list in managed.values():
         file_list.sort()
