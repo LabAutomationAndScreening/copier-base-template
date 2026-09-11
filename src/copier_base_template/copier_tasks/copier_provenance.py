@@ -173,31 +173,42 @@ def _build_specific_header(comment_type: CommentType, template_src: str = "") ->
 # A file whose comment format changed between template versions (.jsonc went hash → block) or whose
 # format became "none" (.python-version) otherwise keeps the old marker forever, either stacked
 # underneath the new one or stranded in a file that is no longer supposed to carry one at all.
-# The leading "\n?" takes the blank separator line that precedes a bottom marker.
-_MARKER_PATTERNS = tuple(
-    re.compile(r"\n?" + pattern)
-    for pattern in (
-        r"# ={14} WARNING[^\n]*\n(?:.*\n)*?# ={50,}\n",
-        r"REM ={14} WARNING[^\n]*\n(?:.*\n)*?REM ={50,}\n",
-        r"/\*\n \* ={14} WARNING[^\n]*\n(?: \*.*\n)*? \*/\n",
-        # The closing delimiter is glued to the content, so no trailing newline is required. "-?"
-        # recognizes a marker written with Jinja whitespace control, which an earlier attempt at the
-        # rendered-blank-line fix produced.
-        r"\{#\n ={14} WARNING[^\n]*\n(?:.*\n)*?-?#\}\n?",
-        r"<!--\n={14} WARNING[^\n]*\n(?:.*\n)*?-->\n",
-    )
+_MARKER_BODIES = (
+    r"# ={14} WARNING[^\n]*\n(?:.*\n)*?# ={50,}\n",
+    r"REM ={14} WARNING[^\n]*\n(?:.*\n)*?REM ={50,}\n",
+    r"/\*\n \* ={14} WARNING[^\n]*\n(?: \*.*\n)*? \*/\n",
+    # The closing delimiter is glued to the content, so no trailing newline is required. "-?"
+    # recognizes a marker written with Jinja whitespace control, which an earlier attempt at the
+    # rendered-blank-line fix produced.
+    r"\{#\n ={14} WARNING[^\n]*\n(?:.*\n)*?-?#\}\n?",
+    r"<!--\n={14} WARNING[^\n]*\n(?:.*\n)*?-->\n",
 )
+
+# Anchored at the file's two edges rather than matched anywhere. A marker only ever sits at the very
+# top or the very bottom, and marker text also appears as ordinary data inside some managed files --
+# this task's own test file quotes every spelling as a string constant, and stamping it used to delete
+# those constants out of the file. The bottom form also takes the blank separator line before it.
+_TOP_MARKER_PATTERNS = tuple(re.compile(r"\A" + body) for body in _MARKER_BODIES)
+_BOTTOM_MARKER_PATTERNS = tuple(re.compile(r"\n?" + body + r"\s*\Z") for body in _MARKER_BODIES)
 
 
 def _strip_existing_header(content: str) -> str:
-    """Strip every copier marker block, in any comment format, regardless of the URL inside."""
-    for pattern in _MARKER_PATTERNS:
-        content = pattern.sub("", content)
-    return content
+    """Strip copier marker blocks from the top and bottom of the file, in any comment format.
+
+    Repeats until nothing more comes off, so a file that somehow acquired two stacked markers sheds
+    both, and a marker whose comment format changed between template versions is still recognized.
+    """
+    while True:
+        stripped = content
+        for pattern in _TOP_MARKER_PATTERNS + _BOTTOM_MARKER_PATTERNS:
+            stripped = pattern.sub("", stripped, count=1)
+        if stripped == content:
+            return content
+        content = stripped
 
 
 def _top_separator(comment_type: CommentType) -> str:
-    """What goes between a top marker and the content it sits above.
+    """Return what goes between a top marker and the content it sits above.
 
     Jinja renders {# ... #} to an empty string, but a newline after the closing delimiter would
     survive into the rendered file as a blank first line -- for a script, a blank line ahead of its

@@ -686,25 +686,24 @@ class TestShebangHandling:
 
 class TestExistingUserCommentsPreserved:
     @pytest.mark.parametrize(
-        ("filenames", "user_comment", "expected_marker", "separator"),
+        ("filenames", "user_comment", "expected_marker"),
         [
-            (("module.ts", "module.ts"), "/*\n * SPDX-License-Identifier: MIT\n */", expected_block_comment, "\n"),
+            (("module.ts", "module.ts", "\n"), "/*\n * SPDX-License-Identifier: MIT\n */", expected_block_comment),
             # The Jinja marker is glued to the content so it leaves no blank line once rendered.
-            (("page.jinja.jinja-base", "page.jinja"), "{#\n a hand-written jinja note\n#}", expected_jinja_comment, ""),
-            (("index.html", "index.html"), "<!--\n a hand-written html note\n-->", expected_markdown_comment, "\n"),
+            (("page.jinja.jinja-base", "page.jinja", ""), "{#\n a hand-written jinja note\n#}", expected_jinja_comment),
+            (("index.html", "index.html", "\n"), "<!--\n a hand-written html note\n-->", expected_markdown_comment),
         ],
         ids=["block-license-preserved", "jinja-note-preserved", "markdown-note-preserved"],
     )
     def test_non_marker_leading_comment_is_not_stripped(
         self,
-        filenames: tuple[str, str],
+        filenames: tuple[str, str, str],
         user_comment: str,
         expected_marker: str,
-        separator: str,
         tmp_path: Path,
         faker: Faker,
     ) -> None:
-        template_filename, dst_filename = filenames
+        template_filename, dst_filename, separator = filenames
         body = faker.sentence()
         template_dir = tmp_path / "template"
         template_dir.mkdir()
@@ -813,6 +812,32 @@ class TestStaleMarkersRemoved:
         _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         assert dst_file.read_text(encoding="utf-8") == body
+
+    def test_marker_text_quoted_as_data_is_left_alone(self, tmp_path: Path) -> None:
+        # This task's own test file is shipped to child templates and quotes every marker spelling as
+        # a string constant. Stripping matched marker text anywhere in a file, so stamping the test
+        # file deleted the constants out of it. A marker only ever sits at the very top or the very
+        # bottom, so stripping is anchored there.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "quotes_markers.py").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        dst_file = dst_dir / "quotes_markers.py"
+        body = (
+            "jinja_example = '''\\\n"
+            + expected_jinja_comment
+            + "'''\n\nhash_example = '''\\\n"
+            + expected_hash_comment
+            + "'''\n"
+        )
+        _ = dst_file.write_text(body, encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        content = dst_file.read_text(encoding="utf-8")
+        assert content == expected_hash_comment + "\n" + body, "quoted marker text was eaten"
 
     def test_unchanged_file_is_not_rewritten(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
