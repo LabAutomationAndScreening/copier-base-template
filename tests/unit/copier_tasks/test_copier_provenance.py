@@ -67,7 +67,7 @@ expected_jinja_comment = """\
  You are welcome to make changes to this file in your repo if they are custom to your project,
  but if the change should be shared with other projects, please backport it to the template repo.
  =====================================================================================================
--#}"""
+#}"""
 
 expected_markdown_comment = """\
 <!--
@@ -138,7 +138,7 @@ class TestJinjaTemplateMatching:
         _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         content = (dst_dir / "README.md.jinja").read_text(encoding="utf-8")
-        assert content == expected_jinja_comment + "\n" + file_content
+        assert content == expected_jinja_comment + file_content
 
     def test_jinja_if_check_filename_matched(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
@@ -154,7 +154,7 @@ class TestJinjaTemplateMatching:
         _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         content = (dst_dir / ".coveragerc.jinja").read_text(encoding="utf-8")
-        assert content == expected_jinja_comment + "\n" + file_content
+        assert content == expected_jinja_comment + file_content
 
     def test_raw_wrapped_jinja_filename_matched(self, tmp_path: Path) -> None:
         # base-template names a grandchild-template file `{% raw %}...{% endraw %}` so the inner Jinja
@@ -258,7 +258,7 @@ class TestJinjaTemplateMatching:
             templates_suffix=".jinja-base",
         )
 
-        assert dst_file.read_text(encoding="utf-8") == expected_jinja_comment + "\n" + file_content
+        assert dst_file.read_text(encoding="utf-8") == expected_jinja_comment + file_content
         assert decoy.read_text(encoding="utf-8") == file_content
         entry = _read_manifest(dst_dir)["templates"][0]
         assert entry["managed_files"] == ["Taskfile.yaml.jinja"]
@@ -525,12 +525,13 @@ class TestJinjaMarkerRendersAway:
     """A marker in a .jinja file must leave no trace once the file is rendered.
 
     These files are handed down to a grandchild, so the marker sits in a template whose output is a
-    real file. `{# ... #}` renders to an empty string, but the newline after the closing delimiter
-    survives, which puts a blank line at the top of the rendered file. For a script that is a whole
-    blank line before its shebang, which stops the shebang working at all.
+    real file. `{# ... #}` renders to an empty string, but a newline after the closing delimiter
+    would survive -- putting a blank line at the top of the rendered file, which for a script means a
+    blank line ahead of its shebang. The marker is therefore glued straight onto the first line of
+    content, with no separating newline.
     """
 
-    def _stamp_and_render(self, tmp_path: Path, body: str) -> str:
+    def _stamp(self, tmp_path: Path, body: str) -> str:
         template_dir = tmp_path / "template"
         template_dir.mkdir()
         (template_dir / "script.sh.jinja").touch()
@@ -544,19 +545,28 @@ class TestJinjaMarkerRendersAway:
 
         stamped = dst_file.read_text(encoding="utf-8")
         assert "============== WARNING" in stamped, "the file under test was not stamped"
-        return jinja2.Environment(autoescape=False).from_string(stamped).render()  # noqa: S701 -- rendering a shell script, not HTML
+        return stamped
+
+    def _render(self, source: str) -> str:
+        return jinja2.Environment(autoescape=False).from_string(source).render()  # noqa: S701 -- rendering a shell script, not HTML
 
     def test_shebang_stays_on_the_first_line_after_rendering(self, tmp_path: Path) -> None:
-        rendered = self._stamp_and_render(tmp_path, "{% raw %}#!/usr/bin/env sh\nset -ex\n{% endraw %}")
+        rendered = self._render(self._stamp(tmp_path, "{% raw %}#!/usr/bin/env sh\nset -ex\n{% endraw %}"))
 
         assert rendered.startswith("#!/usr/bin/env sh"), f"shebang is no longer first: {rendered[:40]!r}"
 
     def test_rendered_output_matches_the_unstamped_original(self, tmp_path: Path) -> None:
         body = "{% raw %}key: value\nother: thing\n{% endraw %}"
-        rendered = self._stamp_and_render(tmp_path, body)
 
-        expected = jinja2.Environment(autoescape=False).from_string(body).render()  # noqa: S701 -- rendering YAML, not HTML
-        assert rendered == expected
+        assert self._render(self._stamp(tmp_path, body)) == self._render(body)
+
+    def test_marker_does_not_take_a_line_of_its_own(self, tmp_path: Path) -> None:
+        # The closing delimiter shares its line with the first line of content. Giving the marker its
+        # own line instead rewrites that first content line, and in a child template that has
+        # customized the file the resulting hunk swallows the whole divergent body.
+        stamped = self._stamp(tmp_path, "{% raw %}first-line\n{% endraw %}")
+
+        assert "#}{% raw %}first-line" in stamped, stamped[:400]
 
 
 class TestByteFidelity:
@@ -676,11 +686,12 @@ class TestShebangHandling:
 
 class TestExistingUserCommentsPreserved:
     @pytest.mark.parametrize(
-        ("filenames", "user_comment", "expected_marker"),
+        ("filenames", "user_comment", "expected_marker", "separator"),
         [
-            (("module.ts", "module.ts"), "/*\n * SPDX-License-Identifier: MIT\n */", expected_block_comment),
-            (("page.jinja.jinja-base", "page.jinja"), "{#\n a hand-written jinja note\n#}", expected_jinja_comment),
-            (("index.html", "index.html"), "<!--\n a hand-written html note\n-->", expected_markdown_comment),
+            (("module.ts", "module.ts"), "/*\n * SPDX-License-Identifier: MIT\n */", expected_block_comment, "\n"),
+            # The Jinja marker is glued to the content so it leaves no blank line once rendered.
+            (("page.jinja.jinja-base", "page.jinja"), "{#\n a hand-written jinja note\n#}", expected_jinja_comment, ""),
+            (("index.html", "index.html"), "<!--\n a hand-written html note\n-->", expected_markdown_comment, "\n"),
         ],
         ids=["block-license-preserved", "jinja-note-preserved", "markdown-note-preserved"],
     )
@@ -689,6 +700,7 @@ class TestExistingUserCommentsPreserved:
         filenames: tuple[str, str],
         user_comment: str,
         expected_marker: str,
+        separator: str,
         tmp_path: Path,
         faker: Faker,
     ) -> None:
@@ -706,13 +718,13 @@ class TestExistingUserCommentsPreserved:
         _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         content = (dst_dir / dst_filename).read_text(encoding="utf-8")
-        assert content == expected_marker + "\n" + file_content
+        assert content == expected_marker + separator + file_content
 
     @pytest.mark.parametrize(
-        ("filenames", "expected_marker"),
+        ("filenames", "expected_marker", "separator"),
         [
-            (("module.ts", "module.ts"), expected_block_comment),
-            (("page.jinja.jinja-base", "page.jinja"), expected_jinja_comment),
+            (("module.ts", "module.ts"), expected_block_comment, "\n"),
+            (("page.jinja.jinja-base", "page.jinja"), expected_jinja_comment, ""),
         ],
         ids=["block-marker-not-duplicated", "jinja-marker-not-duplicated"],
     )
@@ -720,6 +732,7 @@ class TestExistingUserCommentsPreserved:
         self,
         filenames: tuple[str, str],
         expected_marker: str,
+        separator: str,
         tmp_path: Path,
         faker: Faker,
     ) -> None:
@@ -731,7 +744,7 @@ class TestExistingUserCommentsPreserved:
 
         dst_dir = tmp_path / "destination"
         dst_dir.mkdir()
-        file_content = expected_marker + "\n" + body + "\n"
+        file_content = expected_marker + separator + body + "\n"
         _ = (dst_dir / dst_filename).write_text(file_content, encoding="utf-8")
 
         _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
@@ -800,27 +813,6 @@ class TestStaleMarkersRemoved:
         _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         assert dst_file.read_text(encoding="utf-8") == body
-
-    def test_jinja_marker_without_whitespace_control_is_replaced(self, tmp_path: Path) -> None:
-        # Markers written before the "-#}" fix are already sitting in the child templates, so they
-        # have to be recognized and replaced rather than left in place with a new one added.
-        template_dir = tmp_path / "template"
-        template_dir.mkdir()
-        (template_dir / "script.sh.jinja").touch()
-
-        dst_dir = tmp_path / "destination"
-        dst_dir.mkdir()
-        dst_file = dst_dir / "script.sh.jinja"
-        body = "{% raw %}#!/usr/bin/env sh\n{% endraw %}"
-        old_style_marker = expected_jinja_comment.replace("\n-#}", "\n#}")
-        assert old_style_marker != expected_jinja_comment, "the old spelling must actually differ"
-        _ = dst_file.write_text(old_style_marker + "\n" + body, encoding="utf-8")
-
-        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir, templates_suffix=".jinja-base")
-
-        content = dst_file.read_text(encoding="utf-8")
-        assert content.count("============== WARNING") == 1
-        assert content == expected_jinja_comment + "\n" + body
 
     def test_unchanged_file_is_not_rewritten(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"

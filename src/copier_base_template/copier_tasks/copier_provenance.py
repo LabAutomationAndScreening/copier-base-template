@@ -161,12 +161,9 @@ def _build_specific_header(comment_type: CommentType, template_src: str = "") ->
         body = "\n".join(f" * {line}" if line != "" else " *" for line in header.split("\n"))
         return f"/*\n{body}\n */"
     if comment_type == "jinja":
-        # Jinja renders {# ... #} to an empty string, but the newline after the closing delimiter
-        # survives, which would leave a blank line at the top of the rendered file -- fatal for a
-        # script, whose shebang has to be the very first thing. The "-" in "-#}" strips the trailing
-        # whitespace, so the marker leaves no trace at all once rendered.
+        # Jinja renders {# ... #} to empty string, so this marker is invisible in rendered output.
         body = "\n".join(f" {line}" if line != "" else "" for line in header.split("\n"))
-        return f"{{#\n{body}\n-#}}"
+        return f"{{#\n{body}\n#}}"
     if comment_type == "markdown":
         return f"<!--\n{header}\n-->"
     return None
@@ -183,8 +180,10 @@ _MARKER_PATTERNS = tuple(
         r"# ={14} WARNING[^\n]*\n(?:.*\n)*?# ={50,}\n",
         r"REM ={14} WARNING[^\n]*\n(?:.*\n)*?REM ={50,}\n",
         r"/\*\n \* ={14} WARNING[^\n]*\n(?: \*.*\n)*? \*/\n",
-        # "-?#}" so a marker written before the whitespace-control fix is still recognized.
-        r"\{#\n ={14} WARNING[^\n]*\n(?:.*\n)*?-?#\}\n",
+        # The closing delimiter is glued to the content, so no trailing newline is required. "-?"
+        # recognizes a marker written with Jinja whitespace control, which an earlier attempt at the
+        # rendered-blank-line fix produced.
+        r"\{#\n ={14} WARNING[^\n]*\n(?:.*\n)*?-?#\}\n?",
         r"<!--\n={14} WARNING[^\n]*\n(?:.*\n)*?-->\n",
     )
 )
@@ -195,6 +194,21 @@ def _strip_existing_header(content: str) -> str:
     for pattern in _MARKER_PATTERNS:
         content = pattern.sub("", content)
     return content
+
+
+def _top_separator(comment_type: CommentType) -> str:
+    """What goes between a top marker and the content it sits above.
+
+    Jinja renders {# ... #} to an empty string, but a newline after the closing delimiter would
+    survive into the rendered file as a blank first line -- for a script, a blank line ahead of its
+    shebang, which stops the shebang working. Gluing the content straight onto the closing delimiter
+    avoids that. It also leaves the first line of content untouched, which matters: giving the marker
+    a line of its own rewrites that line, and in a child template that has customized the file the
+    resulting hunk swallows the whole divergent body on update.
+    """
+    if comment_type == "jinja":
+        return ""
+    return "\n"
 
 
 def _write_file_marker(file: Path, comment_format: CommentFormat, specific_header: str | None) -> None:
@@ -208,7 +222,7 @@ def _write_file_marker(file: Path, comment_format: CommentFormat, specific_heade
         content = _strip_existing_header(raw.replace("\r\n", "\n"))
         if specific_header is not None:
             if comment_format.location == "top":
-                content = specific_header + "\n" + content
+                content = specific_header + _top_separator(comment_format.comment_type) + content
             elif comment_format.location == "bottom":
                 content = content + "\n" + specific_header + "\n"
         if newline != "\n":
