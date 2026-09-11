@@ -371,13 +371,29 @@ def _read_parent_src(src_template_directory: Path) -> str | None:
     return m.group(1).strip()
 
 
+def _build_entry(src: str, managed_files: list[str], parent_src: str | None) -> TemplateEntry:
+    # Both branches spell the whole entry out so the JSON key order stays src, parent_src, managed_files.
+    if parent_src is None:
+        return {"src": src, "managed_files": managed_files}
+    return {"src": src, "parent_src": parent_src, "managed_files": managed_files}
+
+
 def update_manifest(
     *,
     dst_directory: Path,
-    template_src: str,
-    managed_files: list[str],
-    parent_src: str | None = None,
+    produced: dict[str, list[str]],
+    parents: dict[str, str | None],
 ) -> None:
+    """Write the manifest in one pass, with this run's attributions taken as authoritative.
+
+    `produced` holds every src this run attributed files to. Those entries replace whatever was on
+    disk. An entry for some other src -- a second, unrelated template applied to the same repo -- is
+    kept, minus any path this run claimed, because two srcs must never list the same file. Writing
+    once rather than once per src is what makes that pruning possible: the previous version
+    re-read and re-appended the file for each src in turn, so it could only ever add to what was
+    already there. A stale entry therefore survived forever, and a file that moved from one template
+    to another ended up listed under both.
+    """
     manifest_path = dst_directory / _MANIFEST_RELPATH
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -385,18 +401,20 @@ def update_manifest(
     if manifest_path.exists():
         existing = json.loads(manifest_path.read_text(encoding="utf-8"))
 
-    templates: list[TemplateEntry] = []
-    for t in existing["templates"]:
-        if t["src"] == template_src:
-            continue
-        templates.append(t)
+    claimed = {path for files in produced.values() for path in files}
 
-    # Both branches spell the whole entry out so the JSON key order stays src, parent_src, managed_files.
-    if parent_src is None:
-        entry: TemplateEntry = {"src": template_src, "managed_files": managed_files}
-    else:
-        entry = {"src": template_src, "parent_src": parent_src, "managed_files": managed_files}
-    templates.append(entry)
+    templates: list[TemplateEntry] = [_build_entry(src, files, parents.get(src)) for src, files in produced.items()]
+    for t in existing["templates"]:
+        if t["src"] in produced:
+            continue
+        surviving = [path for path in t["managed_files"] if path not in claimed]
+        if len(surviving) == 0:
+            # Nothing left to point at, so the entry is stale rather than merely unrelated.
+            continue
+        templates.append(_build_entry(t["src"], surviving, t.get("parent_src")))
+
+    # Sorted so the array order does not depend on which src happens to own the first managed file.
+    templates.sort(key=lambda entry: entry["src"])
 
     _ = manifest_path.write_text(
         json.dumps({"templates": templates}, indent=2) + "\n",
@@ -490,23 +508,18 @@ def main() -> None:
     _ = managed_by_src.setdefault(header_src, [])
 
     parent_src = _read_parent_src(src_template_dir)
+    produced: dict[str, list[str]] = {}
+    parents: dict[str, str | None] = {}
     for src, files in managed_by_src.items():
-        if src == header_src:
-            effective_src = manifest_src
-        else:
-            effective_src = src
+        effective_src = manifest_src if src == header_src else src
+        produced[effective_src] = files
         # Current template's parent comes from copier-answers; ancestor entries carry
         # their own parent_src forward from the ancestor manifest so the chain survives.
         if effective_src == manifest_src:
-            effective_parent = parent_src
+            parents[effective_src] = parent_src
         else:
-            effective_parent = ancestor_parent_by_src.get(src)
-        update_manifest(
-            dst_directory=dst_dir,
-            template_src=effective_src,
-            managed_files=files,
-            parent_src=effective_parent,
-        )
+            parents[effective_src] = ancestor_parent_by_src.get(src)
+    update_manifest(dst_directory=dst_dir, produced=produced, parents=parents)
 
     # Reported only after the manifest is on disk, so a single unstampable file cannot also cost the
     # run its record of what is managed.

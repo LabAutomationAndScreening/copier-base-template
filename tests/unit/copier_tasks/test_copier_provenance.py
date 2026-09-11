@@ -916,60 +916,210 @@ class TestManifest:
         assert len(manifest["templates"]) == 1
 
     def test_manifest_layering_preserves_other_template_entries(self, tmp_path: Path) -> None:
-        template_dir = tmp_path / "template"
-        template_dir.mkdir()
-        (template_dir / "a.txt").touch()
+        # Two templates applied to one repo, each managing its own files. Neither run knows about the
+        # other, so each must leave the other's entry alone.
+        base_template = tmp_path / "base_template"
+        base_template.mkdir()
+        (base_template / "a.txt").touch()
+        child_template = tmp_path / "child_template"
+        child_template.mkdir()
+        (child_template / "b.txt").touch()
 
         dst_dir = tmp_path / "destination"
         dst_dir.mkdir()
         _ = (dst_dir / "a.txt").write_text("content", encoding="utf-8")
+        _ = (dst_dir / "b.txt").write_text("content", encoding="utf-8")
 
         _ = _run_script(
-            src_template_dir=template_dir,
+            src_template_dir=base_template,
             dst_dir=dst_dir,
             template_src="https://github.com/org/base-template",
         )
         _ = _run_script(
-            src_template_dir=template_dir,
+            src_template_dir=child_template,
             dst_dir=dst_dir,
             template_src="https://github.com/org/child-template",
         )
 
-        manifest = _read_manifest(dst_dir)
-        srcs = [t["src"] for t in manifest["templates"]]
-        assert "https://github.com/org/base-template" in srcs
-        assert "https://github.com/org/child-template" in srcs
+        srcs = {t["src"]: t for t in _read_manifest(dst_dir)["templates"]}
+        assert srcs["https://github.com/org/base-template"]["managed_files"] == ["a.txt"]
+        assert srcs["https://github.com/org/child-template"]["managed_files"] == ["b.txt"]
 
     def test_manifest_child_update_does_not_overwrite_base(self, tmp_path: Path) -> None:
         expected_num_manifests_in_project = 2
-        template_dir = tmp_path / "template"
-        template_dir.mkdir()
-        (template_dir / "a.txt").touch()
+        base_template = tmp_path / "base_template"
+        base_template.mkdir()
+        (base_template / "a.txt").touch()
+        child_template = tmp_path / "child_template"
+        child_template.mkdir()
+        (child_template / "b.txt").touch()
 
         dst_dir = tmp_path / "destination"
         dst_dir.mkdir()
         _ = (dst_dir / "a.txt").write_text("content", encoding="utf-8")
+        _ = (dst_dir / "b.txt").write_text("content", encoding="utf-8")
 
         _ = _run_script(
-            src_template_dir=template_dir,
+            src_template_dir=base_template,
             dst_dir=dst_dir,
             template_src="https://github.com/org/base-template",
         )
-        _ = _run_script(
-            src_template_dir=template_dir,
-            dst_dir=dst_dir,
-            template_src="https://github.com/org/child-template",
-        )
-        _ = _run_script(
-            src_template_dir=template_dir,
-            dst_dir=dst_dir,
-            template_src="https://github.com/org/child-template",
-        )
+        for _ in range(2):
+            _ = _run_script(
+                src_template_dir=child_template,
+                dst_dir=dst_dir,
+                template_src="https://github.com/org/child-template",
+            )
 
         manifest = _read_manifest(dst_dir)
         assert len(manifest["templates"]) == expected_num_manifests_in_project
         base = next(t for t in manifest["templates"] if "base" in t["src"])
-        assert "a.txt" in base["managed_files"]
+        assert base["managed_files"] == ["a.txt"]
+
+    def test_manifest_entries_are_ordered_by_src(self, tmp_path: Path) -> None:
+        # Entry order used to follow whichever src happened to own the alphabetically first managed
+        # file, so a change of ownership reordered the whole array and produced a huge diff.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "zzz.txt").touch()
+        (template_dir / "aaa.txt").touch()
+
+        _ = (tmp_path / ".copier-managed-files.json").write_text(
+            json.dumps(
+                {
+                    "templates": [
+                        {"src": "https://github.com/org/zzz-template", "managed_files": ["aaa.txt"]},
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "aaa.txt").write_text("content", encoding="utf-8")
+        _ = (dst_dir / "zzz.txt").write_text("content", encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/aaa-template",
+        )
+
+        srcs = [t["src"] for t in _read_manifest(dst_dir)["templates"]]
+        assert srcs == sorted(srcs)
+
+
+class TestManifestPruning:
+    """The current run is authoritative for every path it claims."""
+
+    def test_path_claimed_by_this_run_is_removed_from_another_entry(self, tmp_path: Path) -> None:
+        # Reproduces the duplicate: the ancestor manifest stops claiming a file, this run picks it up,
+        # and the old entry was never pruned, so the file was listed under two srcs at once.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "shared.py").touch()
+        (template_dir / "own.py").touch()
+
+        ancestor_manifest = tmp_path / ".copier-managed-files.json"
+        _ = ancestor_manifest.write_text(
+            json.dumps(
+                {"templates": [{"src": "https://github.com/org/base-template", "managed_files": ["shared.py"]}]}
+            ),
+            encoding="utf-8",
+        )
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "shared.py").write_text("x = 1\n", encoding="utf-8")
+        _ = (dst_dir / "own.py").write_text("y = 2\n", encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+        srcs = {t["src"]: t for t in _read_manifest(dst_dir)["templates"]}
+        assert srcs["https://github.com/org/base-template"]["managed_files"] == ["shared.py"]
+
+        # The ancestor template hands shared.py over to the child.
+        _ = ancestor_manifest.write_text(
+            json.dumps({"templates": [{"src": "https://github.com/org/base-template", "managed_files": []}]}),
+            encoding="utf-8",
+        )
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        manifest = _read_manifest(dst_dir)
+        appearances = [t["src"] for t in manifest["templates"] if "shared.py" in t["managed_files"]]
+        assert appearances == ["https://github.com/org/child-template"]
+
+    def test_entry_left_with_no_files_is_dropped(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "shared.py").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "shared.py").write_text("x = 1\n", encoding="utf-8")
+        config_dir = dst_dir / ".config"
+        config_dir.mkdir()
+        _ = (config_dir / ".copier-managed-files.json").write_text(
+            json.dumps(
+                {"templates": [{"src": "https://github.com/org/retired-template", "managed_files": ["shared.py"]}]}
+            ),
+            encoding="utf-8",
+        )
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        srcs = [t["src"] for t in _read_manifest(dst_dir)["templates"]]
+        assert srcs == ["https://github.com/org/child-template"]
+
+    def test_entry_for_an_unrelated_template_survives_intact(self, tmp_path: Path) -> None:
+        # Pruning must only take paths this run actually claimed, or a repo that layers two unrelated
+        # templates would lose whichever one did not run last.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "own.py").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "own.py").write_text("y = 2\n", encoding="utf-8")
+        config_dir = dst_dir / ".config"
+        config_dir.mkdir()
+        _ = (config_dir / ".copier-managed-files.json").write_text(
+            json.dumps(
+                {
+                    "templates": [
+                        {
+                            "src": "https://github.com/org/other-template",
+                            "parent_src": "https://github.com/org/other-parent",
+                            "managed_files": ["unrelated.py", "also-unrelated.py"],
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        srcs = {t["src"]: t for t in _read_manifest(dst_dir)["templates"]}
+        other = srcs["https://github.com/org/other-template"]
+        assert other["managed_files"] == ["unrelated.py", "also-unrelated.py"]
+        assert other.get("parent_src") == "https://github.com/org/other-parent"
 
     def test_manifest_src_matches_template_src_argument(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
