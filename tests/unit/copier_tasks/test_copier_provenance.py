@@ -139,6 +139,82 @@ class TestJinjaTemplateMatching:
         content = (dst_dir / ".coveragerc.jinja").read_text(encoding="utf-8")
         assert content == expected_jinja_comment + "\n" + file_content
 
+    def test_raw_wrapped_jinja_filename_matched(self, tmp_path: Path) -> None:
+        # base-template names a grandchild-template file `{% raw %}...{% endraw %}` so the inner Jinja
+        # survives into the child template verbatim. The destination name is the un-raw'd text, so only
+        # the raw markers are removed — the inner if-check must NOT be resolved at this level.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "{% raw %}{% if is_open_source %}LICENSE{% endif %}{% endraw %}").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        file_content = "Apache License\n"
+        dst_file = dst_dir / "{% if is_open_source %}LICENSE{% endif %}"
+        _ = dst_file.write_text(file_content, encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert dst_file.read_text(encoding="utf-8") == expected_hash_comment + "\n" + file_content
+
+    def test_raw_wrapped_jinja_filename_does_not_swallow_its_directory(self, tmp_path: Path) -> None:
+        # Regression: the empty span between `{% raw %}` and `{% if` used to collapse the whole path to
+        # its parent directory, so the file was silently never tracked nor stamped.
+        template_dir = tmp_path / "template"
+        nested = template_dir / "docs"
+        nested.mkdir(parents=True)
+        (nested / "{% raw %}{% if is_open_source %}LICENSE{% endif %}{% endraw %}").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_docs = dst_dir / "docs"
+        dst_docs.mkdir(parents=True)
+        dst_file = dst_docs / "{% if is_open_source %}LICENSE{% endif %}"
+        _ = dst_file.write_text("Apache License\n", encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/base-template",
+        )
+
+        manifest = _read_manifest(dst_dir)
+        assert manifest["templates"][0]["managed_files"] == ["docs/{% if is_open_source %}LICENSE{% endif %}"]
+
+    def test_raw_wrapped_jinja_filename_keeps_inner_suffix_stripping(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "{% raw %}{% if is_open_source %}NOTICE.md{% endif %}{% endraw %}.jinja-base").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        file_content = "# notice\n"
+        dst_file = dst_dir / "{% if is_open_source %}NOTICE.md{% endif %}"
+        _ = dst_file.write_text(file_content, encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert dst_file.read_text(encoding="utf-8") == file_content + "\n" + expected_markdown_comment + "\n"
+
+    def test_retained_if_check_filename_uses_real_extension_for_comment_format(self, tmp_path: Path) -> None:
+        # Mirrors base-template's template/.github/{% raw %}{% if is_open_source %}CODE_OF_CONDUCT.md...
+        # The destination keeps the if-check, so Path.suffix reads ".md{% endif %}" and the markdown
+        # format would be missed, stamping a markdown file with `#` comments.
+        template_dir = tmp_path / "template"
+        nested = template_dir / ".github"
+        nested.mkdir(parents=True)
+        (nested / "{% raw %}{% if is_open_source %}CODE_OF_CONDUCT.md{% endif %}{% endraw %}").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_github = dst_dir / ".github"
+        dst_github.mkdir(parents=True)
+        file_content = "# Code of Conduct\n"
+        dst_file = dst_github / "{% if is_open_source %}CODE_OF_CONDUCT.md{% endif %}"
+        _ = dst_file.write_text(file_content, encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert dst_file.read_text(encoding="utf-8") == file_content + "\n" + expected_markdown_comment + "\n"
+
     def test_symlinked_template_directory_traversed(self, tmp_path: Path) -> None:
         # Simulates base-template's template/template/.claude → ../../.claude symlink pattern.
         real_dir = tmp_path / "real_claude"

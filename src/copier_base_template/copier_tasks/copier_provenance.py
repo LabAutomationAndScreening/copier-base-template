@@ -90,22 +90,49 @@ def _build_header(template_src: str) -> str:
     return "\n".join(lines)
 
 
+_RAW_MARKER_PATTERN = re.compile(r"\{%-?\s*(?:raw|endraw)\s*-?%\}")
+
+
+def _strip_template_suffix(filename: str) -> str:
+    for suffix in [".jinja-base", ".jinja"]:
+        if filename.endswith(suffix):
+            return filename[: -len(suffix)]
+    return filename
+
+
 def get_base_filename(template_filename: str) -> str:
     """Return the destination filename for a template file.
 
-    Handles two cases:
+    Handles three cases:
+    - Raw-escaped name: {% raw %}{% if cond %}LICENSE{% endif %}{% endraw %}[.jinja-base]
+      Only the raw markers are dropped; the inner Jinja is destined to survive verbatim into the
+      child template, so its if-check must not be resolved here.
     - Jinja if-check pattern: {% if cond %}actual_filename{% endif %}[.jinja-base]
       The text between %} and {% is the actual destination filename (no suffix stripping needed).
     - Plain template file: README.md.jinja-base → README.md (strip template suffix).
     """
+    if _RAW_MARKER_PATTERN.search(template_filename) is not None:
+        return _strip_template_suffix(_RAW_MARKER_PATTERN.sub("", template_filename))
     result = re.findall(r"%\}(.*?)\{%", template_filename, re.DOTALL)
     if len(result) > 0:
         assert isinstance(result[0], str)
         return result[0]
-    for suffix in [".jinja-base", ".jinja"]:
-        if template_filename.endswith(suffix):
-            return template_filename[: -len(suffix)]
-    return template_filename
+    return _strip_template_suffix(template_filename)
+
+
+def _format_lookup_name(dst_filename: str) -> str:
+    """Return the name to key comment-format lookups on.
+
+    A destination file can keep a Jinja if-check in its name when it is itself a template file handed
+    down to a grandchild (e.g. `{% if is_open_source %}CODE_OF_CONDUCT.md{% endif %}`). Path.suffix
+    reads `.md{% endif %}` there, so the wrapper is dropped first. Any template suffix is deliberately
+    kept: a `.jinja` file still needs a Jinja comment so it renders away.
+    """
+    result = re.findall(r"%\}(.*?)\{%", dst_filename, re.DOTALL)
+    if len(result) > 0 and result[0] != "":
+        assert isinstance(result[0], str)
+        return result[0]
+    return dst_filename
 
 
 def _build_specific_header(comment_type: CommentType, template_src: str = "") -> str | None:
@@ -229,8 +256,9 @@ def apply_file_markers(
         file_src = _resolve_file_src(rel_str, template_src, ancestor_managed_by_src)
         managed.setdefault(file_src, []).append(rel_str)
 
+        lookup_name = _format_lookup_name(file.name)
         base_format = custom_filename_handling.get(
-            file.name, custom_file_handling.get(file.suffix, default_comment_format)
+            lookup_name, custom_file_handling.get(Path(lookup_name).suffix, default_comment_format)
         )
         comment_formatting = _get_comment_format_for_file(file, base_format)
         if comment_formatting is None:
