@@ -1626,6 +1626,43 @@ class TestChainStabilityAcrossTemplateVersions:
                 # manifest disagree about who owns it.
                 assert t["src"] in content, f"{rel} marker does not name {t['src']}"
 
+    def test_child_that_templatizes_a_base_file_takes_ownership_of_it(self, tmp_path: Path) -> None:
+        # The .pre-commit-config.yaml case. Base hands down a plain template/template/hook.yaml, and
+        # the child template needs Jinja in it, so the child carries template/hook.yaml.jinja instead.
+        # Base's path no longer resolves to anything in the child, so the child owns the rendered file
+        # in a grandchild -- which is what we want, since the child is what maintains its content.
+        base_tmpl = tmp_path / "base_tmpl"
+        child_repo = tmp_path / "child_repo"
+        grandchild = tmp_path / "grandchild"
+
+        grandchild_level = base_tmpl / "template" / "template"
+        grandchild_level.mkdir(parents=True)
+        (grandchild_level / "hook.yaml").touch()
+        (grandchild_level / "shared.py").touch()
+
+        template_dir = child_repo / "template"
+        template_dir.mkdir(parents=True)
+        # The child templatized base's file, so the name it carries gained a .jinja.
+        _ = (template_dir / "hook.yaml.jinja").write_text("repos: []\n", encoding="utf-8")
+        _ = (template_dir / "shared.py").write_text("shared = 1\n", encoding="utf-8")
+
+        grandchild.mkdir(parents=True)
+        _ = (grandchild / "hook.yaml").write_text("repos: []\n", encoding="utf-8")
+        _ = (grandchild / "shared.py").write_text("shared = 1\n", encoding="utf-8")
+
+        self._stamp_chain(base_tmpl, child_repo, grandchild)
+
+        # Base cannot claim it in the child repo: the path it ships does not exist there any more.
+        child_base_entry = next(t for t in _read_manifest(child_repo)["templates"] if "base" in t["src"])
+        assert "template/hook.yaml" not in child_base_entry["managed_files"]
+        assert "template/hook.yaml.jinja" not in child_base_entry["managed_files"]
+
+        srcs = {t["src"]: t for t in _read_manifest(grandchild)["templates"]}
+        assert srcs[_CHILD_SRC]["managed_files"] == ["hook.yaml"]
+        assert srcs[_BASE_SRC]["managed_files"] == ["shared.py"]
+        assert _CHILD_SRC in (grandchild / "hook.yaml").read_text(encoding="utf-8")
+        assert _BASE_SRC not in (grandchild / "hook.yaml").read_text(encoding="utf-8")
+
     def test_second_update_at_the_same_version_changes_nothing(self, tmp_path: Path) -> None:
         base_tmpl = tmp_path / "base_tmpl"
         child_repo = tmp_path / "child_repo"
