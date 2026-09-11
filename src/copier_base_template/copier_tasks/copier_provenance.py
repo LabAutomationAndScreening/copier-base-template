@@ -388,6 +388,11 @@ def _read_parent_src(src_template_directory: Path) -> str | None:
     return m.group(1).strip()
 
 
+def _entry_src(entry: TemplateEntry) -> str:
+    """Sort key for manifest entries. A named function rather than a lambda so the param is typed."""
+    return entry["src"]
+
+
 def _build_entry(src: str, managed_files: list[str], parent_src: str | None) -> TemplateEntry:
     # Both branches spell the whole entry out so the JSON key order stays src, parent_src, managed_files.
     if parent_src is None:
@@ -414,9 +419,12 @@ def update_manifest(
     manifest_path = dst_directory / _MANIFEST_RELPATH
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
 
-    existing: Manifest = {"templates": []}
+    # Annotated on the json.loads branch rather than assigned into a pre-annotated name, so the
+    # decoded Any is pinned to Manifest instead of widening everything read out of it back to Any.
     if manifest_path.exists():
-        existing = json.loads(manifest_path.read_text(encoding="utf-8"))
+        existing: Manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    else:
+        existing = {"templates": []}
 
     claimed = {path for files in produced.values() for path in files}
 
@@ -431,7 +439,7 @@ def update_manifest(
         templates.append(_build_entry(t["src"], surviving, t.get("parent_src")))
 
     # Sorted so the array order does not depend on which src happens to own the first managed file.
-    templates.sort(key=lambda entry: entry["src"])
+    templates.sort(key=_entry_src)
 
     _ = manifest_path.write_text(
         json.dumps({"templates": templates}, indent=2) + "\n",
