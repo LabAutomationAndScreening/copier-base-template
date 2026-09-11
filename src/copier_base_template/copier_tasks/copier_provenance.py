@@ -161,9 +161,12 @@ def _build_specific_header(comment_type: CommentType, template_src: str = "") ->
         body = "\n".join(f" * {line}" if line != "" else " *" for line in header.split("\n"))
         return f"/*\n{body}\n */"
     if comment_type == "jinja":
-        # Jinja renders {# ... #} to empty string, so this marker is invisible in rendered output.
+        # Jinja renders {# ... #} to an empty string, but the newline after the closing delimiter
+        # survives, which would leave a blank line at the top of the rendered file -- fatal for a
+        # script, whose shebang has to be the very first thing. The "-" in "-#}" strips the trailing
+        # whitespace, so the marker leaves no trace at all once rendered.
         body = "\n".join(f" {line}" if line != "" else "" for line in header.split("\n"))
-        return f"{{#\n{body}\n#}}"
+        return f"{{#\n{body}\n-#}}"
     if comment_type == "markdown":
         return f"<!--\n{header}\n-->"
     return None
@@ -180,7 +183,8 @@ _MARKER_PATTERNS = tuple(
         r"# ={14} WARNING[^\n]*\n(?:.*\n)*?# ={50,}\n",
         r"REM ={14} WARNING[^\n]*\n(?:.*\n)*?REM ={50,}\n",
         r"/\*\n \* ={14} WARNING[^\n]*\n(?: \*.*\n)*? \*/\n",
-        r"\{#\n ={14} WARNING[^\n]*\n(?:.*\n)*?#\}\n",
+        # "-?#}" so a marker written before the whitespace-control fix is still recognized.
+        r"\{#\n ={14} WARNING[^\n]*\n(?:.*\n)*?-?#\}\n",
         r"<!--\n={14} WARNING[^\n]*\n(?:.*\n)*?-->\n",
     )
 )

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import NotRequired
 from typing import TypedDict
 
+import jinja2
 import pytest
 from faker import Faker
 
@@ -66,7 +67,7 @@ expected_jinja_comment = """\
  You are welcome to make changes to this file in your repo if they are custom to your project,
  but if the change should be shared with other projects, please backport it to the template repo.
  =====================================================================================================
-#}"""
+-#}"""
 
 expected_markdown_comment = """\
 <!--
@@ -520,6 +521,44 @@ class TestFileExtensionComments:
         assert non_template.read_text(encoding="utf-8") == file_content
 
 
+class TestJinjaMarkerRendersAway:
+    """A marker in a .jinja file must leave no trace once the file is rendered.
+
+    These files are handed down to a grandchild, so the marker sits in a template whose output is a
+    real file. `{# ... #}` renders to an empty string, but the newline after the closing delimiter
+    survives, which puts a blank line at the top of the rendered file. For a script that is a whole
+    blank line before its shebang, which stops the shebang working at all.
+    """
+
+    def _stamp_and_render(self, tmp_path: Path, body: str) -> str:
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "script.sh.jinja").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        dst_file = dst_dir / "script.sh.jinja"
+        _ = dst_file.write_text(body, encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir, templates_suffix=".jinja-base")
+
+        stamped = dst_file.read_text(encoding="utf-8")
+        assert "============== WARNING" in stamped, "the file under test was not stamped"
+        return jinja2.Environment(autoescape=False).from_string(stamped).render()  # noqa: S701 -- rendering a shell script, not HTML
+
+    def test_shebang_stays_on_the_first_line_after_rendering(self, tmp_path: Path) -> None:
+        rendered = self._stamp_and_render(tmp_path, "{% raw %}#!/usr/bin/env sh\nset -ex\n{% endraw %}")
+
+        assert rendered.startswith("#!/usr/bin/env sh"), f"shebang is no longer first: {rendered[:40]!r}"
+
+    def test_rendered_output_matches_the_unstamped_original(self, tmp_path: Path) -> None:
+        body = "{% raw %}key: value\nother: thing\n{% endraw %}"
+        rendered = self._stamp_and_render(tmp_path, body)
+
+        expected = jinja2.Environment(autoescape=False).from_string(body).render()  # noqa: S701 -- rendering YAML, not HTML
+        assert rendered == expected
+
+
 class TestByteFidelity:
     """Stamping must not rewrite anything about a file other than inserting the marker."""
 
@@ -761,6 +800,27 @@ class TestStaleMarkersRemoved:
         _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         assert dst_file.read_text(encoding="utf-8") == body
+
+    def test_jinja_marker_without_whitespace_control_is_replaced(self, tmp_path: Path) -> None:
+        # Markers written before the "-#}" fix are already sitting in the child templates, so they
+        # have to be recognized and replaced rather than left in place with a new one added.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "script.sh.jinja").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        dst_file = dst_dir / "script.sh.jinja"
+        body = "{% raw %}#!/usr/bin/env sh\n{% endraw %}"
+        old_style_marker = expected_jinja_comment.replace("\n-#}", "\n#}")
+        assert old_style_marker != expected_jinja_comment, "the old spelling must actually differ"
+        _ = dst_file.write_text(old_style_marker + "\n" + body, encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir, templates_suffix=".jinja-base")
+
+        content = dst_file.read_text(encoding="utf-8")
+        assert content.count("============== WARNING") == 1
+        assert content == expected_jinja_comment + "\n" + body
 
     def test_unchanged_file_is_not_rewritten(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
