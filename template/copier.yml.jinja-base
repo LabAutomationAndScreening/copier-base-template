@@ -211,7 +211,8 @@ _tasks:
         python3 '{{ _copier_conf.src_path }}/src/copier_tasks/copier_provenance.py' \
             '{{ _copier_conf.src_path }}/template' \
             '.' \
-            --template-src '{{ _src_path }}'
+            --template-src '{{ _src_path }}' \
+            --templates-suffix '.jinja'
 
 # Additional Settings
 _min_copier_version: "9.8"

@@ -101,14 +101,31 @@ def _build_header(template_src: str) -> str:
 _RAW_MARKER_PATTERN = re.compile(r"\{%-?\s*(?:raw|endraw)\s*-?%\}")
 
 
-def _strip_template_suffix(filename: str) -> str:
-    for suffix in [".jinja-base", ".jinja"]:
+# Which suffix is real depends on the template doing the rendering, so it cannot be inferred from the
+# filename. base-template declares _templates_suffix: .jinja-base and ships
+# template/template/Taskfile.yaml.jinja, where the trailing .jinja is literal content meant to survive
+# into the child template; a child template declares _templates_suffix: .jinja, where it is the suffix.
+# Both are stripped when no suffix is declared, because child templates already invoke this task
+# without the argument and must keep working until they pass their own.
+_DEFAULT_TEMPLATE_SUFFIXES = (".jinja-base", ".jinja")
+
+
+@dataclass(frozen=True)
+class TemplateLayout:
+    """How to read the calling template's filenames, and which destination paths to leave alone."""
+
+    suffixes: tuple[str, ...] = _DEFAULT_TEMPLATE_SUFFIXES
+    exclude: tuple[str, ...] = ()
+
+
+def _strip_template_suffix(filename: str, suffixes: tuple[str, ...]) -> str:
+    for suffix in suffixes:
         if filename.endswith(suffix):
             return filename[: -len(suffix)]
     return filename
 
 
-def get_base_filename(template_filename: str) -> str:
+def get_base_filename(template_filename: str, suffixes: tuple[str, ...] = _DEFAULT_TEMPLATE_SUFFIXES) -> str:
     """Return the destination filename for a template file.
 
     Handles three cases:
@@ -120,12 +137,12 @@ def get_base_filename(template_filename: str) -> str:
     - Plain template file: README.md.jinja-base → README.md (strip template suffix).
     """
     if _RAW_MARKER_PATTERN.search(template_filename) is not None:
-        return _strip_template_suffix(_RAW_MARKER_PATTERN.sub("", template_filename))
+        return _strip_template_suffix(_RAW_MARKER_PATTERN.sub("", template_filename), suffixes)
     result = re.findall(r"%\}(.*?)\{%", template_filename, re.DOTALL)
     if len(result) > 0:
         assert isinstance(result[0], str)
         return result[0]
-    return _strip_template_suffix(template_filename)
+    return _strip_template_suffix(template_filename, suffixes)
 
 
 def _format_lookup_name(dst_filename: str) -> str:
@@ -268,15 +285,18 @@ always_excluded_directories: frozenset[str] = frozenset(
 )
 
 
-def _collect_template_base_paths(src_template_directory: Path) -> set[Path]:
+def _collect_template_base_paths(
+    src_template_directory: Path,
+    suffixes: tuple[str, ...] = _DEFAULT_TEMPLATE_SUFFIXES,
+) -> set[Path]:
     """Walk src_template_directory (following symlinks) and return resolved base paths."""
     paths: set[Path] = set()
     for root, dirnames, files in os.walk(src_template_directory, followlinks=True):
         # Mutating dirnames in place is what prunes the walk.
-        dirnames[:] = [d for d in dirnames if get_base_filename(d) not in always_excluded_directories]
+        dirnames[:] = [d for d in dirnames if get_base_filename(d, suffixes) not in always_excluded_directories]
         for fname in files:
             f = Path(root) / fname
-            parts = [get_base_filename(p) for p in f.relative_to(src_template_directory).parts]
+            parts = [get_base_filename(p, suffixes) for p in f.relative_to(src_template_directory).parts]
             paths.add(Path(*parts))
     return paths
 
@@ -298,7 +318,7 @@ def apply_file_markers(
     dst_directory: Path,
     template_src: str = "",
     ancestor_managed_by_src: dict[str, set[str]] | None = None,
-    exclude: tuple[str, ...] = (),
+    layout: TemplateLayout | None = None,
 ) -> MarkerResult:
     """Stamp managed files with provenance headers.
 
@@ -306,7 +326,9 @@ def apply_file_markers(
     be stamped. Files listed in ancestor_managed_by_src are attributed to their originating ancestor
     template; remaining files are attributed to template_src.
     """
-    template_base_paths = _collect_template_base_paths(src_template_directory)
+    if layout is None:
+        layout = TemplateLayout()
+    template_base_paths = _collect_template_base_paths(src_template_directory, layout.suffixes)
 
     managed: dict[str, list[str]] = {}
     failures: list[str] = []
@@ -320,7 +342,7 @@ def apply_file_markers(
             continue
 
         rel_str = str(rel)
-        excluded = _is_excluded(rel, exclude)
+        excluded = _is_excluded(rel, layout.exclude)
         if not excluded:
             file_src = _resolve_file_src(rel_str, template_src, ancestor_managed_by_src)
             managed.setdefault(file_src, []).append(rel_str)
@@ -422,7 +444,10 @@ def update_manifest(
     )
 
 
-def _read_ancestor_manifest(src_template_dir: Path) -> tuple[dict[str, set[str]], dict[str, str]]:
+def _read_ancestor_manifest(
+    src_template_dir: Path,
+    suffixes: tuple[str, ...] = _DEFAULT_TEMPLATE_SUFFIXES,
+) -> tuple[dict[str, set[str]], dict[str, str]]:
     """Return each ancestor template's handed-down paths and its own parent, keyed by template src.
 
     An ancestor entry in a template repo's manifest holds two different kinds of path:
@@ -456,7 +481,7 @@ def _read_ancestor_manifest(src_template_dir: Path) -> tuple[dict[str, set[str]]
             # and Jinja conditional names resolve to the final destination filename.
             parts = Path(stripped).parts
             if len(parts) > 0:
-                resolved = str(Path(*[get_base_filename(p) for p in parts]))
+                resolved = str(Path(*[get_base_filename(p, suffixes) for p in parts]))
                 path_set.add(resolved)
         ancestor_managed_by_src[t["src"]] = path_set
         ancestor_parent = t.get("parent_src")
@@ -481,15 +506,28 @@ def main() -> None:
             "Repeatable. '*' matches '/' too, so 'a/b/generated/*' covers the whole subtree."
         ),
     )
+    _ = parser.add_argument(
+        "--templates-suffix",
+        default="",
+        help=(
+            "The calling template's _templates_suffix, e.g. '.jinja-base'. Only this suffix is treated "
+            "as a template marker, so any other trailing suffix is kept as part of the destination "
+            "filename. Defaults to stripping both '.jinja-base' and '.jinja'."
+        ),
+    )
     args = parser.parse_args()
     assert isinstance(args.src_template_dir, Path)
     assert isinstance(args.dst_dir, Path)
     assert isinstance(args.template_src, str)
     assert isinstance(args.exclude, list)
+    assert isinstance(args.templates_suffix, str)
     src_template_dir = args.src_template_dir
     dst_dir = args.dst_dir
     template_src = args.template_src
-    exclude = tuple(str(pattern) for pattern in args.exclude)
+    layout = TemplateLayout(
+        suffixes=(args.templates_suffix,) if args.templates_suffix != "" else _DEFAULT_TEMPLATE_SUFFIXES,
+        exclude=tuple(str(pattern) for pattern in args.exclude),
+    )
 
     # header_src drives what URL appears in file headers (empty → generic "managed by a copier template" text).
     # manifest_src is the key written to .config/.copier-managed-files.json and is always non-empty.
@@ -499,7 +537,7 @@ def main() -> None:
     else:
         manifest_src = template_src
 
-    ancestor_managed_by_src, ancestor_parent_by_src = _read_ancestor_manifest(src_template_dir)
+    ancestor_managed_by_src, ancestor_parent_by_src = _read_ancestor_manifest(src_template_dir, layout.suffixes)
 
     ancestor_argument: dict[str, set[str]] | None = None
     if len(ancestor_managed_by_src) > 0:
@@ -510,7 +548,7 @@ def main() -> None:
         dst_directory=dst_dir,
         template_src=header_src,
         ancestor_managed_by_src=ancestor_argument,
-        exclude=exclude,
+        layout=layout,
     )
     managed_by_src = result.managed
     # Always write an entry for the current template even when no files matched.

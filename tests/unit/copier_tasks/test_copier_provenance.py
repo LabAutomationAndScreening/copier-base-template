@@ -85,6 +85,7 @@ def _run_script(
     dst_dir: Path,
     template_src: str = "",
     exclude: tuple[str, ...] = (),
+    templates_suffix: str | None = None,
     expected_returncode: int = 0,
 ) -> subprocess.CompletedProcess[str]:
     args = [str(src_template_dir), str(dst_dir)]
@@ -92,6 +93,8 @@ def _run_script(
         args += ["--template-src", template_src]
     for pattern in exclude:
         args += ["--exclude", pattern]
+    if templates_suffix is not None:
+        args += ["--templates-suffix", templates_suffix]
     result = run_copier_task(_SCRIPT_PATH, *args)
     assert result.returncode == expected_returncode, result.stderr
     return result
@@ -219,6 +222,81 @@ class TestJinjaTemplateMatching:
         _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         assert dst_file.read_text(encoding="utf-8") == file_content + "\n" + expected_markdown_comment + "\n"
+
+    def test_trailing_jinja_is_literal_when_the_active_suffix_is_jinja_base(self, tmp_path: Path) -> None:
+        # base-template ships template/template/Taskfile.yaml.jinja. Its _templates_suffix is
+        # .jinja-base, so that trailing .jinja is literal content: copier renders the name unchanged
+        # and the child template ends up with template/Taskfile.yaml.jinja. Stripping .jinja anyway
+        # made the task probe template/Taskfile.yaml, which does not exist, so the file was never
+        # tracked nor stamped. Taskfile.yaml, .pre-commit-config.yaml and .github/dependabot.yml are
+        # all missing from the base entry of the nuxt template's manifest for this reason.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "Taskfile.yaml.jinja").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        dst_file = dst_dir / "Taskfile.yaml.jinja"
+        file_content = "version: '3'\n"
+        _ = dst_file.write_text(file_content, encoding="utf-8")
+        # The over-stripped spelling must not be picked up instead.
+        decoy = dst_dir / "Taskfile.yaml"
+        _ = decoy.write_text(file_content, encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            templates_suffix=".jinja-base",
+        )
+
+        assert dst_file.read_text(encoding="utf-8") == expected_jinja_comment + "\n" + file_content
+        assert decoy.read_text(encoding="utf-8") == file_content
+        entry = _read_manifest(dst_dir)["templates"][0]
+        assert entry["managed_files"] == ["Taskfile.yaml.jinja"]
+
+    def test_jinja_suffix_still_stripped_when_it_is_the_active_suffix(self, tmp_path: Path) -> None:
+        # The child template's own _templates_suffix is .jinja, so there the suffix is real.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "Taskfile.yaml.jinja").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        dst_file = dst_dir / "Taskfile.yaml"
+        file_content = "version: '3'\n"
+        _ = dst_file.write_text(file_content, encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+            templates_suffix=".jinja",
+        )
+
+        entry = _read_manifest(dst_dir)["templates"][0]
+        assert entry["managed_files"] == ["Taskfile.yaml"]
+
+    def test_both_suffixes_stripped_when_none_is_declared(self, tmp_path: Path) -> None:
+        # Existing child templates invoke the task without the flag, so the permissive behavior has
+        # to stay the default until they opt in.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "a.yaml.jinja").touch()
+        (template_dir / "b.yaml.jinja-base").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "a.yaml").write_text("a: 1\n", encoding="utf-8")
+        _ = (dst_dir / "b.yaml").write_text("b: 2\n", encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        entry = _read_manifest(dst_dir)["templates"][0]
+        assert entry["managed_files"] == ["a.yaml", "b.yaml"]
 
     def test_symlinked_template_directory_traversed(self, tmp_path: Path) -> None:
         # Simulates base-template's template/template/.claude → ../../.claude symlink pattern.
