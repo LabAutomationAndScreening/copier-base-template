@@ -1,4 +1,5 @@
 import argparse
+import fnmatch
 import json
 import os
 import re
@@ -245,15 +246,50 @@ def _get_comment_format_for_file(file: Path, default_format: CommentFormat) -> C
     return default_format
 
 
+# Tool caches, dependency trees and build output. These are never template content, but they do turn up
+# inside a template directory when the source is a working copy rather than a clean clone (base-template
+# has an untracked template/.ruff_cache), and their paths collide with real destination paths --
+# .ruff_cache/.gitignore and CACHEDIR.TAG exist in both. Pruning them during the walk also keeps the
+# traversal out of node_modules.
+always_excluded_directories: frozenset[str] = frozenset(
+    {
+        ".git",
+        ".ruff_cache",
+        ".pytest_cache",
+        ".mypy_cache",
+        "__pycache__",
+        "node_modules",
+        ".venv",
+        ".pnpm-store",
+        ".turbo",
+        ".nuxt",
+        ".output",
+    }
+)
+
+
 def _collect_template_base_paths(src_template_directory: Path) -> set[Path]:
     """Walk src_template_directory (following symlinks) and return resolved base paths."""
     paths: set[Path] = set()
-    for root, _, files in os.walk(src_template_directory, followlinks=True):
+    for root, dirnames, files in os.walk(src_template_directory, followlinks=True):
+        # Mutating dirnames in place is what prunes the walk.
+        dirnames[:] = [d for d in dirnames if get_base_filename(d) not in always_excluded_directories]
         for fname in files:
             f = Path(root) / fname
             parts = [get_base_filename(p) for p in f.relative_to(src_template_directory).parts]
             paths.add(Path(*parts))
     return paths
+
+
+def _is_excluded(rel: Path, exclude: tuple[str, ...]) -> bool:
+    """Match a destination-relative path against the --exclude patterns.
+
+    fnmatch is used rather than Path.match so a pattern can span directory separators: "*" matches "/"
+    too, which lets `backend/tests/e2e/generated/*` cover the whole subtree. (PurePath.full_match, which
+    would give real "**" support, needs Python 3.13.)
+    """
+    posix = rel.as_posix()
+    return any(fnmatch.fnmatch(posix, pattern) for pattern in exclude)
 
 
 def apply_file_markers(
@@ -262,6 +298,7 @@ def apply_file_markers(
     dst_directory: Path,
     template_src: str = "",
     ancestor_managed_by_src: dict[str, set[str]] | None = None,
+    exclude: tuple[str, ...] = (),
 ) -> MarkerResult:
     """Stamp managed files with provenance headers.
 
@@ -283,14 +320,18 @@ def apply_file_markers(
             continue
 
         rel_str = str(rel)
-        file_src = _resolve_file_src(rel_str, template_src, ancestor_managed_by_src)
-        managed.setdefault(file_src, []).append(rel_str)
+        excluded = _is_excluded(rel, exclude)
+        if not excluded:
+            file_src = _resolve_file_src(rel_str, template_src, ancestor_managed_by_src)
+            managed.setdefault(file_src, []).append(rel_str)
+        else:
+            file_src = template_src
 
         # One unstampable file must not cost the rest of the run, so anything this file raises is
         # recorded and the walk continues. main() reports the failures and exits non-zero, but only
         # after the manifest has been written.
         try:
-            _stamp_one_file(file, file_src)
+            _stamp_one_file(file, file_src, strip_only=excluded)
         except Exception as exc:  # noqa: BLE001 -- deliberately broad: no single file may abort the run
             failures.append(f"{rel_str}: {type(exc).__name__}: {exc}")
 
@@ -299,7 +340,7 @@ def apply_file_markers(
     return MarkerResult(managed=managed, failures=failures)
 
 
-def _stamp_one_file(file: Path, file_src: str) -> None:
+def _stamp_one_file(file: Path, file_src: str, *, strip_only: bool = False) -> None:
     lookup_name = _format_lookup_name(file.name)
     base_format = custom_filename_handling.get(
         lookup_name, custom_file_handling.get(Path(lookup_name).suffix, default_comment_format)
@@ -308,9 +349,12 @@ def _stamp_one_file(file: Path, file_src: str) -> None:
     if comment_formatting is None:
         return
 
-    # Called even when the format emits no marker, so a marker left behind by an older template
-    # version still gets stripped from a file that no longer takes one.
-    _write_file_marker(file, comment_formatting, _build_specific_header(comment_formatting.comment_type, file_src))
+    # strip_only covers a newly excluded file: we stop claiming it, but a marker an earlier run left
+    # behind is still ours to clean up. Otherwise the writer is called even when the format emits no
+    # marker, so a marker left by an older template version is stripped from a file that no longer
+    # takes one.
+    specific_header = None if strip_only else _build_specific_header(comment_formatting.comment_type, file_src)
+    _write_file_marker(file, comment_formatting, specific_header)
 
 
 def _read_parent_src(src_template_directory: Path) -> str | None:
@@ -399,13 +443,26 @@ def main() -> None:
     _ = parser.add_argument("src_template_dir", type=Path, help="Template source directory")
     _ = parser.add_argument("dst_dir", type=Path, help="Destination directory")
     _ = parser.add_argument("--template-src", default="", help="Template source identifier for the manifest")
+    _ = parser.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        metavar="PATTERN",
+        help=(
+            "Destination-relative glob for files the template ships but does not manage by hand, such as "
+            "code-generator output. Excluded files are neither stamped nor recorded in the manifest. "
+            "Repeatable. '*' matches '/' too, so 'a/b/generated/*' covers the whole subtree."
+        ),
+    )
     args = parser.parse_args()
     assert isinstance(args.src_template_dir, Path)
     assert isinstance(args.dst_dir, Path)
     assert isinstance(args.template_src, str)
+    assert isinstance(args.exclude, list)
     src_template_dir = args.src_template_dir
     dst_dir = args.dst_dir
     template_src = args.template_src
+    exclude = tuple(str(pattern) for pattern in args.exclude)
 
     # header_src drives what URL appears in file headers (empty → generic "managed by a copier template" text).
     # manifest_src is the key written to .config/.copier-managed-files.json and is always non-empty.
@@ -426,6 +483,7 @@ def main() -> None:
         dst_directory=dst_dir,
         template_src=header_src,
         ancestor_managed_by_src=ancestor_argument,
+        exclude=exclude,
     )
     managed_by_src = result.managed
     # Always write an entry for the current template even when no files matched.
