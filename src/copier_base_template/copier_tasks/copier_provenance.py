@@ -1,5 +1,4 @@
 import argparse
-import fnmatch
 import json
 import os
 import re
@@ -108,14 +107,6 @@ _RAW_MARKER_PATTERN = re.compile(r"\{%-?\s*(?:raw|endraw)\s*-?%\}")
 # Both are stripped when no suffix is declared, because child templates already invoke this task
 # without the argument and must keep working until they pass their own.
 _DEFAULT_TEMPLATE_SUFFIXES = (".jinja-base", ".jinja")
-
-
-@dataclass(frozen=True)
-class TemplateLayout:
-    """How to read the calling template's filenames, and which destination paths to leave alone."""
-
-    suffixes: tuple[str, ...] = _DEFAULT_TEMPLATE_SUFFIXES
-    exclude: tuple[str, ...] = ()
 
 
 def _strip_template_suffix(filename: str, suffixes: tuple[str, ...]) -> str:
@@ -301,15 +292,21 @@ def _collect_template_base_paths(
     return paths
 
 
-def _is_excluded(rel: Path, exclude: tuple[str, ...]) -> bool:
-    """Match a destination-relative path against the --exclude patterns.
+# Code-generator output. A template does commit these files, so nothing about the file itself gives it
+# away, but a project regenerates them on its own and the fresh copy never carries a marker -- which is
+# how a manifest ends up claiming files that visibly have no marker in them. Excluded by default rather
+# than left to each template to declare, since the convention holds everywhere it appears: across 250
+# such files in a downstream project and 20 in the templates, the only path segment containing
+# "generated" is exactly "generated".
+#
+# Matched as a whole path segment, not a substring, so a hand-maintained generated_client.py or
+# regenerated.md is unaffected.
+always_excluded_path_segments: frozenset[str] = frozenset({"generated"})
 
-    fnmatch is used rather than Path.match so a pattern can span directory separators: "*" matches "/"
-    too, which lets `backend/tests/e2e/generated/*` cover the whole subtree. (PurePath.full_match, which
-    would give real "**" support, needs Python 3.13.)
-    """
-    posix = rel.as_posix()
-    return any(fnmatch.fnmatch(posix, pattern) for pattern in exclude)
+
+def _is_excluded(rel: Path) -> bool:
+    """Decide whether a destination-relative path is one the template does not maintain by hand."""
+    return not always_excluded_path_segments.isdisjoint(rel.parts)
 
 
 def apply_file_markers(
@@ -318,7 +315,7 @@ def apply_file_markers(
     dst_directory: Path,
     template_src: str = "",
     ancestor_managed_by_src: dict[str, set[str]] | None = None,
-    layout: TemplateLayout | None = None,
+    suffixes: tuple[str, ...] = _DEFAULT_TEMPLATE_SUFFIXES,
 ) -> MarkerResult:
     """Stamp managed files with provenance headers.
 
@@ -326,9 +323,7 @@ def apply_file_markers(
     be stamped. Files listed in ancestor_managed_by_src are attributed to their originating ancestor
     template; remaining files are attributed to template_src.
     """
-    if layout is None:
-        layout = TemplateLayout()
-    template_base_paths = _collect_template_base_paths(src_template_directory, layout.suffixes)
+    template_base_paths = _collect_template_base_paths(src_template_directory, suffixes)
 
     managed: dict[str, list[str]] = {}
     failures: list[str] = []
@@ -342,7 +337,7 @@ def apply_file_markers(
             continue
 
         rel_str = str(rel)
-        excluded = _is_excluded(rel, layout.exclude)
+        excluded = _is_excluded(rel)
         if not excluded:
             file_src = _resolve_file_src(rel_str, template_src, ancestor_managed_by_src)
             managed.setdefault(file_src, []).append(rel_str)
@@ -496,17 +491,6 @@ def main() -> None:
     _ = parser.add_argument("dst_dir", type=Path, help="Destination directory")
     _ = parser.add_argument("--template-src", default="", help="Template source identifier for the manifest")
     _ = parser.add_argument(
-        "--exclude",
-        action="append",
-        default=[],
-        metavar="PATTERN",
-        help=(
-            "Destination-relative glob for files the template ships but does not manage by hand, such as "
-            "code-generator output. Excluded files are neither stamped nor recorded in the manifest. "
-            "Repeatable. '*' matches '/' too, so 'a/b/generated/*' covers the whole subtree."
-        ),
-    )
-    _ = parser.add_argument(
         "--templates-suffix",
         default="",
         help=(
@@ -519,15 +503,11 @@ def main() -> None:
     assert isinstance(args.src_template_dir, Path)
     assert isinstance(args.dst_dir, Path)
     assert isinstance(args.template_src, str)
-    assert isinstance(args.exclude, list)
     assert isinstance(args.templates_suffix, str)
     src_template_dir = args.src_template_dir
     dst_dir = args.dst_dir
     template_src = args.template_src
-    layout = TemplateLayout(
-        suffixes=(args.templates_suffix,) if args.templates_suffix != "" else _DEFAULT_TEMPLATE_SUFFIXES,
-        exclude=tuple(str(pattern) for pattern in args.exclude),
-    )
+    suffixes = (args.templates_suffix,) if args.templates_suffix != "" else _DEFAULT_TEMPLATE_SUFFIXES
 
     # header_src drives what URL appears in file headers (empty → generic "managed by a copier template" text).
     # manifest_src is the key written to .config/.copier-managed-files.json and is always non-empty.
@@ -537,7 +517,7 @@ def main() -> None:
     else:
         manifest_src = template_src
 
-    ancestor_managed_by_src, ancestor_parent_by_src = _read_ancestor_manifest(src_template_dir, layout.suffixes)
+    ancestor_managed_by_src, ancestor_parent_by_src = _read_ancestor_manifest(src_template_dir, suffixes)
 
     ancestor_argument: dict[str, set[str]] | None = None
     if len(ancestor_managed_by_src) > 0:
@@ -548,7 +528,7 @@ def main() -> None:
         dst_directory=dst_dir,
         template_src=header_src,
         ancestor_managed_by_src=ancestor_argument,
-        layout=layout,
+        suffixes=suffixes,
     )
     managed_by_src = result.managed
     # Always write an entry for the current template even when no files matched.

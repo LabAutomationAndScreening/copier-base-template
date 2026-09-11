@@ -84,14 +84,11 @@ def _run_script(
     src_template_dir: Path,
     dst_dir: Path,
     template_src: str = "",
-    exclude: tuple[str, ...] = (),
     templates_suffix: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
     args = [str(src_template_dir), str(dst_dir)]
     if template_src != "":
         args += ["--template-src", template_src]
-    for pattern in exclude:
-        args += ["--exclude", pattern]
     if templates_suffix is not None:
         args += ["--templates-suffix", templates_suffix]
     result = run_copier_task(_SCRIPT_PATH, *args)
@@ -789,7 +786,7 @@ class TestStaleMarkersRemoved:
 class TestExclusions:
     """Regenerated files ship in the template but must not be claimed as managed."""
 
-    def test_excluded_file_is_neither_stamped_nor_tracked(self, tmp_path: Path) -> None:
+    def test_generated_subtree_is_excluded_at_any_depth(self, tmp_path: Path) -> None:
         # A code generator rewrites these after the copier task runs, so the marker is destroyed and
         # the manifest is left claiming a file nobody maintains by hand.
         template_dir = tmp_path / "template"
@@ -809,54 +806,84 @@ class TestExclusions:
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/child-template",
-            exclude=("backend/tests/e2e/generated/*",),
         )
 
         assert (dst_generated / "backend_client.py").read_text(encoding="utf-8") == client_body
         entry = _read_manifest(dst_dir)["templates"][0]
         assert entry["managed_files"] == ["kept.py"]
 
-    def test_multiple_exclude_patterns_all_apply(self, tmp_path: Path) -> None:
+    def test_generated_directory_is_always_excluded(self, tmp_path: Path) -> None:
+        # Every generated tree in these repos lives under a path segment named exactly "generated",
+        # and a project regenerates the contents itself, so these are never claimed. No template opts
+        # in or out: the exclusion is unconditional.
         template_dir = tmp_path / "template"
-        template_dir.mkdir()
-        (template_dir / "generated.py").touch()
-        (template_dir / "snapshot.json").touch()
+        generated = template_dir / "backend" / "tests" / "e2e" / "generated" / "open_api"
+        generated.mkdir(parents=True)
+        (generated / "backend_client.py").touch()
         (template_dir / "kept.py").touch()
 
         dst_dir = tmp_path / "destination"
-        dst_dir.mkdir()
-        for name in ("generated.py", "snapshot.json", "kept.py"):
-            _ = (dst_dir / name).write_text("x = 1\n", encoding="utf-8")
+        dst_generated = dst_dir / "backend" / "tests" / "e2e" / "generated" / "open_api"
+        dst_generated.mkdir(parents=True)
+        client_body = "class BackendClient:\n    pass\n"
+        _ = (dst_generated / "backend_client.py").write_text(client_body, encoding="utf-8")
+        _ = (dst_dir / "kept.py").write_text("x = 1\n", encoding="utf-8")
 
         _ = _run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/child-template",
-            exclude=("generated.py", "*.json"),
         )
 
+        assert (dst_generated / "backend_client.py").read_text(encoding="utf-8") == client_body
         entry = _read_manifest(dst_dir)["templates"][0]
         assert entry["managed_files"] == ["kept.py"]
 
-    def test_existing_marker_is_stripped_when_a_file_becomes_excluded(self, tmp_path: Path) -> None:
+    def test_marker_already_in_a_generated_file_is_cleaned_up(self, tmp_path: Path) -> None:
+        # Existing projects have these files stamped, so the task has to remove its own marker rather
+        # than walk away and strand it. This is why "generated" is an exclusion rather than a pruned
+        # directory like the tool caches.
         template_dir = tmp_path / "template"
-        template_dir.mkdir()
-        (template_dir / "generated.py").touch()
+        generated = template_dir / "generated"
+        generated.mkdir(parents=True)
+        (generated / "client.py").touch()
 
         dst_dir = tmp_path / "destination"
-        dst_dir.mkdir()
-        dst_file = dst_dir / "generated.py"
-        body = "x = 1\n"
+        dst_generated = dst_dir / "generated"
+        dst_generated.mkdir(parents=True)
+        dst_file = dst_generated / "client.py"
+        body = "class Client:\n    pass\n"
         _ = dst_file.write_text(expected_hash_comment + "\n" + body, encoding="utf-8")
 
         _ = _run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
             template_src="https://github.com/org/child-template",
-            exclude=("generated.py",),
         )
 
         assert dst_file.read_text(encoding="utf-8") == body
+
+    @pytest.mark.parametrize("filename", ["generated_client.py", "regenerated.md", "generated.py"])
+    def test_generated_as_part_of_a_longer_name_is_still_tracked(self, filename: str, tmp_path: Path) -> None:
+        # The rule matches a whole path segment, not a substring, so a hand-maintained file whose name
+        # merely contains the word is unaffected. Across 250 generated files in the downstream repo and
+        # 20 in the templates, the only segment containing "generated" is exactly "generated".
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / filename).touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / filename).write_text("x = 1\n", encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        entry = _read_manifest(dst_dir)["templates"][0]
+        assert entry["managed_files"] == [filename]
 
     @pytest.mark.parametrize(
         "cache_dir",
