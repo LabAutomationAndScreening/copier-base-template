@@ -147,6 +147,13 @@ _templates_suffix: .jinja-base
 _exclude:
     - "copier.yaml"
 
+_skip_if_exists:
+    # The provenance task regenerates this file in full after the patch is applied, so the copy in the
+    # destination is authoritative and a patch hunk against it can never be worth applying. Copier feeds
+    # this list to `git apply --exclude`, so no hunk is attempted and no .rej is produced -- the same
+    # treatment copier already gives its own answers file.
+    - ".config/.copier-managed-files.json"
+
 # adapted from https://github.com/copier-org/copier-template-extensions#context-hook-extension
 _jinja_extensions:
 - copier_template_extensions.TemplateExtensionLoader
