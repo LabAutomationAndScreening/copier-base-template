@@ -222,28 +222,35 @@ def _top_separator(comment_type: CommentType) -> str:
     return "\n"
 
 
-def _write_file_marker(file: Path, comment_format: CommentFormat, specific_header: str | None) -> None:
-    # newline="" disables newline translation in both directions, so a CRLF file is not silently
-    # rewritten to LF. The strip/insert work happens on an LF-normalized copy (the header patterns are
-    # written against "\n") and the file's original ending is restored on the way out. A file with
-    # mixed endings is normalized to whichever ending it uses for the majority of its lines.
-    with Path.open(file, "r+", encoding="utf-8", newline="") as f:
-        raw = f.read()
-        newline = _dominant_newline(raw)
-        content = _strip_existing_header(raw.replace("\r\n", "\n"))
-        if specific_header is not None:
-            if comment_format.location == "top":
-                content = specific_header + _top_separator(comment_format.comment_type) + content
-            elif comment_format.location == "bottom":
-                content = content + "\n" + specific_header + "\n"
-        if newline != "\n":
-            content = content.replace("\n", newline)
-        if content == raw:
-            # Nothing to do. Skipping the write keeps mtime stable so a copier run does not look like
-            # it touched every managed file.
-            return
-        _ = f.seek(0)
-        _ = f.truncate()
+def _read_file_raw(file: Path) -> str | None:
+    """Return the file's text with line endings untouched, or None if it is not valid UTF-8 (binary)."""
+    # newline="" disables newline translation, so a CRLF file is seen as CRLF and can be written back
+    # unchanged rather than silently rewritten to LF.
+    try:
+        with Path.open(file, encoding="utf-8", newline="") as f:
+            return f.read()
+    except UnicodeDecodeError:
+        return None
+
+
+def _write_file_marker(file: Path, raw: str, comment_format: CommentFormat, specific_header: str | None) -> None:
+    # The strip/insert work happens on an LF-normalized copy (the header patterns are written against
+    # "\n") and the file's original ending is restored on the way out. A file with mixed endings is
+    # normalized to whichever ending it uses for the majority of its lines.
+    newline = _dominant_newline(raw)
+    content = _strip_existing_header(raw.replace("\r\n", "\n"))
+    if specific_header is not None:
+        if comment_format.location == "top":
+            content = specific_header + _top_separator(comment_format.comment_type) + content
+        elif comment_format.location == "bottom":
+            content = content + "\n" + specific_header + "\n"
+    if newline != "\n":
+        content = content.replace("\n", newline)
+    if content == raw:
+        # Nothing to do. Skipping the write keeps mtime stable so a copier run does not look like
+        # it touched every managed file.
+        return
+    with Path.open(file, "w", encoding="utf-8", newline="") as f:
         _ = f.write(content)
 
 
@@ -268,17 +275,11 @@ def _resolve_file_src(
     return template_src
 
 
-def _get_comment_format_for_file(file: Path, default_format: CommentFormat) -> CommentFormat | None:
-    """Return the effective CommentFormat, or None if the file is binary (track but skip marking)."""
-    # The decode probe runs for every format, not just the top-location ones: the marker write reads
-    # the file back in all cases, so an undecodable file has to be recognized here whatever its format.
-    try:
-        first_line = file.read_text(encoding="utf-8").split("\n", 1)[0]
-    except UnicodeDecodeError:
-        return None
+def _get_comment_format_for_file(raw: str, default_format: CommentFormat) -> CommentFormat:
+    """Return the effective CommentFormat: a top marker moves to the bottom when a shebang is on line one."""
     if default_format.location != "top" or default_format.comment_type == "none":
         return default_format
-    if first_line.startswith("#!/"):
+    if raw.startswith("#!/"):
         return CommentFormat(default_format.comment_type, "bottom")
     return default_format
 
@@ -367,11 +368,10 @@ def apply_file_markers(
 
         rel_str = str(rel)
         excluded = _is_excluded(rel)
+        file_src = template_src
         if not excluded:
             file_src = _resolve_file_src(rel_str, template_src, ancestor_managed_by_src)
             managed.setdefault(file_src, []).append(rel_str)
-        else:
-            file_src = template_src
 
         # One unstampable file must not cost the rest of the run, so anything this file raises is
         # recorded and the walk continues. main() reports the failures and exits non-zero, but only
@@ -391,16 +391,18 @@ def _stamp_one_file(file: Path, file_src: str, *, strip_only: bool = False) -> N
     base_format = custom_filename_handling.get(
         lookup_name, custom_file_handling.get(Path(lookup_name).suffix, default_comment_format)
     )
-    comment_formatting = _get_comment_format_for_file(file, base_format)
-    if comment_formatting is None:
+    raw = _read_file_raw(file)
+    if raw is None:
+        # Binary: tracked in the manifest but never stamped.
         return
+    comment_formatting = _get_comment_format_for_file(raw, base_format)
 
     # strip_only covers a newly excluded file: we stop claiming it, but a marker an earlier run left
     # behind is still ours to clean up. Otherwise the writer is called even when the format emits no
     # marker, so a marker left by an older template version is stripped from a file that no longer
     # takes one.
     specific_header = None if strip_only else _build_specific_header(comment_formatting.comment_type, file_src)
-    _write_file_marker(file, comment_formatting, specific_header)
+    _write_file_marker(file, raw, comment_formatting, specific_header)
 
 
 def _read_parent_src(src_template_directory: Path) -> str | None:
