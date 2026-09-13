@@ -95,15 +95,6 @@ _tasks:
             --target-file .pre-commit-config.yaml
     when: "{{ not install_claude_cli }}"
   - command: |
-        if [ -f .config/ruff.toml ]; then
-            echo "Updating ruff target-version from python_version..."
-            py_major_minor="$(printf '%s' '{{ python_version }}' | cut -d. -f1,2)"
-            py_tag="py$(printf '%s' "$py_major_minor" | tr -d '.')"
-            sed -i -E 's/^target-version = "py[0-9]+"/target-version = "'"$py_tag"'"/' .config/ruff.toml
-        else
-            echo ".config/ruff.toml not found; skipping Ruff target-version update."
-        fi
-  - command: |
         python3 '{{ _copier_conf.src_path }}/src/copier_base_template/copier_tasks/copier_provenance.py' \
             '{{ _copier_conf.src_path }}/template' \
             '.' \
@@ -135,6 +126,15 @@ _tasks:
                 fi
             fi
         done
+  - command: |
+        if [ -f .config/ruff.toml ]; then
+            echo "Updating ruff target-version from python_version..."
+            py_major_minor="$(printf '%s' '{{ python_version }}' | cut -d. -f1,2)"
+            py_tag="py$(printf '%s' "$py_major_minor" | tr -d '.')"
+            sed -i -E 's/^target-version = "py[0-9]+"/target-version = "'"$py_tag"'"/' .config/ruff.toml
+        else
+            echo ".config/ruff.toml not found; skipping Ruff target-version update."
+        fi
 
 _min_copier_version: "9.8"
 

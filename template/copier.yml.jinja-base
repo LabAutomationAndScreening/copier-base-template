@@ -164,11 +164,36 @@ _tasks:
         python3 '{{ _copier_conf.src_path }}/src/copier_tasks/remove_precommit_hooks.py' \
             --hook-id-regex '^\s*-\s+id:\s+merge-claude-settings\s*$' \
             --target-file .pre-commit-config.yaml
-    when: "{{ not install_claude_cli }}"
+    when: "{{ not install_claude_cli }}"{% endraw %}{% if template_uses_typescript %}{% raw %}
+  - command: |
+        export PNPM_PATTERNS='{{ pnpm_minimum_release_age_exclude }}'
+        python3 '{{ _copier_conf.src_path }}/src/copier_tasks/ensure_pnpm_minimum_release_age_exclude.py' --patterns "$PNPM_PATTERNS"
+    when: "{{ pnpm_minimum_release_age_exclude }}"{% endraw %}{% endif %}{% raw %}
+  - command: |
+        if [ -f .config/ruff.toml ]; then
+            echo "Updating ruff target-version from python_version..."
+            py_major_minor="$(printf '%s' '{{ python_version }}' | cut -d. -f1,2)"
+            py_tag="py$(printf '%s' "$py_major_minor" | tr -d '.')"
+            sed -i -E 's/^target-version = "py[0-9]+"/target-version = "'"$py_tag"'"/' .config/ruff.toml
+        else
+            echo ".config/ruff.toml not found; skipping Ruff target-version update."
+        fi
+  - command: |
+        python3 '{{ _copier_conf.src_path }}/src/copier_tasks/copier_provenance.py' \
+            '{{ _copier_conf.src_path }}/template' \
+            '.' \
+            --template-src '{{ _src_path }}' \
+            --templates-suffix '.jinja'
   # Copier does not preserve executable permissions when instantiating the template, so we set them explicitly here.
   # git update-index is also needed because with core.fileMode=false (common on WSL2) git ignores the on-disk exec bit,
   # so a plain `git add` would not capture it. It is guarded on the file being tracked, since on an initial `copier copy`
   # into a fresh repo the file is not in the index yet (the chmod alone covers that case).
+  #
+  # These run after the provenance task on purpose. `git update-index --chmod=+x` on an already-tracked file refreshes
+  # the index entry from the working tree, staging whatever content is there at the time. Running it before the
+  # provenance task therefore staged the unstamped file, and the stamp that landed afterwards existed only in the
+  # working tree -- so `git status` reported the file as both staged and modified, and committing the staged version
+  # silently dropped the provenance marker.
   - command: |
         if [ -f scripts/delete_false_positive_rej.py ]; then
             chmod +x scripts/delete_false_positive_rej.py
@@ -193,45 +218,7 @@ _tasks:
                     git update-index --chmod=+x "$script"
                 fi
             fi
-        done{% endraw %}{% endif %}{% raw %}{% endraw %}{% if template_uses_typescript %}{% raw %}
-  - command: |
-        export PNPM_PATTERNS='{{ pnpm_minimum_release_age_exclude }}'
-        python3 '{{ _copier_conf.src_path }}/src/copier_tasks/ensure_pnpm_minimum_release_age_exclude.py' --patterns "$PNPM_PATTERNS"
-    when: "{{ pnpm_minimum_release_age_exclude }}"{% endraw %}{% endif %}{% raw %}
-  - command: |
-        if [ -f .config/ruff.toml ]; then
-            echo "Updating ruff target-version from python_version..."
-            py_major_minor="$(printf '%s' '{{ python_version }}' | cut -d. -f1,2)"
-            py_tag="py$(printf '%s' "$py_major_minor" | tr -d '.')"
-            sed -i -E 's/^target-version = "py[0-9]+"/target-version = "'"$py_tag"'"/' .config/ruff.toml
-        else
-            echo ".config/ruff.toml not found; skipping Ruff target-version update."
-        fi
-  - command: |
-        python3 '{{ _copier_conf.src_path }}/src/copier_tasks/copier_provenance.py' \
-            '{{ _copier_conf.src_path }}/template' \
-            '.' \
-            --template-src '{{ _src_path }}' \
-            --templates-suffix '.jinja'
-  # Re-stage the exec bit for tracked scripts, after the provenance task has stamped them.
-  #
-  # `git update-index --chmod=+x` on an already-tracked file refreshes the index entry from the working tree, staging
-  # whatever content is there at the time. The chmod tasks above run before the provenance task, so on an update they
-  # staged the unstamped file and the stamp that landed afterwards existed only in the working tree -- `git status`
-  # reported the file as both staged and modified, and committing the staged version silently dropped the provenance
-  # marker. Running it once more here leaves the index agreeing with the working tree.
-  #
-  # This is a separate trailing task rather than a reordering of the tasks above, because those are interleaved with
-  # Jinja conditionals that also open the block holding a content-modifying task, which has to keep running before the
-  # provenance task.
-  - command: |
-        for script in scripts/delete_false_positive_rej.py .claude/skills/address-pr-comments/*.py .claude/skills/fix-mutants/*.py; do
-            if [ -f "$script" ] && [ -x "$script" ]; then
-                if git ls-files --error-unmatch "$script" > /dev/null 2>&1; then
-                    git update-index --chmod=+x "$script"
-                fi
-            fi
-        done
+        done{% endraw %}{% endif %}{% raw %}
 
 # Additional Settings
 _min_copier_version: "9.8"
