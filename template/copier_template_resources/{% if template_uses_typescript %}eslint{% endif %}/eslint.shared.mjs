@@ -1,4 +1,56 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
 import vitest from "@vitest/eslint-plugin";
+
+// Consumers render this file at different depths below the repo root, so no fixed number of `../`
+// reaches `.config/eslint-rules/` for all of them.
+function findLocalRulesDir() {
+  let dir = path.dirname(fileURLToPath(import.meta.url));
+  for (;;) {
+    const candidate = path.join(dir, ".config", "eslint-rules");
+    if (fs.statSync(candidate, { throwIfNoEntry: false })?.isDirectory() === true) return candidate;
+    if (fs.existsSync(path.join(dir, ".git"))) {
+      throw new Error(`Could not find .config/eslint-rules under the project root ${dir}`);
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      throw new Error(`Could not find .config/eslint-rules above ${import.meta.url}`);
+    }
+    dir = parent;
+  }
+}
+
+async function loadLocalRules() {
+  const rulesDir = findLocalRulesDir();
+  const entries = fs.readdirSync(rulesDir).filter((entry) => entry.endsWith(".mjs"));
+  const rules = {};
+  for (const entry of entries) {
+    const ruleName = entry.slice(0, -".mjs".length);
+    const module = await import(pathToFileURL(path.join(rulesDir, entry)).href);
+    if (module.default === undefined) {
+      throw new Error(`Local ESLint rule module ${entry} has no default export`);
+    }
+    rules[ruleName] = module.default;
+  }
+  return rules;
+}
+
+const localRules = await loadLocalRules();
+
+/** @type {import("eslint").Linter.Config} */
+export const istanbulIgnoreIfMustThrowConfig = {
+  files: ["**/*.{ts,vue}"],
+  plugins: {
+    local: {
+      rules: localRules,
+    },
+  },
+  rules: {
+    "local/istanbul-ignore-if-must-throw": "error",
+  },
+};
 
 export const ignoresConfig = {
   ignores: [
@@ -87,4 +139,11 @@ export const e2eConfig = {
   },
 };
 
-export const sharedConfigs = [ignoresConfig, vueScriptLangConfig, noJsConfig, vitestConfig, e2eConfig];
+export const sharedConfigs = [
+  ignoresConfig,
+  vueScriptLangConfig,
+  noJsConfig,
+  vitestConfig,
+  e2eConfig,
+  istanbulIgnoreIfMustThrowConfig,
+];
