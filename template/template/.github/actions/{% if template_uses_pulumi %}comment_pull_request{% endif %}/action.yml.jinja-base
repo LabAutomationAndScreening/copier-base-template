@@ -46,10 +46,12 @@ runs:
           exit 1
         fi
 
+        # pass the marker through the environment rather than interpolating it into the jq program,
+        # so a tag containing quotes or backslashes cannot break the filter
         existing_comment_id="$(
-          gh api "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
+          COMMENT_MARKER="$marker" gh api "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
             --paginate \
-            --jq "map(select(.body | startswith(\"${marker}\"))) | first | .id // empty"
+            --jq 'map(select(.body | startswith(env.COMMENT_MARKER))) | first | .id // empty'
         )"
         # --paginate applies the jq filter per page, so keep only the first match across all pages
         existing_comment_id="${existing_comment_id%%$'\n'*}"
