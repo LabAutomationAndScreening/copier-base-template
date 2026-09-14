@@ -15,7 +15,6 @@ are uncommitted edits -- i.e. exactly when a test is being driven red-green.
 
 import shutil
 from pathlib import Path
-from typing import Any
 
 import copier
 import yaml
@@ -34,12 +33,12 @@ _IGNORED_SOURCE_DIRS = shutil.ignore_patterns(
 )
 
 
-def render_child_template(tmp_path: Path, *, data_file: str = "data1.yaml", **overrides: Any) -> Path:
+def render_child_template(tmp_path: Path, *, data_file: str = "data1.yaml", **overrides: object) -> Path:
     """Instantiate this template from the current working tree and return the rendered directory."""
     source = tmp_path / "template-source"
     rendered = tmp_path / "rendered"
-    shutil.copytree(PROJECT_ROOT, source, symlinks=True, ignore=_IGNORED_SOURCE_DIRS)
-    data: dict[str, Any] = yaml.safe_load((COPIER_DATA_DIR / data_file).read_text(encoding="utf-8"))
+    _ = shutil.copytree(PROJECT_ROOT, source, symlinks=True, ignore=_IGNORED_SOURCE_DIRS)
+    data: dict[str, object] = yaml.safe_load((COPIER_DATA_DIR / data_file).read_text(encoding="utf-8"))
     data.update(overrides)
     _ = copier.run_copy(
         str(source),
