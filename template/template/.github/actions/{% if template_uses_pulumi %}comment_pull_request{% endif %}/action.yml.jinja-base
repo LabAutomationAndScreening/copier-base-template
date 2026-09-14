@@ -1,0 +1,68 @@
+{% raw %}name: Comment on Pull Request
+description: Create or update a tagged comment on the pull request using the GitHub CLI
+inputs:
+  file-path:
+    type: string
+    description: Path to the file containing the markdown body of the comment.
+    required: true
+  comment-tag:
+    type: string
+    description: >-
+      Unique tag for this comment. A hidden HTML marker containing the tag is written into the comment body so that
+      later runs update the same comment instead of creating a new one.
+    required: true
+  github-token:
+    type: string
+    description: Token used to read and write pull request comments. Needs the `pull-requests` write permission.
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Create or update the tagged comment
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        COMMENT_FILE_PATH: ${{ inputs.file-path }}
+        COMMENT_TAG: ${{ inputs.comment-tag }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPOSITORY: ${{ github.repository }}
+      run: |
+        set -euo pipefail
+
+        if [ -z "${PR_NUMBER}" ]; then
+          echo "::error::No pull request number available in this event context. This action must run in a workflow triggered by a 'pull_request' event."
+          exit 1
+        fi
+
+        marker="<!-- comment-tag: ${COMMENT_TAG} -->"
+        body_file="$(mktemp)"
+        printf '%s\n' "$marker" > "$body_file"
+        cat "${COMMENT_FILE_PATH}" >> "$body_file"
+
+        # GitHub rejects comment bodies longer than 65536 characters.
+        if [ "$(wc -c < "$body_file")" -gt 65536 ]; then
+          echo "::error::Comment body is too long to post (limit is 65536 characters)."
+          exit 1
+        fi
+
+        # pass the marker through the environment rather than interpolating it into the jq program,
+        # so a tag containing quotes or backslashes cannot break the filter
+        existing_comment_id="$(
+          COMMENT_MARKER="$marker" gh api "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --paginate \
+            --jq 'map(select(.body | startswith(env.COMMENT_MARKER))) | first | .id // empty'
+        )"
+        # --paginate applies the jq filter per page, so keep only the first match across all pages
+        existing_comment_id="${existing_comment_id%%$'\n'*}"
+
+        if [ -n "$existing_comment_id" ]; then
+          gh api --method PATCH "repos/${REPOSITORY}/issues/comments/${existing_comment_id}" \
+            --field "body=@${body_file}" > /dev/null
+          echo "Updated existing comment ${existing_comment_id}."
+        else
+          gh api --method POST "repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --field "body=@${body_file}" > /dev/null
+          echo "Created a new comment."
+        fi
+      shell: bash{% endraw %}
