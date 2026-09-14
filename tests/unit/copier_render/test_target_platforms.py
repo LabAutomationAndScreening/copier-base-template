@@ -4,10 +4,12 @@ Child templates build their CI matrices and release asset lists from these, and 
 silently disagreed with the CI matrix is what motivated the questions in the first place.
 """
 
+import ast
 from pathlib import Path
 
 import pytest
 import yaml
+from jinja2.sandbox import SandboxedEnvironment
 
 from .helpers import render_child_template
 
@@ -35,6 +37,34 @@ class TestTargetPlatformsQuestion:
         choices = question["choices"]
         assert isinstance(choices, dict)
         assert set(choices.values()) == {"linux-x64", "linux-arm64", "windows-x64", "windows-arm64"}
+
+    @pytest.mark.parametrize(
+        ("legacy_answer", "expected_platforms"),
+        [
+            (True, ["linux-x64", "windows-x64"]),
+            (False, ["linux-x64"]),
+        ],
+    )
+    def test_Given_project_answered_the_superseded_question__Then_its_platforms_are_carried_over(
+        self, child_copier_questions: dict[str, object], legacy_answer: bool, expected_platforms: list[str]
+    ) -> None:
+        # On update, copier still exposes an answer whose question no longer exists when it computes a
+        # new question's default. Without this fallback a project that answered use_windows_in_ci: true
+        # would take the bare default and silently stop building and releasing for Windows.
+        question = child_copier_questions["target_platforms"]
+        assert isinstance(question, dict)
+        rendered = SandboxedEnvironment().from_string(str(question["default"])).render(use_windows_in_ci=legacy_answer)
+        assert ast.literal_eval(rendered) == expected_platforms
+
+    def test_Given_a_new_project__Then_the_platform_default_does_not_require_the_superseded_answer(
+        self, child_copier_questions: dict[str, object]
+    ) -> None:
+        # `copier copy` has no previous answers at all, so the expression has to tolerate the name
+        # being undefined rather than only a falsy value.
+        question = child_copier_questions["target_platforms"]
+        assert isinstance(question, dict)
+        rendered = SandboxedEnvironment().from_string(str(question["default"])).render()
+        assert ast.literal_eval(rendered) == ["linux-x64"]
 
     @pytest.mark.parametrize(
         ("question_name", "gating_platform"),

@@ -46,8 +46,10 @@ target_platforms:
         Linux arm64: linux-arm64
         Windows x64: windows-x64
         Windows arm64: windows-arm64
-    default:
-        - linux-x64
+    # `use_windows_in_ci` is the question this replaced. On update copier still exposes a previous
+    # answer whose question is gone, so projects that built for Windows keep doing so instead of
+    # silently dropping to Linux only; on a fresh copy the name is simply undefined.
+    default: "{{ ['linux-x64', 'windows-x64'] if use_windows_in_ci | default(false) else ['linux-x64'] }}"
 
 linux_arm64_runner_label:
     type: str
