@@ -5,14 +5,18 @@
  * an `if`) must throw: per ESLint's code path analysis, the end of the branch is
  * unreachable and no reachable return/break/continue inside it targets a construct
  * outside it. Coverage-ignoring a guard means "this is unreachable"; a silent
- * `return` there hides a real bug instead of surfacing it. If a silent exit is
- * genuinely intentional, the author must opt out with `return-ok` in the ignore
- * comment. Ignore comments on anything other than an `if` are left alone — the rule
+ * `return` there hides a real bug instead of surfacing it. If the absence is a
+ * legitimate state rather than a contract violation, the author opts out with
+ * `return-ok: <reason>` in the ignore comment — "cannot happen" is what the throw is
+ * for, not what the escape is for. The reason is required rather than conventional,
+ * since a bare `return-ok` is indistinguishable from silencing the guard.
+ * Ignore comments on anything other than an `if` are left alone — the rule
  * only makes a claim about branches whose shape it can verify.
  */
 
 const IGNORE_IF_OR_NEXT = /istanbul ignore (if|next)\b/;
 const RETURN_OK = /\breturn-ok\b/;
+const RETURN_OK_WITH_REASON = /\breturn-ok:\s*\S/;
 
 const LOOP_TYPES = new Set(["ForStatement", "ForInStatement", "ForOfStatement", "WhileStatement", "DoWhileStatement"]);
 const SILENT_EXIT_TYPES = new Set(["ReturnStatement", "BreakStatement", "ContinueStatement"]);
@@ -38,12 +42,15 @@ export default {
   meta: {
     type: "problem",
     docs: {
-      description: "Require `istanbul ignore if` branches to throw a defensive assertion",
+      description:
+        "Require `istanbul ignore if` branches to throw a defensive assertion naming the violated invariant",
     },
     schema: [],
     messages: {
       mustThrow:
-        "A branch marked `istanbul ignore if` must throw a defensive assertion. If a silent return is intentional, add `return-ok` to the ignore comment.",
+        '`istanbul ignore if` claims this branch cannot be reached, so it must throw and name the invariant that was violated — a silent exit hides exactly the bug the guard exists to catch. `return-ok` is not a shortcut for "cannot happen": use it only when the absence is a legitimate state the code tolerates, and say in the comment why it is legitimate.',
+      escapeNeedsReason:
+        "A `return-ok` escape must say why the absence is legitimate, as `return-ok: <reason>`. The escape claims this branch is a state the code tolerates rather than a violated invariant, and that claim is the reviewer's only evidence the guard was not simply silenced.",
     },
   },
   create(context) {
@@ -92,7 +99,11 @@ export default {
         const leading = sourceCode.getCommentsBefore(node);
         const ignoreComment = leading.find((comment) => IGNORE_IF_OR_NEXT.test(comment.value));
         if (ignoreComment === undefined) return;
-        if (RETURN_OK.test(ignoreComment.value)) return;
+        if (RETURN_OK.test(ignoreComment.value)) {
+          if (RETURN_OK_WITH_REASON.test(ignoreComment.value)) return;
+          context.report({ node, messageId: "escapeNeedsReason" });
+          return;
+        }
         branchStack.push({ node, consequent: node.consequent, depth: segmentStacks.length, reported: false });
       },
       ":statement:exit"(node) {
