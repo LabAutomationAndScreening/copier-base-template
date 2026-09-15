@@ -7,16 +7,20 @@
  * outside it. Coverage-ignoring a guard means "this is unreachable"; a silent
  * `return` there hides a real bug instead of surfacing it. If the absence is a
  * legitimate state rather than a contract violation, the author opts out with
- * `return-ok: <reason>` in the ignore comment — "cannot happen" is what the throw is
- * for, not what the escape is for. The reason is required rather than conventional,
- * since a bare `return-ok` is indistinguishable from silencing the guard.
+ * `return-ok <reason>` in the ignore comment (a colon after the token is optional) —
+ * "cannot happen" is what the throw is for, not what the escape is for. The reason is
+ * required rather than conventional, since a bare `return-ok` is indistinguishable
+ * from silencing the guard.
  * Ignore comments on anything other than an `if` are left alone — the rule
  * only makes a claim about branches whose shape it can verify.
  */
 
 const IGNORE_IF_OR_NEXT = /istanbul ignore (if|next)\b/;
-const RETURN_OK = /\breturn-ok\b/;
-const RETURN_OK_WITH_REASON = /\breturn-ok:\s*\S/;
+// `return-ok` contains a hyphen, so `\b` would accept one as a boundary and read the token out of
+// `not-return-ok`; the delimiter must exclude hyphens on both sides.
+const RETURN_OK = /(?<![-\w])return-ok(?![-\w])/;
+// The reason may not start with the colon, or `return-ok:` would backtrack into being its own reason.
+const RETURN_OK_WITH_REASON = /(?<![-\w])return-ok(?![-\w]):?\s*[^\s:]/;
 
 const LOOP_TYPES = new Set(["ForStatement", "ForInStatement", "ForOfStatement", "WhileStatement", "DoWhileStatement"]);
 const SILENT_EXIT_TYPES = new Set(["ReturnStatement", "BreakStatement", "ContinueStatement"]);
@@ -50,7 +54,7 @@ export default {
       mustThrow:
         '`istanbul ignore if` claims this branch cannot be reached, so it must throw and name the invariant that was violated — a silent exit hides exactly the bug the guard exists to catch. `return-ok` is not a shortcut for "cannot happen": use it only when the absence is a legitimate state the code tolerates, and say in the comment why it is legitimate.',
       escapeNeedsReason:
-        "A `return-ok` escape must say why the absence is legitimate, as `return-ok: <reason>`. The escape claims this branch is a state the code tolerates rather than a violated invariant, and that claim is the reviewer's only evidence the guard was not simply silenced.",
+        "A `return-ok` escape must say why the absence is legitimate, as `return-ok <reason>`. The escape claims this branch is a state the code tolerates rather than a violated invariant, and that claim is the reviewer's only evidence the guard was not simply silenced.",
     },
   },
   create(context) {

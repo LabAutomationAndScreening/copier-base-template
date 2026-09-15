@@ -38,6 +38,13 @@ ruleTester.run("istanbul-ignore-if-must-throw", rule, {
         }`,
     },
     {
+      name: "silent return allowed with return-ok escape whose reason has no colon",
+      code: `function f(x) {
+          /* istanbul ignore if -- @preserve return-ok absence is valid */
+          if (!x) return;
+        }`,
+    },
+    {
       name: "if without an istanbul ignore comment is untouched",
       code: `function f(x) {
           if (!x) return;
@@ -270,12 +277,20 @@ ruleTester.run("istanbul-ignore-if-must-throw", rule, {
       errors: [{ messageId: "escapeNeedsReason" }],
     },
     {
-      name: "return-ok escape with a reason but no colon separating it",
+      name: "hyphen-prefixed lookalike is not a return-ok escape",
       code: `function f(x) {
-          /* istanbul ignore if -- @preserve return-ok absence is valid */
+          /* istanbul ignore if -- @preserve not-return-ok: absence is valid */
           if (!x) return;
         }`,
-      errors: [{ messageId: "escapeNeedsReason" }],
+      errors: [{ messageId: "mustThrow" }],
+    },
+    {
+      name: "hyphen-suffixed lookalike is not a return-ok escape",
+      code: `function f(x) {
+          /* istanbul ignore if -- @preserve return-ok-ish */
+          if (!x) return;
+        }`,
+      errors: [{ messageId: "mustThrow" }],
     },
     {
       name: "reasonless return-ok on a branch that throws anyway",
