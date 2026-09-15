@@ -140,7 +140,12 @@ class ContextUpdater(ContextHook):
         # which a hand-answered os field, or prefix-matching the org-chosen runner label, would allow.
         context["os_for_platform"] = {platform: platform.split("-")[0] for platform in context["runner_for_platform"]}
         context["windows_platforms"] = [p for p in selected_platforms if p.split("-")[0] == "windows"]
-        context["use_windows_in_ci"] = bool(context["windows_platforms"])
+        # This hook also runs while question defaults render, before `target_platforms` is answered.
+        # `use_windows_in_ci` is the answer `target_platforms` replaced, and its legacy value is what
+        # the `target_platforms` default migrates from -- so it must only be overridden once there is
+        # a `target_platforms` answer to derive it from, or every updating Windows project drops to Linux.
+        if context.get("target_platforms") is not None:
+            context["use_windows_in_ci"] = bool(context["windows_platforms"])
         context["gha_short_timeout_minutes"] = "{{ gha_short_timeout_minutes }}"
         context["gha_medium_timeout_minutes"] = "{{ gha_medium_timeout_minutes }}"
         context["gha_long_timeout_minutes"] = "{{ gha_long_timeout_minutes }}"
