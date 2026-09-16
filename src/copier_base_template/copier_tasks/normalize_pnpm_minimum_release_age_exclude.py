@@ -7,13 +7,14 @@ _COMMENT_SEPARATOR = " #"
 
 
 def _parse_patterns(raw: str) -> list[str]:
-    patterns: list[str] = []
-    for raw_pattern in raw.split(","):
-        pattern = raw_pattern.strip().strip('"').strip("'")
-        if pattern == "":
-            continue
-        patterns.append(pattern)
-    return patterns
+    # Deliberately not shared with ensure_pnpm_minimum_release_age_exclude.py: each copier task script is
+    # symlinked into generated repos on its own, so one importing another would break wherever only one lands.
+    parsed: list[str] = []
+    for candidate in raw.split(","):
+        unquoted = candidate.strip().strip('"').strip("'")
+        if unquoted != "":
+            parsed.append(unquoted)
+    return parsed
 
 
 def _split_trailing_comment(*, raw_value: str) -> tuple[str, str]:
