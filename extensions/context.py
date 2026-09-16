@@ -45,7 +45,7 @@ class ContextUpdater(ContextHook):
         context["boto3_version"] = ">=1.43.88"
         context["ephemeral_pulumi_deploy_version"] = ">=0.0.7"
         context["pydantic_version"] = ">=2.13.5"
-        context["pyinstaller_version"] = ">=6.22.2"
+        context["pyinstaller_version"] = ">=6.22.3"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = (
             "==0.298.0"  # problems with strawberry pydantic in later versions...lost the context for exactly why...it was figured out a while ago, but has to do with being able to override resolvers and have the schema still keep the desired nullability
@@ -62,7 +62,7 @@ class ContextUpdater(ContextHook):
         context["structlog_version"] = ">=26.1.0"
         context["httpx_version"] = ">=0.28.1"
         context["httpx2_version"] = ">=2.13.0"
-        context["python_kiota_bundle_version"] = ">=1.11.6"
+        context["python_kiota_bundle_version"] = ">=1.12.3"
         context["vcrpy_version"] = ">=8.3.0"
         context["pytest_recording_version"] = ">=0.13.4"
         context["pytest_asyncio_version"] = ">=1.4.0"
