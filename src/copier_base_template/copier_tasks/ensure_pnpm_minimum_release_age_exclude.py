@@ -1,10 +1,12 @@
 import argparse
+import json
 import shutil
 import subprocess
 from pathlib import Path
 
 _EXIT_CODE_PNPM_NOT_FOUND = 1
 _WORKSPACE_FILENAME = "pnpm-workspace.yaml"
+_SETTING_NAME = "minimumReleaseAgeExclude"
 
 
 def _parse_patterns(raw: str) -> list[str]:
@@ -15,6 +17,25 @@ def _parse_patterns(raw: str) -> list[str]:
         if pattern == "":
             continue
         patterns.append(pattern)
+    return patterns
+
+
+def _existing_patterns(*, workspace_dir: Path) -> list[str]:
+    get_result = subprocess.run(  # noqa: S603 -- every argument is a literal defined in this module, none come from user input
+        ["pnpm", "config", "--location", "project", "--json", "get", _SETTING_NAME],  # noqa: S607 -- pnpm is a trusted tool, not user input
+        check=True,
+        capture_output=True,
+        text=True,
+        cwd=workspace_dir,
+    )
+    parsed: object = json.loads(get_result.stdout)
+    if not isinstance(parsed, list):
+        return []
+    patterns: list[str] = []
+    for entry in parsed:
+        if not isinstance(entry, str):
+            continue
+        patterns.append(entry)
     return patterns
 
 
@@ -29,20 +50,10 @@ def ensure_minimum_release_age_exclude(*, workspace_dir: Path, patterns: list[st
         print(f"{workspace_dir / _WORKSPACE_FILENAME} not found; skipping.")  # noqa: T201 -- copier task output must reach the user
         return
 
-    get_result = subprocess.run(
-        ["pnpm", "config", "--location", "project", "get", "minimumReleaseAgeExclude"],  # noqa: S607 -- pnpm is a trusted tool, not user input
-        check=True,
-        capture_output=True,
-        text=True,
-        cwd=workspace_dir,
-    )
-    raw_existing = get_result.stdout.strip()
-    existing: list[str] = []
-    if raw_existing != "undefined":
-        existing = _parse_patterns(raw_existing)
+    existing = _existing_patterns(workspace_dir=workspace_dir)
     merged = existing + [p for p in patterns if p not in existing]
     _ = subprocess.run(  # noqa: S603 -- merged patterns come from pnpm config get and CLI input, both trusted in this copier task context
-        ["pnpm", "config", "--location", "project", "set", "minimumReleaseAgeExclude", ",".join(merged)],  # noqa: S607 -- pnpm is a trusted tool, not user input
+        ["pnpm", "config", "--location", "project", "--json", "set", _SETTING_NAME, json.dumps(merged)],  # noqa: S607 -- pnpm is a trusted tool, not user input
         check=True,
         cwd=workspace_dir,
     )
