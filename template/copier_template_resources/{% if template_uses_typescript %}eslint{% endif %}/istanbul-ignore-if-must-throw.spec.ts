@@ -31,9 +31,16 @@ ruleTester.run("istanbul-ignore-if-must-throw", rule, {
         }`,
     },
     {
-      name: "silent return allowed with return-ok escape",
+      name: "silent return allowed with return-ok escape carrying a reason",
       code: `function f(x) {
           /* istanbul ignore if -- @preserve return-ok: absence is valid */
+          if (!x) return;
+        }`,
+    },
+    {
+      name: "silent return allowed with return-ok escape whose reason has no colon",
+      code: `function f(x) {
+          /* istanbul ignore if -- @preserve return-ok absence is valid */
           if (!x) return;
         }`,
     },
@@ -252,6 +259,46 @@ ruleTester.run("istanbul-ignore-if-must-throw", rule, {
           if (!x) return;
         }`,
       errors: [{ messageId: "mustThrow" }],
+    },
+    {
+      name: "return-ok escape with no reason at all",
+      code: `function f(x) {
+          /* istanbul ignore if -- @preserve return-ok */
+          if (!x) return;
+        }`,
+      errors: [{ messageId: "escapeNeedsReason" }],
+    },
+    {
+      name: "return-ok escape whose colon is followed by nothing",
+      code: `function f(x) {
+          /* istanbul ignore if -- @preserve return-ok:   */
+          if (!x) return;
+        }`,
+      errors: [{ messageId: "escapeNeedsReason" }],
+    },
+    {
+      name: "hyphen-prefixed lookalike is not a return-ok escape",
+      code: `function f(x) {
+          /* istanbul ignore if -- @preserve not-return-ok: absence is valid */
+          if (!x) return;
+        }`,
+      errors: [{ messageId: "mustThrow" }],
+    },
+    {
+      name: "hyphen-suffixed lookalike is not a return-ok escape",
+      code: `function f(x) {
+          /* istanbul ignore if -- @preserve return-ok-ish */
+          if (!x) return;
+        }`,
+      errors: [{ messageId: "mustThrow" }],
+    },
+    {
+      name: "reasonless return-ok on a branch that throws anyway",
+      code: `function f(x) {
+          /* istanbul ignore if -- @preserve return-ok */
+          if (!x) throw new Error("bad");
+        }`,
+      errors: [{ messageId: "escapeNeedsReason" }],
     },
     {
       name: "block that does not end in throw",
