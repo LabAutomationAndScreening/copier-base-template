@@ -13,12 +13,12 @@ class ContextUpdater(ContextHook):
         self, context: dict[Any, Any]
     ) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.12.6"
+        context["uv_version"] = "0.12.15"
         context["pre_commit_version"] = "4.6.2"
         context["pnpm_version"] = "11.22.0"
         context["task_version"] = "3.53.1"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
-        context["copier_version"] = "==9.17.1"
+        context["copier_version"] = "==9.18.2"
         context["copier_template_extensions_version"] = "==0.3.3"
         #######
         # These two move in lockstep, and are consumed from separate files in this repository (.devcontainer/docker-compose.yml and
@@ -44,7 +44,7 @@ class ContextUpdater(ContextHook):
         context["pulumi_okta_version"] = ">=6.6.0"
         context["boto3_version"] = ">=1.43.88"
         context["ephemeral_pulumi_deploy_version"] = ">=0.0.7"
-        context["pydantic_version"] = ">=2.13.4"
+        context["pydantic_version"] = ">=2.13.5"
         context["pyinstaller_version"] = ">=6.22.2"
         context["setuptools_version"] = "80.7.1"
         context["strawberry_graphql_version"] = (
@@ -53,22 +53,21 @@ class ContextUpdater(ContextHook):
         context["fastapi_version"] = ">=0.141.1"
         context["fastapi_offline_version"] = ">=1.7.7"
         context["starlette_version"] = ">=1.6.0"
-        context["uvicorn_version"] = ">=0.52.3"
+        context["uvicorn_version"] = ">=0.53.0"
         context["lab_auto_pulumi_version"] = ">=0.2.3"
         context["ariadne_codegen_version"] = ">=0.18.0"
         context["pytest_mock_version"] = ">=3.15.1"
-        context["uuid_utils_version"] = ">=0.16.2"
-        context["syrupy_version"] = ">=5.5.3"
+        context["uuid_utils_version"] = ">=1.0.0"
+        context["syrupy_version"] = ">=6.1.1"
         context["structlog_version"] = ">=26.1.0"
         context["httpx_version"] = ">=0.28.1"
-        context["httpx2_version"] = ">=2.12.0"
+        context["httpx2_version"] = ">=2.13.0"
         context["python_kiota_bundle_version"] = ">=1.11.6"
         context["vcrpy_version"] = ">=8.3.0"
         context["pytest_recording_version"] = ">=0.13.4"
         context["pytest_asyncio_version"] = ">=1.4.0"
         context["pytest_timeout_version"] = ">=2.4.0"
         context["pytest_reserial_version"] = ">=0.6.1"
-        context["vacuum_openapi_version"] = "0.30.0"
         #######
         context["npm_version"] = "11.13.0"
         context["nvm_version"] = "0.40.5"
@@ -144,6 +143,8 @@ class ContextUpdater(ContextHook):
         context["gha_long_timeout_minutes"] = "15"
         context["gha_xlong_timeout_minutes"] = "45"
         context["gha_xxlong_timeout_minutes"] = "90"
+        #######
+        context["vacuum_openapi_version"] = "0.30.0"
         #######
         context["debian_release_name"] = "trixie"
         context["alpine_image_version"] = "3.23"
