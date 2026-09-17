@@ -21,6 +21,16 @@ install_claude_cli:
     help: Should the Claude CLI be installed in the devcontainer?
     default: no
 
+comment_audit_gate_mode:
+    type: str
+    help: How should the comment-audit gate react when the agent pushes un-audited source comments?
+    default: warn
+    choices:
+      "Warn only - report them and let the push through": warn
+      "Block - refuse the push until the comment-audit skill approves": block
+      "Off - never react; /comment-audit still works on demand": "off"
+    when: "{{ install_claude_cli }}"
+
 python_version:
     type: str
     help: What version of Python?
@@ -114,6 +124,16 @@ _tasks:
                 fi
             fi
         done
+  # hooks.jsonc cannot carry Jinja: it is not a .jinja-base file, and in the template it is a symlink to
+  # this repository's own live .claude, which would then fail to parse. So the answer is patched in here.
+  - command: |
+        if [ -f .claude/settings/hooks.jsonc ]; then
+            echo "Setting the comment-audit gate to {{ comment_audit_gate_mode }}..."
+            sed -i -E 's/COMMENT_GATE_MODE=[a-z]+/COMMENT_GATE_MODE={{ comment_audit_gate_mode }}/' .claude/settings/hooks.jsonc
+        else
+            echo ".claude/settings/hooks.jsonc not found; skipping comment-audit gate mode update."
+        fi
+    when: "{{ install_claude_cli }}"
   - command: |
         if [ -f .config/ruff.toml ]; then
             echo "Updating ruff target-version from python_version..."

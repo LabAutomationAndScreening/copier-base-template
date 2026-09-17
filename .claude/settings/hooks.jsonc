@@ -41,9 +41,10 @@
             "timeout": 5,
             "statusMessage": "Checking for command chaining...",
           },
-          // Reports `git push`es that add un-audited source comments. Starts in `warn`: it never blocks,
-          // it just points at /comment-audit. Switch COMMENT_GATE_MODE to `block` once the reports have
-          // proven trustworthy on this repo, or to `off` to silence it.
+          // Reports `git push`es that add un-audited source comments. In `warn` it never blocks, it only
+          // points at /comment-audit. The mode is the `comment_audit_gate_mode` copier answer, patched in
+          // by a template task — change it with `copier update`, not by editing this line, which the next
+          // update would overwrite.
           {
             "type": "command",
             "command": "sh -c 'GATE=\"$CLAUDE_PROJECT_DIR/.claude/skills/comment-audit/comment-gate.py\"; if [ -f \"$GATE\" ]; then COMMENT_GATE_MODE=warn python3 \"$GATE\"; fi'",
