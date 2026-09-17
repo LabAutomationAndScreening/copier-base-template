@@ -18,17 +18,17 @@ gate only detects that added comments exist; this skill does the judgment and th
 
 ## Gate modes
 
-The gate runs in one of three modes, set by `COMMENT_GATE_MODE` in the hook wiring
-(`.claude/settings/hooks.jsonc`):
+The gate runs in one of three modes, set by `mode` in `.config/comment-audit.toml`:
 
 - **`warn`** (the default) — the gate reports the un-audited comments and lets the push through.
   Running this skill is a recommendation, not a precondition.
 - **`block`** — the push is refused until this skill stamps approval.
 - **`off`** — the gate does nothing; `/comment-audit` still works on demand.
 
-The mode comes from the `comment_audit_gate_mode` copier answer, which a template task patches into
-`hooks.jsonc`. Change it with `copier update` so the answer and the wiring stay in agreement — editing
-`hooks.jsonc` by hand works until the next update overwrites it.
+The template renders that file from the `comment_audit_gate_mode` copier answer, so a project starts in
+the mode it chose. Editing the file directly is fine and survives `copier update` as long as the answer
+has not changed; change the answer too if the new mode is meant to be permanent. `COMMENT_GATE_MODE`
+overrides the file for a one-off or a test.
 
 The workflow below is the same in every mode. In `warn` the stamp in Step 4 is not strictly required, but
 still do it: it records that this HEAD was audited, and keeps the flow identical if the project later

@@ -12,11 +12,16 @@ Division of labour:
   - skill (comment-audit): the actual review — classify each comment, review every one with the human
     (keep/drop/edit), apply decisions, then stamp the attestation marker (comment-audit.py stamp) and push.
 
-Modes, read from COMMENT_GATE_MODE (the hook wiring sets it; anything unrecognised is treated as `warn`):
+Modes:
   - warn  (the default): report the un-audited comments and let the push through. The agent sees the
     listing as hook context and can choose to run the audit; nothing is ever blocked.
   - block: refuse the push until the skill has stamped approval. The enforcing mode.
   - off:   do nothing.
+
+The mode comes from `mode` in <project>/.config/comment-audit.toml, which the template renders from the
+`comment_audit_gate_mode` copier answer. COMMENT_GATE_MODE overrides the file for a one-off or a test.
+Anything missing, unreadable, or unrecognised falls back to `warn` — a gate that cannot read its own
+config should nag, not block, and certainly not vanish.
 
 `warn` is the default on purpose: the detector's precision on a given repo is unknown until it has run
 against real branches, and a false positive in `warn` is noise where in `block` it is a work stoppage.
@@ -38,6 +43,7 @@ mode the report is emitted as hook JSON on stdout — PreToolUse plain stdout on
 import json
 import os
 import sys
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -50,6 +56,7 @@ MODE_ENV = "COMMENT_GATE_MODE"
 MODE_OFF = "off"
 MODE_WARN = "warn"
 MODE_BLOCK = "block"
+CONFIG_RELPATH = Path(".config") / "comment-audit.toml"
 
 _GUIDANCE = (
     "Run the comment-audit skill — invoke /comment-audit. It reviews every comment with you\n"
@@ -58,12 +65,45 @@ _GUIDANCE = (
 )
 
 
-def _mode() -> str:
-    raw = os.environ.get(MODE_ENV, "").strip().lower()
-    if raw == MODE_OFF:
+def _normalise(raw: str) -> str | None:
+    """Map a configured value onto a mode, or None when it names none of them."""
+    cleaned = raw.strip().lower()
+    if cleaned == MODE_OFF:
         return MODE_OFF
-    if raw == MODE_BLOCK:
+    if cleaned == MODE_WARN:
+        return MODE_WARN
+    if cleaned == MODE_BLOCK:
         return MODE_BLOCK
+    return None
+
+
+def _configured_mode(cwd: str) -> str | None:
+    """Read `mode` from the project's comment-audit.toml, or None if it is absent or unusable.
+
+    The project root is CLAUDE_PROJECT_DIR, which the hook wiring provides; the payload's cwd is the
+    fallback for a direct invocation.
+    """
+    root = os.environ.get("CLAUDE_PROJECT_DIR")
+    if not root:
+        root = cwd
+    try:
+        with (Path(root) / CONFIG_RELPATH).open("rb") as handle:
+            config = tomllib.load(handle)
+    except (OSError, tomllib.TOMLDecodeError):
+        return None  # no config, or not parseable
+    mode = config.get("mode")
+    if not isinstance(mode, str):
+        return None
+    return _normalise(mode)
+
+
+def _mode(cwd: str) -> str:
+    override = _normalise(os.environ.get(MODE_ENV, ""))
+    if override:
+        return override
+    configured = _configured_mode(cwd)
+    if configured:
+        return configured
     return MODE_WARN
 
 
@@ -136,10 +176,9 @@ def _fail(message: str, *, mode: str) -> None:
 
 
 def main() -> None:
-    mode = _mode()
-    if mode == MODE_OFF:
-        return
-
+    # Until the payload says where the project is, an unexpected failure is handled as `warn`. The hook
+    # fires on every Bash call, so the mode is resolved only once the command is known to be a push.
+    mode = MODE_WARN
     try:
         data = json.loads(sys.stdin.read() or "{}")
         command = (data.get("tool_input", {}).get("command") or "").strip()
@@ -147,6 +186,9 @@ def main() -> None:
             return  # not a push — nothing to gate
 
         cwd = data.get("cwd") or data.get("tool_input", {}).get("cwd") or "."
+        mode = _mode(cwd)
+        if mode == MODE_OFF:
+            return
 
         try:
             info = collect_added_comments(cwd)

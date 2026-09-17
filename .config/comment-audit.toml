@@ -1,0 +1,4 @@
+# How the comment-audit gate reacts when the agent pushes un-audited source comments.
+# "warn" reports them and lets the push through, "block" refuses it until the comment-audit skill
+# stamps approval, "off" disables the gate (/comment-audit still works on demand).
+mode = "warn"
