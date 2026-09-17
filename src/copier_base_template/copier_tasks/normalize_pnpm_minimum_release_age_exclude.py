@@ -1,3 +1,7 @@
+# PNPM12-MIGRATION -- this entire module is transient. It exists only to carry repos across the pnpm 11 -> 12
+# boundary, where minimumReleaseAgeExclude changed from a comma-delimited string to a YAML sequence. Once every
+# downstream repo has taken an update that runs it, delete this file, its symlink under
+# `template/src/copier_tasks/`, its test module, and the migration that invokes it. Grep PNPM12-MIGRATION.
 import argparse
 from pathlib import Path
 

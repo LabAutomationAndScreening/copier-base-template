@@ -160,6 +160,9 @@ pnpm_minimum_release_age_exclude:
 
 
 {% endraw %}{% if template_uses_typescript %}{% raw %}_migrations:
+  # PNPM12-MIGRATION -- this whole block is transient: it carries repos across the pnpm 11 -> 12 boundary and
+  # nothing else. Delete both entries (and with them `_migrations` entirely, if nothing else has been added)
+  # once every downstream repo has taken an update that ran them. Grep PNPM12-MIGRATION for the rest.
   # Both of these run in the `before` stage, while the repo's own pnpm-workspace.yaml is still on disk and
   # before anything in the update reaches for pnpm. pnpm 12 cannot load a manifest whose
   # minimumReleaseAgeExclude is a scalar -- it fails every pnpm command, `pnpm --version` included -- so the

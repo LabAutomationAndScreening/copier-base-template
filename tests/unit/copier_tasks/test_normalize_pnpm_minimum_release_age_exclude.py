@@ -1,3 +1,5 @@
+# PNPM12-MIGRATION -- delete this module together with the script it covers, once every downstream repo has
+# crossed the pnpm 11 -> 12 boundary. Grep PNPM12-MIGRATION.
 import subprocess
 from pathlib import Path
 
