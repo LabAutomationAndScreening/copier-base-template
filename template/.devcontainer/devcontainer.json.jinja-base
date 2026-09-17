@@ -42,7 +42,7 @@
         // Python
         "-ms-python.vscode-pylance", // pyrefly is the language server for this project; ms-python.python auto-installs Pylance via its extension pack, and Pylance then warns on every boot that it's disabled
         "ms-python.python@2026.5.2026052901",
-        "meta.pyrefly@1.3.1", // a bare version, so it cannot be driven from pyrefly_version, which is a PEP 440 specifier
+        "meta.pyrefly@1.3.1",
         "ms-vscode-remote.remote-containers@0.414.0",
         "charliermarsh.ruff@2026.68.0",{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %}
