@@ -10,15 +10,22 @@ _SETTING_NAME = "minimumReleaseAgeExclude"
 _COMMENT_SEPARATOR = " #"
 
 
+# Identical to the helper in ensure_pnpm_minimum_release_age_exclude.py on purpose: each copier task script is
+# symlinked into generated repos on its own, so one importing another would break wherever only one lands, and
+# this module is deleted at the end of the pnpm 12 migration regardless.
+# pylint: disable=duplicate-code
 def _parse_patterns(raw: str) -> list[str]:
-    # Deliberately not shared with ensure_pnpm_minimum_release_age_exclude.py: each copier task script is
-    # symlinked into generated repos on its own, so one importing another would break wherever only one lands.
-    parsed: list[str] = []
-    for candidate in raw.split(","):
-        unquoted = candidate.strip().strip('"').strip("'")
-        if unquoted != "":
-            parsed.append(unquoted)
-    return parsed
+    patterns: list[str] = []
+    for raw_pattern in raw.split(","):
+        # Quotes are removed before the emptiness check so a quoted-empty entry doesn't yield an empty pattern.
+        pattern = raw_pattern.strip().strip('"').strip("'")
+        if pattern == "":
+            continue
+        patterns.append(pattern)
+    return patterns
+
+
+# pylint: enable=duplicate-code
 
 
 def _split_trailing_comment(*, raw_value: str) -> tuple[str, str]:
