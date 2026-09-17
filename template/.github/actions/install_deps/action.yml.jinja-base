@@ -95,7 +95,7 @@ runs:
     - name: Install tooling
       # the funky syntax is github action ternary
       # --no-node is always passed because the only node tooling this script installs is pnpm, which pnpm/setup above already installed
-      run: python .devcontainer/install-ci-tooling.py ${{ inputs.python-version == 'notUsing' && '--no-python' || '' }} --no-node ${{ inputs.skip-installing-ssm-plugin-manager && '--skip-installing-ssm-plugin' || '' }}
+      run: python .devcontainer/install-ci-tooling.py ${{ inputs.python-version == 'notUsing' && '--no-python' || '' }} --no-node ${{ inputs.skip-installing-ssm-plugin-manager == 'true' && '--skip-installing-ssm-plugin' || '' }}
       shell: pwsh
 
     - name: OIDC Auth for CodeArtifact
@@ -107,6 +107,6 @@ runs:
 
     - name: Install dependencies
       # the funky syntax is github action ternary
-      if: ${{ inputs.install-deps }}
-      run: python .devcontainer/manual-setup-deps.py ${{ inputs.python-version == 'notUsing' && '--no-python' || '' }} ${{ inputs.node-version == 'notUsing' && '--no-node' || '' }} ${{ inputs.skip-updating-devcontainer-hash && '--skip-updating-devcontainer-hash' || '' }} ${{ inputs.skip-installing-pulumi-cli && '--skip-installing-pulumi-cli' || '' }}
+      if: ${{ inputs.install-deps == 'true' }}
+      run: python .devcontainer/manual-setup-deps.py ${{ inputs.python-version == 'notUsing' && '--no-python' || '' }} ${{ inputs.node-version == 'notUsing' && '--no-node' || '' }} ${{ inputs.skip-updating-devcontainer-hash == 'true' && '--skip-updating-devcontainer-hash' || '' }} ${{ inputs.skip-installing-pulumi-cli == 'true' && '--skip-installing-pulumi-cli' || '' }}
       shell: pwsh{% endraw %}
