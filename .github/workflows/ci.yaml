@@ -266,13 +266,16 @@ jobs:
     permissions: {}
     steps:
       - name: fail if prior job failure
+        # Iterating the needs context keeps this gate from drifting out of sync with the job list above
+        env:
+          NEEDS: ${{ toJSON(needs) }}
         run: |
-          success_pattern="^(skipped|success)$" # these are the possibilities: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#needs-context
+          # these are the possibilities: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#needs-context
+          not_ok=$(jq -r 'to_entries[] | select(.value.result | test("^(skipped|success)$") | not) | .key' <<<"$NEEDS")
 
-          if [[ ! "${{ needs.pre-commit.result }}" =~ $success_pattern ]] ||
-            [[ ! "${{ needs.lint-matrix.result }}" =~ $success_pattern ]] ||
-            [[ ! "${{ needs.unit-test.result }}" =~ $success_pattern ]]; then
-            echo "❌ One or more jobs did not finish with skipped or success"
+          if [[ -n "$not_ok" ]]; then
+            echo "❌ One or more jobs did not finish with skipped or success:"
+            echo "$not_ok"
             exit 1
           fi
           echo "✅ All jobs finished with skipped or success"
