@@ -42,7 +42,7 @@
             "statusMessage": "Checking for command chaining...",
           },
           // Reports `git push`es that add un-audited source comments. How it reacts (warn/block/off) is
-          // `mode` in .config/comment-audit.toml, not set here, so this wiring is the same for every
+          // `mode` in .config/claude/comment-audit.toml, not set here, so this wiring is the same for every
           // project and the mode is one editable line.
           {
             "type": "command",

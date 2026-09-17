@@ -18,7 +18,7 @@ Modes:
   - block: refuse the push until the skill has stamped approval. The enforcing mode.
   - off:   do nothing.
 
-The mode comes from `mode` in <project>/.config/comment-audit.toml, which the template renders from the
+The mode comes from `mode` in <project>/.config/claude/comment-audit.toml, which the template renders from the
 `comment_audit_gate_mode` copier answer. COMMENT_GATE_MODE overrides the file for a one-off or a test.
 Anything missing, unreadable, or unrecognised falls back to `warn` — a gate that cannot read its own
 config should nag, not block, and certainly not vanish.
@@ -56,7 +56,7 @@ MODE_ENV = "COMMENT_GATE_MODE"
 MODE_OFF = "off"
 MODE_WARN = "warn"
 MODE_BLOCK = "block"
-CONFIG_RELPATH = Path(".config") / "comment-audit.toml"
+CONFIG_RELPATH = Path(".config") / "claude" / "comment-audit.toml"
 
 _GUIDANCE = (
     "Run the comment-audit skill — invoke /comment-audit. It reviews every comment with you\n"

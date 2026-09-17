@@ -18,7 +18,7 @@ gate only detects that added comments exist; this skill does the judgment and th
 
 ## Gate modes
 
-The gate runs in one of three modes, set by `mode` in `.config/comment-audit.toml`:
+The gate runs in one of three modes, set by `mode` in `.config/claude/comment-audit.toml`:
 
 - **`warn`** (the default) — the gate reports the un-audited comments and lets the push through.
   Running this skill is a recommendation, not a precondition.
