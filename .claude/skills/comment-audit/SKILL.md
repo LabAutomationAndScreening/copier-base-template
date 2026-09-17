@@ -118,13 +118,28 @@ reason. This is a recommendation only — the user decides every comment in Step
 **Bias toward DROP.** A comment survives only if you can state the specific non-obvious thing it tells a
 reader that the code does not. "It's a helpful summary" is not enough.
 
+**A comment's origin is not a defence.** A file vendored or copied in wholesale makes every comment in it
+read as "added on this branch", and those comments have usually never been audited by anyone. "It came
+from upstream" is not a reason to keep one — judge it on the same merit as a line written today.
+
 ### Step 3 — Review every comment with the user
 
 Each comment in the Step 1 `list` JSON carries a `block`: the pre-rendered, verbatim, line-numbered
-snippet. **Paste each `block` into chat exactly as it comes — never retype, summarise, ellipsis, or
-shorten it.** The whole reason `block` is a ready-made string is so you copy it rather than transcribe it;
-transcribing is where truncation creeps in. Do not route it through a scratch file — read the JSON and
-emit the `block` value directly. Each block looks like:
+snippet.
+
+**The block must appear in the assistant message you write, not only in tool output.** Command output is
+not reliably shown to the user — a `jq -r '.block'` that prints perfectly in your terminal may be
+invisible to them, and they will approve verdicts on comments they never saw. Read the JSON, then write
+the block text into your own message, in a fenced code block, immediately above its verdict and in the
+same message as the question that asks about it.
+
+**Copy it exactly — never retype, summarise, ellipsis, or shorten it.** The whole reason `block` is a
+ready-made string is so you copy it rather than transcribe it; transcribing is where truncation creeps in.
+
+Before every AskUserQuestion, check: is the full text of every comment this call asks about present in a
+message *you wrote*? If it exists only in a tool result, you have not shown it.
+
+Each block looks like:
 
 ```
 <file>:<start>-<end>  [comment|docstring]
@@ -142,6 +157,10 @@ Work in **rounds of four** (AskUserQuestion allows at most four questions per ca
 names the comment by `file:start-end` and its verdict. Loop until every comment has a decision — a large
 audit is several rounds; do not skip any. One question per comment (**Keep / Drop / Edit**), options
 ordered with your recommended verdict first.
+
+Above roughly a dozen comments, offer the alternative before starting: every comment and verdict in one
+message, then the user names only the ones they want changed. Either way the full-text rule above still
+applies.
 
 - **Keep** — leave as-is.
 - **Drop** — remove the comment line(s).
