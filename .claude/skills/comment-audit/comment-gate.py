@@ -12,17 +12,6 @@ Division of labour:
   - skill (comment-audit): the actual review — classify each comment, review every one with the human
     (keep/drop/edit), apply decisions, then stamp the attestation marker (comment-audit.py stamp) and push.
 
-Modes:
-  - warn  (the default): report the un-audited comments and let the push through. The agent sees the
-    listing as hook context and can choose to run the audit; nothing is ever blocked.
-  - block: refuse the push until the skill has stamped approval. The enforcing mode.
-  - off:   do nothing.
-
-The mode comes from `mode` in <project>/.config/claude/comment-audit.toml, which the template renders from the
-`comment_audit_gate_mode` copier answer. COMMENT_GATE_MODE overrides the file for a one-off or a test.
-Anything missing, unreadable, or unrecognised falls back to `warn` — a gate that cannot read its own
-config should nag, not block, and certainly not vanish.
-
 `warn` is the default on purpose: the detector's precision on a given repo is unknown until it has run
 against real branches, and a false positive in `warn` is noise where in `block` it is a work stoppage.
 Move a project to `block` once warn-mode reports have proven trustworthy.
@@ -52,7 +41,6 @@ from utils import MARKER_NAME
 from utils import collect_added_comments
 from utils import is_git_push
 
-MODE_ENV = "COMMENT_GATE_MODE"
 MODE_OFF = "off"
 MODE_WARN = "warn"
 MODE_BLOCK = "block"
@@ -66,7 +54,6 @@ _GUIDANCE = (
 
 
 def _normalise(raw: str) -> str | None:
-    """Map a configured value onto a mode, or None when it names none of them."""
     cleaned = raw.strip().lower()
     if cleaned == MODE_OFF:
         return MODE_OFF
@@ -98,9 +85,6 @@ def _configured_mode(cwd: str) -> str | None:
 
 
 def _mode(cwd: str) -> str:
-    override = _normalise(os.environ.get(MODE_ENV, ""))
-    if override:
-        return override
     configured = _configured_mode(cwd)
     if configured:
         return configured
@@ -152,7 +136,11 @@ def _emit_warning(message: str) -> None:
 
 
 def _marker_matches_head(info: dict[str, Any]) -> bool:
-    """Report whether the approval marker names the current HEAD, consuming it when it does."""
+    """Report whether the approval marker names the current HEAD.
+
+    A match consumes the marker: approval is single-use, so a later push that adds new comments has to be
+    audited again rather than riding on the previous stamp.
+    """
     marker = Path(str(info["gitDir"])) / MARKER_NAME
     try:
         if marker.read_text(encoding="utf-8").strip() == info["head"]:

@@ -54,7 +54,11 @@ def run_cmd(
 
 
 def git(args: list[str], cwd: str) -> str:
-    """Run a git command in cwd and return its trimmed stdout. Raises CalledProcessError on failure."""
+    """Run a git command in cwd, raising CalledProcessError on failure.
+
+    Stdout is trimmed, so callers that depend on exact bytes — anything reading a blob whose line
+    numbers must stay true — have to use run_cmd directly instead.
+    """
     result = run_cmd(
         ["git", *args],
         timeout=30,
@@ -78,7 +82,6 @@ def scan_comment(line: str, file: str) -> str | None:
     raw = line.strip()
     prose: str | None = None
     if _MARKDOWN_RE.search(file):
-        # Markdown's only comment syntax is <!-- -->.
         if raw.startswith("<!--"):
             prose = raw[4:].removesuffix("-->").strip()
     elif _HASH_COMMENT_RE.search(file):
@@ -100,7 +103,6 @@ def scan_comment(line: str, file: str) -> str | None:
 
 
 def _flush(groups: list[dict[str, Any]], cur: dict[str, Any] | None) -> None:
-    """Append the open comment run, if any, to the finished groups."""
     if cur:
         groups.append(cur)
 
@@ -112,10 +114,6 @@ def _consume_added(
     new_line: int,
     comment: str | None,
 ) -> dict[str, Any] | None:
-    """Fold one added line into the open run: extend it if adjacent, else start a new run.
-
-    A non-comment added line breaks the run and returns None.
-    """
     if not comment:
         _flush(groups, cur)
         return None
@@ -166,7 +164,6 @@ def added_comments(diff: str) -> list[dict[str, Any]]:
 
 
 def _own_upstream_ref(cwd: str) -> str | None:
-    """Return the full refname of HEAD's own remote-tracking branch (refs/remotes/origin/foo), or None."""
     try:
         return git(["rev-parse", "--symbolic-full-name", "@{u}"], cwd)
     except subprocess.CalledProcessError:
@@ -224,7 +221,6 @@ def resolve_base(cwd: str, *, manual: bool = False) -> str:
 
 
 def added_line_map(diff: str) -> dict[str, set[int]]:
-    """Map each file to the set of source line numbers added in the diff."""
     added: dict[str, set[int]] = {}
     file = ""
     new_line = 0
@@ -322,7 +318,6 @@ def _context_block(lines: list[str], entry: dict[str, Any], *, before: int, afte
     hi = min(len(lines), end + after)
     out = [f"{entry['file']}:{start}-{end}  [{entry['kind']}]"]
     for ln in range(lo, hi + 1):
-        # Mark the comment/docstring lines themselves so the surrounding code reads as context.
         flag = ">" if start <= ln <= end else " "
         out.append(f"  {flag}{ln:>5}  {lines[ln - 1]}")
     return "\n".join(out)
@@ -331,10 +326,9 @@ def _context_block(lines: list[str], entry: dict[str, Any], *, before: int, afte
 def collect_for_review(cwd: str, *, manual: bool = True) -> dict[str, Any]:
     """collect_added_comments plus a verbatim, line-numbered `block` on each comment for the Step 3 review.
 
-    A superset of the bare detection: every entry gains a `block` pulled straight from the HEAD blob, so
-    the audit never hand-transcribes a comment. A docstring's block is quoted with the def/class owner line
-    above it and a little body below; an inline comment's with the code below it — each shown against the
-    code it is actually judged against.
+    A superset of the bare detection: every entry gains a `block` pulled straight from the HEAD blob. A
+    docstring's block is quoted with the def/class owner line above it and a little body below; an inline
+    comment's with the code below it — each shown against the code it is actually judged against.
     """
     data = collect_added_comments(cwd, manual=manual)
     head = data["head"]
@@ -353,7 +347,10 @@ def collect_for_review(cwd: str, *, manual: bool = True) -> dict[str, Any]:
 
 
 def stamp_approval(cwd: str) -> tuple[str, Path]:
-    """Record HEAD in the approval marker, using the same git dir the gate reads."""
+    """Record HEAD in the approval marker.
+
+    Resolves the git dir the same way the gate does, so a worktree stamps where its own gate will look.
+    """
     head = git(["rev-parse", "HEAD"], cwd)
     git_dir = git(["rev-parse", "--absolute-git-dir"], cwd)
     marker = Path(git_dir) / MARKER_NAME

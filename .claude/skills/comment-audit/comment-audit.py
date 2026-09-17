@@ -5,11 +5,7 @@ Usage:
   comment-audit.py list  <repo-root>   Print the audited comments as JSON:
                                          {base, head, gitDir, comments: [{file, start, end, raws, kind,
                                          block}]}. Same detection and range as the gate, so what the skill
-                                         reviews is exactly what the gate would block. Each comment carries
-                                         a verbatim, line-numbered `block` (surrounding code included:
-                                         docstrings quoted with the def above, inline comments with the
-                                         code below) — the ready-made Step 3 review text, never
-                                         hand-transcribed.
+                                         reviews is exactly what the gate would block.
 
   comment-audit.py stamp <repo-root>   Record HEAD in <git-dir>/.comment-audit-ok so the gate lets the
                                          next push through. Run AFTER the final commit — the marker must

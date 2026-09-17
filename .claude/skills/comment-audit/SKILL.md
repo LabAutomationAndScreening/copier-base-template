@@ -27,8 +27,7 @@ The gate runs in one of three modes, set by `mode` in `.config/claude/comment-au
 
 The template renders that file from the `comment_audit_gate_mode` copier answer, so a project starts in
 the mode it chose. Editing the file directly is fine and survives `copier update` as long as the answer
-has not changed; change the answer too if the new mode is meant to be permanent. `COMMENT_GATE_MODE`
-overrides the file for a one-off or a test.
+has not changed; change the answer too if the new mode is meant to be permanent.
 
 The workflow below is the same in every mode. In `warn` the stamp in Step 4 is not strictly required, but
 still do it: it records that this HEAD was audited, and keeps the flow identical if the project later
