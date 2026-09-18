@@ -138,6 +138,14 @@ class ContextUpdater(ContextHook):
         context["gha_windows_runner"] = (
             "windows-2025-vs2026"  # for some reason, github is starting to redirect all windows-2025 to this new one https://github.com/actions/runner-images/issues/14017
         )
+        # Defaults only. Unlike the x64 labels above, which GitHub provides under the same name in every
+        # org, the arm64 runner a project actually uses is frequently org-specific: the hosted arm64
+        # runners are capped at 2 CPUs, so orgs that need more define their own larger runner under a
+        # name of their choosing. Child templates therefore ask for these labels rather than pinning them.
+        context["gha_linux_arm64_runner"] = "ubuntu-24.04-arm"
+        context["gha_windows_arm64_runner"] = (
+            "windows-11-vs2026-arm"  # the vs2026 image family, to match gha_windows_runner's toolchain
+        )
         context["gha_short_timeout_minutes"] = "2"
         context["gha_medium_timeout_minutes"] = "8"
         context["gha_long_timeout_minutes"] = "15"

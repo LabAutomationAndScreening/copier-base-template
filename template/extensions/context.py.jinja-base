@@ -121,6 +121,31 @@ class ContextUpdater(ContextHook):
         context["kubectl_version"] = "{{ kubectl_version }}"
         context["gha_linux_runner"] = "{{ gha_linux_runner }}"
         context["gha_windows_runner"] = "{{ gha_windows_runner }}"
+        context["gha_linux_arm64_runner"] = "{{ gha_linux_arm64_runner }}"
+        context["gha_windows_arm64_runner"] = "{{ gha_windows_arm64_runner }}"
+        # Everything platform-shaped in CI -- test matrices, build matrices, release assets -- is
+        # rendered from these. They are derived rather than answered so the release asset list cannot
+        # drift out of step with the CI matrix, which is what happened when the platform set was three
+        # hand-maintained literals in ci.yaml plus a separately-reconstructed one in release.yaml.
+        selected_platforms = list(context.get("target_platforms") or [])
+        # The x64 labels are the same in every org so they stay pinned; the arm64 ones are answered,
+        # because a project may be pointed at an org-defined larger runner.
+        context["runner_for_platform"] = {
+            "linux-x64": context["gha_linux_runner"],
+            "windows-x64": context["gha_windows_runner"],
+            "linux-arm64": context.get("linux_arm64_runner_label") or context["gha_linux_arm64_runner"],
+            "windows-arm64": context.get("windows_arm64_runner_label") or context["gha_windows_arm64_runner"],
+        }
+        # The platform id carries its own os, so a project cannot claim a Windows runner is Linux --
+        # which a hand-answered os field, or prefix-matching the org-chosen runner label, would allow.
+        context["os_for_platform"] = {platform: platform.split("-")[0] for platform in context["runner_for_platform"]}
+        context["windows_platforms"] = [p for p in selected_platforms if p.split("-")[0] == "windows"]
+        # This hook also runs while question defaults render, before `target_platforms` is answered.
+        # `use_windows_in_ci` is the answer `target_platforms` replaced, and its legacy value is what
+        # the `target_platforms` default migrates from -- so it must only be overridden once there is
+        # a `target_platforms` answer to derive it from, or every updating Windows project drops to Linux.
+        if context.get("target_platforms") is not None:
+            context["use_windows_in_ci"] = bool(context["windows_platforms"])
         context["gha_short_timeout_minutes"] = "{{ gha_short_timeout_minutes }}"
         context["gha_medium_timeout_minutes"] = "{{ gha_medium_timeout_minutes }}"
         context["gha_long_timeout_minutes"] = "{{ gha_long_timeout_minutes }}"
