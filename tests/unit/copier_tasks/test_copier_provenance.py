@@ -865,34 +865,9 @@ class TestExclusions:
 
     def test_generated_subtree_is_excluded_at_any_depth(self, tmp_path: Path) -> None:
         # A code generator rewrites these after the copier task runs, so the marker is destroyed and
-        # the manifest is left claiming a file nobody maintains by hand.
-        template_dir = tmp_path / "template"
-        generated = template_dir / "backend" / "tests" / "e2e" / "generated" / "open_api"
-        generated.mkdir(parents=True)
-        (generated / "backend_client.py").touch()
-        (template_dir / "kept.py").touch()
-
-        dst_dir = tmp_path / "destination"
-        dst_generated = dst_dir / "backend" / "tests" / "e2e" / "generated" / "open_api"
-        dst_generated.mkdir(parents=True)
-        client_body = "class BackendClient:\n    pass\n"
-        _ = (dst_generated / "backend_client.py").write_text(client_body, encoding="utf-8")
-        _ = (dst_dir / "kept.py").write_text("x = 1\n", encoding="utf-8")
-
-        _ = _run_script(
-            src_template_dir=template_dir,
-            dst_dir=dst_dir,
-            template_src="https://github.com/org/child-template",
-        )
-
-        assert (dst_generated / "backend_client.py").read_text(encoding="utf-8") == client_body
-        entry = _read_manifest(dst_dir)["templates"][0]
-        assert entry["managed_files"] == ["kept.py"]
-
-    def test_generated_directory_is_always_excluded(self, tmp_path: Path) -> None:
-        # Every generated tree in these repos lives under a path segment named exactly "generated",
-        # and a project regenerates the contents itself, so these are never claimed. No template opts
-        # in or out: the exclusion is unconditional.
+        # the manifest is left claiming a file nobody maintains by hand. No template opts in or out:
+        # every generated tree in these repos lives under a path segment named exactly "generated",
+        # so the exclusion is unconditional.
         template_dir = tmp_path / "template"
         generated = template_dir / "backend" / "tests" / "e2e" / "generated" / "open_api"
         generated.mkdir(parents=True)
@@ -1018,8 +993,8 @@ class TestResilience:
             template_src="https://github.com/org/base-template",
         )
 
-        for name in ("aaa.py", "zzz.py"):
-            assert (dst_dir / name).read_text(encoding="utf-8").startswith("# ============== WARNING")
+        assert (dst_dir / "aaa.py").read_text(encoding="utf-8").startswith("# ============== WARNING")
+        assert (dst_dir / "zzz.py").read_text(encoding="utf-8").startswith("# ============== WARNING")
         assert (dst_dir / "mmm.md").read_bytes() == b"\xff\xfe\x00binary\x00"
         entry = _read_manifest(dst_dir)["templates"][0]
         assert entry["managed_files"] == ["aaa.py", "mmm.md", "zzz.py"]
@@ -1051,8 +1026,8 @@ class TestResilience:
             unreadable.chmod(0o644)
 
         assert "mmm.py" in result.stderr
-        for name in ("aaa.py", "zzz.py"):
-            assert (dst_dir / name).read_text(encoding="utf-8").startswith("# ============== WARNING")
+        assert (dst_dir / "aaa.py").read_text(encoding="utf-8").startswith("# ============== WARNING")
+        assert (dst_dir / "zzz.py").read_text(encoding="utf-8").startswith("# ============== WARNING")
         entry = _read_manifest(dst_dir)["templates"][0]
         assert entry["managed_files"] == ["aaa.py", "mmm.py", "zzz.py"]
 
@@ -1351,10 +1326,9 @@ class TestManifestPruning:
 
         manifest = _read_manifest(dst_dir)
         assert isinstance(manifest["templates"], list)
-        for entry in manifest["templates"]:
-            assert isinstance(entry["src"], str)
-            assert isinstance(entry["managed_files"], list)
-            assert all(isinstance(f, str) for f in entry["managed_files"])
+        assert [e for e in manifest["templates"] if not isinstance(e["src"], str)] == []
+        assert [e for e in manifest["templates"] if not isinstance(e["managed_files"], list)] == []
+        assert [f for e in manifest["templates"] for f in e["managed_files"] if not isinstance(f, str)] == []
 
     def test_manifest_parent_src_discovered_from_config_copier_answers(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
@@ -1695,13 +1669,16 @@ class TestChainStabilityAcrossTemplateVersions:
 
         self._stamp_chain(base_tmpl, child_repo, grandchild)
 
-        for t in _read_manifest(grandchild)["templates"]:
-            for rel in t["managed_files"]:
-                content = (grandchild / rel).read_text(encoding="utf-8")
-                assert content.count("============== WARNING") == 1, f"{rel} has the wrong marker count"
-                # The marker has to name the same template the manifest does, or the file and the
-                # manifest disagree about who owns it.
-                assert t["src"] in content, f"{rel} marker does not name {t['src']}"
+        stamped = [
+            (t["src"], rel, (grandchild / rel).read_text(encoding="utf-8"))
+            for t in _read_manifest(grandchild)["templates"]
+            for rel in t["managed_files"]
+        ]
+
+        assert [rel for _, rel, content in stamped if content.count("============== WARNING") != 1] == []
+        # The marker has to name the same template the manifest does, or the file and the manifest
+        # disagree about who owns it.
+        assert [rel for src, rel, content in stamped if src not in content] == []
 
     def test_child_that_templatizes_a_base_file_takes_ownership_of_it(self, tmp_path: Path) -> None:
         # The .pre-commit-config.yaml case. Base hands down a plain template/template/hook.yaml, and
@@ -1783,5 +1760,6 @@ class TestChainStabilityAcrossTemplateVersions:
         assert srcs[_BASE_SRC]["managed_files"] == ["LICENSE", "Taskfile.yaml", "added.py", "shared.py"]
         assert srcs[_CHILD_SRC]["managed_files"] == ["app.py"]
         # Nothing that was already stamped may have changed.
-        for rel, content in markers_before.items():
-            assert (grandchild / rel).read_text(encoding="utf-8") == content, f"{rel} changed unexpectedly"
+        assert [
+            rel for rel, content in markers_before.items() if (grandchild / rel).read_text(encoding="utf-8") != content
+        ] == []
