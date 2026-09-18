@@ -12,7 +12,11 @@ Division of labour:
   - skill (comment-audit): the actual review — classify each comment, review every one with the human
     (keep/drop/edit), apply decisions, then stamp the attestation marker (comment-audit.py stamp) and push.
 
-`warn` is the default on purpose: the detector's precision on a given repo is unknown until it has run
+The mode is `mode` in <project>/.config/claude/comment-audit.toml. Anything missing, unreadable or
+unrecognised means `off`: the gate is opt-in, so a project that has not asked for it — or whose config
+cannot be read — gets silence rather than a hook that starts talking on its own.
+
+`warn` is the mode to start with when a project does opt in: the detector's precision on a given repo is unknown until it has run
 against real branches, and a false positive in `warn` is noise where in `block` it is a work stoppage.
 Move a project to `block` once warn-mode reports have proven trustworthy.
 
@@ -88,7 +92,7 @@ def _mode(cwd: str) -> str:
     configured = _configured_mode(cwd)
     if configured:
         return configured
-    return MODE_WARN
+    return MODE_OFF
 
 
 def _render_entry(c: dict[str, Any]) -> str:
@@ -155,18 +159,21 @@ def _fail(message: str, *, mode: str) -> None:
     """Handle a gate that could not do its job.
 
     Fails closed in `block`, where letting an undetermined push through would defeat the gate. In `warn`
-    nothing is enforced anyway, so the failure is reported and the push proceeds.
+    nothing is enforced anyway, so the failure is reported and the push proceeds. In `off` even the
+    failure stays quiet — a gate that was told not to react does not get to speak up because it broke.
     """
     if mode == MODE_BLOCK:
         _ = sys.stderr.write(message)
         sys.exit(2)
+    if mode == MODE_OFF:
+        return
     _emit_warning(message)
 
 
 def main() -> None:
-    # Until the payload says where the project is, an unexpected failure is handled as `warn`. The hook
-    # fires on every Bash call, so the mode is resolved only once the command is known to be a push.
-    mode = MODE_WARN
+    # The hook fires on every Bash call, so the mode is resolved only once the command is known to be a
+    # push; until then there is no project to read it from.
+    mode = MODE_OFF
     try:
         data = json.loads(sys.stdin.read() or "{}")
         command = (data.get("tool_input", {}).get("command") or "").strip()
@@ -199,9 +206,11 @@ def main() -> None:
     except SystemExit:
         raise
     except Exception:  # noqa: BLE001 — unexpected failure; fail closed where the gate enforces
+        # Re-resolve rather than trust `mode`: the failure may have happened before the payload gave us a
+        # project, and a `block` project must still fail closed instead of inheriting the silent default.
         _fail(
             "comment-gate: internal error. Have a human run git push directly if the comments have been reviewed.\n",
-            mode=mode,
+            mode=_mode("."),
         )
 
 

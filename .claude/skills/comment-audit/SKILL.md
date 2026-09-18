@@ -26,9 +26,8 @@ The gate runs in one of three modes, set by `mode` in `.config/claude/comment-au
   a recommendation, not a precondition.
 - **`block`** — the push is refused until this skill stamps approval.
 
-A project with no config file at all falls back to `warn`, not `off`: that case is a misconfiguration
-(the hook is wired but its config is missing or unparseable) and should be visible, but it still must
-never block a push.
+A missing, unreadable or unrecognised config also means `off`. The gate is opt-in end to end: it reacts
+only where a project has explicitly asked it to.
 
 The template renders that file from the `comment_audit_gate_mode` copier answer, so a project starts in
 the mode it chose. Editing the file directly is fine and survives `copier update` as long as the answer
