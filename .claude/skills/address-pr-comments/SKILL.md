@@ -192,7 +192,7 @@ Within a single Phase 2 invocation, the order below is strict. The invariants ap
 1. For each queued **code change** (in order):
    - Invoke the `Skill` tool with `skill: "create-issues"`, passing the reviewer's comment and the agreed change as `args`. Follow the process it returns to create a bd issue with a proper title, description (why this change, context from the PR comment), design (technical approach), and Given-When-Then acceptance criteria. Export after creating.
    - Mark the issue in progress
-   - Decide first whether the change is testable code. **If it is not** — documentation, markdown, comments, config, or any other change with no behaviour to assert — make the change directly and move to the next step. Do **not** invoke `red`, `green` or `refactor`, and do not invent a test to justify the change: TDD does not apply here. Everything after this step is identical either way.
+   - Decide first whether the change is testable code. **If it is not** — documentation, markdown, comments, config, shell scripts where the project has no harness for them, or any other change with no behaviour to assert — make the change directly and move to the next step. Do **not** invoke `red`, `green` or `refactor`, and do not invent a test to justify the change: TDD does not apply here. Everything after this step is identical either way.
    - **If it is testable code**, work through the TDD cycle by invoking the `Skill` tool once per phase, in this order — `skill: "red"`, then `skill: "green"`, then `skill: "refactor"` — passing the bd issue ID and the acceptance criterion being driven as `args`. Repeat the three-phase cycle until every acceptance criterion is satisfied.
 
      **Each phase must be a real `Skill` tool call — not a description of one, and not your own recollection of what red/green/refactor mean.** Those skills carry project-specific rules that general TDD practice does not include, and they are re-read fresh each cycle so later cycles do not drift from earlier ones. Writing a test or an implementation without a preceding `Skill` call for that phase is a workflow violation.
@@ -256,7 +256,7 @@ Summarise what was done:
 - Leave uncommitted changes
 - Include the AI attribution footer in generated reply text — `check-footer.py` is solely responsible for it
 - Write tests or implementation from your own knowledge of TDD — when a change is testable code, `red`, `green` and `refactor` must each be invoked through the `Skill` tool
-- Run the TDD cycle on a change that has no behaviour to assert — docs, markdown, comments and config are made directly
+- Run the TDD cycle on a change that has no behaviour to assert — docs, markdown, comments, config and unharnessed shell scripts are made directly
 
 ## Handling Common Scenarios
 
