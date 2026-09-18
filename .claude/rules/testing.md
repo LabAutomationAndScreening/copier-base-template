@@ -1,13 +1,13 @@
 ---
 paths:
   - "**/test_*.py"
-  - "**/tests/**"
+  - "**/tests/**/*.py"
   - "**/*.spec.ts"
   - "**/*.test.ts"
 ---
 # Testing
 
-Language-neutral testing principles. Python-specific mechanics live in `python-testing.md`; frontend (TypeScript) mechanics live in `frontend-testing.md`.
+Language-neutral testing principles. Language-specific mechanics live alongside this file in `.claude/rules/` (`python-testing.md`, `frontend-testing.md`) for whichever languages this project uses.
 
 - Always run tests with an explicit path — test runners discover all types (unit, integration, E2E...) by default. Use the language-specific invocation (see the per-language testing rules).
 - Never manually start services prior to running E2E tests. The test harness boots and tears down its own services (backend, frontend, supporting services) via session fixtures.
