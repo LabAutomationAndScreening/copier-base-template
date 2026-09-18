@@ -421,6 +421,8 @@ class TestFileExtensionComments:
             (".coveragerc", "bottom", expected_hash_comment),
             (".python-version", "none", ""),
             (".prettierrc", "none", ""),
+            (".nvmrc", "none", ""),
+            (".node-version", "none", ""),
         ],
         ids=[
             "py-hash-top",
@@ -445,6 +447,8 @@ class TestFileExtensionComments:
             "coveragerc-hash-bottom",
             "python-version-none",
             "prettierrc-none",
+            "nvmrc-none",
+            "node-version-none",
         ],
     )
     def test_comment_format_by_file_type(
@@ -616,6 +620,33 @@ class TestByteFidelity:
         _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
 
         assert dst_file.read_bytes() == after_first
+
+    @pytest.mark.parametrize(
+        ("body", "expected_newline"),
+        [
+            (b"a = 1\r\nb = 2\r\nc = 3\r\nd = 4\n", b"\r\n"),
+            (b"a = 1\r\nb = 2\nc = 3\nd = 4\n", b"\n"),
+            (b"a = 1\r\nb = 2\n", b"\n"),
+        ],
+        ids=["crlf-majority-wins", "lf-majority-wins", "tie-goes-to-lf"],
+    )
+    def test_mixed_line_endings_normalize_to_the_dominant_one(
+        self,
+        body: bytes,
+        expected_newline: bytes,
+        tmp_path: Path,
+    ) -> None:
+        # A file that arrives with both endings is normalized rather than left mixed, so the choice of
+        # which ending wins is a promise the module makes and has to keep. A tie resolves to LF.
+        dst_file = self._stamp(tmp_path, "mixed.py", body)
+
+        raw = dst_file.read_bytes()
+
+        assert b"# ============== WARNING" in raw
+        if expected_newline == b"\r\n":
+            assert raw.replace(b"\r\n", b"").count(b"\n") == 0
+        else:
+            assert b"\r" not in raw
 
     def test_non_ascii_content_preserved(self, tmp_path: Path) -> None:
         # The file was opened without an explicit encoding, so a non-UTF-8 locale would mangle this.
@@ -939,7 +970,19 @@ class TestExclusions:
 
     @pytest.mark.parametrize(
         "cache_dir",
-        [".ruff_cache", "__pycache__", "node_modules", ".pytest_cache", ".venv"],
+        [
+            ".git",
+            ".ruff_cache",
+            ".pytest_cache",
+            ".mypy_cache",
+            "__pycache__",
+            "node_modules",
+            ".venv",
+            ".pnpm-store",
+            ".turbo",
+            ".nuxt",
+            ".output",
+        ],
     )
     def test_tool_cache_directories_are_never_tracked(self, cache_dir: str, tmp_path: Path) -> None:
         # base-template's own template/.ruff_cache is untracked local junk that sits inside the
@@ -998,6 +1041,32 @@ class TestResilience:
         assert (dst_dir / "mmm.md").read_bytes() == b"\xff\xfe\x00binary\x00"
         entry = _read_manifest(dst_dir)["templates"][0]
         assert entry["managed_files"] == ["aaa.py", "mmm.md", "zzz.py"]
+
+    def test_undecodable_file_in_a_top_format_is_tracked_but_not_stamped(self, tmp_path: Path) -> None:
+        # The bottom-location case has its own test above. Both locations go through the same decode
+        # probe now, and this pins that: a probe that ever becomes location-dependent again would
+        # otherwise only be caught on one side.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "binary.py").touch()
+        (template_dir / "text.py").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        binary_body = b"\xff\xfe\x00binary\x00"
+        _ = (dst_dir / "binary.py").write_bytes(binary_body)
+        _ = (dst_dir / "text.py").write_text("t = 1\n", encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/base-template",
+        )
+
+        assert (dst_dir / "binary.py").read_bytes() == binary_body
+        assert (dst_dir / "text.py").read_text(encoding="utf-8").startswith("# ============== WARNING")
+        entry = _read_manifest(dst_dir)["templates"][0]
+        assert entry["managed_files"] == ["binary.py", "text.py"]
 
     def test_unreadable_file_does_not_abort_the_run(self, tmp_path: Path) -> None:
         # Files are visited in sorted order and the manifest was only written after the loop, so a
@@ -1308,6 +1377,138 @@ class TestManifestPruning:
         manifest = _read_manifest(dst_dir)
         entry = manifest["templates"][0]
         assert entry["src"] == "https://github.com/org/my-template"
+
+    def test_manifest_src_falls_back_to_the_template_path_when_no_src_is_given(self, tmp_path: Path) -> None:
+        # Child templates invoke the task without --template-src. The manifest key must still be
+        # something that identifies the template, never the empty string.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "a.txt").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "a.txt").write_text("content", encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        entry = _read_manifest(dst_dir)["templates"][0]
+        assert entry["src"] == str(template_dir)
+
+    def test_no_parent_src_when_the_answers_file_omits_src_path(self, tmp_path: Path) -> None:
+        # A .copier-answers.yml that exists but carries no _src_path must yield no parent_src, not a
+        # crash and not a garbage value.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        config_dir = tmp_path / ".config"
+        config_dir.mkdir()
+        _ = (config_dir / ".copier-answers.yml").write_text("some_question: yes\n", encoding="utf-8")
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        entry = _read_manifest(dst_dir)["templates"][0]
+        assert entry["src"] == "https://github.com/org/child-template"
+        assert "parent_src" not in entry
+
+    def test_ancestor_entry_carries_its_own_parent_src_forward(self, tmp_path: Path) -> None:
+        # An ancestor entry records who generated the ancestor. That link is what lets a reader walk
+        # the chain upward past the immediate parent, so it has to survive being re-emitted into the
+        # grandchild's manifest rather than being dropped or replaced by this run's parent.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "shared.py").touch()
+        (template_dir / "own.py").touch()
+
+        _ = (tmp_path / ".copier-managed-files.json").write_text(
+            json.dumps(
+                {
+                    "templates": [
+                        {
+                            "src": "https://github.com/org/base-template",
+                            "parent_src": "https://github.com/org/grandparent-template",
+                            "managed_files": ["template/shared.py"],
+                        },
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "shared.py").write_text("x = 1\n", encoding="utf-8")
+        _ = (dst_dir / "own.py").write_text("y = 2\n", encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        srcs = {t["src"]: t for t in _read_manifest(dst_dir)["templates"]}
+        assert srcs["https://github.com/org/base-template"].get("parent_src") == (
+            "https://github.com/org/grandparent-template"
+        )
+
+    def test_bare_subdirectory_entry_in_an_ancestor_manifest_is_ignored(self, tmp_path: Path) -> None:
+        # An ancestor entry listing the template subdirectory itself rather than a file under it
+        # strips to the empty path. It attributes nothing and must not take the run down with it.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "own.py").touch()
+
+        _ = (tmp_path / ".copier-managed-files.json").write_text(
+            json.dumps(
+                {"templates": [{"src": "https://github.com/org/base-template", "managed_files": ["template/"]}]}
+            ),
+            encoding="utf-8",
+        )
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "own.py").write_text("y = 2\n", encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        srcs = {t["src"]: t for t in _read_manifest(dst_dir)["templates"]}
+        assert srcs["https://github.com/org/child-template"]["managed_files"] == ["own.py"]
+        assert "https://github.com/org/base-template" not in srcs
+
+    def test_entry_keys_are_written_in_a_stable_order(self, tmp_path: Path) -> None:
+        # Key order is what keeps a regenerated manifest from showing up as a diff against an
+        # otherwise identical file.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "a.txt").touch()
+        config_dir = tmp_path / ".config"
+        config_dir.mkdir()
+        _ = (config_dir / ".copier-answers.yml").write_text(
+            "_src_path: https://github.com/org/parent-template\n",
+            encoding="utf-8",
+        )
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        _ = (dst_dir / "a.txt").write_text("content", encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        entry = _read_manifest(dst_dir)["templates"][0]
+        assert list(entry) == ["src", "parent_src", "managed_files"]
 
     def test_manifest_structure_is_valid(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"

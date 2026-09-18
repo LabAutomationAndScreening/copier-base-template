@@ -242,7 +242,9 @@ def _write_file_marker(file: Path, raw: str, comment_format: CommentFormat, spec
     if specific_header is not None:
         if comment_format.location == "top":
             content = specific_header + _top_separator(comment_format.comment_type) + content
-        elif comment_format.location == "bottom":
+        else:
+            # Only "bottom" is left: every format declaring location "none" also declares comment_type
+            # "none", and _build_specific_header returns None for those, so the header is None here.
             content = content + "\n" + specific_header + "\n"
     if newline != "\n":
         content = content.replace("\n", newline)
@@ -514,9 +516,8 @@ def _read_ancestor_manifest(
             # Apply get_base_filename to each part so .jinja/.jinja-base suffixes
             # and Jinja conditional names resolve to the final destination filename.
             parts = Path(stripped).parts
-            if len(parts) > 0:
-                resolved = str(Path(*[get_base_filename(p, suffixes) for p in parts]))
-                path_set.add(resolved)
+            resolved = str(Path(*[get_base_filename(p, suffixes) for p in parts]))
+            path_set.add(resolved)
         ancestor_managed_by_src[t["src"]] = path_set
         ancestor_parent = t.get("parent_src")
         if ancestor_parent is not None:
