@@ -13,8 +13,9 @@ Aggressively review comments that have been added to a given branch/PR. Ensuring
 You're goal is to catch source comments that should not ship:
 comments that restate **what** the code does, comments that are really the **reply to a PR reviewer** committed into the source, etc. Only comments that explain a non-obvious **why** — a reason the code itself cannot convey — earn their place.
 
-This skill is the reviewer that the gate (`comment-gate.py`, run as the PreToolUse hook) defers to. The
-gate only detects that added comments exist; this skill does the judgment and the human escalation.
+This skill is the reviewer that the gate defers to. One script, `comment-audit.py`, carries all three
+verbs: `gate` (the PreToolUse hook), `list` and `stamp`. The gate only detects that added comments exist;
+this skill does the judgment and the human escalation.
 
 ## Gate modes
 
@@ -39,7 +40,7 @@ moves to `block`.
 ## Prerequisites
 
 - A branch with commits ahead of its base (the gate resolves the base; see Step 1).
-- `python3` available — the skill drives its two helper scripts, it does not re-derive detection by hand.
+- `python3` available — the skill drives `comment-audit.py`, it does not re-derive detection by hand.
 
 ## Rules (read first)
 

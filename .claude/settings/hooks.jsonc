@@ -45,7 +45,7 @@
           // `mode` in .config/claude/comment-audit.toml.
           {
             "type": "command",
-            "command": "sh -c 'GATE=\"$CLAUDE_PROJECT_DIR/.claude/skills/comment-audit/comment-gate.py\"; if [ -f \"$GATE\" ]; then python3 \"$GATE\"; fi'",
+            "command": "sh -c 'GATE=\"$CLAUDE_PROJECT_DIR/.claude/skills/comment-audit/comment-audit.py\"; if [ -f \"$GATE\" ]; then python3 \"$GATE\" gate; fi'",
             "timeout": 30,
             "statusMessage": "Checking for un-audited comments...",
           },
