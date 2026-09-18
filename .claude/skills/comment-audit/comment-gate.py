@@ -53,7 +53,7 @@ CONFIG_RELPATH = Path(".config") / "claude" / "comment-audit.toml"
 _GUIDANCE = (
     "Run the comment-audit skill — invoke /comment-audit. It reviews every comment with you\n"
     "(why-not-what; drops what-restatements, reply text, and historical narration), applies your\n"
-    "keep/drop/edit decisions, stamps approval, and pushes."
+    "keep/drop/edit decisions and stamps approval."
 )
 
 
@@ -115,11 +115,13 @@ def _report(info: dict[str, Any], *, blocking: bool) -> str:
         )
     else:
         header = (
-            f"comment-gate (warn mode): this push adds {len(comments)} source comment(s) that have not been\n"
-            "audited. The push is NOT blocked."
+            f"comment-gate: this push added {len(comments)} un-audited source comment(s). It was let through,\n"
+            "but audit them now — before this branch is reviewed, not after."
         )
         bypass = (
-            "\n(Warn mode is advisory. Push again after auditing, or proceed as-is if the comments earn their place.)"
+            "\nThe push has already landed, so auditing costs one more commit and nothing else. Every comment\n"
+            "below ships to whoever reads this code next; shipping one that restates the code is a decision,\n"
+            "and it should be a deliberate one rather than the result of skipping this."
         )
     span = f"Added comments in {str(info['base'])[:8]}..{str(info['head'])[:8]}:"
     return f"{header}\n\n{_GUIDANCE}{bypass}\n\n{span}\n{listing}\n"
