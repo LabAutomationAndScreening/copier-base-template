@@ -232,6 +232,25 @@ class TestJinjaTemplateMatching:
 
         assert dst_file.read_text(encoding="utf-8") == file_content + "\n" + expected_markdown_comment + "\n"
 
+    def test_empty_jinja_span_in_a_name_does_not_hide_the_real_extension(self, tmp_path: Path) -> None:
+        # A conditional that wraps a prefix rather than the whole name leaves an empty span between
+        # the first `%}` and the next `{%`. Taking that span as the lookup name yields "", whose
+        # suffix is "", so the file silently falls back to the default hash comment instead of the
+        # markdown one its .md extension calls for.
+        template_dir = tmp_path / "template"
+        template_dir.mkdir()
+        (template_dir / "{% raw %}{% if draft %}{% endif %}notes.md{% endraw %}").touch()
+
+        dst_dir = tmp_path / "destination"
+        dst_dir.mkdir()
+        file_content = "# notes\n"
+        dst_file = dst_dir / "{% if draft %}{% endif %}notes.md"
+        _ = dst_file.write_text(file_content, encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir)
+
+        assert dst_file.read_text(encoding="utf-8") == file_content + "\n" + expected_markdown_comment + "\n"
+
     def test_trailing_jinja_is_literal_when_the_active_suffix_is_jinja_base(self, tmp_path: Path) -> None:
         # base-template ships template/template/Taskfile.yaml.jinja. Its _templates_suffix is
         # .jinja-base, so that trailing .jinja is literal content: copier renders the name unchanged
@@ -1212,6 +1231,32 @@ class TestManifest:
         base = next(t for t in manifest["templates"] if "base" in t["src"])
         assert base["managed_files"] == ["a.txt"]
 
+    def test_managed_files_are_ordered_as_strings_not_as_paths(self, tmp_path: Path) -> None:
+        # Files are collected in Path order, where "a/b.py" precedes "a.b/c.py" because "a" < "a.b"
+        # segment-wise. The manifest is read as text, so it is sorted as text, where "." (46) sorts
+        # before "/" (47) and the two swap. Without the explicit re-sort the two orders disagree only
+        # for sibling names like these, so a plainer fixture cannot tell the difference.
+        template_dir = tmp_path / "template"
+        (template_dir / "a").mkdir(parents=True)
+        (template_dir / "a.b").mkdir(parents=True)
+        (template_dir / "a" / "b.py").touch()
+        (template_dir / "a.b" / "c.py").touch()
+
+        dst_dir = tmp_path / "destination"
+        (dst_dir / "a").mkdir(parents=True)
+        (dst_dir / "a.b").mkdir(parents=True)
+        _ = (dst_dir / "a" / "b.py").write_text("x = 1\n", encoding="utf-8")
+        _ = (dst_dir / "a.b" / "c.py").write_text("y = 2\n", encoding="utf-8")
+
+        _ = _run_script(
+            src_template_dir=template_dir,
+            dst_dir=dst_dir,
+            template_src="https://github.com/org/child-template",
+        )
+
+        entry = _read_manifest(dst_dir)["templates"][0]
+        assert entry["managed_files"] == ["a.b/c.py", "a/b.py"]
+
     def test_manifest_entries_are_ordered_by_src(self, tmp_path: Path) -> None:
         # Entry order used to follow whichever src happened to own the alphabetically first managed
         # file, so a change of ownership reordered the whole array and produced a huge diff.
@@ -1220,11 +1265,16 @@ class TestManifest:
         (template_dir / "zzz.txt").touch()
         (template_dir / "aaa.txt").touch()
 
+        # Entries are created in the order their first managed file is encountered, and files are
+        # walked in sorted order. So for the sort to be doing any work, the src that must end up
+        # FIRST has to own the file that is walked LAST. Here the current template (zzz-) owns
+        # "aaa.txt" and the ancestor (aaa-) owns "zzz.txt", which is the only arrangement that
+        # distinguishes a sorted array from the insertion order.
         _ = (tmp_path / ".copier-managed-files.json").write_text(
             json.dumps(
                 {
                     "templates": [
-                        {"src": "https://github.com/org/zzz-template", "managed_files": ["aaa.txt"]},
+                        {"src": "https://github.com/org/aaa-template", "managed_files": ["template/zzz.txt"]},
                     ]
                 }
             ),
@@ -1239,11 +1289,15 @@ class TestManifest:
         _ = _run_script(
             src_template_dir=template_dir,
             dst_dir=dst_dir,
-            template_src="https://github.com/org/aaa-template",
+            template_src="https://github.com/org/zzz-template",
         )
 
-        srcs = [t["src"] for t in _read_manifest(dst_dir)["templates"]]
-        assert srcs == sorted(srcs)
+        manifest = _read_manifest(dst_dir)
+        srcs = [t["src"] for t in manifest["templates"]]
+        assert srcs == ["https://github.com/org/aaa-template", "https://github.com/org/zzz-template"]
+        # Guard the fixture itself: if the ancestor stopped owning zzz.txt the arrangement above
+        # collapses and the assertion goes back to passing by accident.
+        assert manifest["templates"][0]["managed_files"] == ["zzz.txt"]
 
 
 class TestManifestPruning:
