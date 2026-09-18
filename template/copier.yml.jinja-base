@@ -159,7 +159,29 @@ pnpm_minimum_release_age_exclude:
     default: ""{% endraw %}{% endif %}{% raw %}
 
 
-_tasks:
+{% endraw %}{% if template_uses_typescript %}{% raw %}_migrations:
+  # PNPM12-MIGRATION -- this whole block is transient: it carries repos across the pnpm 11 -> 12 boundary and
+  # nothing else. Delete both entries (and with them `_migrations` entirely, if nothing else has been added)
+  # once every downstream repo has taken an update that ran them. Grep PNPM12-MIGRATION for the rest.
+  # Both of these run in the `before` stage, while the repo's own pnpm-workspace.yaml is still on disk and
+  # before anything in the update reaches for pnpm. pnpm 12 cannot load a manifest whose
+  # minimumReleaseAgeExclude is a scalar -- it fails every pnpm command, `pnpm --version` included -- so the
+  # value has to be a list before the pnpm 12 install below, and `pnpm config` cannot do the rewrite itself.
+  - command: python3 '{{ _copier_conf.src_path }}/src/copier_tasks/normalize_pnpm_minimum_release_age_exclude.py'
+    when: "{{ _stage == 'before' }}"
+  # The devcontainer's pnpmVersion only takes effect on a rebuild, so an update applied from an existing
+  # container still has the old pnpm on PATH while the tasks that read pnpm 12 settings run. The version is
+  # hardcoded rather than templated because this migration exists to cross the pnpm 11 -> 12 boundary, and
+  # the check keeps it from downgrading a container that is already on 12 or newer.
+  - command: |
+        installed_major="$(pnpm --version 2>/dev/null | cut -d. -f1)"
+        if [ -z "$installed_major" ] || [ "$installed_major" -lt 12 ]; then
+            echo "Installing pnpm 12.4.2 (found '${installed_major:-none}') so pnpm 12 workspace settings can be read before a devcontainer rebuild..."
+            npm install -g pnpm@12.4.2
+        fi
+    when: "{{ _stage == 'before' }}"
+
+{% endraw %}{% endif %}{% raw %}_tasks:
   - command: |
         python3 '{{ _copier_conf.src_path }}/src/copier_tasks/remove_precommit_hooks.py' \
             --hook-id-regex '^\s*-\s+id:\s+merge-claude-settings\s*$' \
