@@ -26,13 +26,6 @@ The gate runs in one of three modes, set by `mode` in `.config/claude/comment-au
   a recommendation, not a precondition.
 - **`block`** — the push is refused until this skill stamps approval.
 
-A missing, unreadable or unrecognised config also means `off`. The gate is opt-in end to end: it reacts
-only where a project has explicitly asked it to.
-
-The template renders that file from the `comment_audit_gate_mode` copier answer, so a project starts in
-the mode it chose. Editing the file directly is fine and survives `copier update` as long as the answer
-has not changed; change the answer too if the new mode is meant to be permanent.
-
 The workflow below is the same in every mode. In `warn` the stamp in Step 4 is not strictly required, but
 still do it: it records that this HEAD was audited, and keeps the flow identical if the project later
 moves to `block`.
@@ -122,7 +115,7 @@ reason. This is a recommendation only — the user decides every comment in Step
 **Bias toward DROP.** A comment survives only if you can state the specific non-obvious thing it tells a
 reader that the code does not. "It's a helpful summary" is not enough.
 
-**A comment's origin is not a defence.** A file vendored or copied in wholesale makes every comment in it
+**A comment's origin is not a defense.** A file vendored or copied in wholesale makes every comment in it
 read as "added on this branch", and those comments have usually never been audited by anyone. "It came
 from upstream" is not a reason to keep one — judge it on the same merit as a line written today.
 
