@@ -26,10 +26,12 @@ def apply_renames(*, template_dir: Path, dst_dir: Path) -> None:
         if not source.is_file():
             continue
         if not rename_applies(dst_dir, rename):
-            print(f"Skipped {rename['source']} to {rename['target']}: target directory does not exist")
+            print(f"Skipped {rename['source']} to {rename['target']}: {rename['when']} is not true")
             continue
         # A fresh render at the source replaces whatever an earlier update left at the target.
-        _ = shutil.move(source, dst_dir / rename["target"])
+        target = dst_dir / rename["target"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        _ = shutil.move(source, target)
         print(f"Moved {rename['source']} to {rename['target']}")
 
 

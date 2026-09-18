@@ -1829,19 +1829,27 @@ class TestWhenTemplateDeclaresRenames:
     copier-nuxt-python-intranet-app moves .config/.coveragerc to backend/.coveragerc. The template still
     ships the file at its source path, so probing the destination there finds nothing and the moved file
     is never tracked. The template declares such moves in .config/copier-renames.json, which both the
-    mover task and this task read. A rename applies when the parent directory of its target exists in
-    the destination. Attribution still follows the source path, since that is what an ancestor manifest
-    records.
+    mover task and this task read. A rename's optional `when` names a copier answer that must be true in
+    the destination's answers file. Attribution still follows the source path, since that is what an
+    ancestor manifest records.
     """
 
-    def _declare_rename(self, template_repo: Path) -> None:
+    def _declare_rename(self, template_repo: Path, *, when: str | None = "has_backend") -> None:
+        rename: dict[str, str] = {"from": ".config/.coveragerc", "to": "backend/.coveragerc"}
+        if when is not None:
+            rename["when"] = when
         (template_repo / ".config").mkdir(parents=True, exist_ok=True)
         _ = (template_repo / ".config" / "copier-renames.json").write_text(
-            json.dumps({"renames": [{"from": ".config/.coveragerc", "to": "backend/.coveragerc"}]}),
-            encoding="utf-8",
+            json.dumps({"renames": [rename]}), encoding="utf-8"
         )
 
-    def test_Given_target_dir_exists__Then_moved_file_stamped_and_listed_at_its_new_path(self, tmp_path: Path) -> None:
+    def _answer(self, dst_dir: Path, *, has_backend: bool) -> None:
+        (dst_dir / ".config").mkdir(parents=True, exist_ok=True)
+        _ = (dst_dir / ".config" / ".copier-answers.yml").write_text(
+            f"_src_path: {_CHILD_SRC}\nhas_backend: {str(has_backend).lower()}\n", encoding="utf-8"
+        )
+
+    def test_Given_when_answer_true__Then_moved_file_stamped_and_listed_at_its_new_path(self, tmp_path: Path) -> None:
         template_dir = tmp_path / "template"
         (template_dir / ".config").mkdir(parents=True)
         (template_dir / ".config" / ".coveragerc").touch()
@@ -1849,6 +1857,7 @@ class TestWhenTemplateDeclaresRenames:
 
         dst_dir = tmp_path / "destination"
         (dst_dir / "backend").mkdir(parents=True)
+        self._answer(dst_dir, has_backend=True)
         body = "[run]\nbranch = True\n"
         moved = dst_dir / "backend" / ".coveragerc"
         _ = moved.write_text(body, encoding="utf-8")
@@ -1861,7 +1870,7 @@ class TestWhenTemplateDeclaresRenames:
         entry = _read_manifest(dst_dir)["templates"][0]
         assert entry["managed_files"] == ["backend/.coveragerc"]
 
-    def test_Given_target_dir_exists__Then_moved_file_attributed_to_the_ancestor_handing_down_its_source(
+    def test_Given_when_answer_true__Then_moved_file_attributed_to_the_ancestor_handing_down_its_source(
         self, tmp_path: Path
     ) -> None:
         template_dir = tmp_path / "template"
@@ -1875,6 +1884,7 @@ class TestWhenTemplateDeclaresRenames:
 
         dst_dir = tmp_path / "destination"
         (dst_dir / "backend").mkdir(parents=True)
+        self._answer(dst_dir, has_backend=True)
         moved = dst_dir / "backend" / ".coveragerc"
         _ = moved.write_text("[run]\n", encoding="utf-8")
 
@@ -1885,7 +1895,22 @@ class TestWhenTemplateDeclaresRenames:
         assert srcs[_CHILD_SRC]["managed_files"] == []
         assert _BASE_SRC in moved.read_text(encoding="utf-8")
 
-    def test_Given_target_dir_exists__Then_source_path_is_not_probed(self, tmp_path: Path) -> None:
+    def test_Given_no_when__Then_rename_always_applies(self, tmp_path: Path) -> None:
+        template_dir = tmp_path / "template"
+        (template_dir / ".config").mkdir(parents=True)
+        (template_dir / ".config" / ".coveragerc").touch()
+        self._declare_rename(tmp_path, when=None)
+
+        dst_dir = tmp_path / "destination"
+        (dst_dir / "backend").mkdir(parents=True)
+        _ = (dst_dir / "backend" / ".coveragerc").write_text("[run]\n", encoding="utf-8")
+
+        _ = _run_script(src_template_dir=template_dir, dst_dir=dst_dir, template_src=_CHILD_SRC)
+
+        entry = _read_manifest(dst_dir)["templates"][0]
+        assert entry["managed_files"] == ["backend/.coveragerc"]
+
+    def test_Given_when_answer_true__Then_source_path_is_not_probed(self, tmp_path: Path) -> None:
         # A stray file left at the source path belongs to the project, not the template, once the
         # template has declared the move.
         template_dir = tmp_path / "template"
@@ -1894,8 +1919,8 @@ class TestWhenTemplateDeclaresRenames:
         self._declare_rename(tmp_path)
 
         dst_dir = tmp_path / "destination"
-        (dst_dir / ".config").mkdir(parents=True)
         (dst_dir / "backend").mkdir(parents=True)
+        self._answer(dst_dir, has_backend=True)
         stray_body = "[run]\nomit = stray\n"
         stray = dst_dir / ".config" / ".coveragerc"
         _ = stray.write_text(stray_body, encoding="utf-8")
@@ -1907,16 +1932,17 @@ class TestWhenTemplateDeclaresRenames:
         entry = _read_manifest(dst_dir)["templates"][0]
         assert entry["managed_files"] == ["backend/.coveragerc"]
 
-    def test_Given_target_dir_absent__Then_file_tracked_at_its_source_path(self, tmp_path: Path) -> None:
-        # The rename stands in for a copier `when:` condition: no backend directory means the project
-        # answered has_backend=false and the file stayed where the template put it.
+    def test_Given_when_answer_false__Then_file_tracked_at_its_source_path(self, tmp_path: Path) -> None:
+        # A stray backend/ directory (a gitignored .venv, say) must not make the rename apply: only the
+        # recorded answer does.
         template_dir = tmp_path / "template"
         (template_dir / ".config").mkdir(parents=True)
         (template_dir / ".config" / ".coveragerc").touch()
         self._declare_rename(tmp_path)
 
         dst_dir = tmp_path / "destination"
-        (dst_dir / ".config").mkdir(parents=True)
+        (dst_dir / "backend" / ".venv").mkdir(parents=True)
+        self._answer(dst_dir, has_backend=False)
         unmoved = dst_dir / ".config" / ".coveragerc"
         _ = unmoved.write_text("[run]\n", encoding="utf-8")
 

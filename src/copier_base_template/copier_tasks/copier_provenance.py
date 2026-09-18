@@ -240,24 +240,45 @@ def load_manifest(path: Path) -> Manifest:
 class Rename(TypedDict):
     source: str
     target: str
+    when: str | None
 
 
 def load_renames(template_dir: Path) -> list[Rename]:
     """Return the moves the calling template's own tasks make after rendering, as declared in its repo.
 
     The same file drives copier_renames.py, which performs the moves, so the two never disagree about
-    where a file ends up.
+    where a file ends up. `when` names a copier answer that has to be true for the move to happen.
     """
     renames_path = template_dir.parent / RENAMES_PATH
     if not renames_path.exists():
         return []
     declared: dict[str, list[dict[str, str]]] = json.loads(renames_path.read_text(encoding="utf-8"))
-    return [{"source": rename["from"], "target": rename["to"]} for rename in declared["renames"]]
+    return [
+        {"source": rename["from"], "target": rename["to"], "when": rename.get("when")} for rename in declared["renames"]
+    ]
+
+
+def read_answer(dst_dir: Path, name: str) -> str | None:
+    answers = dst_dir / ".config" / ".copier-answers.yml"
+    if not answers.exists():
+        answers = dst_dir / ".copier-answers.yml"
+    if not answers.exists():
+        return None
+    match = re.search(rf"^{re.escape(name)}:\s*(.+)$", answers.read_text(encoding="utf-8"), re.MULTILINE)
+    if match is None:
+        return None
+    return match.group(1).strip()
 
 
 def rename_applies(dst_dir: Path, rename: Rename) -> bool:
-    """Tell whether the rename is in effect: the target's directory existing stands in for a copier `when:`."""
-    return (dst_dir / rename["target"]).parent.is_dir()
+    """Tell whether the rename is in effect in this destination, judged by its `when` answer alone.
+
+    The state of the filesystem is deliberately not consulted: a stray directory at the target, such as a
+    gitignored .venv, says nothing about what the project answered.
+    """
+    if rename["when"] is None:
+        return True
+    return read_answer(dst_dir, rename["when"]) == "true"
 
 
 def landing_paths(dst_dir: Path, renames: list[Rename]) -> dict[str, str]:
