@@ -15,7 +15,7 @@
  * only makes a claim about branches whose shape it can verify.
  */
 
-const IGNORE_IF_OR_NEXT = /istanbul ignore (if|next)\b/;
+const IGNORE_IF_OR_NEXT = /istanbul ignore (?:if|next)\b/;
 // `return-ok` contains a hyphen, so `\b` would accept one as a boundary and read the token out of
 // `not-return-ok`; the delimiter must exclude hyphens on both sides.
 const RETURN_OK = /(?<![-\w])return-ok(?![-\w])/;
