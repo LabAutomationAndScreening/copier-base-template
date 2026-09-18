@@ -28,6 +28,7 @@ class Manifest(TypedDict):
 
 
 MANIFEST_PATH = Path(".config") / ".copier-managed-files.json"
+RENAMES_PATH = Path(".config") / "copier-renames.json"
 
 # base-template declares _templates_suffix .jinja-base and child templates declare .jinja. Existing child
 # templates still call this task without --templates-suffix, so both are stripped unless one is named.
@@ -236,6 +237,38 @@ def load_manifest(path: Path) -> Manifest:
     return manifest
 
 
+class Rename(TypedDict):
+    source: str
+    target: str
+
+
+def load_renames(template_dir: Path) -> list[Rename]:
+    """Return the moves the calling template's own tasks make after rendering, as declared in its repo.
+
+    The same file drives copier_renames.py, which performs the moves, so the two never disagree about
+    where a file ends up.
+    """
+    renames_path = template_dir.parent / RENAMES_PATH
+    if not renames_path.exists():
+        return []
+    declared: dict[str, list[dict[str, str]]] = json.loads(renames_path.read_text(encoding="utf-8"))
+    return [{"source": rename["from"], "target": rename["to"]} for rename in declared["renames"]]
+
+
+def rename_applies(dst_dir: Path, rename: Rename) -> bool:
+    """Tell whether the rename is in effect: the target's directory existing stands in for a copier `when:`."""
+    return (dst_dir / rename["target"]).parent.is_dir()
+
+
+def landing_paths(dst_dir: Path, renames: list[Rename]) -> dict[str, str]:
+    """Map each declared source path to where it actually lands in this destination."""
+    landing: dict[str, str] = {}
+    for rename in renames:
+        if rename_applies(dst_dir, rename):
+            landing[rename["source"]] = rename["target"]
+    return landing
+
+
 def read_parent_src(template_dir: Path) -> str | None:
     """Return the _src_path of the template repo's own copier answers, i.e. the template that generated it."""
     answers = template_dir.parent / ".config" / ".copier-answers.yml"
@@ -310,14 +343,22 @@ def stamp_all(
     """Stamp every destination file the template placed, write the manifest, and return the files that failed.
 
     A file handed down from an ancestor template is stamped with, and listed under, that ancestor rather than
-    the current template. One unstampable file costs neither the rest of the run nor the manifest.
+    the current template. A file the calling template's own tasks move after rendering is found at its renamed
+    path but attributed by its source path, which is the one an ancestor manifest records. One unstampable
+    file costs neither the rest of the run nor the manifest.
     """
     ancestors = read_ancestors(template_dir, suffixes)
+    landing = landing_paths(dst_dir, load_renames(template_dir))
     managed: dict[str, list[str]] = {manifest_src: []}
     parents: dict[str, str | None] = {manifest_src: read_parent_src(template_dir)}
     failures: list[str] = []
     for relative in destination_paths(template_dir, suffixes):
-        file = dst_dir / relative
+        source = str(relative)
+        if source in landing:
+            landed = landing[source]
+        else:
+            landed = source
+        file = dst_dir / landed
         if not file.is_file():
             continue
         owner = None
@@ -325,15 +366,15 @@ def stamp_all(
             owner = template_src
             managed_by = manifest_src
             for ancestor_src, ancestor_parent, handed_down in ancestors:
-                if str(relative) in handed_down:
+                if source in handed_down:
                     owner = managed_by = ancestor_src
                     parents[ancestor_src] = ancestor_parent
                     break
-            managed.setdefault(managed_by, []).append(str(relative))
+            managed.setdefault(managed_by, []).append(landed)
         try:
             stamp(file, owner)
         except Exception as exc:  # noqa: BLE001 -- deliberately broad: no single file may abort the run
-            failures.append(f"{relative}: {type(exc).__name__}: {exc}")
+            failures.append(f"{landed}: {type(exc).__name__}: {exc}")
     write_manifest(dst_dir, managed, parents)
     return failures
 

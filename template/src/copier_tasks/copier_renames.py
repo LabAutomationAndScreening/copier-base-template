@@ -1,0 +1,1 @@
+../../../src/copier_base_template/copier_tasks/copier_renames.py

@@ -200,6 +200,12 @@ pnpm_minimum_release_age_exclude:
         else
             echo ".config/ruff.toml not found; skipping Ruff target-version update."
         fi
+  # Moves declared in this template's .config/copier-renames.json. Runs right before the provenance task,
+  # which reads the same file so the manifest lists each moved file where it actually lives.
+  - command: |
+        python3 '{{ _copier_conf.src_path }}/src/copier_tasks/copier_renames.py' \
+            '{{ _copier_conf.src_path }}/template' \
+            '.'
   - command: |
         python3 '{{ _copier_conf.src_path }}/src/copier_tasks/copier_provenance.py' \
             '{{ _copier_conf.src_path }}/template' \
