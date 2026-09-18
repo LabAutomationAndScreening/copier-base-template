@@ -24,11 +24,11 @@ install_claude_cli:
 comment_audit_gate_mode:
     type: str
     help: How should the comment-audit gate react when the agent pushes un-audited source comments?
-    default: warn
+    default: "off"
     choices:
+      "Off - never react; /comment-audit still works on demand": "off"
       "Warn only - report them and let the push through": warn
       "Block - refuse the push until the comment-audit skill approves": block
-      "Off - never react; /comment-audit still works on demand": "off"
     when: "{{ install_claude_cli }}"
 
 python_version:

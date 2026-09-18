@@ -20,10 +20,15 @@ gate only detects that added comments exist; this skill does the judgment and th
 
 The gate runs in one of three modes, set by `mode` in `.config/claude/comment-audit.toml`:
 
-- **`warn`** (the default) — the gate reports the un-audited comments and lets the push through.
-  Running this skill is a recommendation, not a precondition.
+- **`off`** (the template default) — the gate does nothing; `/comment-audit` still works on demand.
+  The gate is opt-in: a project turns it on when it wants it.
+- **`warn`** — the gate reports the un-audited comments and lets the push through. Running this skill is
+  a recommendation, not a precondition.
 - **`block`** — the push is refused until this skill stamps approval.
-- **`off`** — the gate does nothing; `/comment-audit` still works on demand.
+
+A project with no config file at all falls back to `warn`, not `off`: that case is a misconfiguration
+(the hook is wired but its config is missing or unparseable) and should be visible, but it still must
+never block a push.
 
 The template renders that file from the `comment_audit_gate_mode` copier answer, so a project starts in
 the mode it chose. Editing the file directly is fine and survives `copier update` as long as the answer
