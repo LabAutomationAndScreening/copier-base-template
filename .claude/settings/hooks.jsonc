@@ -41,6 +41,14 @@
             "timeout": 5,
             "statusMessage": "Checking for command chaining...",
           },
+          // Reports `git push`es that add un-audited source comments. How it reacts (warn/block/off) is
+          // `mode` in .config/claude/comment-audit.toml.
+          {
+            "type": "command",
+            "command": "sh -c 'GATE=\"$CLAUDE_PROJECT_DIR/.claude/skills/comment-audit/comment-audit.py\"; if [ -f \"$GATE\" ]; then python3 \"$GATE\" gate; fi'",
+            "timeout": 30,
+            "statusMessage": "Checking for un-audited comments...",
+          },
         ],
       },
     ],
