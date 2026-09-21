@@ -206,12 +206,6 @@ def install_ssm_plugin(*, is_windows: bool) -> None:
 
 
 def ensure_ssm_plugin(*, is_windows: bool) -> None:
-    """Install the SSM plugin unless the machine already carries a new enough one.
-
-    The installer treats an equal version as nothing to do and exits zero without installing, so its
-    exit code cannot confirm the outcome. The version that ends up on the machine is read back and
-    printed instead, which both proves the install landed and puts the version in the CI log.
-    """
     installed = installed_ssm_plugin_version()
     if installed is None:
         print("SSM plugin not found, installing it")  # noqa: T201 # we want the script to print to console for easy viewing
@@ -227,6 +221,8 @@ def ensure_ssm_plugin(*, is_windows: bool) -> None:
         )
         return
     install_ssm_plugin(is_windows=is_windows)
+    # The installer exits zero without installing anything when the requested version is already
+    # present, so the version has to be read back rather than inferred from the exit code.
     final = installed_ssm_plugin_version()
     if final is None or final < SSM_PLUGIN_MINIMUM_VERSION:
         raise RuntimeError(
