@@ -206,8 +206,7 @@ def install_ssm_plugin(*, is_windows: bool) -> None:
 
 
 def ensure_ssm_plugin(*, is_windows: bool) -> None:
-    """
-    Install the SSM plugin unless the machine already carries a new enough one.
+    """Install the SSM plugin unless the machine already carries a new enough one.
 
     The installer treats an equal version as nothing to do and exits zero without installing, so its
     exit code cannot confirm the outcome. The version that ends up on the machine is read back and
