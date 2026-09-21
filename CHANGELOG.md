@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - List features that have been removed.
 
 ### Fixed
+- The SSM plugin is now installed only when the machine has no plugin or an older one than required, instead of unconditionally. GitHub's runner images ship a newer build than the pinned version, and its Windows installer refuses to downgrade with MSI error 1638, which failed every Windows job that did not opt out. The version that ends up installed is read back and printed, because the installer exits zero without installing when the version already matches.
 - List any bug fixes.
 
 ### Security
