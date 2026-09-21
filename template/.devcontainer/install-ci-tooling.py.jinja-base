@@ -23,7 +23,7 @@ INSTALL_SSM_PLUGIN_BY_DEFAULT = {% endraw %}{% if is_child_of_copier_base_templa
 # A floor rather than an exact pin: GitHub's runner images ship their own build of the plugin and only
 # ever move it forward, so demanding an exact version means asking a Windows runner to downgrade, which
 # its installer refuses outright with MSI error 1638.
-SSM_PLUGIN_MINIMUM_VERSION = (1, 2, 707, 0)
+SSM_PLUGIN_MINIMUM_VERSION = (1, 2, 835, 0)
 SSM_PLUGIN_DOWNLOAD_VERSION = ".".join(str(part) for part in SSM_PLUGIN_MINIMUM_VERSION)
 SSM_PLUGIN_EXECUTABLE = "session-manager-plugin"
 # Where the Windows installer places the executable. Needed because a fresh install does not reach the
