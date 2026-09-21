@@ -228,8 +228,11 @@ def ensure_ssm_plugin(*, is_windows: bool) -> None:
         return
     install_ssm_plugin(is_windows=is_windows)
     final = installed_ssm_plugin_version()
-    if final is None:
-        raise RuntimeError(f"The SSM plugin installer reported success but left no usable {SSM_PLUGIN_EXECUTABLE}")
+    if final is None or final < SSM_PLUGIN_MINIMUM_VERSION:
+        raise RuntimeError(
+            f"The SSM plugin installer did not produce {SSM_PLUGIN_EXECUTABLE} "
+            f"version {SSM_PLUGIN_DOWNLOAD_VERSION} or newer, it left {final}"
+        )
     print(f"SSM Plugin Manager Version: {'.'.join(str(part) for part in final)}")  # noqa: T201 # we want the script to print to console for easy viewing
 
 
