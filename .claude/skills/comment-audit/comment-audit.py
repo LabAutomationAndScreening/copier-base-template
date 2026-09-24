@@ -289,17 +289,30 @@ def _own_upstream_ref(cwd: str) -> str | None:
         return None
 
 
+def _contains_head(cwd: str, ref: str) -> bool:
+    try:
+        _ = git(["merge-base", "--is-ancestor", "HEAD", ref], cwd)
+    except subprocess.CalledProcessError:
+        return False  # exit 1: not an ancestor (or ref unrelated)
+    return True
+
+
 def _closest_remote_base(cwd: str, *, exclude: str | None) -> str | None:
     """Merge-base with the remote-tracking branch whose fork point sits closest to HEAD.
 
-    `exclude` drops one refname from consideration (HEAD's own remote-tracking branch, whose merge-base is
-    HEAD itself and would audit nothing). Returns None when no remote ref is related to HEAD.
+    `exclude` drops one refname from consideration (HEAD's own remote-tracking branch). Any ref that already
+    contains HEAD — a branch stacked on this one, or this commit pushed under another name — is skipped too:
+    its merge-base is HEAD itself, so it would win at distance 0 and audit nothing. Returns None when no
+    remote ref is related to HEAD.
+
+    Known limit: a branch forked partway up this one still looks like the closest parent and truncates the
+    range. Only naming the target branch explicitly would fix that; git history cannot tell them apart.
     """
     refs = [r for r in git(["for-each-ref", "--format=%(refname)", "refs/remotes"], cwd).split("\n") if r]
     best: str | None = None
     best_dist = float("inf")
     for ref in refs:
-        if ref == exclude:
+        if ref == exclude or _contains_head(cwd, ref):
             continue
         try:
             merge_base = git(["merge-base", "HEAD", ref], cwd)

@@ -5,6 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
+from typing import TypedDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_PATH = PROJECT_ROOT / ".claude" / "skills" / "comment-audit" / "comment-audit.py"
@@ -69,6 +70,31 @@ def make_repo(tmp_path: Path, *, mode: str = "block") -> Path:
     _ = git(repo, "commit", "-m", "init")
     _ = git(repo, "push", "-u", "origin", "main")
     return repo
+
+
+class ListedComment(TypedDict):
+    file: str
+    start: int
+    end: int
+
+
+class Listing(TypedDict):
+    base: str
+    head: str
+    comments: list[ListedComment]
+
+
+def run_list(repo: Path) -> Listing:
+    result = subprocess.run(  # noqa: S603 -- our own script
+        [sys.executable, str(SCRIPT_PATH), "list", str(repo)],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=isolated_git_env(),
+        timeout=60,
+    )
+    listing: Listing = json.loads(result.stdout)
+    return listing
 
 
 def run_gate(command: str, *, cwd: Path, project_dir: Path) -> subprocess.CompletedProcess[str]:

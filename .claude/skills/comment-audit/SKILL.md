@@ -67,7 +67,7 @@ python3 .claude/skills/comment-audit/comment-audit.py list <repo-root>
 The range differs by how the audit was triggered, on purpose. The gate (a `git push`) audits only the
 *outgoing* commits — the upstream's merge-base — so it re-reviews just what each push newly adds. This
 manual `list` verb instead audits the **whole branch against its fork point** (the closest other
-remote-tracking branch, falling back to `origin/main`), so `/comment-audit` still finds every comment on a
+remote-tracking branch that does not already contain HEAD, falling back to `origin/main`), so `/comment-audit` still finds every comment on a
 branch that has already been fully pushed. `COMMENT_GATE_BASE` overrides both. A `base == head` result
 therefore means the branch adds nothing over its fork point — genuinely nothing to audit.
 
