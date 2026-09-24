@@ -76,7 +76,8 @@ _ENV_ASSIGNMENT_RE = re.compile(r"^\w+=")
 # Global options whose value is the NEXT token; the `--opt=value` spelling is a single token and needs no
 # entry. Missing one here means its value is mistaken for the subcommand and the push goes ungated.
 _GIT_VALUE_OPTIONS = frozenset({"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env"})
-_SHELL_OPERATORS = frozenset({"&&", "||", ";", "|", "&"})
+# Characters of the operators that end a shell command: `;`, `&&`, `||`, `|`, `&` and a newline.
+_CONTROL_CHARS = ";|&\n"
 
 _HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 
@@ -118,16 +119,34 @@ class PushInvocation:
 
 
 def parse_push(cmd: str) -> PushInvocation | None:
-    """Return the push this command runs, or None if its git subcommand is not `push`.
+    """Return the first push among the commands this shell line runs, or None if none of them is a push.
 
     Tokenised rather than pattern-matched so that global options are consumed with their values: neither
     a path containing "push" nor a commit message mentioning "git push" trips the gate, and `git -C <path>
-    push` does not slip past it.
+    push` does not slip past it. Every command in a chain is checked, so `git commit && git push` is too.
     """
     try:
-        tokens = shlex.split(cmd)
+        commands = _shell_commands(cmd)
     except ValueError:
         return None  # unbalanced quoting: the shell will reject it before git runs
+    return next((push for words in commands if (push := _parse_push_command(words))), None)
+
+
+def _shell_commands(cmd: str) -> list[list[str]]:
+    """Split cmd into the words of each command, cutting at `;`, `&&`, `|`, ... even when unspaced."""
+    lexer = shlex.shlex(cmd, posix=True, punctuation_chars=_CONTROL_CHARS)
+    lexer.whitespace = " \t\r"  # a newline separates commands, so it is an operator, not whitespace
+    lexer.whitespace_split = True
+    commands: list[list[str]] = [[]]
+    for tok in lexer:
+        if set(tok) <= set(_CONTROL_CHARS):
+            commands.append([])
+        else:
+            commands[-1].append(tok)
+    return commands
+
+
+def _parse_push_command(tokens: list[str]) -> PushInvocation | None:
     i = 0
     while i < len(tokens) and _ENV_ASSIGNMENT_RE.match(tokens[i]):
         i += 1
@@ -139,11 +158,7 @@ def parse_push(cmd: str) -> PushInvocation | None:
     i, chdirs = globals_end
     if i >= len(tokens) or tokens[i] != "push":
         return None
-    args: list[str] = []
-    for tok in tokens[i + 1 :]:
-        if tok in _SHELL_OPERATORS:
-            break
-        args.append(tok)
+    args = tokens[i + 1 :]
     if "-h" in args or "--help" in args:
         return None  # prints usage; pushes nothing
     return PushInvocation(chdirs=chdirs)

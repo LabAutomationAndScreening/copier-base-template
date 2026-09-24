@@ -27,6 +27,13 @@ class TestParsePush:
             "git --git-dir=/repo/.git push",
             "git --work-tree /repo push",
             "git --no-pager push",
+            "git add -A && git commit -m x && git push",
+            "git commit -m x; git push",
+            "git fetch || git push",
+            "git push | tee out.log",
+            "git add .\ngit push",
+            "git push;",
+            "true&&git push",
         ],
     )
     def test_When_git_subcommand_is_push__Then_detected(self, command: str) -> None:
@@ -41,6 +48,8 @@ class TestParsePush:
             "echo git push",
             "git push --help",
             "git -C /repo push -h",
+            'git commit -m "a && git push"',
+            'git commit -m "a\ngit push"',
         ],
     )
     def test_When_git_subcommand_is_not_push__Then_not_detected(self, command: str) -> None:
