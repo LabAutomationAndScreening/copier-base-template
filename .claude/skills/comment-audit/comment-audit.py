@@ -40,7 +40,9 @@ it is a work stoppage. Move a project to `block` once warn-mode reports have pro
 
 Scope: the hook only intercepts the AGENT's `git push`. A human running `git push` directly is never
 affected — that, or the skill's attestation, is the only way past `block`. There is deliberately no
-agent-settable override: an env flag the agent could add itself would be no gate.
+agent-settable override: an env flag the agent could add itself would be no gate. Only HEAD is audited, so
+a push that sends any other ref (`other:main`, `--all`, ...) is treated like a push whose range could not
+be determined: blocked in `block`, reported in `warn`.
 
 Attestation: the skill writes <git-dir>/.comment-audit-ok containing the HEAD sha it reviewed. A marker
 matching the current HEAD silences the gate (and is then consumed) in every mode, so `warn` and `block`
@@ -81,6 +83,10 @@ _GIT_VALUE_OPTIONS = frozenset({"-C", "-c", "--git-dir", "--work-tree", "--names
 # --git-dir/--work-tree point git at a repo the gate's own git calls (run in cwd) would not see.
 _GIT_REPO_OPTIONS = frozenset({"--git-dir", "--work-tree"})
 _SHELL_OPERATORS = frozenset({"&&", "||", ";", "|", "&"})
+# `git push` options whose value is the next token, so it is not mistaken for the remote or a refspec.
+_PUSH_VALUE_OPTIONS = frozenset({"-o", "--push-option", "--repo", "--receive-pack", "--exec"})
+# Options that push refs other than the ones named on the command line.
+_PUSH_ALL_REFS_OPTIONS = frozenset({"--all", "--branches", "--mirror", "--tags"})
 
 MODE_OFF = "off"
 MODE_WARN = "warn"
@@ -605,6 +611,59 @@ def _fail(message: str, *, mode: str) -> None:
     _emit_warning(message)
 
 
+def _pushes_only_head(cwd: str, args: list[str]) -> bool:
+    """Report whether every commit this push sends is HEAD's, so auditing HEAD covers the whole push.
+
+    The collector and the approval marker only know HEAD. Rather than audit each pushed ref separately,
+    anything else — another branch, a glob, --all, a source that does not resolve — is reported as
+    unaudited and left to _fail. Deletions (`:dst`, --delete) send no commits and are ignored.
+    """
+    positionals: list[str] = []
+    deleting = False
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg in _PUSH_ALL_REFS_OPTIONS:
+            return False
+        if arg in {"-d", "--delete"}:
+            deleting = True
+        elif arg in _PUSH_VALUE_OPTIONS:
+            i += 1
+        elif not arg.startswith("-"):
+            positionals.append(arg)
+        i += 1
+    if deleting:
+        return True
+    head = git(["rev-parse", "HEAD"], cwd)
+    return all(_refspec_source_is(cwd, refspec, head) for refspec in positionals[1:])  # [0] is the remote
+
+
+def _refspec_source_is(cwd: str, refspec: str, sha: str) -> bool:
+    source = refspec.removeprefix("+").split(":", 1)[0]
+    if not source:
+        return True  # `:dst` deletes the remote ref
+    if "*" in source:
+        return False
+    try:
+        return git(["rev-parse", "--verify", "--quiet", f"{source}^{{commit}}"], cwd) == sha
+    except subprocess.CalledProcessError:
+        return False
+
+
+def _unaudited_push_reason(cwd: str, push: PushInvocation) -> str | None:
+    if push.repo_override:
+        return (
+            "comment-gate: --git-dir/--work-tree pushes are not audited. Drop the option, or have a human run "
+            "git push directly.\n"
+        )
+    if not _pushes_only_head(cwd, push.args):
+        return (
+            "comment-gate: this push sends commits other than HEAD, and the gate only audits HEAD. Check out the "
+            "ref and push it from there, or have a human run git push directly.\n"
+        )
+    return None
+
+
 def _push_cwd(data: dict[str, Any], push: PushInvocation) -> str:
     cwd = Path(data.get("cwd") or data.get("tool_input", {}).get("cwd") or ".")
     for chdir in push.chdirs:
@@ -628,12 +687,9 @@ def _gate() -> None:
         if mode == MODE_OFF:
             return
 
-        if push.repo_override:
-            _fail(
-                "comment-gate: --git-dir/--work-tree pushes are not audited. Drop the option, or have a human run "
-                "git push directly.\n",
-                mode=mode,
-            )
+        reason = _unaudited_push_reason(cwd, push)
+        if reason:
+            _fail(reason, mode=mode)
             return
 
         try:
