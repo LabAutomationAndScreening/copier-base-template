@@ -56,9 +56,11 @@ import ast
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import tomllib
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from typing import NoReturn
@@ -72,10 +74,13 @@ MARKER_NAME = ".comment-audit-ok"
 _HASH_COMMENT_RE = re.compile(r"\.(py|ya?ml|toml|sh|rb)$")
 _MARKDOWN_RE = re.compile(r"\.(md|markdown)$")
 
-# The command's git subcommand is `push`: anchored after any leading env assignments and git's global
-# options, so neither a path containing "push" nor a commit message mentioning "git push" trips the gate.
-_GIT_PUSH_RE = re.compile(r"^(?:\w+=\S*\s+)*git\s+(?:-\S+\s+)*push(?:\s|$)")
-_PUSH_HELP_RE = re.compile(r"\bpush\b[^\n]*(-h\b|--help\b)")
+_ENV_ASSIGNMENT_RE = re.compile(r"^\w+=")
+# Global options whose value is the NEXT token; the `--opt=value` spelling is a single token and needs no
+# entry. Missing one here means its value is mistaken for the subcommand and the push goes ungated.
+_GIT_VALUE_OPTIONS = frozenset({"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env"})
+# --git-dir/--work-tree point git at a repo the gate's own git calls (run in cwd) would not see.
+_GIT_REPO_OPTIONS = frozenset({"--git-dir", "--work-tree"})
+_SHELL_OPERATORS = frozenset({"&&", "||", ";", "|", "&"})
 
 MODE_OFF = "off"
 MODE_WARN = "warn"
@@ -127,8 +132,63 @@ def git(args: list[str], cwd: str) -> str:
     return result.stdout.strip()
 
 
+@dataclass(frozen=True)
+class PushInvocation:
+    args: list[str]  # tokens after `push`, up to the first shell operator
+    chdirs: list[str]  # each -C value, in order; git applies them cumulatively
+    repo_override: bool  # --git-dir/--work-tree given
+
+
+def parse_push(cmd: str) -> PushInvocation | None:
+    """Return the push this command runs, or None if its git subcommand is not `push`.
+
+    Tokenised rather than pattern-matched so that global options are consumed with their values: neither
+    a path containing "push" nor a commit message mentioning "git push" trips the gate, and `git -C <path>
+    push` does not slip past it.
+    """
+    try:
+        tokens = shlex.split(cmd)
+    except ValueError:
+        return None  # unbalanced quoting: the shell will reject it before git runs
+    i = 0
+    while i < len(tokens) and _ENV_ASSIGNMENT_RE.match(tokens[i]):
+        i += 1
+    if i >= len(tokens) or tokens[i] != "git":
+        return None
+    globals_end = _consume_git_globals(tokens, i + 1)
+    if globals_end is None:
+        return None
+    i, chdirs, repo_override = globals_end
+    if i >= len(tokens) or tokens[i] != "push":
+        return None
+    args: list[str] = []
+    for tok in tokens[i + 1 :]:
+        if tok in _SHELL_OPERATORS:
+            break
+        args.append(tok)
+    if "-h" in args or "--help" in args:
+        return None  # prints usage; pushes nothing
+    return PushInvocation(args=args, chdirs=chdirs, repo_override=repo_override)
+
+
+def _consume_git_globals(tokens: list[str], i: int) -> tuple[int, list[str], bool] | None:
+    """Step past git's global options from tokens[i]; return (subcommand index, -C values, repo override)."""
+    chdirs: list[str] = []
+    repo_override = False
+    while i < len(tokens) and tokens[i].startswith("-"):
+        repo_override = repo_override or tokens[i].split("=", 1)[0] in _GIT_REPO_OPTIONS
+        if tokens[i] in _GIT_VALUE_OPTIONS:
+            if i + 1 >= len(tokens):
+                return None
+            if tokens[i] == "-C":
+                chdirs.append(tokens[i + 1])
+            i += 1
+        i += 1
+    return i, chdirs, repo_override
+
+
 def is_git_push(cmd: str) -> bool:
-    return bool(_GIT_PUSH_RE.search(cmd)) and not _PUSH_HELP_RE.search(cmd)
+    return parse_push(cmd) is not None
 
 
 def scan_comment(line: str, file: str) -> str | None:
@@ -532,6 +592,13 @@ def _fail(message: str, *, mode: str) -> None:
     _emit_warning(message)
 
 
+def _push_cwd(data: dict[str, Any], push: PushInvocation) -> str:
+    cwd = Path(data.get("cwd") or data.get("tool_input", {}).get("cwd") or ".")
+    for chdir in push.chdirs:
+        cwd /= chdir  # an absolute -C replaces cwd, a relative one descends, as in git
+    return str(cwd)
+
+
 def _gate() -> None:
     # The hook fires on every Bash call, so the mode is resolved only once the command is known to be a
     # push; until then there is no project to read it from.
@@ -539,12 +606,21 @@ def _gate() -> None:
     try:
         data = json.loads(sys.stdin.read() or "{}")
         command = (data.get("tool_input", {}).get("command") or "").strip()
-        if not is_git_push(command):
+        push = parse_push(command)
+        if push is None:
             return  # not a push — nothing to gate
 
-        cwd = data.get("cwd") or data.get("tool_input", {}).get("cwd") or "."
+        cwd = _push_cwd(data, push)
         mode = _mode(cwd)
         if mode == MODE_OFF:
+            return
+
+        if push.repo_override:
+            _fail(
+                "comment-gate: --git-dir/--work-tree pushes are not audited. Drop the option, or have a human run "
+                "git push directly.\n",
+                mode=mode,
+            )
             return
 
         try:
