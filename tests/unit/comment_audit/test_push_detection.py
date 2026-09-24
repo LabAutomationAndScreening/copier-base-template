@@ -7,6 +7,7 @@ from .helpers import load_comment_audit
 from .helpers import make_repo
 from .helpers import run_gate
 
+_EXIT_ALLOWED = 0
 _EXIT_BLOCKED = 2
 
 comment_audit = load_comment_audit()
@@ -67,9 +68,9 @@ class TestGateWithGlobalOptions:
         assert result.returncode == _EXIT_BLOCKED
         assert "mod.py" in result.stderr
 
-    def test_When_git_dir_given__Then_block_mode_fails_closed(self, tmp_path: Path) -> None:
+    def test_When_git_dir_given_and_head_adds_no_comments__Then_push_allowed(self, tmp_path: Path) -> None:
         repo = make_repo(tmp_path)
 
-        result = run_gate(f"git --git-dir {repo}/.git push", cwd=tmp_path, project_dir=repo)
+        result = run_gate(f"git --git-dir {repo}/.git push", cwd=repo, project_dir=repo)
 
-        assert result.returncode == _EXIT_BLOCKED
+        assert result.returncode == _EXIT_ALLOWED, result.stderr

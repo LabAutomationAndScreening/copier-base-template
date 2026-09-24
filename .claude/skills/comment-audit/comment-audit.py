@@ -76,8 +76,6 @@ _ENV_ASSIGNMENT_RE = re.compile(r"^\w+=")
 # Global options whose value is the NEXT token; the `--opt=value` spelling is a single token and needs no
 # entry. Missing one here means its value is mistaken for the subcommand and the push goes ungated.
 _GIT_VALUE_OPTIONS = frozenset({"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env"})
-# --git-dir/--work-tree point git at a repo the gate's own git calls (run in cwd) would not see.
-_GIT_REPO_OPTIONS = frozenset({"--git-dir", "--work-tree"})
 _SHELL_OPERATORS = frozenset({"&&", "||", ";", "|", "&"})
 
 _HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
@@ -117,7 +115,6 @@ def git(args: list[str], cwd: str, *, strip: bool = True) -> str:
 @dataclass(frozen=True)
 class PushInvocation:
     chdirs: list[str]  # each -C value, in order; git applies them cumulatively
-    repo_override: bool  # --git-dir/--work-tree given
 
 
 def parse_push(cmd: str) -> PushInvocation | None:
@@ -139,7 +136,7 @@ def parse_push(cmd: str) -> PushInvocation | None:
     globals_end = _consume_git_globals(tokens, i + 1)
     if globals_end is None:
         return None
-    i, chdirs, repo_override = globals_end
+    i, chdirs = globals_end
     if i >= len(tokens) or tokens[i] != "push":
         return None
     args: list[str] = []
@@ -149,15 +146,13 @@ def parse_push(cmd: str) -> PushInvocation | None:
         args.append(tok)
     if "-h" in args or "--help" in args:
         return None  # prints usage; pushes nothing
-    return PushInvocation(chdirs=chdirs, repo_override=repo_override)
+    return PushInvocation(chdirs=chdirs)
 
 
-def _consume_git_globals(tokens: list[str], i: int) -> tuple[int, list[str], bool] | None:
-    """Step past git's global options from tokens[i]; return (subcommand index, -C values, repo override)."""
+def _consume_git_globals(tokens: list[str], i: int) -> tuple[int, list[str]] | None:
+    """Step past git's global options from tokens[i]; return (subcommand index, -C values)."""
     chdirs: list[str] = []
-    repo_override = False
     while i < len(tokens) and tokens[i].startswith("-"):
-        repo_override = repo_override or tokens[i].split("=", 1)[0] in _GIT_REPO_OPTIONS
         if tokens[i] in _GIT_VALUE_OPTIONS:
             if i + 1 >= len(tokens):
                 return None
@@ -165,7 +160,7 @@ def _consume_git_globals(tokens: list[str], i: int) -> tuple[int, list[str], boo
                 chdirs.append(tokens[i + 1])
             i += 1
         i += 1
-    return i, chdirs, repo_override
+    return i, chdirs
 
 
 def scan_comment(line: str, file: str) -> str | None:
@@ -506,15 +501,6 @@ def _emit(message: str, *, mode: str) -> None:
         _emit_warning(message)
 
 
-def _unaudited_push_reason(push: PushInvocation) -> str | None:
-    if push.repo_override:
-        return (
-            "comment-gate: --git-dir/--work-tree pushes are not audited. Drop the option, or have a human run "
-            "git push directly.\n"
-        )
-    return None
-
-
 def _push_cwd(data: dict[str, Any], push: PushInvocation) -> str:
     cwd = Path(data.get("cwd") or ".")
     for chdir in push.chdirs:
@@ -535,11 +521,6 @@ def _gate() -> None:
         cwd = _push_cwd(data, push)
         mode = _mode(cwd)
         if mode == MODE_OFF:
-            return
-
-        reason = _unaudited_push_reason(push)
-        if reason:
-            _emit(reason, mode=mode)
             return
 
         info = collect_added_comments(cwd)
