@@ -12,7 +12,7 @@ _EXIT_BLOCKED = 2
 comment_audit = load_comment_audit()
 
 
-class TestIsGitPush:
+class TestParsePush:
     @pytest.mark.parametrize(
         "command",
         [
@@ -29,7 +29,7 @@ class TestIsGitPush:
         ],
     )
     def test_When_git_subcommand_is_push__Then_detected(self, command: str) -> None:
-        assert comment_audit.is_git_push(command)
+        assert comment_audit.parse_push(command) is not None
 
     @pytest.mark.parametrize(
         "command",
@@ -43,7 +43,7 @@ class TestIsGitPush:
         ],
     )
     def test_When_git_subcommand_is_not_push__Then_not_detected(self, command: str) -> None:
-        assert not comment_audit.is_git_push(command)
+        assert comment_audit.parse_push(command) is None
 
 
 class TestGateWithGlobalOptions:

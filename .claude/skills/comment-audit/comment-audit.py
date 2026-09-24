@@ -50,10 +50,6 @@ agree on what counts as audited. This stops the accidental/forgetful bypass; it 
 adversarial agent (a file is a file).
 """
 
-# A skill is copied into a project whole, so it cannot import a helper from a sibling skill; run_cmd
-# matching address-pr-comments' copy is the cost of that self-containment.
-# pylint: disable=duplicate-code
-
 import ast
 import json
 import os
@@ -62,12 +58,12 @@ import shlex
 import subprocess
 import sys
 import tomllib
+from collections.abc import Iterable
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from typing import NoReturn
-
-_PYTHON_RE = re.compile(r"\.py$")
 
 MARKER_NAME = ".comment-audit-ok"
 
@@ -88,12 +84,16 @@ _PUSH_VALUE_OPTIONS = frozenset({"-o", "--push-option", "--repo", "--receive-pac
 # Options that push refs other than the ones named on the command line.
 _PUSH_ALL_REFS_OPTIONS = frozenset({"--all", "--branches", "--mirror", "--tags"})
 
+_HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
+
 MODE_OFF = "off"
 MODE_WARN = "warn"
 MODE_BLOCK = "block"
+_MODES = frozenset({MODE_OFF, MODE_WARN, MODE_BLOCK})
 CONFIG_RELPATH = Path(".config") / "claude" / "comment-audit.toml"
 
 VERB_AND_ROOT_ARGC = 2
+GIT_TIMEOUT_SECONDS = 30
 
 _GUIDANCE = (
     "Run the comment-audit skill — invoke /comment-audit. It reviews every comment with you\n"
@@ -102,40 +102,20 @@ _GUIDANCE = (
 )
 
 
-def run_cmd(
-    cmd: list[str],
-    *,
-    timeout: int,
-    timeout_msg: str,
-    cwd: str | None = None,
-) -> subprocess.CompletedProcess[str]:
-    try:
-        return subprocess.run(  # noqa: S603 — callers only pass fixed git argv lists
-            cmd,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=timeout,
-            cwd=cwd,
-        )
-    except subprocess.TimeoutExpired:
-        _ = sys.stderr.write(f"{timeout_msg}\n")
-        sys.exit(1)
+def git(args: list[str], cwd: str, *, strip: bool = True) -> str:
+    """Run a git command in cwd, raising CalledProcessError or TimeoutExpired on failure.
 
-
-def git(args: list[str], cwd: str) -> str:
-    """Run a git command in cwd, raising CalledProcessError on failure.
-
-    Stdout is trimmed, so callers that depend on exact bytes — anything reading a blob whose line
-    numbers must stay true — have to use run_cmd directly instead.
+    Pass strip=False when reading a blob: trimming leading blank lines would shift its line numbers.
     """
-    result = run_cmd(
-        ["git", *args],
-        timeout=30,
-        timeout_msg=f"git {' '.join(args)} timed out.",
+    stdout = subprocess.run(  # noqa: S603 — callers only pass fixed git argv lists
+        ["git", *args],  # noqa: S607 — git is resolved from PATH
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=GIT_TIMEOUT_SECONDS,
         cwd=cwd,
-    )
-    return result.stdout.strip()
+    ).stdout
+    return stdout.strip() if strip else stdout
 
 
 @dataclass(frozen=True)
@@ -193,10 +173,6 @@ def _consume_git_globals(tokens: list[str], i: int) -> tuple[int, list[str], boo
     return i, chdirs, repo_override
 
 
-def is_git_push(cmd: str) -> bool:
-    return parse_push(cmd) is not None
-
-
 def scan_comment(line: str, file: str) -> str | None:
     """Return the comment line exactly as authored (trimmed), or None if it is not a comment.
 
@@ -227,80 +203,50 @@ def scan_comment(line: str, file: str) -> str | None:
     return raw
 
 
-def _flush(groups: list[dict[str, Any]], cur: dict[str, Any] | None) -> None:
-    if cur:
-        groups.append(cur)
+def added_lines(diff: str) -> Iterator[tuple[str, int, str]]:
+    r"""Yield (file, line number at HEAD, text) for every line a unified diff adds.
 
-
-def _consume_added(
-    groups: list[dict[str, Any]],
-    cur: dict[str, Any] | None,
-    file: str,
-    new_line: int,
-    comment: str | None,
-) -> dict[str, Any] | None:
-    if not comment:
-        _flush(groups, cur)
-        return None
-    if cur and cur["file"] == file and new_line == cur["end"] + 1:
-        cur["end"] = new_line
-        cur["raws"].append(comment)
-        return cur
-    _flush(groups, cur)
-    return {"file": file, "start": new_line, "end": new_line, "raws": [comment], "kind": "comment"}
-
-
-def added_comments(diff: str) -> list[dict[str, Any]]:
-    """Return one entry per *logical* comment.
-
-    Consecutive added comment lines in the same file are coalesced, so a multi-line comment is shown whole
-    (with a line range), not as scattered fragments.
+    `+++`/`---` are only file headers before a file's first hunk; inside a hunk they are an added `++x` or
+    a removed `--x`. `\ No newline at end of file` is a marker, not a source line.
     """
-    groups: list[dict[str, Any]] = []
-    cur: dict[str, Any] | None = None
     file = ""
     new_line = 0
-
+    in_hunk = False
     for raw in diff.split("\n"):
-        if raw.startswith("+++ b/"):
-            file = raw[6:].strip()
-            _flush(groups, cur)
-            cur = None
-            continue
-        if raw.startswith(("+++", "---")):
-            continue
-        hunk = re.match(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@", raw)
-        if hunk:
+        hunk = _HUNK_RE.match(raw)
+        if raw.startswith("diff --git "):
+            in_hunk = False
+        elif hunk:
             new_line = int(hunk.group(1))
-            _flush(groups, cur)
-            cur = None
+            in_hunk = True
+        elif not in_hunk:
+            if raw.startswith("+++ b/"):
+                file = raw[6:].strip()
+        elif raw.startswith("+"):
+            yield file, new_line, raw[1:]
+            new_line += 1
+        elif raw.startswith(" "):
+            new_line += 1
+
+
+def added_comments(lines: Iterable[tuple[str, int, str]]) -> list[dict[str, Any]]:
+    """Return one entry per *logical* comment.
+
+    Added comment lines on consecutive lines of the same file are coalesced, so a multi-line comment is
+    shown whole (with a line range), not as scattered fragments.
+    """
+    groups: list[dict[str, Any]] = []
+    for file, line, text in lines:
+        comment = scan_comment(text, file)
+        if comment is None:
             continue
-        if raw.startswith("-"):
-            continue  # removed line: no source line to advance past
-        if raw.startswith("+"):
-            cur = _consume_added(groups, cur, file, new_line, scan_comment(raw[1:], file))
+        last = groups[-1] if groups else None
+        if last and last["file"] == file and last["end"] == line - 1:
+            last["end"] = line
+            last["raws"].append(comment)
         else:
-            _flush(groups, cur)  # context line breaks the run
-            cur = None
-        new_line += 1
-
-    _flush(groups, cur)
+            groups.append({"file": file, "start": line, "end": line, "raws": [comment], "kind": "comment"})
     return groups
-
-
-def _own_upstream_ref(cwd: str) -> str | None:
-    try:
-        return git(["rev-parse", "--symbolic-full-name", "@{u}"], cwd)
-    except subprocess.CalledProcessError:
-        return None
-
-
-def _contains_head(cwd: str, ref: str) -> bool:
-    try:
-        _ = git(["merge-base", "--is-ancestor", "HEAD", ref], cwd)
-    except subprocess.CalledProcessError:
-        return False  # exit 1: not an ancestor (or ref unrelated)
-    return True
 
 
 def _closest_remote_base(cwd: str, *, exclude: str | None) -> str | None:
@@ -314,21 +260,31 @@ def _closest_remote_base(cwd: str, *, exclude: str | None) -> str | None:
     Known limit: a branch forked partway up this one still looks like the closest parent and truncates the
     range. Only naming the target branch explicitly would fix that; git history cannot tell them apart.
     """
+    head = git(["rev-parse", "HEAD"], cwd)
     refs = [r for r in git(["for-each-ref", "--format=%(refname)", "refs/remotes"], cwd).split("\n") if r]
     best: str | None = None
     best_dist = float("inf")
     for ref in refs:
-        if ref == exclude or _contains_head(cwd, ref):
+        if ref == exclude:
             continue
         try:
             merge_base = git(["merge-base", "HEAD", ref], cwd)
-            dist = int(git(["rev-list", "--count", f"{merge_base}..HEAD"], cwd))
         except subprocess.CalledProcessError:
             continue  # ref unrelated to HEAD
+        if merge_base == head:
+            continue  # ref already contains HEAD
+        dist = int(git(["rev-list", "--count", f"{merge_base}..HEAD"], cwd))
         if dist < best_dist:
             best_dist = dist
             best = merge_base
     return best
+
+
+def _upstream_ref(cwd: str) -> str | None:
+    try:
+        return git(["rev-parse", "--symbolic-full-name", "@{u}"], cwd)
+    except subprocess.CalledProcessError:
+        return None
 
 
 def resolve_base(cwd: str, *, manual: bool = False) -> str:
@@ -347,37 +303,14 @@ def resolve_base(cwd: str, *, manual: bool = False) -> str:
     override = os.environ.get("COMMENT_GATE_BASE")
     if override:
         return override
-    if manual:
-        base = _closest_remote_base(cwd, exclude=_own_upstream_ref(cwd))
-        return base or git(["merge-base", "HEAD", "origin/main"], cwd)
-    try:
-        return git(["merge-base", "HEAD", "@{u}"], cwd)
-    except subprocess.CalledProcessError:
-        pass  # no upstream
-    base = _closest_remote_base(cwd, exclude=None)
+    upstream = _upstream_ref(cwd)
+    if upstream and not manual:
+        try:
+            return git(["merge-base", "HEAD", upstream], cwd)
+        except subprocess.CalledProcessError:
+            pass  # upstream shares no history with HEAD
+    base = _closest_remote_base(cwd, exclude=upstream)
     return base or git(["merge-base", "HEAD", "origin/main"], cwd)
-
-
-def added_line_map(diff: str) -> dict[str, set[int]]:
-    added: dict[str, set[int]] = {}
-    file = ""
-    new_line = 0
-    for raw in diff.split("\n"):
-        if raw.startswith("+++ b/"):
-            file = raw[6:].strip()
-            continue
-        if raw.startswith(("+++", "---")):
-            continue
-        hunk = re.match(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@", raw)
-        if hunk:
-            new_line = int(hunk.group(1))
-            continue
-        if raw.startswith("-"):
-            continue
-        if raw.startswith("+"):
-            added.setdefault(file, set()).add(new_line)
-        new_line += 1
-    return added
 
 
 def python_docstrings(source: str, file: str, added_lines: set[int]) -> list[dict[str, Any]]:
@@ -417,37 +350,26 @@ def collect_added_comments(cwd: str, *, manual: bool = False) -> dict[str, Any]:
     base = resolve_base(cwd, manual=manual)
     diff = git(["diff", f"{base}..{head}", "--unified=0", "--no-color"], cwd)
 
-    entries = added_comments(diff)
-    for path, added in added_line_map(diff).items():
-        if not _PYTHON_RE.search(path):
-            continue
-        try:
-            # Read the blob unstripped so line numbers stay true (git() strips, which would shift them).
-            source = run_cmd(
-                ["git", "show", f"{head}:{path}"],
-                timeout=30,
-                timeout_msg=f"git show {path} timed out.",
-                cwd=cwd,
-            ).stdout
-        except subprocess.CalledProcessError:
-            continue  # blob unreadable (deleted at HEAD, binary, ...)
-        entries.extend(python_docstrings(source, path, added))
+    added = list(added_lines(diff))
+    entries = added_comments(added)
+    added_py: dict[str, set[int]] = {}
+    for path, line, _ in added:
+        if path.endswith(".py"):
+            added_py.setdefault(path, set()).add(line)
+    for path, py_lines in added_py.items():
+        source = _show_blob(cwd, head, path)
+        if source is not None:
+            entries.extend(python_docstrings(source, path, py_lines))
 
     entries.sort(key=lambda e: (e["file"], e["start"]))
     return {"base": base, "head": head, "gitDir": git_dir, "comments": entries}
 
 
-def _blob_lines(cwd: str, head: str, path: str) -> list[str] | None:
+def _show_blob(cwd: str, head: str, path: str) -> str | None:
     try:
-        source = run_cmd(
-            ["git", "show", f"{head}:{path}"],
-            timeout=30,
-            timeout_msg=f"git show {path} timed out.",
-            cwd=cwd,
-        ).stdout
+        return git(["show", f"{head}:{path}"], cwd, strip=False)
     except subprocess.CalledProcessError:
-        return None
-    return source.split("\n")
+        return None  # deleted at HEAD, binary, ...
 
 
 def _context_block(lines: list[str], entry: dict[str, Any], *, before: int, after: int) -> str:
@@ -461,20 +383,20 @@ def _context_block(lines: list[str], entry: dict[str, Any], *, before: int, afte
     return "\n".join(out)
 
 
-def collect_for_review(cwd: str, *, manual: bool = True) -> dict[str, Any]:
-    """collect_added_comments plus a verbatim, line-numbered `block` on each comment for the Step 3 review.
+def collect_for_review(cwd: str) -> dict[str, Any]:
+    """Manual-mode collect_added_comments plus a verbatim, line-numbered `block` on each comment.
 
     A superset of the bare detection: every entry gains a `block` pulled straight from the HEAD blob. A
     docstring's block is quoted with the def/class owner line above it and a little body below; an inline
     comment's with the code below it — each shown against the code it is actually judged against.
     """
-    data = collect_added_comments(cwd, manual=manual)
-    head = data["head"]
+    data = collect_added_comments(cwd, manual=True)
     blobs: dict[str, list[str] | None] = {}
     for entry in data["comments"]:
         path = entry["file"]
         if path not in blobs:
-            blobs[path] = _blob_lines(cwd, head, path)
+            source = _show_blob(cwd, data["head"], path)
+            blobs[path] = None if source is None else source.split("\n")
         lines = blobs[path]
         if lines is None:
             entry["block"] = f"{path}:{entry['start']}-{entry['end']}  [blob unreadable]"
@@ -496,49 +418,28 @@ def stamp_approval(cwd: str) -> tuple[str, Path]:
     return head, marker
 
 
-def _normalise(raw: str) -> str | None:
-    cleaned = raw.strip().lower()
-    if cleaned == MODE_OFF:
-        return MODE_OFF
-    if cleaned == MODE_WARN:
-        return MODE_WARN
-    if cleaned == MODE_BLOCK:
-        return MODE_BLOCK
-    return None
-
-
-def _configured_mode(cwd: str) -> str | None:
-    """Read `mode` from the project's comment-audit.toml, or None if it is absent or unusable.
+def _mode(cwd: str) -> str:
+    """Read `mode` from the project's comment-audit.toml; anything absent or unusable is `off`.
 
     The project root is CLAUDE_PROJECT_DIR, which the hook wiring provides; the payload's cwd is the
     fallback for a direct invocation.
     """
-    root = os.environ.get("CLAUDE_PROJECT_DIR")
-    if not root:
-        root = cwd
+    root = os.environ.get("CLAUDE_PROJECT_DIR") or cwd
     try:
         with (Path(root) / CONFIG_RELPATH).open("rb") as handle:
             config = tomllib.load(handle)
     except (OSError, tomllib.TOMLDecodeError):
-        return None  # no config, or not parseable
+        return MODE_OFF
     mode = config.get("mode")
-    if not isinstance(mode, str):
-        return None
-    return _normalise(mode)
-
-
-def _mode(cwd: str) -> str:
-    configured = _configured_mode(cwd)
-    if configured:
-        return configured
-    return MODE_OFF
+    mode = mode.strip().lower() if isinstance(mode, str) else None
+    return mode if mode in _MODES else MODE_OFF
 
 
 def _render_entry(c: dict[str, Any]) -> str:
     loc = f"  {c['file']}:{c['start']}"
     if c["start"] != c["end"]:
         loc += f"-{c['end']}"
-    if c.get("kind") == "docstring":
+    if c["kind"] == "docstring":
         loc += "  [docstring]"
     body = "\n".join(f"      {r}" for r in c["raws"])
     return f"{loc}\n{body}"
@@ -562,7 +463,7 @@ def _report(info: dict[str, Any], *, blocking: bool) -> str:
             "below ships to whoever reads this code next; shipping one that restates the code is a decision,\n"
             "and it should be a deliberate one rather than the result of skipping this."
         )
-    span = f"Added comments in {str(info['base'])[:8]}..{str(info['head'])[:8]}:"
+    span = f"Added comments in {info['base'][:8]}..{info['head'][:8]}:"
     return f"{header}\n\n{_GUIDANCE}{bypass}\n\n{span}\n{listing}\n"
 
 
@@ -596,19 +497,18 @@ def _marker_matches_head(info: dict[str, Any]) -> bool:
     return False
 
 
-def _fail(message: str, *, mode: str) -> None:
-    """Handle a gate that could not do its job.
+def _emit(message: str, *, mode: str) -> None:
+    """Report an unaudited push, or a gate that could not do its job, as the mode dictates.
 
-    Fails closed in `block`, where letting an undetermined push through would defeat the gate. In `warn`
-    nothing is enforced anyway, so the failure is reported and the push proceeds. In `off` even the
-    failure stays quiet — a gate that was told not to react does not get to speak up because it broke.
+    `block` refuses the push — including when the gate broke, since letting an undetermined push through
+    would defeat it. `warn` reports and lets the push proceed. `off` stays quiet even about its own
+    failures — a gate that was told not to react does not get to speak up because it broke.
     """
     if mode == MODE_BLOCK:
         _ = sys.stderr.write(message)
         sys.exit(2)
-    if mode == MODE_OFF:
-        return
-    _emit_warning(message)
+    if mode == MODE_WARN:
+        _emit_warning(message)
 
 
 def _pushes_only_head(cwd: str, args: list[str]) -> bool:
@@ -616,7 +516,7 @@ def _pushes_only_head(cwd: str, args: list[str]) -> bool:
 
     The collector and the approval marker only know HEAD. Rather than audit each pushed ref separately,
     anything else — another branch, a glob, --all, a source that does not resolve — is reported as
-    unaudited and left to _fail. Deletions (`:dst`, --delete) send no commits and are ignored.
+    unaudited and left to _emit. Deletions (`:dst`, --delete) send no commits and are ignored.
     """
     positionals: list[str] = []
     deleting = False
@@ -665,7 +565,7 @@ def _unaudited_push_reason(cwd: str, push: PushInvocation) -> str | None:
 
 
 def _push_cwd(data: dict[str, Any], push: PushInvocation) -> str:
-    cwd = Path(data.get("cwd") or data.get("tool_input", {}).get("cwd") or ".")
+    cwd = Path(data.get("cwd") or ".")
     for chdir in push.chdirs:
         cwd /= chdir  # an absolute -C replaces cwd, a relative one descends, as in git
     return str(cwd)
@@ -674,11 +574,10 @@ def _push_cwd(data: dict[str, Any], push: PushInvocation) -> str:
 def _gate() -> None:
     # The hook fires on every Bash call, so the mode is resolved only once the command is known to be a
     # push; until then there is no project to read it from.
-    mode = MODE_OFF
+    mode: str | None = None
     try:
         data = json.loads(sys.stdin.read() or "{}")
-        command = (data.get("tool_input", {}).get("command") or "").strip()
-        push = parse_push(command)
+        push = parse_push(data.get("tool_input", {}).get("command") or "")
         if push is None:
             return  # not a push — nothing to gate
 
@@ -689,35 +588,19 @@ def _gate() -> None:
 
         reason = _unaudited_push_reason(cwd, push)
         if reason:
-            _fail(reason, mode=mode)
+            _emit(reason, mode=mode)
             return
 
-        try:
-            info = collect_added_comments(cwd)
-        except Exception:  # noqa: BLE001 — can't reason about the repo; don't leak comments
-            _fail(
-                "comment-gate: could not determine the push range. Resolve it, or have a human run git push directly.\n",
-                mode=mode,
-            )
-            return
-
-        if not info["comments"]:
-            return  # nothing added — push freely
-        if _marker_matches_head(info):
-            return  # audited at this HEAD — allow
-
-        if mode == MODE_BLOCK:
-            _ = sys.stderr.write(_report(info, blocking=True))
-            sys.exit(2)
-        _emit_warning(_report(info, blocking=False))
-    except SystemExit:
-        raise
-    except Exception:  # noqa: BLE001 — unexpected failure; fail closed where the gate enforces
-        # Re-resolve rather than trust `mode`: the failure may have happened before the payload gave us a
-        # project, and a `block` project must still fail closed instead of inheriting the silent default.
-        _fail(
-            "comment-gate: internal error. Have a human run git push directly if the comments have been reviewed.\n",
-            mode=_mode("."),
+        info = collect_added_comments(cwd)
+        if info["comments"] and not _marker_matches_head(info):
+            _emit(_report(info, blocking=mode == MODE_BLOCK), mode=mode)
+    except Exception as exc:  # noqa: BLE001 — a broken gate must still fail closed in `block`
+        # A failure before the push's own project was known still has to honour a `block` project, rather
+        # than inherit the silent default.
+        _emit(
+            f"comment-gate: could not audit this push ({exc!r}). Have a human run git push directly if the "
+            "comments have been reviewed.\n",
+            mode=mode or _mode("."),
         )
 
 
