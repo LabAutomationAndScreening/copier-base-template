@@ -40,9 +40,9 @@ it is a work stoppage. Move a project to `block` once warn-mode reports have pro
 
 Scope: the hook only intercepts the AGENT's `git push`. A human running `git push` directly is never
 affected — that, or the skill's attestation, is the only way past `block`. There is deliberately no
-agent-settable override: an env flag the agent could add itself would be no gate. Only HEAD is audited, so
-only a plain push of the current branch is recognised; any other push (`other:main`, `--all`, `:stale`,
-`-o ...`) is treated like one whose range could not be determined: blocked in `block`, reported in `warn`.
+agent-settable override: an env flag the agent could add itself would be no gate. Every push audits HEAD
+against its upstream, whatever refs the command names: agents push the branch they are on, and proving a
+push sends nothing else would take a refspec and push-config parser for shapes they rarely produce.
 
 Attestation: the skill writes <git-dir>/.comment-audit-ok containing the HEAD sha it reviewed. A marker
 matching the current HEAD silences the gate (and is then consumed) in every mode, so `warn` and `block`
@@ -79,11 +79,6 @@ _GIT_VALUE_OPTIONS = frozenset({"-C", "-c", "--git-dir", "--work-tree", "--names
 # --git-dir/--work-tree point git at a repo the gate's own git calls (run in cwd) would not see.
 _GIT_REPO_OPTIONS = frozenset({"--git-dir", "--work-tree"})
 _SHELL_OPERATORS = frozenset({"&&", "||", ";", "|", "&"})
-# `git push` flags that change how the current branch is pushed but never which refs go. None takes a
-# separate value token, so nothing here can hide a refspec from the allowlist.
-_PUSH_ALLOWED_FLAGS = frozenset(
-    {"-u", "--set-upstream", "-f", "--force", "--force-with-lease", "--force-if-includes", "--no-verify"}
-)
 
 _HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 
@@ -121,7 +116,6 @@ def git(args: list[str], cwd: str, *, strip: bool = True) -> str:
 
 @dataclass(frozen=True)
 class PushInvocation:
-    args: list[str]  # tokens after `push`, up to the first shell operator
     chdirs: list[str]  # each -C value, in order; git applies them cumulatively
     repo_override: bool  # --git-dir/--work-tree given
 
@@ -155,7 +149,7 @@ def parse_push(cmd: str) -> PushInvocation | None:
         args.append(tok)
     if "-h" in args or "--help" in args:
         return None  # prints usage; pushes nothing
-    return PushInvocation(args=args, chdirs=chdirs, repo_override=repo_override)
+    return PushInvocation(chdirs=chdirs, repo_override=repo_override)
 
 
 def _consume_git_globals(tokens: list[str], i: int) -> tuple[int, list[str], bool] | None:
@@ -512,39 +506,11 @@ def _emit(message: str, *, mode: str) -> None:
         _emit_warning(message)
 
 
-def _pushes_current_branch(cwd: str, args: list[str]) -> bool:
-    """Report whether this is `git push [<flags>] [<remote> [<current branch>|HEAD]]`.
-
-    The collector and the approval marker only know HEAD, so only a push of the current branch can be
-    audited. An allowlist rather than a refspec parser: anything else — another ref, a deletion, a push
-    option — is reported as unaudited and left to _emit, and a human pushes it directly.
-    """
-    rest = [a for a in args if not _is_allowed_push_flag(a)]
-    if any(a.startswith("-") for a in rest):
-        return False
-    match rest:
-        case [] | [_]:
-            return True  # push.default picks the ref
-        case [_, branch]:
-            return branch in {"HEAD", git(["rev-parse", "--abbrev-ref", "HEAD"], cwd)}
-        case _:
-            return False
-
-
-def _is_allowed_push_flag(arg: str) -> bool:
-    return arg in _PUSH_ALLOWED_FLAGS or arg.startswith("--force-with-lease=")
-
-
-def _unaudited_push_reason(cwd: str, push: PushInvocation) -> str | None:
+def _unaudited_push_reason(push: PushInvocation) -> str | None:
     if push.repo_override:
         return (
             "comment-gate: --git-dir/--work-tree pushes are not audited. Drop the option, or have a human run "
             "git push directly.\n"
-        )
-    if not _pushes_current_branch(cwd, push.args):
-        return (
-            "comment-gate: only `git push [-u|-f|--force-with-lease|--no-verify] [<remote> [<current branch>]]` "
-            "is audited. Push the current branch that way, or have a human run git push directly.\n"
         )
     return None
 
@@ -571,7 +537,7 @@ def _gate() -> None:
         if mode == MODE_OFF:
             return
 
-        reason = _unaudited_push_reason(cwd, push)
+        reason = _unaudited_push_reason(push)
         if reason:
             _emit(reason, mode=mode)
             return
