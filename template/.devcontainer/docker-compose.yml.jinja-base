@@ -8,7 +8,7 @@
         REPO_NAME: {% endraw %}{{ repo_name }}{% raw %}
     # You can run `devcontainer-info content-url` in codespaces to see what image base is
     volumes:
-      - ..:/workspaces/{% endraw %}{{ repo_name }}{% raw %}:cached
+      - ..:${WORKSPACE_MOUNT_TARGET:-/workspaces/{% endraw %}{{ repo_name }}{% raw %}}
       # Break out the venv folder as a separate docker volume for better performance on Windows hosts
       - python_venv:/workspaces/{% endraw %}{{ repo_name }}{% raw %}/.venv
     command: sleep infinity
