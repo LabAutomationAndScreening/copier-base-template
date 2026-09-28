@@ -50,13 +50,13 @@ class TestIgnorePyreflyImplicitReexportViaSubprocess:
             key: value for key, value in original.items() if key != "errors"
         }
 
-    def test_When_target_file_does_not_exist__Then_exits_0_and_reports_skipping(self, tmp_path: Path) -> None:
+    def test_When_target_file_does_not_exist__Then_exits_nonzero_and_names_the_path(self, tmp_path: Path) -> None:
         config_path = tmp_path / "pyrefly.toml"
 
         result = self._run_script(target_file=config_path)
 
-        assert result.returncode == 0
-        assert "not found" in result.stdout
+        assert result.returncode == 1
+        assert f"{config_path} not found" in result.stdout
         assert not config_path.exists()
 
     def test_Given_setting_already_added__When_run_again__Then_file_unchanged(

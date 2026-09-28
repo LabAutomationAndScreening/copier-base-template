@@ -24,9 +24,6 @@ def _end_of_table(*, lines: list[str], header_index: int) -> int:
 
 
 def ignore_implicit_reexport(*, config_path: Path) -> None:
-    if not config_path.exists():
-        print(f"{config_path} not found; skipping.")  # noqa: T201 -- copier task output must reach the user
-        return
     text = config_path.read_text(encoding="utf-8")
     if _SETTING_NAME in tomllib.loads(text)["errors"]:
         print(f"{_SETTING_NAME} already configured in {config_path}; nothing to do.")  # noqa: T201 -- copier task output must reach the user
@@ -49,7 +46,12 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = _parse_args()
-    ignore_implicit_reexport(config_path=Path(args.target_file))
+    config_path = Path(args.target_file)
+    # the task only runs for templates that render this file, so its absence means the path or template layout is wrong
+    if not config_path.exists():
+        print(f"{config_path} not found; cannot ignore {_SETTING_NAME}.")  # noqa: T201 -- copier task output must reach the user
+        return 1
+    ignore_implicit_reexport(config_path=config_path)
     return 0
 
 
