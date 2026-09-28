@@ -85,8 +85,8 @@ template_publishes_releases:
 
 template_is_for_distributed_library:
     type: bool
-    help: Is this template for a Python library that is imported by code outside its own repository (as opposed to an application or infrastructure program)?
-    when: "{{ template_uses_python and template_publishes_releases }}"
+    help: Is this template for a library that is imported by code outside its own repository (as opposed to an application or infrastructure program)?
+    when: "{{ template_publishes_releases }}"
 
 copier_answers_directory:
     type: str
