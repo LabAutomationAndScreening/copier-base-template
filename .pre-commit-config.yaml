@@ -128,6 +128,7 @@ repos:
               .*/__snapshots__/.*|
               .*/vendor_files/.*|
               .*\.svg|
+              .*\.wxs|  # formatter sorts attributes and joins multi-line ones, making the Windows installer files hard to read
           )$
 
   # Invalid File Checks
