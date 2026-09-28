@@ -5,7 +5,7 @@ services:
     build: .
     # You can run `devcontainer-info content-url` in codespaces to see what image base is
     volumes:
-      - ..:/workspaces/copier-base-template:cached
+      - ..:${WORKSPACE_MOUNT_TARGET:-/workspaces/copier-base-template}
       # Break out the venv folder as a separate docker volume for better performance on Windows hosts
       - python_venv:/workspaces/copier-base-template/.venv
     command: sleep infinity
