@@ -14,4 +14,5 @@ template_might_want_to_install_aws_ssm_port_forwarding_plugin: true
 template_might_want_to_use_vcrpy: false
 template_might_want_to_use_python_asyncio: true
 template_publishes_releases: true
+template_is_for_distributed_library: true
 copier_answers_directory: .

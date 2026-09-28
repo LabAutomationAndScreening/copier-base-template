@@ -83,6 +83,11 @@ template_publishes_releases:
     help: Does this template publish versioned releases (e.g. to PyPI, npm, or a container registry)?
     default: no
 
+template_is_for_distributed_library:
+    type: bool
+    help: Is this template for a Python library that is imported by code outside its own repository (as opposed to an application or infrastructure program)?
+    when: "{{ template_uses_python and template_publishes_releases }}"
+
 copier_answers_directory:
     type: str
     help: What directory within the instantiated template contains the .copier-answers.yml file? Use '.' for the root, or a subdirectory path (e.g. 'frontend').
@@ -123,6 +128,10 @@ _tasks:
         else
             echo ".config/ruff.toml not found; skipping Ruff target-version update."
         fi
+  - command: |
+        python3 '{{ _copier_conf.src_path }}/src/copier_base_template/copier_tasks/ignore_pyrefly_implicit_reexport.py' \
+            --target-file template/.config/pyrefly.toml
+    when: "{{ template_uses_python and not (template_publishes_releases and template_is_for_distributed_library) }}"
   - command: |
         python3 '{{ _copier_conf.src_path }}/src/copier_base_template/copier_tasks/copier_provenance.py' \
             '{{ _copier_conf.src_path }}/template' \
