@@ -12,6 +12,8 @@ PNPM_VERSION = "{% endraw %}{{ pnpm_version }}{% raw %}"
 COPIER_VERSION = "{% endraw %}{{ copier_version }}{% raw %}"
 COPIER_TEMPLATE_EXTENSIONS_VERSION = "{% endraw %}{{ copier_template_extensions_version }}{% raw %}"
 PRE_COMMIT_VERSION = "{% endraw %}{{ pre_commit_version }}{% raw %}"
+# identify decides which files each pre-commit hook runs on, so a floating version silently changes what CI checks
+IDENTIFY_VERSION = "{% endraw %}{{ identify_version }}{% raw %}"
 TASK_VERSION = "{% endraw %}{{ task_version }}{% raw %}"
 DOWNLOAD_TIMEOUT_SECONDS = 90
 # Where uv places both itself and the executables of the tools it installs. Resolves from USERPROFILE
@@ -105,7 +107,7 @@ def install_task(uv_path: str, uv_env: dict[str, str], *, is_windows: bool) -> N
     """
     LOCAL_BIN_DIR.mkdir(parents=True, exist_ok=True)
     _ = subprocess.run(  # noqa: S603 # this is all our own input
-        [uv_path, "tool", "install", f"go-task-bin=={TASK_VERSION}"],
+        [uv_path, "tool", "install", f"go-task-bin{TASK_VERSION}"],
         check=True,
         env=uv_env,
         timeout=DOWNLOAD_TIMEOUT_SECONDS,
@@ -265,7 +267,9 @@ def main():
                 uv_path,
                 "tool",
                 "install",
-                f"pre-commit=={PRE_COMMIT_VERSION}",
+                f"pre-commit{PRE_COMMIT_VERSION}",
+                "--with",
+                f"identify{IDENTIFY_VERSION}",
             ],
             check=True,
             env=uv_env,
