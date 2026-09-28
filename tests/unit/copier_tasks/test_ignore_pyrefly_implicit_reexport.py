@@ -59,7 +59,9 @@ class TestIgnorePyreflyImplicitReexportViaSubprocess:
         assert "not found" in result.stdout
         assert not config_path.exists()
 
-    def test_Given_setting_already_added__When_run_again__Then_file_unchanged(self, tmp_path: Path, faker: Faker) -> None:
+    def test_Given_setting_already_added__When_run_again__Then_file_unchanged(
+        self, tmp_path: Path, faker: Faker
+    ) -> None:
         config_path = tmp_path / "pyrefly.toml"
         _ = config_path.write_text(f'[errors]\n{faker.slug()} = "ignore"\n', encoding="utf-8")
         _ = self._run_script(target_file=config_path)
