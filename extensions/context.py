@@ -54,7 +54,7 @@ class ContextUpdater(ContextHook):
         )
         context["fastapi_version"] = ">=0.141.1"
         context["fastapi_offline_version"] = ">=1.7.7"
-        context["starlette_version"] = ">=1.6.0"
+        context["starlette_version"] = ">=1.7.0"
         context["uvicorn_version"] = ">=0.53.0"
         context["lab_auto_pulumi_version"] = ">=0.2.3"
         context["ariadne_codegen_version"] = ">=0.18.0"
@@ -64,7 +64,7 @@ class ContextUpdater(ContextHook):
         context["structlog_version"] = ">=26.1.0"
         context["httpx_version"] = ">=0.28.1"
         context["httpx2_version"] = ">=2.13.0"
-        context["python_kiota_bundle_version"] = ">=1.12.3"
+        context["python_kiota_bundle_version"] = ">=1.14.1"
         context["vcrpy_version"] = ">=8.3.0"
         context["pytest_recording_version"] = ">=0.13.4"
         context["pytest_asyncio_version"] = ">=1.4.0"
