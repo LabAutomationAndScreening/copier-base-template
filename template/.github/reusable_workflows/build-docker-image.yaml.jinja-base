@@ -187,14 +187,14 @@ jobs:
           tags: ${{ steps.calculate-build-context-hash.outputs.full_image_tag }}
 
       - name: Add git sha tag
-        if: ${{ inputs.push-role-name != 'no-push' }}
+        if: ${{ inputs.push-role-name != 'no-push' && github.ref_name == github.event.repository.default_branch }} # feature branch CI runs would otherwise pile hundreds of sha tags onto an unchanged image
         run: |
           GIT_SHA_TAG="git-sha-${{ github.sha }}"
           if aws ecr describe-images --region ${{ steps.parse_ecr_url.outputs.aws_region }} --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids imageTag="$GIT_SHA_TAG" > /dev/null 2>&1; then
             echo "Tag $GIT_SHA_TAG already exists in ECR, skipping"
           else
             aws ecr batch-get-image --registry-id=${{ steps.parse_ecr_url.outputs.aws_account_id }} --repository-name=${{ inputs.image_name }} --image-ids imageTag=${{ steps.calculate-build-context-hash.outputs.build_context_tag }} --query 'images[].imageManifest' --output text > manifest.json
-            # Every job on the push path tags the git sha, and jobs that find their image already in ECR no longer serialize on the mutex,
+            # Every default-branch job on the push path tags the git sha, and jobs that find their image already in ECR no longer serialize on the mutex,
             # so another job can apply this same tag between the check above and the put below. ECR reports that as
             # ImageAlreadyExistsException, which by definition means the tag already points at this exact manifest, so it is safe to ignore.
             # ImageTagAlreadyExistsException (a different manifest on an immutable repository) is a real conflict and still fails the step.
