@@ -33,7 +33,7 @@ class ContextUpdater(ContextHook):
         context["pytest_randomly_version"] = ">=5.0.0"
         context["pytest_cov_version"] = ">=7.1.0"
         context["mutmut_version"] = ">=3.8.0"
-        context["pyrefly_version"] = ">=1.3.1"
+        context["pyrefly_version"] = ">=1.3.2"
         context["python_faker_version"] = ">=40.39.0"
         #######
         context["sphinx_version"] = "9.0.4"
