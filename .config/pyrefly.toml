@@ -26,6 +26,7 @@ ignore-errors-in-generated-code = true # not sure yet how effective this is
 no-access = "ignore" # (already covered by ruff SLF001)
 untyped-import = "ignore" # equivalent of reportMissingTypeStubs=false in pyright
 unannotated-return = "ignore" # ruff ANN2xx already requires this, but with suppress-none-returning so that None-returning functions don't need the noise. pyrefly has no equivalent option---the error kind is all-or-nothing.
+implicit-reexport = "ignore" # only matters for distributed libraries, whose public API must be deliberate; everything else is imported solely from within its own repo, where requiring __all__ or redundant aliases is pure bookkeeping
 
 [[sub-config]]
 matches = "../**/tests/**"

@@ -56,7 +56,7 @@ class ContextUpdater(ContextHook):
         context["fastapi_offline_version"] = ">=1.7.7"
         context["starlette_version"] = ">=1.7.0"
         context["uvicorn_version"] = ">=0.53.0"
-        context["lab_auto_pulumi_version"] = ">=0.2.3"
+        context["lab_auto_pulumi_version"] = ">=0.3.0"
         context["ariadne_codegen_version"] = ">=0.18.0"
         context["pytest_mock_version"] = ">=3.16.0"
         context["uuid_utils_version"] = ">=1.0.0"
