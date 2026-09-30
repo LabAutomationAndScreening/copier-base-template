@@ -34,7 +34,7 @@ class ContextUpdater(ContextHook):
         context["pytest_cov_version"] = ">=7.1.0"
         context["mutmut_version"] = ">=3.8.0"
         context["pyrefly_version"] = ">=1.3.2"
-        context["python_faker_version"] = ">=40.39.0"
+        context["python_faker_version"] = ">=40.40.0"
         #######
         context["sphinx_version"] = "9.0.4"
         context["pulumi_version"] = ">=3.265.0"
@@ -52,10 +52,10 @@ class ContextUpdater(ContextHook):
         context["strawberry_graphql_version"] = (
             "==0.298.0"  # problems with strawberry pydantic in later versions...lost the context for exactly why...it was figured out a while ago, but has to do with being able to override resolvers and have the schema still keep the desired nullability
         )
-        context["fastapi_version"] = ">=0.141.1"
+        context["fastapi_version"] = ">=0.142.2"
         context["fastapi_offline_version"] = ">=1.7.7"
         context["starlette_version"] = ">=1.7.0"
-        context["uvicorn_version"] = ">=0.53.0"
+        context["uvicorn_version"] = ">=0.54.0"
         context["lab_auto_pulumi_version"] = ">=0.3.0"
         context["ariadne_codegen_version"] = ">=0.18.0"
         context["pytest_mock_version"] = ">=3.16.0"
