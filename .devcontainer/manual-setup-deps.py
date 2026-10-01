@@ -162,6 +162,10 @@ def main():  # noqa: C901,PLR0912,PLR0915 # TODO: cleanup into some subfunctions
             pnpm_command = ["pnpm", "install", "--dir", str(env.path)]
             if env_check_lock:
                 pnpm_command[1] = "ci"
+            if generate_lock_file_only:
+                # writes pnpm-lock.yaml without fetching packages or running lifecycle scripts, so a package's
+                # postinstall (such as a Playwright browser download) does not run in the instantiation container
+                pnpm_command.append("--lockfile-only")
             if is_windows:
                 pwsh = shutil.which("pwsh") or shutil.which("powershell")
                 if not pwsh:
