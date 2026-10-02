@@ -9,7 +9,7 @@ on:
 
 env:
   PYTHONUNBUFFERED: True
-  PRE_COMMIT_HOME: ${{ github.workspace }}/.precommit_cache
+  PREK_HOME: ${{ github.workspace }}/.precommit_cache
 
 permissions:
   id-token: write # needed to assume OIDC roles (e.g. for downloading from CodeArtifact)

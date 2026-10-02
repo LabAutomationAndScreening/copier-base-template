@@ -19,4 +19,4 @@ npm install -g @beads/bd@1.2.2 # this repo is not copier-generated, so the versi
 
 python .devcontainer/manual-setup-deps.py --optionally-check-lock --allow-uv-to-install-python
 
-pre-commit install --install-hooks
+prek install --force --prepare-hooks

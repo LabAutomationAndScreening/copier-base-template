@@ -19,11 +19,11 @@ reviews:
     appears in multiple entries, the last entry is the authoritative owner; use parent_src to
     trace the full chain and identify the correct template repo for backporting.
   tools:
-    eslint: # when the code contains typescript, eslint will be run by pre-commit, and coderabbit often generates false positives
+    eslint: # when the code contains typescript, eslint will be run by prek, and coderabbit often generates false positives
       enabled: false
-    ruff: # when the code contains python, ruff will be run by pre-commit, and coderabbit often generates false positives
+    ruff: # when the code contains python, ruff will be run by prek, and coderabbit often generates false positives
       enabled: false
-    pylint: # when the code contains python, pylint will be run by pre-commit, and coderabbit often generates false positives
+    pylint: # when the code contains python, pylint will be run by prek, and coderabbit often generates false positives
       enabled: false
     flake8: # we use ruff instead (when we use Python)
       enabled: false

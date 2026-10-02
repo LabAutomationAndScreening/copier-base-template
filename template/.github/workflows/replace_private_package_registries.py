@@ -3,7 +3,7 @@
 Since the CI pipelines for testing these copier templates don't have access to private registries, we can't test installing from them as part of CI.
 
 Seems minimal risk, since the only problem we'd be missing is if the pyproject.toml (or similar config files) had syntax errors that would have been
-caught by pre-commit.
+caught by prek.
 """
 
 import re
