@@ -9,7 +9,7 @@
       // Cloud Infrastructure
       "Bash(aws sts get*)",
       // Code Quality & Formatting
-      "Bash(pre-commit run *)",
+      "Bash(prek run *)",
       // Core Shell Commands
       "Bash(COMMAND *)", // used in slash commands
       "Bash(kill *)",

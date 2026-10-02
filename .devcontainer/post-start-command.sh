@@ -11,7 +11,7 @@ if [ -d "$repo_root/.claude/.beads" ]; then
     chmod 700 "$repo_root/.claude/.beads"
 fi
 
-pre-commit run merge-claude-settings -a
+prek run merge-claude-settings -a
 
 if ! bd ready; then
 	echo "It's likely the Dolt server has not yet been initialized to support beads, running that now" # TODO: figure out a better way to match this specific scenario than just a non-zero exit code...but beads still seems like in high flux right now so not sure what to tie it to

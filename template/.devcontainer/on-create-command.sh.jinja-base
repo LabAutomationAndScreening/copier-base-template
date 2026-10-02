@@ -17,6 +17,6 @@ npm --prefix "$repo_root/.claude" ci
 # Install beads for use in Claude planning
 npm install -g @beads/bd@{% endraw %}{{ beads_version }}{% raw %} # kept in lockstep with dolt_image_version; both are defined in extensions/context.py{% endraw %}{% endif %}{% raw %}
 
-pre-commit install --install-hooks{% endraw %}{% if python_package_registry is not defined or python_package_registry == "PyPI" %}
+prek install --force --prepare-hooks{% endraw %}{% if python_package_registry is not defined or python_package_registry == "PyPI" %}
 
 {% raw %}python .devcontainer/manual-setup-deps.py --optionally-check-lock --allow-uv-to-install-python{% endraw %}{% endif %}
