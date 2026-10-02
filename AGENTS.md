@@ -82,7 +82,6 @@ This project is a Copier template used to generate other copier templates. It is
 - The bans on `pnpm --prefix`, `uv --directory` and direct tool invocation apply to commands you type, not to task definitions: a task's commands run with the repo root as their working directory by default. Prefer adding or extending a task over typing the long form.
 - Linting and type-checking stay with `prek run <hook-id>` rather than a task, so that what you run is exactly what CI runs.
 - `cd` into a subdirectory is auto-approved; navigating up (`cd ..`) or to an absolute path (`cd /some/path`) requires a user permission prompt. Minimize such navigation: run `prek` from whichever subdirectory you're already in (it walks up to find `.pre-commit-config.yaml`).
-- When adding a hook to `.pre-commit-config.yaml`, give it `priority: checks` only if it never modifies files (linters, type checkers, validators). prek runs that group concurrently and fails the whole group if any member changes a file, so formatters and fixers must stay untagged.
 - ❌ Never use `python3` or `python` directly. ✅ Always use `uv run python` for Python commands.
 - ❌ Never use `python3`/`python` for one-off data tasks. ✅ Use `jq` for JSON parsing, standard shell builtins for string manipulation. Only reach for `uv run python` when no dedicated tool covers the need.
 - ❌ Never use `uv run python -c "import ...; print(...)"` or `inspect` to introspect Python source. ✅ Read source files directly or grep for symbols — the code is on disk and can be read without running it.
