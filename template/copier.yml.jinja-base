@@ -21,6 +21,16 @@ install_claude_cli:
     help: Should the Claude CLI be installed in the devcontainer?
     default: no
 
+comment_audit_gate_mode:
+    type: str
+    help: How should the comment-audit gate react when the agent pushes un-audited source comments?
+    default: "off"
+    choices:
+      "Off - never react; /comment-audit still works on demand": "off"
+      "Warn only - report them and let the push through": warn
+      "Block - refuse the push until the comment-audit skill approves": block
+    when: "{{ install_claude_cli }}"
+
 is_open_source:
     type: bool
     help: Is this library open source?
@@ -199,7 +209,7 @@ pnpm_minimum_release_age_exclude:
             fi
         fi
   - command: |
-        for script in .claude/skills/address-pr-comments/check-footer.py .claude/skills/address-pr-comments/commit-link.py .claude/skills/address-pr-comments/fetch-pr-comments.py .claude/skills/address-pr-comments/post-reply.py .claude/skills/address-pr-comments/verify-env.py; do
+        for script in .claude/skills/address-pr-comments/check-footer.py .claude/skills/address-pr-comments/commit-link.py .claude/skills/address-pr-comments/fetch-pr-comments.py .claude/skills/address-pr-comments/post-reply.py .claude/skills/address-pr-comments/verify-env.py .claude/skills/comment-audit/comment-audit.py; do
             if [ -f "$script" ]; then
                 chmod +x "$script"
                 if git ls-files --error-unmatch "$script" > /dev/null 2>&1; then
