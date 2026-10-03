@@ -11,6 +11,7 @@ COPIER_TEMPLATE_EXTENSIONS_VERSION = "==0.3.3"
 PRE_COMMIT_VERSION = "==4.6.2"
 # identify decides which files each pre-commit hook runs on, so a floating version silently changes what CI checks
 IDENTIFY_VERSION = "==2.6.20"
+PREK_VERSION = "==0.5.4"
 TASK_VERSION = "==3.53.1"
 DOWNLOAD_TIMEOUT_SECONDS = 90
 # Where uv places both itself and the executables of the tools it installs; already on PATH.
@@ -108,6 +109,17 @@ def main():
                 f"pre-commit{PRE_COMMIT_VERSION}",
                 "--with",
                 f"identify{IDENTIFY_VERSION}",
+            ],
+            check=True,
+            env=uv_env,
+            timeout=DOWNLOAD_TIMEOUT_SECONDS,
+        )
+        _ = subprocess.run(  # noqa: S603 # this is all our own input
+            [
+                uv_path,
+                "tool",
+                "install",
+                f"prek{PREK_VERSION}",
             ],
             check=True,
             env=uv_env,

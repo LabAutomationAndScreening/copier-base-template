@@ -9,6 +9,10 @@ from pathlib import Path
 DEVCONTAINER_COMMENT_LINE_PREFIX = (
     "  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): "
 )
+# Recognized before it is ever written, so that switching DEVCONTAINER_COMMENT_LINE_PREFIX to it later cannot leave a copy of this script that fails to find the line and inserts a duplicate
+GIT_HOOK_DEVCONTAINER_COMMENT_LINE_PREFIX = (
+    "  // Devcontainer context hash (do not manually edit this, it's managed by a git hook): "
+)
 
 DEVCONTAINER_COMMENT_LINE_SUFFIX = (
     " # spellchecker:disable-line"  # the typos hook can sometimes mess with the hash without this
@@ -109,7 +113,7 @@ def find_devcontainer_hash_line(lines: list[str]) -> tuple[int, str | None]:
             # Check the line above it
             if i > 0:
                 above_line = lines[i - 1]
-                if above_line.startswith(DEVCONTAINER_COMMENT_LINE_PREFIX):
+                if above_line.startswith((DEVCONTAINER_COMMENT_LINE_PREFIX, GIT_HOOK_DEVCONTAINER_COMMENT_LINE_PREFIX)):
                     part_after_prefix = above_line.split(": ", 1)[1]
                     part_before_suffix = part_after_prefix.split("#")[0]
                     current_hash = part_before_suffix.strip()

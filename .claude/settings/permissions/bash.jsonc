@@ -10,6 +10,7 @@
       "Bash(aws sts get*)",
       // Code Quality & Formatting
       "Bash(pre-commit run *)",
+      "Bash(prek run *)",
       // Core Shell Commands
       "Bash(COMMAND *)", // used in slash commands
       "Bash(kill *)",
@@ -156,6 +157,16 @@
       "Bash(task --dir=*)",
       "Bash(task -g *)",
       "Bash(task --global *)",
+      // Same reasoning for the hook runners: they must run the repo's own reviewed .pre-commit-config.yaml, and these flags are how to point them at another config or another repo
+      "Bash(pre-commit run -c *)",
+      "Bash(pre-commit run --config *)",
+      "Bash(pre-commit run --config=*)",
+      "Bash(prek run -c *)",
+      "Bash(prek run --config *)",
+      "Bash(prek run --config=*)",
+      "Bash(prek run -C *)",
+      "Bash(prek run --cd *)",
+      "Bash(prek run --cd=*)",
 
       // Destructive File Operations
       "Bash(chmod -R *)",
