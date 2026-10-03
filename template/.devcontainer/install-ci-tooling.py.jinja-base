@@ -14,6 +14,7 @@ COPIER_TEMPLATE_EXTENSIONS_VERSION = "{% endraw %}{{ copier_template_extensions_
 PRE_COMMIT_VERSION = "{% endraw %}{{ pre_commit_version }}{% raw %}"
 # identify decides which files each pre-commit hook runs on, so a floating version silently changes what CI checks
 IDENTIFY_VERSION = "{% endraw %}{{ identify_version }}{% raw %}"
+PREK_VERSION = "{% endraw %}{{ prek_version }}{% raw %}"
 TASK_VERSION = "{% endraw %}{{ task_version }}{% raw %}"
 DOWNLOAD_TIMEOUT_SECONDS = 90
 # Where uv places both itself and the executables of the tools it installs. Resolves from USERPROFILE
@@ -270,6 +271,17 @@ def main():
                 f"pre-commit{PRE_COMMIT_VERSION}",
                 "--with",
                 f"identify{IDENTIFY_VERSION}",
+            ],
+            check=True,
+            env=uv_env,
+            timeout=DOWNLOAD_TIMEOUT_SECONDS,
+        )
+        _ = subprocess.run(  # noqa: S603 # this is all our own input
+            [
+                uv_path,
+                "tool",
+                "install",
+                f"prek{PREK_VERSION}",
             ],
             check=True,
             env=uv_env,
