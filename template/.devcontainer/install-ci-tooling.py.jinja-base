@@ -276,17 +276,19 @@ def main():
             env=uv_env,
             timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
-        _ = subprocess.run(  # noqa: S603 # this is all our own input
-            [
-                uv_path,
-                "tool",
-                "install",
-                f"prek{PREK_VERSION}",
-            ],
-            check=True,
-            env=uv_env,
-            timeout=DOWNLOAD_TIMEOUT_SECONDS,
-        )
+        # CI still runs hooks through pre-commit, so prek is only needed in devcontainers for now
+        if os.environ.get("CI") != "true":
+            _ = subprocess.run(  # noqa: S603 # this is all our own input
+                [
+                    uv_path,
+                    "tool",
+                    "install",
+                    f"prek{PREK_VERSION}",
+                ],
+                check=True,
+                env=uv_env,
+                timeout=DOWNLOAD_TIMEOUT_SECONDS,
+            )
     if not args.no_node:
         run_node_cmds(["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"], is_windows=is_windows)
     # Task is installed outside the --no-node branch because CI always passes --no-node (pnpm/setup handles pnpm there), and every job still needs the task runner
