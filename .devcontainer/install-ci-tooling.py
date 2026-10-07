@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-UV_VERSION = "0.12.21"
+UV_VERSION = "0.12.23"
 PNPM_VERSION = "12.8.1"
 COPIER_VERSION = "==9.18.2"
 COPIER_TEMPLATE_EXTENSIONS_VERSION = "==0.3.3"
