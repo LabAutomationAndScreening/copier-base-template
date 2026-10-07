@@ -65,7 +65,7 @@ class ContextUpdater(ContextHook):
         context["httpx2_version"] = ">=2.13.0"
         context["python_kiota_bundle_version"] = ">=1.14.1"
         context["vcrpy_version"] = ">=8.3.0"
-        context["pytest_recording_version"] = ">=0.13.4"
+        context["pytest_recording_version"] = ">=0.14.0"
         context["pytest_asyncio_version"] = ">=1.4.0"
         context["pytest_timeout_version"] = ">=2.4.0"
         context["pytest_reserial_version"] = ">=0.6.1"
