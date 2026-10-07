@@ -62,14 +62,16 @@ def run_with_retries(
 ) -> None:
     """Run a network-dependent command, retrying with exponential backoff on failure or timeout.
 
-    The final attempt is run outside the retry handling so that its exception propagates unchanged, carrying the
-    command and exit status of the failure that ended the job.
+    The last attempt's exception is re-raised unchanged, carrying the command and exit status of the failure that ended
+    the job.
     """
     delay = FIRST_RETRY_DELAY_SECONDS
-    for attempt in range(1, NETWORK_ATTEMPTS):
+    for attempt in range(1, NETWORK_ATTEMPTS + 1):
         try:
             run_process_tree(cmd, env=env, shell=shell, timeout=timeout)
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+            if attempt == NETWORK_ATTEMPTS:
+                raise
             print(  # noqa: T201 # we want the script to print to console for easy viewing
                 f"{description} failed on attempt {attempt} of {NETWORK_ATTEMPTS} ({error}); retrying in {delay}s",
                 file=sys.stderr,
@@ -78,8 +80,6 @@ def run_with_retries(
             delay *= 2
         else:
             return
-    print(f"{description}: final attempt {NETWORK_ATTEMPTS} of {NETWORK_ATTEMPTS}", file=sys.stderr)  # noqa: T201 # we want the script to print to console for easy viewing
-    run_process_tree(cmd, env=env, shell=shell, timeout=timeout)
 
 
 def run_process_tree(cmd: list[str], *, env: dict[str, str] | None, shell: bool, timeout: int) -> None:
@@ -100,7 +100,7 @@ def run_process_tree(cmd: list[str], *, env: dict[str, str] | None, shell: bool,
         raise subprocess.CalledProcessError(returncode, cmd)
 
 
-def install_uv(uv_path: str, uv_env: dict[str, str]) -> None:
+def install_uv(*, uv_path: str, uv_env: dict[str, str]) -> None:
     """Install the pinned uv release into `LOCAL_BIN_DIR`.
 
     POSIX only, like the rest of this script: this repo's CI never runs on Windows, unlike the
@@ -132,7 +132,7 @@ def install_uv(uv_path: str, uv_env: dict[str, str]) -> None:
     _ = subprocess.run([uv_path, "--version"], check=True, env=uv_env)  # noqa: S603 # this is all our own input
 
 
-def install_task(uv_path: str, uv_env: dict[str, str]) -> None:
+def install_task(*, uv_path: str, uv_env: dict[str, str]) -> None:
     """Install the pinned Task release into `LOCAL_BIN_DIR` as a uv tool.
 
     `go-task-bin` repackages the upstream release archives as one wheel per platform, so a single uv
@@ -174,7 +174,7 @@ def main():
     _ = subprocess.run(["npm -v"], shell=True, check=True)  # noqa: S602,S607 # we need shell=True for npm commands, and this is all our own input
     run_with_retries([f"npm install -g pnpm@{PNPM_VERSION}"], description="Installing pnpm", shell=True)  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
     _ = subprocess.run(["pnpm -v"], shell=True, check=True)  # noqa: S602,S607 # we need shell=True for pnpm commands, and this is all our own input
-    install_uv(uv_path, uv_env)
+    install_uv(uv_path=uv_path, uv_env=uv_env)
     if not args.no_python:
         run_with_retries(
             [
@@ -210,7 +210,7 @@ def main():
             description="Installing prek",
             env=uv_env,
         )
-    install_task(uv_path, uv_env)
+    install_task(uv_path=uv_path, uv_env=uv_env)
     _ = subprocess.run(  # noqa: S603 # this is all our own input
         [
             uv_path,
