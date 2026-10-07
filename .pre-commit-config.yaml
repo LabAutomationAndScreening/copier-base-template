@@ -28,8 +28,8 @@ repos:
         name: ensure python dependencies are up to date during commits
         stages:
           [pre-commit]
-          # When the install does change things, it exits 0, so needed to check for the phrase 'operations' in stdout in order to cause the prek command to fail
-        entry: python -c "import subprocess,sys; results=subprocess.run(['uv', 'sync', '--frozen'],timeout=360,capture_output=True); print ('stdout- ' + results.stdout.decode('utf-8', 'strict')); print ('stderr- ' + results.stderr.decode('utf-8', 'strict')); sys.exit(int(results.returncode or int('Installed' in results.stdout.decode('utf-8', 'strict'))));"
+          # When the install does change things, it exits 0, so needed to check for the phrase 'Installed' in stderr (where uv writes its progress) in order to cause the prek command to fail
+        entry: python -c "import subprocess,sys; results=subprocess.run(['uv', 'sync', '--frozen'],timeout=360,capture_output=True); print ('stdout- ' + results.stdout.decode('utf-8', 'strict')); print ('stderr- ' + results.stderr.decode('utf-8', 'strict')); sys.exit(int(results.returncode or int('Installed' in results.stderr.decode('utf-8', 'strict'))));"
         # don't pass filenames else the command line sees them twice
         pass_filenames: false
         language: system
@@ -298,7 +298,7 @@ repos:
       - id: pyrefly
         priority: checks
         name: pyrefly
-        entry: bash -c "uv run pyrefly check -c ./.config/pyrefly.toml"
+        entry: bash -c "uv run --frozen pyrefly check -c ./.config/pyrefly.toml"
         files: '.+\.py$'
         exclude: |
           (?x)^(

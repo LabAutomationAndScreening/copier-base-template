@@ -82,14 +82,7 @@ jobs:
           restore-keys: ${{ env.CACHE_RESTORE_KEY }}
 
       - name: Run prek
-        run: |
-          prek run -a || PREK_EXIT_CODE=$?
-          if [ -n "$PREK_EXIT_CODE" ]; then
-            echo "prek failed with exit code $PREK_EXIT_CODE"
-            echo "Showing git diff:"
-            git --no-pager diff
-            exit $PREK_EXIT_CODE
-          fi
+        run: prek run -a --show-diff-on-failure
 
       - name: Save prek hooks cache
         if: ${{ steps.cache-probe.outputs.cache-hit != 'true' && steps.cache-recheck.outputs.cache-hit != 'true' }}

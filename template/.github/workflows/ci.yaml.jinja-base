@@ -138,14 +138,10 @@ jobs:
 
       - name: Delete files from initial repo
         run: |
-          # Delete everything except the folder containing the instantiated template
+          # Delete everything except the folder containing the instantiated template, including dotfiles so that none of them can mask one missing from the instantiated template
           # https://stackoverflow.com/questions/34057047/delete-all-directories-except-one
-          shopt -s extglob
-          rm -rf !(new-template)
-          rm -rf .github # apparently this folder doesn't get removed with the previous command for some reason
-          rm -rf .devcontainer # apparently this folder doesn't get removed with the previous command for some reason
-          rm -rf .claude # apparently this folder doesn't get removed with the previous command for some reason
-          rm -rf .config # apparently this folder doesn't get removed with the previous command for some reason
+          shopt -s extglob dotglob
+          rm -rf !(new-template|.git)
           ls -la
 
       - name: Move the instantiated template into the repo root
@@ -203,13 +199,7 @@ jobs:
       - name: Run prek
         run: |
           # skip devcontainer context hash because the template instantiation may make it different every time
-          SKIP=git-dirty,compute-devcontainer-context-hash prek run -a || PREK_EXIT_CODE=$?
-          if [ -n "$PREK_EXIT_CODE" ]; then
-            echo "prek failed with exit code $PREK_EXIT_CODE"
-            echo "Showing git diff:"
-            git --no-pager diff
-            exit $PREK_EXIT_CODE
-          fi
+          SKIP=git-dirty,compute-devcontainer-context-hash prek run -a --show-diff-on-failure
 
       - name: Save prek hooks cache
         if: ${{ steps.cache-probe.outputs.cache-hit != 'true' && steps.cache-recheck.outputs.cache-hit != 'true' }}
@@ -222,7 +212,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4.4.3
         with:
-          name: prek-log--${{ github.jobs.lint-matrix.name }}
+          name: prek-log--${{ matrix.python-version }}--${{ strategy.job-index }}
           path: "${{ env.PREK_HOME }}/prek.log"
 
   confirm-on-tagged-copier-template:

@@ -156,6 +156,13 @@
       "Bash(task --dir=*)",
       "Bash(task -g *)",
       "Bash(task --global *)",
+      // Same reasoning for the hook runner: it must run the repo's own reviewed .pre-commit-config.yaml, and these flags are how to point it at another config or another repo
+      "Bash(prek run -c *)",
+      "Bash(prek run --config *)",
+      "Bash(prek run --config=*)",
+      "Bash(prek run -C *)",
+      "Bash(prek run --cd *)",
+      "Bash(prek run --cd=*)",
 
       // Destructive File Operations
       "Bash(chmod -R *)",

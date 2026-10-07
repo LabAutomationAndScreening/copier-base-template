@@ -4,12 +4,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-UV_VERSION = "0.12.21"
-PNPM_VERSION = "12.8.1"
+UV_VERSION = "0.12.23"
+PNPM_VERSION = "12.9.1"
 COPIER_VERSION = "==9.18.2"
 COPIER_TEMPLATE_EXTENSIONS_VERSION = "==0.3.3"
 # prek bundles its own copy of the identify file-type tables, which decide which files each hook runs on, so this pin also pins what CI checks
-PREK_VERSION = "==0.5.4"
+PREK_VERSION = "==0.5.5"
 TASK_VERSION = "==3.53.1"
 DOWNLOAD_TIMEOUT_SECONDS = 90
 # Where uv places both itself and the executables of the tools it installs; already on PATH.
