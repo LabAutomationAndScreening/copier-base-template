@@ -114,19 +114,17 @@ def main():
             env=uv_env,
             timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
-        # CI still runs hooks through pre-commit, so prek is only needed in devcontainers for now
-        if os.environ.get("CI") != "true":
-            _ = subprocess.run(  # noqa: S603 # this is all our own input
-                [
-                    uv_path,
-                    "tool",
-                    "install",
-                    f"prek{PREK_VERSION}",
-                ],
-                check=True,
-                env=uv_env,
-                timeout=DOWNLOAD_TIMEOUT_SECONDS,
-            )
+        _ = subprocess.run(  # noqa: S603 # this is all our own input
+            [
+                uv_path,
+                "tool",
+                "install",
+                f"prek{PREK_VERSION}",
+            ],
+            check=True,
+            env=uv_env,
+            timeout=DOWNLOAD_TIMEOUT_SECONDS,
+        )
     install_task(uv_path, uv_env)
     _ = subprocess.run(  # noqa: S603 # this is all our own input
         [
