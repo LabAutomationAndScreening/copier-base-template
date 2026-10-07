@@ -171,18 +171,9 @@ def main():
         }
     )
     uv_path = "uv"
-    node_env = dict(os.environ)
-    # npm's own per-request retries, so a registry blip is absorbed before run_with_retries reruns the whole command
-    node_env.update(
-        {
-            "npm_config_fetch_retries": "5",
-            "npm_config_fetch_retry_mintimeout": "10000",
-            "npm_config_fetch_retry_maxtimeout": "60000",
-        }
-    )
     pnpm_install_sequence = ["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"]
     for cmd in pnpm_install_sequence:
-        run_with_retries([cmd], description=f"Running '{cmd}'", env=node_env, shell=True)  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
+        run_with_retries([cmd], description=f"Running '{cmd}'", shell=True)  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
     install_uv(uv_path, uv_env)
     if not args.no_python:
         run_with_retries(

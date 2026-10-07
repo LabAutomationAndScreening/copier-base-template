@@ -207,21 +207,12 @@ def install_task(uv_path: str, uv_env: dict[str, str], *, is_windows: bool) -> N
 
 
 def run_node_cmds(cmds: list[str], *, is_windows: bool) -> None:
-    node_env = dict(os.environ)
-    # npm's own per-request retries, so a registry blip is absorbed before run_with_retries reruns the whole command
-    node_env.update(
-        {
-            "npm_config_fetch_retries": "5",
-            "npm_config_fetch_retry_mintimeout": "10000",
-            "npm_config_fetch_retry_maxtimeout": "60000",
-        }
-    )
     for cmd in cmds:
         if is_windows:
             run_cmd = pwsh_cmd(cmd)
         else:
             run_cmd = [cmd]
-        run_with_retries(run_cmd, description=f"Running '{cmd}'", env=node_env, shell=True)  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
+        run_with_retries(run_cmd, description=f"Running '{cmd}'", shell=True)  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
 
 
 def parse_version(raw: str) -> tuple[int, ...] | None:
