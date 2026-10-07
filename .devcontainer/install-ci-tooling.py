@@ -1,6 +1,7 @@
 import argparse
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -67,7 +68,7 @@ def run_with_retries(
     delay = FIRST_RETRY_DELAY_SECONDS
     for attempt in range(1, NETWORK_ATTEMPTS):
         try:
-            _ = subprocess.run(cmd, check=True, env=env, shell=shell, timeout=timeout)  # noqa: S603 # this is all our own input
+            run_process_tree(cmd, env=env, shell=shell, timeout=timeout)
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
             print(  # noqa: T201 # we want the script to print to console for easy viewing
                 f"{description} failed on attempt {attempt} of {NETWORK_ATTEMPTS} ({error}); retrying in {delay}s",
@@ -78,7 +79,25 @@ def run_with_retries(
         else:
             return
     print(f"{description}: final attempt {NETWORK_ATTEMPTS} of {NETWORK_ATTEMPTS}", file=sys.stderr)  # noqa: T201 # we want the script to print to console for easy viewing
-    _ = subprocess.run(cmd, check=True, env=env, shell=shell, timeout=timeout)  # noqa: S603 # this is all our own input
+    run_process_tree(cmd, env=env, shell=shell, timeout=timeout)
+
+
+def run_process_tree(cmd: list[str], *, env: dict[str, str] | None, shell: bool, timeout: int) -> None:
+    """Run a command like `subprocess.run(check=True, timeout=...)`, but kill its whole process tree on timeout.
+
+    `subprocess.run` kills only its direct child, so a timed-out `sh -c 'npm ...'` or `sh uv-installer.sh` leaves the
+    npm or curl underneath it running, racing the retry that follows. Starting the command in its own session makes it
+    the leader of a process group that can be killed as a unit.
+    """
+    with subprocess.Popen(cmd, env=env, shell=shell, start_new_session=True) as process:  # noqa: S603 # this is all our own input
+        try:
+            returncode = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid, signal.SIGKILL)
+            _ = process.wait()
+            raise
+    if returncode != 0:
+        raise subprocess.CalledProcessError(returncode, cmd)
 
 
 def install_uv(uv_path: str, uv_env: dict[str, str]) -> None:
