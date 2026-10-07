@@ -124,7 +124,7 @@ def run_process_tree(cmd: list[str], *, env: dict[str, str] | None, shell: bool,
             returncode = process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             if sys.platform == "win32":
-                _ = subprocess.run(["taskkill", "/T", "/F", "/PID", str(process.pid)], check=False)  # noqa: S607 # taskkill is a Windows system binary on PATH
+                _ = subprocess.run(["taskkill", "/T", "/F", "/PID", str(process.pid)], check=False)  # noqa: S603,S607 # taskkill is a Windows system binary on PATH, and the PID is our own child's
             else:
                 os.killpg(process.pid, signal.SIGKILL)
             _ = process.wait()
