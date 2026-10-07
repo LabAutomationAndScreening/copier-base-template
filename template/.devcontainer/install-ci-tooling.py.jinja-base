@@ -206,13 +206,25 @@ def install_task(uv_path: str, uv_env: dict[str, str], *, is_windows: bool) -> N
             _ = github_path_file.write(f"{LOCAL_BIN_DIR}\n")
 
 
-def run_node_cmds(cmds: list[str], *, is_windows: bool) -> None:
-    for cmd in cmds:
-        if is_windows:
-            run_cmd = pwsh_cmd(cmd)
-        else:
-            run_cmd = [cmd]
-        run_with_retries(run_cmd, description=f"Running '{cmd}'", shell=True)  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
+def node_cmd(cmd: str, *, is_windows: bool) -> list[str]:
+    if is_windows:
+        return pwsh_cmd(cmd)
+    return [cmd]
+
+
+def install_pnpm(*, is_windows: bool) -> None:
+    """Install the pinned pnpm globally through npm.
+
+    Only the install touches the network, so only it is retried: the version checks fail the same way every time, and
+    retrying them would just delay a missing npm or pnpm by the whole backoff.
+    """
+    _ = subprocess.run(node_cmd("npm -v", is_windows=is_windows), shell=True, check=True)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
+    run_with_retries(  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
+        node_cmd(f"npm install -g pnpm@{PNPM_VERSION}", is_windows=is_windows),
+        description="Installing pnpm",
+        shell=True,
+    )
+    _ = subprocess.run(node_cmd("pnpm -v", is_windows=is_windows), shell=True, check=True)  # noqa: S602 # we need shell=True for pnpm commands, and this is all our own input
 
 
 def parse_version(raw: str) -> tuple[int, ...] | None:
@@ -375,7 +387,7 @@ def main():
             env=uv_env,
         )
     if not args.no_node:
-        run_node_cmds(["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"], is_windows=is_windows)
+        install_pnpm(is_windows=is_windows)
     # Task is installed outside the --no-node branch because CI always passes --no-node (pnpm/setup handles pnpm there), and every job still needs the task runner
     install_task(uv_path, uv_env, is_windows=is_windows)
     _ = subprocess.run(  # noqa: S603 # this is all our own input

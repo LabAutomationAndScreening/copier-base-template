@@ -171,9 +171,9 @@ def main():
         }
     )
     uv_path = "uv"
-    pnpm_install_sequence = ["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"]
-    for cmd in pnpm_install_sequence:
-        run_with_retries([cmd], description=f"Running '{cmd}'", shell=True)  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
+    _ = subprocess.run(["npm -v"], shell=True, check=True)  # noqa: S602,S607 # we need shell=True for npm commands, and this is all our own input
+    run_with_retries([f"npm install -g pnpm@{PNPM_VERSION}"], description="Installing pnpm", shell=True)  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
+    _ = subprocess.run(["pnpm -v"], shell=True, check=True)  # noqa: S602,S607 # we need shell=True for pnpm commands, and this is all our own input
     install_uv(uv_path, uv_env)
     if not args.no_python:
         run_with_retries(
