@@ -8,7 +8,7 @@ on:
 
 env:
   PYTHONUNBUFFERED: True
-  PRE_COMMIT_HOME: ${{ github.workspace }}/.precommit_cache
+  PREK_HOME: ${{ github.workspace }}/.precommit_cache
 
 jobs:
   pre-commit:
@@ -21,7 +21,7 @@ jobs:
           - "ubuntu-24.04"
         python-version:
             - 3.12.7
-    name: Pre-commit for Py${{ matrix.python-version }} on ${{ matrix.os }}
+    name: Prek for Py${{ matrix.python-version }} on ${{ matrix.os }}
     timeout-minutes: 8
     runs-on: ${{ matrix.os }}
     steps:
@@ -42,16 +42,16 @@ jobs:
           uv sync --frozen
           uv pip list
 
-      - name: Compute Pre-commit cache key # must run after checkout, since hashFiles needs the file on disk
+      - name: Compute prek cache key # must run after checkout, since hashFiles needs the files on disk
         run: |
-          echo "CACHE_RESTORE_KEY=${{ matrix.os }}-${{ matrix.python-version }}-build-cache-pre-commit-hooks-" >> "$GITHUB_ENV"
-          echo "CACHE_KEY=${{ matrix.os }}-${{ matrix.python-version }}-build-cache-pre-commit-hooks-${{ hashFiles('.pre-commit-config.yaml') }}" >> "$GITHUB_ENV"
+          echo "CACHE_RESTORE_KEY=${{ matrix.os }}-${{ matrix.python-version }}-build-cache-prek-hooks-" >> "$GITHUB_ENV"
+          echo "CACHE_KEY=${{ matrix.os }}-${{ matrix.python-version }}-build-cache-prek-hooks-${{ hashFiles('.pre-commit-config.yaml', '.devcontainer/install-ci-tooling.py') }}" >> "$GITHUB_ENV"
 
-      - name: Restore Pre-commit hooks cache # no mutex needed; concurrent cache reads are safe, only writes cause trouble
+      - name: Restore prek hooks cache # no mutex needed; concurrent cache reads are safe, only writes cause trouble
         id: cache-probe
         uses: actions/cache/restore@v6.1.0
         with:
-          path: ${{ env.PRE_COMMIT_HOME }}
+          path: ${{ env.PREK_HOME }}
           key: ${{ env.CACHE_KEY }}
           restore-keys: ${{ env.CACHE_RESTORE_KEY }}
 
@@ -62,23 +62,23 @@ jobs:
           branch: mutex-venv-${{ matrix.os }}-${{ matrix.python-version }}
         timeout-minutes: 30 # this is the amount of time this action will wait to attempt to acquire the mutex lock before failing, e.g. if other jobs are queued up in front of it
 
-      - name: Re-restore Pre-commit hooks cache # another job may have created the exact-key cache while we waited on the mutex
+      - name: Re-restore prek hooks cache # another job may have created the exact-key cache while we waited on the mutex
         id: cache-recheck
         if: ${{ steps.cache-probe.outputs.cache-hit != 'true' }}
         uses: actions/cache/restore@v6.1.0
         with:
-          path: ${{ env.PRE_COMMIT_HOME }}
+          path: ${{ env.PREK_HOME }}
           key: ${{ env.CACHE_KEY }}
           restore-keys: ${{ env.CACHE_RESTORE_KEY }}
 
-      - name: Run pre-commit
-        run: pre-commit run -a --show-diff-on-failure
+      - name: Run prek
+        run: prek run -a --show-diff-on-failure
 
-      - name: Save Pre-commit hooks cache
+      - name: Save prek hooks cache
         if: ${{ steps.cache-probe.outputs.cache-hit != 'true' && steps.cache-recheck.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v6.1.0
         with:
-          path: ${{ env.PRE_COMMIT_HOME }}
+          path: ${{ env.PREK_HOME }}
           key: ${{ env.CACHE_KEY }}
 
   unit-test:
@@ -199,20 +199,20 @@ jobs:
         run: |
           uv sync
           uv pip list
-          # Add everything to git so that pre-commit recognizes the files and runs on them
+          # Add everything to git so that prek recognizes the files and runs on them
           git add .
           git status
 
-      - name: Compute Pre-commit cache key # must run after the instantiated template is in place, since hashFiles reads its .pre-commit-config.yaml
+      - name: Compute prek cache key # must run after the instantiated template is in place, since hashFiles reads its .pre-commit-config.yaml and install-ci-tooling.py
         run: |
-          echo "CACHE_RESTORE_KEY=${{ matrix.os }}-${{ matrix.python-version }}-build-cache-pre-commit-hooks-" >> "$GITHUB_ENV"
-          echo "CACHE_KEY=${{ matrix.os }}-${{ matrix.python-version }}-build-cache-pre-commit-hooks-${{ hashFiles('.pre-commit-config.yaml') }}" >> "$GITHUB_ENV"
+          echo "CACHE_RESTORE_KEY=${{ matrix.os }}-${{ matrix.python-version }}-build-cache-prek-hooks-" >> "$GITHUB_ENV"
+          echo "CACHE_KEY=${{ matrix.os }}-${{ matrix.python-version }}-build-cache-prek-hooks-${{ hashFiles('.pre-commit-config.yaml', '.devcontainer/install-ci-tooling.py') }}" >> "$GITHUB_ENV"
 
-      - name: Restore Pre-commit hooks cache # no mutex needed; concurrent cache reads are safe, only writes cause trouble
+      - name: Restore prek hooks cache # no mutex needed; concurrent cache reads are safe, only writes cause trouble
         id: cache-probe
         uses: actions/cache/restore@v6.1.0
         with:
-          path: ${{ env.PRE_COMMIT_HOME }}
+          path: ${{ env.PREK_HOME }}
           key: ${{ env.CACHE_KEY }}
           restore-keys: ${{ env.CACHE_RESTORE_KEY }}
 
@@ -223,33 +223,33 @@ jobs:
           branch: mutex-venv-${{ matrix.os }}-${{ matrix.python-version }}
         timeout-minutes: 30 # this is the amount of time this action will wait to attempt to acquire the mutex lock before failing, e.g. if other jobs are queued up in front of it
 
-      - name: Re-restore Pre-commit hooks cache # another job may have created the exact-key cache while we waited on the mutex
+      - name: Re-restore prek hooks cache # another job may have created the exact-key cache while we waited on the mutex
         id: cache-recheck
         if: ${{ steps.cache-probe.outputs.cache-hit != 'true' }}
         uses: actions/cache/restore@v6.1.0
         with:
-          path: ${{ env.PRE_COMMIT_HOME }}
+          path: ${{ env.PREK_HOME }}
           key: ${{ env.CACHE_KEY }}
           restore-keys: ${{ env.CACHE_RESTORE_KEY }}
 
-      - name: Run pre-commit
+      - name: Run prek
         run: |
           # skip devcontainer context hash because the template instantiation may make it different every time
-          SKIP=git-dirty,compute-devcontainer-context-hash pre-commit run -a --show-diff-on-failure
+          SKIP=git-dirty,compute-devcontainer-context-hash prek run -a --show-diff-on-failure
 
-      - name: Save Pre-commit hooks cache
+      - name: Save prek hooks cache
         if: ${{ steps.cache-probe.outputs.cache-hit != 'true' && steps.cache-recheck.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v6.1.0
         with:
-          path: ${{ env.PRE_COMMIT_HOME }}
+          path: ${{ env.PREK_HOME }}
           key: ${{ env.CACHE_KEY }}
 
-      - name: Upload pre-commit log if failure
+      - name: Upload prek log if failure
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: pre-commit-log--${{ matrix.python-version }}--${{ strategy.job-index }}
-          path: "${{ github.workspace }}/.precommit_cache/pre-commit.log"
+          name: prek-log--${{ matrix.python-version }}--${{ strategy.job-index }}
+          path: "${{ env.PREK_HOME }}/prek.log"
 
   required-check:
     runs-on: ubuntu-24.04
