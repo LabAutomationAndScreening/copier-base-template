@@ -78,45 +78,26 @@ repos:
               .*/vendor_files/.*|
           )$
 
+  # Keep the global @biomejs/biome install in .devcontainer/on-create-command-boilerplate.sh on the same version (the VS Code extension uses it)
   - repo: https://github.com/biomejs/pre-commit
-    rev: a450e9c04887b1305951c298db5999cd30155f74  # frozen: v2.1.1
+    rev: d1d67cb1a73ea0917eb553c4f025e212c8cd0465  # frozen: v2.5.15
     hooks:
       - id: biome-check
-        # exclude generated files from codegen and strawberry
-        exclude: |
-          (?x)^(
-              .*generated/graphql.ts|
-              .*/generated/open[-_]api/.*|
-              .*/schema.graphql|
-          )$
 
   - repo: https://github.com/rbubley/mirrors-prettier
     rev: 0ee178619d696787ca73d210cc191d720868c631  # frozen: v3.9.6
     hooks:
       - id: prettier
         args: [--config, .config/.prettierrc]
+        # Biome formats everything else. These are the types it cannot format yet (SCSS, Less) or only formats experimentally (Vue, HTML)
         # TODO: get template YAML and MD files more in line with prettier expectations so we can start using prettier on those too
         exclude: |
           (?x)^(
-              .devcontainer/devcontainer.json|
-              .devcontainer/devcontainer-lock.json|
-              .*devcontainer.json|
-              .*tsconfig.json|
               .*/__snapshots__/.*|
-              .*.min.js|
-              .*.min.css|
-              .*.umd.js|
-              .*.yaml|
-              .*.yml|
-              .*.md|
-              .*.jsonc|
               .*/vendor_files/.*|
-              .*/schema.graphql|
-              .*/generated/open[-_]api/.*|
-              .*generated/graphql.ts|
               template/.*|
           )$
-        files: (.*.json)|(.*.ts)|(.*.jsx)|(.*.tsx)|(.*.yaml)|(.*.yml)|(.*.md)|(.*.html)|(.*.css)|(.*.scss)|(.*.less)|(.*.vue)|(.*.graphql)|(.*.gql)
+        files: \.(vue|html|scss|less)$
 
 
   - repo: https://github.com/pamoller/xmlformatter

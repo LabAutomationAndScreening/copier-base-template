@@ -1,16 +1,39 @@
 {
   "formatter": {
-    "enabled": false,
+    "indentStyle": "space",
+    "lineWidth": 120
   },
   "linter": {
-    "enabled": false,
+    "enabled": false
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   },
   "files": {
     "includes": [
       "**",
-      "!template/template/biome.jsonc",
-      "!template/biome.jsonc",
-      "!**/*.css", // still too many false positives, so we exclude CSS files
-    ],
+      // force-ignored (!!) so the scanner does not reject the generated repos' own root configs as nested root configs
+      "!!template/template/biome.jsonc",
+      "!!template/biome.jsonc",
+      "!**/__snapshots__",
+      "!**/vendor_files",
+      "!**/generated", // codegen output stays exactly as the generator wrote it, so regenerating never shows formatting diffs
+      "!**/schema.graphql", // exported by Strawberry from the Python schema
+      "!**/*.min.js",
+      "!**/*.min.css",
+      "!**/*.umd.js",
+      "!**/devcontainer-lock.json" // written by the devcontainer CLI, including in Dependabot's devcontainers updates
+    ]
   },
+  "overrides": [
+    {
+      // Prettier formats Vue files until Biome's Vue support (html.experimentalFullSupportEnabled) is stable
+      "includes": ["**/*.vue"],
+      "formatter": {
+        "enabled": false
+      }
+    }
+  ]
 }
