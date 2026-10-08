@@ -20,6 +20,7 @@
       "!**/__snapshots__",
       "!**/vendor_files",
       "!**/generated", // codegen output stays exactly as the generator wrote it, so regenerating never shows formatting diffs
+      "!**/schema.graphql", // exported by Strawberry from the Python schema
       "!**/*.min.js",
       "!**/*.min.css",
       "!**/*.umd.js",

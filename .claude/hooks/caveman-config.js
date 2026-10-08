@@ -13,19 +13,8 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 
-const VALID_MODES = [
-  "off",
-  "lite",
-  "full",
-  "ultra",
-  "wenyan-lite",
-  "wenyan",
-  "wenyan-full",
-  "wenyan-ultra",
-  "commit",
-  "review",
-  "compress",
-];
+// biome-ignore format: the whole mode list reads best on one line
+const VALID_MODES = ["off", "lite", "full", "ultra", "wenyan-lite", "wenyan", "wenyan-full", "wenyan-ultra", "commit", "review", "compress"];
 
 function getConfigDir() {
   if (process.env.XDG_CONFIG_HOME) {
