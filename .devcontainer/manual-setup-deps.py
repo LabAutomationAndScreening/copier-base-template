@@ -162,6 +162,8 @@ def main():  # noqa: C901,PLR0912,PLR0915 # TODO: cleanup into some subfunctions
             pnpm_command = ["pnpm", "install", "--dir", str(env.path)]
             if env_check_lock:
                 pnpm_command[1] = "ci"
+            if generate_lock_file_only:
+                pnpm_command.append("--lockfile-only")
             if is_windows:
                 pwsh = shutil.which("pwsh") or shutil.which("powershell")
                 if not pwsh:

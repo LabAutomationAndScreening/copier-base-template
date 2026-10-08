@@ -138,14 +138,10 @@ jobs:
 
       - name: Delete files from initial repo
         run: |
-          # Delete everything except the folder containing the instantiated template
+          # Delete everything except the folder containing the instantiated template, including dotfiles so that none of them can mask one missing from the instantiated template
           # https://stackoverflow.com/questions/34057047/delete-all-directories-except-one
-          shopt -s extglob
-          rm -rf !(new-template)
-          rm -rf .github # apparently this folder doesn't get removed with the previous command for some reason
-          rm -rf .devcontainer # apparently this folder doesn't get removed with the previous command for some reason
-          rm -rf .claude # apparently this folder doesn't get removed with the previous command for some reason
-          rm -rf .config # apparently this folder doesn't get removed with the previous command for some reason
+          shopt -s extglob dotglob
+          rm -rf !(new-template|.git)
           ls -la
 
       - name: Move the instantiated template into the repo root
@@ -161,7 +157,6 @@ jobs:
 
       - name: install new dependencies
         env:
-          SKIP_PLAYWRIGHT_INSTALL: "1"
           # Provide a fake token so it doesn't attempt to access AWS to generate a new one when the script is run if CodeArtifact is set as the registry
           CODEARTIFACT_AUTH_TOKEN: 'faketoken'
         run: |
@@ -204,13 +199,7 @@ jobs:
       - name: Run pre-commit
         run: |
           # skip devcontainer context hash because the template instantiation may make it different every time
-          SKIP=git-dirty,compute-devcontainer-context-hash pre-commit run -a || PRE_COMMIT_EXIT_CODE=$?
-          if [ -n "$PRE_COMMIT_EXIT_CODE" ]; then
-            echo "Pre-commit failed with exit code $PRE_COMMIT_EXIT_CODE"
-            echo "Showing git diff:"
-            git --no-pager diff
-            exit $PRE_COMMIT_EXIT_CODE
-          fi
+          SKIP=git-dirty,compute-devcontainer-context-hash pre-commit run -a --show-diff-on-failure
 
       - name: Save Pre-commit hooks cache
         if: ${{ steps.cache-probe.outputs.cache-hit != 'true' && steps.cache-recheck.outputs.cache-hit != 'true' }}
@@ -223,7 +212,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4.4.3
         with:
-          name: pre-commit-log--${{ github.jobs.lint-matrix.name }}
+          name: pre-commit-log--${{ matrix.python-version }}--${{ strategy.job-index }}
           path: "${{ github.workspace }}/.precommit_cache/pre-commit.log"
 
   confirm-on-tagged-copier-template:

@@ -4,12 +4,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-UV_VERSION = "0.12.15"
-PNPM_VERSION = "12.4.2"
-COPIER_VERSION = "9.18.2"
-COPIER_TEMPLATE_EXTENSIONS_VERSION = "0.3.3"
-PRE_COMMIT_VERSION = "4.6.2"
-TASK_VERSION = "3.53.1"
+UV_VERSION = "0.12.23"
+PNPM_VERSION = "12.9.1"
+COPIER_VERSION = "==9.18.2"
+COPIER_TEMPLATE_EXTENSIONS_VERSION = "==0.3.3"
+PRE_COMMIT_VERSION = "==4.6.2"
+# identify decides which files each pre-commit hook runs on, so a floating version silently changes what CI checks
+IDENTIFY_VERSION = "==2.6.20"
+PREK_VERSION = "==0.5.5"
+TASK_VERSION = "==3.53.1"
 DOWNLOAD_TIMEOUT_SECONDS = 90
 # Where uv places both itself and the executables of the tools it installs; already on PATH.
 LOCAL_BIN_DIR = Path.home() / ".local" / "bin"
@@ -64,7 +67,7 @@ def install_task(uv_path: str, uv_env: dict[str, str]) -> None:
     install; `GITHUB_PATH` is appended so later steps in the same CI job can invoke `task` by name.
     """
     _ = subprocess.run(  # noqa: S603 # this is all our own input
-        [uv_path, "tool", "install", f"go-task-bin=={TASK_VERSION}"],
+        [uv_path, "tool", "install", f"go-task-bin{TASK_VERSION}"],
         check=True,
         env=uv_env,
         timeout=DOWNLOAD_TIMEOUT_SECONDS,
@@ -90,9 +93,9 @@ def main():
                 uv_path,
                 "tool",
                 "install",
-                f"copier=={COPIER_VERSION}",
+                f"copier{COPIER_VERSION}",
                 "--with",
-                f"copier-template-extensions=={COPIER_TEMPLATE_EXTENSIONS_VERSION}",
+                f"copier-template-extensions{COPIER_TEMPLATE_EXTENSIONS_VERSION}",
             ],
             check=True,
             env=uv_env,
@@ -103,7 +106,20 @@ def main():
                 uv_path,
                 "tool",
                 "install",
-                f"pre-commit=={PRE_COMMIT_VERSION}",
+                f"pre-commit{PRE_COMMIT_VERSION}",
+                "--with",
+                f"identify{IDENTIFY_VERSION}",
+            ],
+            check=True,
+            env=uv_env,
+            timeout=DOWNLOAD_TIMEOUT_SECONDS,
+        )
+        _ = subprocess.run(  # noqa: S603 # this is all our own input
+            [
+                uv_path,
+                "tool",
+                "install",
+                f"prek{PREK_VERSION}",
             ],
             check=True,
             env=uv_env,

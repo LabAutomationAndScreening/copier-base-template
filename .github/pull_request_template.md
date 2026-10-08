@@ -14,8 +14,12 @@
 
 
 
-## How is this change tested?
+## Test plan
 
+<!-- How do we know this works? Say which kinds of verification cover the change (unit, E2E, snapshot, manual in the
+app, physical device, deployed and checked live) and which part each one covers, any part none of them reaches, and
+whether a test was seen to fail with the code broken or the fix reverted. Don't restate CI results or list test
+names from the diff. -->
 
 
 ## Other
