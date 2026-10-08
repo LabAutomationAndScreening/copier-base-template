@@ -19,6 +19,7 @@
       "!!template/biome.jsonc",
       "!**/__snapshots__",
       "!**/vendor_files",
+      "!**/generated", // codegen output stays exactly as the generator wrote it, so regenerating never shows formatting diffs
       "!**/*.min.js",
       "!**/*.min.css",
       "!**/*.umd.js",
