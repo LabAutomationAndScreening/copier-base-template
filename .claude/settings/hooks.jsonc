@@ -31,18 +31,5 @@
         ],
       },
     ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c 'INPUT=$(cat); SESSION=$(printf \"%s\" \"$INPUT\" | jq -r \".session_id\" 2>/dev/null); ROOT=$(cat \"/tmp/claude-$(id -u)/.claude_project_root_${SESSION}\"); printf \"%s\" \"$INPUT\" | node \"$ROOT/.claude/hooks/bash-chain-guard.js\"'",
-            "timeout": 5,
-            "statusMessage": "Checking for command chaining...",
-          },
-        ],
-      },
-    ],
   },
 }

@@ -77,7 +77,6 @@ This project is a Copier template used to generate other copier templates. It is
 
 ## Tooling
 
-- ❌ Never chain commands (`&&`, `||`, `;`, `&`) — breaks permission allow-list matcher. ✅ One command per tool call. `cd` as separate prior call. Pipes (`|`) OK.
 - Before hand-assembling a multi-step workflow, run `task --list` — it is probably already a task. Definitions live in `.config/taskfiles/`; the root `Taskfile.yaml` only includes them.
 - The bans on `pnpm --prefix`, `uv --directory` and direct tool invocation apply to commands you type, not to task definitions: a task's commands run with the repo root as their working directory by default. Prefer adding or extending a task over typing the long form.
 - Linting and type-checking stay with `pre-commit run <hook-id>` rather than a task, so that what you run is exactly what CI runs.
