@@ -131,17 +131,17 @@
       "Bash(gh secret *)",
       "Bash(gh ruleset *)",
       "Bash(aws *)", // let's hold off before we let it use AWS CLI in any free running allow mode. We need to be very sure we don't have any access to staging or production credentials in our dev environment (...which we shouldn't...but we need to double check that or consider any other safeguards first)
-      "WebFetch",
+      // start to give a little more free rein for non-permanent PR activity
+      "Bash(gh pr close *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr edit *)",
     ],
     "deny": [
       // Exceptions to generally allowed AI tooling
       "Bash(bd init*)", // we need to control the init process, don't let AI do that in the background
       // Github
       // Claude should not ever interfere with the PR process, that is how we gate AI's work
-      "Bash(gh pr close *)",
-      "Bash(gh pr comment *)",
-      "Bash(gh pr create *)",
-      "Bash(gh pr edit *)",
       "Bash(gh pr merge *)",
       "Bash(gh pr ready *)",
       "Bash(gh pr review *)",
