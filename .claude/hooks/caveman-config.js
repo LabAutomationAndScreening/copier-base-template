@@ -9,31 +9,36 @@
 //      - %APPDATA%\caveman\config.json (Windows fallback)
 //   3. 'full'
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
 
 const VALID_MODES = [
-  'off', 'lite', 'full', 'ultra',
-  'wenyan-lite', 'wenyan', 'wenyan-full', 'wenyan-ultra',
-  'commit', 'review', 'compress'
+  "off",
+  "lite",
+  "full",
+  "ultra",
+  "wenyan-lite",
+  "wenyan",
+  "wenyan-full",
+  "wenyan-ultra",
+  "commit",
+  "review",
+  "compress",
 ];
 
 function getConfigDir() {
   if (process.env.XDG_CONFIG_HOME) {
-    return path.join(process.env.XDG_CONFIG_HOME, 'caveman');
+    return path.join(process.env.XDG_CONFIG_HOME, "caveman");
   }
-  if (process.platform === 'win32') {
-    return path.join(
-      process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),
-      'caveman'
-    );
+  if (process.platform === "win32") {
+    return path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "caveman");
   }
-  return path.join(os.homedir(), '.config', 'caveman');
+  return path.join(os.homedir(), ".config", "caveman");
 }
 
 function getConfigPath() {
-  return path.join(getConfigDir(), 'config.json');
+  return path.join(getConfigDir(), "config.json");
 }
 
 function getDefaultMode() {
@@ -46,7 +51,7 @@ function getDefaultMode() {
   // 2. Config file
   try {
     const configPath = getConfigPath();
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     if (config.defaultMode && VALID_MODES.includes(config.defaultMode.toLowerCase())) {
       return config.defaultMode.toLowerCase();
     }
@@ -55,7 +60,7 @@ function getDefaultMode() {
   }
 
   // 3. Default
-  return 'full';
+  return "full";
 }
 
 // Symlink-safe flag file write.
@@ -86,17 +91,21 @@ function safeWriteFlag(flagPath, content) {
     try {
       if (fs.lstatSync(flagPath).isSymbolicLink()) return;
     } catch (e) {
-      if (e.code !== 'ENOENT') return;
+      if (e.code !== "ENOENT") return;
     }
 
     const tempPath = path.join(flagDir, `.caveman-active.${process.pid}.${Date.now()}`);
-    const O_NOFOLLOW = typeof fs.constants.O_NOFOLLOW === 'number' ? fs.constants.O_NOFOLLOW : 0;
+    const O_NOFOLLOW = typeof fs.constants.O_NOFOLLOW === "number" ? fs.constants.O_NOFOLLOW : 0;
     const flags = fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | O_NOFOLLOW;
     let fd;
     try {
       fd = fs.openSync(tempPath, flags, 0o600);
       fs.writeSync(fd, String(content));
-      try { fs.fchmodSync(fd, 0o600); } catch (e) { /* best-effort on Windows */ }
+      try {
+        fs.fchmodSync(fd, 0o600);
+      } catch (e) {
+        /* best-effort on Windows */
+      }
     } finally {
       if (fd !== undefined) fs.closeSync(fd);
     }
@@ -130,7 +139,7 @@ function readFlag(flagPath) {
     if (st.isSymbolicLink() || !st.isFile()) return null;
     if (st.size > MAX_FLAG_BYTES) return null;
 
-    const O_NOFOLLOW = typeof fs.constants.O_NOFOLLOW === 'number' ? fs.constants.O_NOFOLLOW : 0;
+    const O_NOFOLLOW = typeof fs.constants.O_NOFOLLOW === "number" ? fs.constants.O_NOFOLLOW : 0;
     const flags = fs.constants.O_RDONLY | O_NOFOLLOW;
     let fd;
     let out;
@@ -138,7 +147,7 @@ function readFlag(flagPath) {
       fd = fs.openSync(flagPath, flags);
       const buf = Buffer.alloc(MAX_FLAG_BYTES);
       const n = fs.readSync(fd, buf, 0, MAX_FLAG_BYTES, 0);
-      out = buf.slice(0, n).toString('utf8');
+      out = buf.slice(0, n).toString("utf8");
     } finally {
       if (fd !== undefined) fs.closeSync(fd);
     }

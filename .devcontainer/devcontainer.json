@@ -43,7 +43,7 @@
         "samuelcolvin.jinjahtml@0.20.0",
         "tamasfe.even-better-toml@0.19.2",
         "emilast.LogFileHighlighter@3.3.3",
-        "esbenp.prettier-vscode@12.4.0"
+        "biomejs.biome@2026.8.190716"
       ],
       "settings": {
         "editor.accessibilitySupport": "off", // turn off sounds
@@ -60,9 +60,8 @@
         // TODO: see if there's a way to specify different configurations for different folders
         "ruff.configuration": "/workspaces/copier-base-template/.config/ruff-non-src.toml", // use the non-src configuration since it's less restrictive and won't show false positives and underline things
         "python.pyrefly.configPath": "/workspaces/copier-base-template/.config/pyrefly.toml",
-        "prettier.configPath": "/workspaces/copier-base-template/.config/.prettierrc",
-        "[jsonc][json]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[jsonc][json][javascript][typescript]": {
+          "editor.defaultFormatter": "biomejs.biome",
           "editor.formatOnSave": true
         }
       }
@@ -71,5 +70,5 @@
   "initializeCommand": "sh .devcontainer/initialize-command.sh",
   "onCreateCommand": "sh .devcontainer/on-create-command.sh",
   "postStartCommand": "sh .devcontainer/post-start-command.sh"
-  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): e3cf4594 # spellchecker:disable-line
+  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): 13212494 # spellchecker:disable-line
 }

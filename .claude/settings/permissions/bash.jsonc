@@ -121,7 +121,7 @@
       "Bash(sort *)",
       "Bash(tail *)",
       // Search
-      "Bash(rg *)",
+      "Bash(rg *)"
       // Research
     ],
     "ask": [
@@ -135,7 +135,7 @@
       "Bash(gh pr close *)",
       "Bash(gh pr comment *)",
       "Bash(gh pr create *)",
-      "Bash(gh pr edit *)",
+      "Bash(gh pr edit *)"
     ],
     "deny": [
       // Exceptions to generally allowed AI tooling
@@ -197,7 +197,7 @@
       "Bash(usermod *)",
       // System Control
       "Bash(reboot *)",
-      "Bash(shutdown *)",
-    ],
-  },
+      "Bash(shutdown *)"
+    ]
+  }
 }

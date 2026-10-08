@@ -6,6 +6,6 @@
     // A single leading slash anchors at the settings source, so absolute paths need the `//` prefix
     "allow": ["Edit(//tmp/**)", "Edit(//workspaces/**/tmp/**)", "Edit(tmp/**)"],
     // Agents are allowed to run any task, but this provides some basic protection against editing a task to do something nefarious that's normally forbidden.
-    "ask": ["Edit(Taskfile.yaml)", "Edit(.config/taskfiles/**)"],
-  },
+    "ask": ["Edit(Taskfile.yaml)", "Edit(.config/taskfiles/**)"]
+  }
 }

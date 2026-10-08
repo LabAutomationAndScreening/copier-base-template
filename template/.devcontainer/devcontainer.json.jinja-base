@@ -58,6 +58,7 @@
         "samuelcolvin.jinjahtml@0.20.0",
         "tamasfe.even-better-toml@0.19.2",
         "emilast.LogFileHighlighter@3.3.3",
+        "biomejs.biome@2026.8.190716",
         "esbenp.prettier-vscode@12.4.0"
       ],
       "settings": {
@@ -76,7 +77,11 @@
         "ruff.configuration": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/.config/ruff-non-src.toml", // use the non-src configuration since it's less restrictive and won't show false positives and underline things
         "python.pyrefly.configPath": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/.config/pyrefly.toml",{% endraw %}{% endif %}{% raw %}
         "prettier.configPath": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/.config/.prettierrc",
-        "[jsonc][json][javascript][typescript][graphql][css][scss][html][vue]": {
+        "[jsonc][json][javascript][typescript][graphql][css]": {
+          "editor.defaultFormatter": "biomejs.biome",
+          "editor.formatOnSave": true
+        },
+        "[vue][html][scss][less]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode",
           "editor.formatOnSave": true
         }
