@@ -75,6 +75,10 @@ This project is a Copier template used to generate other copier templates. It is
 
 - Before saving any memory or adding any rule, explicitly ask the user whether the concept should be: (1) added to AGENTS.md as a general rule applicable across all projects, (2) added to AGENTS.md as a rule specific to this project, or (3) stored as a temporary local memory only relevant to the current active work. The devcontainer environment is ephemeral, so local memory files are rarely the right choice.
 
+## Public Repositories
+
+- Before posting to a repository (PR or issue text, comments, commit messages, file contents), check its visibility (`gh repo view <owner>/<repo> --json visibility`). In a public repository, never name, link to, or quote a private repository. Still say when relevant work happened in one, such as testing in a private repo that depends on this one, but anonymize it ("tested in a private repo") and give only the details needed to make the point.
+
 ## Tooling
 
 - Before hand-assembling a multi-step workflow, run `task --list` — it is probably already a task. Definitions live in `.config/taskfiles/`; the root `Taskfile.yaml` only includes them.
