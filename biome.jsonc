@@ -24,8 +24,7 @@
       "!**/*.min.js",
       "!**/*.min.css",
       "!**/*.umd.js",
-      "!**/devcontainer.json", // rendered from the copier template, then stamped by the devcontainer context hash hook
-      "!**/devcontainer-lock.json" // written by the devcontainer CLI
+      "!**/devcontainer-lock.json" // written by the devcontainer CLI, including in Dependabot's devcontainers updates
     ]
   },
   "overrides": [
