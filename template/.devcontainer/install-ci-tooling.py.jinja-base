@@ -2,9 +2,11 @@
 import os
 import platform
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 UV_VERSION = "{% endraw %}{{ uv_version }}{% raw %}"
@@ -17,6 +19,23 @@ IDENTIFY_VERSION = "{% endraw %}{{ identify_version }}{% raw %}"
 PREK_VERSION = "{% endraw %}{{ prek_version }}{% raw %}"
 TASK_VERSION = "{% endraw %}{{ task_version }}{% raw %}"
 DOWNLOAD_TIMEOUT_SECONDS = 90
+# CI runners regularly see transient network failures (connection resets, DNS blips, registry 5xx), so every step that
+# touches the network is retried with exponential backoff before the job is failed.
+NETWORK_ATTEMPTS = 4
+FIRST_RETRY_DELAY_SECONDS = 5
+# --fail turns an HTTP error into a non-zero exit instead of saving the error page as the download
+CURL_DOWNLOAD_ARGS = [
+    "--fail",
+    "--silent",
+    "--show-error",
+    "--location",
+    "--proto",
+    "=https",
+    "--connect-timeout",
+    "20",
+    "--max-time",
+    "60",
+]
 # Where uv places both itself and the executables of the tools it installs. Resolves from USERPROFILE
 # on Windows, so it matches the runner's home directory without assuming its user name. Already on
 # PATH on POSIX, but not on Windows, which is why uv is invoked through an absolute path there.
@@ -62,7 +81,59 @@ def pwsh_cmd(cmd: str) -> list[str]:
     return [pwsh, "-NoProfile", "-NonInteractive", "-Command", cmd]
 
 
-def install_uv(uv_env: dict[str, str], *, is_windows: bool) -> None:
+def run_with_retries(
+    cmd: list[str],
+    *,
+    description: str,
+    env: dict[str, str] | None = None,
+    shell: bool = False,
+    timeout: int = DOWNLOAD_TIMEOUT_SECONDS,
+) -> None:
+    """Run a network-dependent command, retrying with exponential backoff on failure or timeout.
+
+    The last attempt's exception is re-raised unchanged, carrying the command and exit status of the failure that ended
+    the job.
+    """
+    delay = FIRST_RETRY_DELAY_SECONDS
+    for attempt in range(1, NETWORK_ATTEMPTS + 1):
+        try:
+            run_process_tree(cmd, env=env, shell=shell, timeout=timeout)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+            if attempt == NETWORK_ATTEMPTS:
+                raise
+            print(  # noqa: T201 # we want the script to print to console for easy viewing
+                f"{description} failed on attempt {attempt} of {NETWORK_ATTEMPTS} ({error}); retrying in {delay}s",
+                file=sys.stderr,
+            )
+            time.sleep(delay)
+            delay *= 2
+        else:
+            return
+
+
+def run_process_tree(cmd: list[str], *, env: dict[str, str] | None, shell: bool, timeout: int) -> None:
+    """Run a command like `subprocess.run(check=True, timeout=...)`, but kill its whole process tree on timeout.
+
+    `subprocess.run` kills only its direct child, so a timed-out `sh -c 'npm ...'` (or `cmd.exe /c npm ...`) or
+    `sh uv-installer.sh` leaves the npm or curl underneath it running, racing the retry that follows. On POSIX, starting
+    the command in its own session makes it the leader of a process group that can be killed as a unit; on Windows,
+    `taskkill /T` walks the tree instead.
+    """
+    with subprocess.Popen(cmd, env=env, shell=shell, start_new_session=True) as process:  # noqa: S603 # this is all our own input
+        try:
+            returncode = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            if sys.platform == "win32":
+                _ = subprocess.run(["taskkill", "/T", "/F", "/PID", str(process.pid)], check=False)  # noqa: S603,S607 # taskkill is a Windows system binary on PATH, and the PID is our own child's
+            else:
+                os.killpg(process.pid, signal.SIGKILL)
+            _ = process.wait()
+            raise
+    if returncode != 0:
+        raise subprocess.CalledProcessError(returncode, cmd)
+
+
+def install_uv(*, uv_path: str, uv_env: dict[str, str], is_windows: bool) -> None:
     """Install the pinned uv release into `LOCAL_BIN_DIR`.
 
     Runs regardless of `--no-python`, because uv is also how Task is installed, and every job needs
@@ -73,24 +144,37 @@ def install_uv(uv_env: dict[str, str], *, is_windows: bool) -> None:
     """
     if is_windows:
         uv_env.update({"PATH": rf"{LOCAL_BIN_DIR};{uv_env['PATH']}"})
-        _ = subprocess.run(  # noqa: S603 # this is all our own input
-            pwsh_cmd(f"irm https://astral.sh/uv/{UV_VERSION}/install.ps1 | iex"),
-            check=True,
+        # Without Stop, a failed download inside the pipeline is a non-terminating error and the command still exits 0
+        run_with_retries(
+            pwsh_cmd(f"$ErrorActionPreference = 'Stop'; irm https://astral.sh/uv/{UV_VERSION}/install.ps1 | iex"),
+            description="Installing uv",
             env=uv_env,
-            timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
     else:
-        _ = subprocess.run(  # noqa: S602 # we need to set shell to true to use the pipe operator, and this is all our own input
-            f"curl -fsSL --connect-timeout 20 --max-time 40 --retry 3 --retry-delay 5 --retry-connrefused --proto '=https' https://astral.sh/uv/{UV_VERSION}/install.sh | sh",
-            check=True,
-            shell=True,
-            env=uv_env,
-            timeout=DOWNLOAD_TIMEOUT_SECONDS,
-        )
+        # Downloaded to a file rather than piped into sh: a pipeline takes sh's exit status, so a download that dies
+        # partway hands sh an empty or truncated script that still exits 0 without installing anything.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            installer_path = Path(tmp_dir) / "uv-installer.sh"
+            run_with_retries(
+                [
+                    "curl",
+                    *CURL_DOWNLOAD_ARGS,
+                    "--output",
+                    str(installer_path),
+                    f"https://astral.sh/uv/{UV_VERSION}/install.sh",
+                ],
+                description="Downloading the uv installer",
+                env=uv_env,
+            )
+            # the installer downloads the uv binary itself, so it needs retrying too
+            run_with_retries(["sh", str(installer_path)], description="Running the uv installer", env=uv_env)
         # TODO: add uv autocompletion to the shell https://docs.astral.sh/uv/getting-started/installation/#shell-autocompletion
+    if shutil.which(uv_path, path=uv_env["PATH"]) is None:
+        raise FileNotFoundError(f"The uv installer reported success but {uv_path} is not on PATH ({uv_env['PATH']})")
+    _ = subprocess.run([uv_path, "--version"], check=True, env=uv_env)  # noqa: S603 # this is all our own input
 
 
-def install_task(uv_path: str, uv_env: dict[str, str], *, is_windows: bool) -> None:
+def install_task(*, uv_path: str, uv_env: dict[str, str], is_windows: bool) -> None:
     """Install the pinned Task release into `LOCAL_BIN_DIR` as a uv tool.
 
     `go-task-bin` repackages the upstream release archives as one wheel per platform, so a single uv
@@ -107,11 +191,10 @@ def install_task(uv_path: str, uv_env: dict[str, str], *, is_windows: bool) -> N
     install; `GITHUB_PATH` is appended so later steps in the same CI job can invoke `task` by name.
     """
     LOCAL_BIN_DIR.mkdir(parents=True, exist_ok=True)
-    _ = subprocess.run(  # noqa: S603 # this is all our own input
+    run_with_retries(
         [uv_path, "tool", "install", f"go-task-bin{TASK_VERSION}"],
-        check=True,
+        description="Installing Task",
         env=uv_env,
-        timeout=DOWNLOAD_TIMEOUT_SECONDS,
     )
     if is_windows:
         task_path = LOCAL_BIN_DIR / "task.exe"
@@ -123,13 +206,25 @@ def install_task(uv_path: str, uv_env: dict[str, str], *, is_windows: bool) -> N
             _ = github_path_file.write(f"{LOCAL_BIN_DIR}\n")
 
 
-def run_node_cmds(cmds: list[str], *, is_windows: bool) -> None:
-    for cmd in cmds:
-        if is_windows:
-            run_cmd = pwsh_cmd(cmd)
-        else:
-            run_cmd = [cmd]
-        _ = subprocess.run(run_cmd, shell=True, check=True, timeout=DOWNLOAD_TIMEOUT_SECONDS)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
+def node_cmd(cmd: str, *, is_windows: bool) -> list[str]:
+    if is_windows:
+        return pwsh_cmd(cmd)
+    return [cmd]
+
+
+def install_pnpm(*, is_windows: bool) -> None:
+    """Install the pinned pnpm globally through npm.
+
+    Only the install touches the network, so only it is retried: the version checks fail the same way every time, and
+    retrying them would just delay a missing npm or pnpm by the whole backoff.
+    """
+    _ = subprocess.run(node_cmd("npm -v", is_windows=is_windows), shell=True, check=True)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
+    run_with_retries(  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
+        node_cmd(f"npm install -g pnpm@{PNPM_VERSION}", is_windows=is_windows),
+        description="Installing pnpm",
+        shell=True,
+    )
+    _ = subprocess.run(node_cmd("pnpm -v", is_windows=is_windows), shell=True, check=True)  # noqa: S602 # we need shell=True for pnpm commands, and this is all our own input
 
 
 def parse_version(raw: str) -> tuple[int, ...] | None:
@@ -174,15 +269,15 @@ def install_ssm_plugin(*, is_windows: bool) -> None:
         if is_windows:
             local_package_path = Path(tmp_dir) / "SessionManagerPluginSetup.exe"
             # Based on https://docs.aws.amazon.com/systems-manager/latest/userguide/install-plugin-windows.html
-            _ = subprocess.run(  # noqa: S603 # this is all our own input
-                [  # noqa: S607 # curl should always be on PATH
+            run_with_retries(
+                [
                     "curl",
+                    *CURL_DOWNLOAD_ARGS,
+                    "--output",
+                    str(local_package_path),
                     f"https://s3.amazonaws.com/session-manager-downloads/plugin/{SSM_PLUGIN_DOWNLOAD_VERSION}/windows/SessionManagerPluginSetup.exe",
-                    "-o",
-                    f"{local_package_path}",
                 ],
-                check=True,
-                timeout=DOWNLOAD_TIMEOUT_SECONDS,
+                description="Downloading the SSM plugin installer",
             )
             _ = subprocess.run(  # noqa: S603 # this is all our own input
                 [str(local_package_path), "/quiet"],
@@ -191,15 +286,15 @@ def install_ssm_plugin(*, is_windows: bool) -> None:
         else:
             local_package_path = Path(tmp_dir) / "session-manager-plugin.deb"
             # Based on https://docs.aws.amazon.com/systems-manager/latest/userguide/install-plugin-debian-and-ubuntu.html
-            _ = subprocess.run(  # noqa: S603 # this is all our own input
-                [  # noqa: S607 # curl should always be on PATH
+            run_with_retries(
+                [
                     "curl",
+                    *CURL_DOWNLOAD_ARGS,
+                    "--output",
+                    str(local_package_path),
                     f"https://s3.amazonaws.com/session-manager-downloads/plugin/{SSM_PLUGIN_DOWNLOAD_VERSION}/ubuntu_64bit/session-manager-plugin.deb",
-                    "-o",
-                    f"{local_package_path}",
                 ],
-                check=True,
-                timeout=DOWNLOAD_TIMEOUT_SECONDS,
+                description="Downloading the SSM plugin package",
             )
             _ = subprocess.run(  # noqa: S603 # this is all our own input
                 [  # noqa: S607 # sudo should always be on PATH
@@ -243,14 +338,21 @@ def main():
     args = parser.parse_args(sys.argv[1:])
     is_windows = platform.system() == "Windows"
     uv_env = dict(os.environ)
-    uv_env.update({"UV_PYTHON": args.python_version, "UV_PYTHON_PREFERENCE": "only-system"})
+    uv_env.update(
+        {
+            "UV_PYTHON": args.python_version,
+            "UV_PYTHON_PREFERENCE": "only-system",
+            # uv's own per-request retries (default 3) absorb most registry blips before run_with_retries has to
+            "UV_HTTP_RETRIES": "5",
+        }
+    )
     if is_windows:
         uv_path = str(LOCAL_BIN_DIR / "uv")
     else:
         uv_path = "uv"
-    install_uv(uv_env, is_windows=is_windows)
+    install_uv(uv_path=uv_path, uv_env=uv_env, is_windows=is_windows)
     if not args.no_python:
-        _ = subprocess.run(  # noqa: S603 # this is all our own input
+        run_with_retries(
             [
                 uv_path,
                 "tool",
@@ -259,11 +361,10 @@ def main():
                 "--with",
                 f"copier-template-extensions{COPIER_TEMPLATE_EXTENSIONS_VERSION}",
             ],
-            check=True,
+            description="Installing copier",
             env=uv_env,
-            timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
-        _ = subprocess.run(  # noqa: S603 # this is all our own input
+        run_with_retries(
             [
                 uv_path,
                 "tool",
@@ -272,25 +373,23 @@ def main():
                 "--with",
                 f"identify{IDENTIFY_VERSION}",
             ],
-            check=True,
+            description="Installing pre-commit",
             env=uv_env,
-            timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
-        _ = subprocess.run(  # noqa: S603 # this is all our own input
+        run_with_retries(
             [
                 uv_path,
                 "tool",
                 "install",
                 f"prek{PREK_VERSION}",
             ],
-            check=True,
+            description="Installing prek",
             env=uv_env,
-            timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
     if not args.no_node:
-        run_node_cmds(["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"], is_windows=is_windows)
+        install_pnpm(is_windows=is_windows)
     # Task is installed outside the --no-node branch because CI always passes --no-node (pnpm/setup handles pnpm there), and every job still needs the task runner
-    install_task(uv_path, uv_env, is_windows=is_windows)
+    install_task(uv_path=uv_path, uv_env=uv_env, is_windows=is_windows)
     _ = subprocess.run(  # noqa: S603 # this is all our own input
         [
             uv_path,

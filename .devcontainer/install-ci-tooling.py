@@ -1,7 +1,11 @@
 import argparse
 import os
+import shutil
+import signal
 import subprocess
 import sys
+import tempfile
+import time
 from pathlib import Path
 
 UV_VERSION = "0.12.23"
@@ -14,6 +18,23 @@ IDENTIFY_VERSION = "==2.6.20"
 PREK_VERSION = "==0.5.5"
 TASK_VERSION = "==3.53.1"
 DOWNLOAD_TIMEOUT_SECONDS = 90
+# CI runners regularly see transient network failures (connection resets, DNS blips, registry 5xx), so every step that
+# touches the network is retried with exponential backoff before the job is failed.
+NETWORK_ATTEMPTS = 4
+FIRST_RETRY_DELAY_SECONDS = 5
+# --fail turns an HTTP error into a non-zero exit instead of saving the error page as the download
+CURL_DOWNLOAD_ARGS = [
+    "--fail",
+    "--silent",
+    "--show-error",
+    "--location",
+    "--proto",
+    "=https",
+    "--connect-timeout",
+    "20",
+    "--max-time",
+    "60",
+]
 # Where uv places both itself and the executables of the tools it installs; already on PATH.
 LOCAL_BIN_DIR = Path.home() / ".local" / "bin"
 parser = argparse.ArgumentParser(description="Install CI tooling for the repo")
@@ -31,7 +52,55 @@ _ = parser.add_argument(
 )
 
 
-def install_uv(uv_env: dict[str, str]) -> None:
+def run_with_retries(
+    cmd: list[str],
+    *,
+    description: str,
+    env: dict[str, str] | None = None,
+    shell: bool = False,
+    timeout: int = DOWNLOAD_TIMEOUT_SECONDS,
+) -> None:
+    """Run a network-dependent command, retrying with exponential backoff on failure or timeout.
+
+    The last attempt's exception is re-raised unchanged, carrying the command and exit status of the failure that ended
+    the job.
+    """
+    delay = FIRST_RETRY_DELAY_SECONDS
+    for attempt in range(1, NETWORK_ATTEMPTS + 1):
+        try:
+            run_process_tree(cmd, env=env, shell=shell, timeout=timeout)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+            if attempt == NETWORK_ATTEMPTS:
+                raise
+            print(  # noqa: T201 # we want the script to print to console for easy viewing
+                f"{description} failed on attempt {attempt} of {NETWORK_ATTEMPTS} ({error}); retrying in {delay}s",
+                file=sys.stderr,
+            )
+            time.sleep(delay)
+            delay *= 2
+        else:
+            return
+
+
+def run_process_tree(cmd: list[str], *, env: dict[str, str] | None, shell: bool, timeout: int) -> None:
+    """Run a command like `subprocess.run(check=True, timeout=...)`, but kill its whole process tree on timeout.
+
+    `subprocess.run` kills only its direct child, so a timed-out `sh -c 'npm ...'` or `sh uv-installer.sh` leaves the
+    npm or curl underneath it running, racing the retry that follows. Starting the command in its own session makes it
+    the leader of a process group that can be killed as a unit.
+    """
+    with subprocess.Popen(cmd, env=env, shell=shell, start_new_session=True) as process:  # noqa: S603 # this is all our own input
+        try:
+            returncode = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid, signal.SIGKILL)
+            _ = process.wait()
+            raise
+    if returncode != 0:
+        raise subprocess.CalledProcessError(returncode, cmd)
+
+
+def install_uv(*, uv_path: str, uv_env: dict[str, str]) -> None:
     """Install the pinned uv release into `LOCAL_BIN_DIR`.
 
     POSIX only, like the rest of this script: this repo's CI never runs on Windows, unlike the
@@ -40,17 +109,30 @@ def install_uv(uv_env: dict[str, str]) -> None:
     Runs regardless of `--no-python`, because uv is also how Task is installed, and every job needs
     the task runner even when it has no Python environments to set up.
     """
-    _ = subprocess.run(  # noqa: S602 # we need to set shell to true to use the pipe operator, and this is all our own input
-        f"curl -fsSL --connect-timeout 20 --max-time 40 --retry 3 --retry-delay 5 --retry-connrefused --proto '=https' https://astral.sh/uv/{UV_VERSION}/install.sh | sh",
-        check=True,
-        shell=True,
-        env=uv_env,
-        timeout=DOWNLOAD_TIMEOUT_SECONDS,
-    )
+    # Downloaded to a file rather than piped into sh: a pipeline takes sh's exit status, so a download that dies
+    # partway hands sh an empty or truncated script that still exits 0 without installing anything.
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        installer_path = Path(tmp_dir) / "uv-installer.sh"
+        run_with_retries(
+            [
+                "curl",
+                *CURL_DOWNLOAD_ARGS,
+                "--output",
+                str(installer_path),
+                f"https://astral.sh/uv/{UV_VERSION}/install.sh",
+            ],
+            description="Downloading the uv installer",
+            env=uv_env,
+        )
+        # the installer downloads the uv binary itself, so it needs retrying too
+        run_with_retries(["sh", str(installer_path)], description="Running the uv installer", env=uv_env)
     # TODO: add uv autocompletion to the shell https://docs.astral.sh/uv/getting-started/installation/#shell-autocompletion
+    if shutil.which(uv_path, path=uv_env["PATH"]) is None:
+        raise FileNotFoundError(f"The uv installer reported success but {uv_path} is not on PATH ({uv_env['PATH']})")
+    _ = subprocess.run([uv_path, "--version"], check=True, env=uv_env)  # noqa: S603 # this is all our own input
 
 
-def install_task(uv_path: str, uv_env: dict[str, str]) -> None:
+def install_task(*, uv_path: str, uv_env: dict[str, str]) -> None:
     """Install the pinned Task release into `LOCAL_BIN_DIR` as a uv tool.
 
     `go-task-bin` repackages the upstream release archives as one wheel per platform, so a single uv
@@ -66,11 +148,10 @@ def install_task(uv_path: str, uv_env: dict[str, str]) -> None:
     Verification goes through the absolute path because this process resolved PATH before the
     install; `GITHUB_PATH` is appended so later steps in the same CI job can invoke `task` by name.
     """
-    _ = subprocess.run(  # noqa: S603 # this is all our own input
+    run_with_retries(
         [uv_path, "tool", "install", f"go-task-bin{TASK_VERSION}"],
-        check=True,
+        description="Installing Task",
         env=uv_env,
-        timeout=DOWNLOAD_TIMEOUT_SECONDS,
     )
     _ = subprocess.run([str(LOCAL_BIN_DIR / "task"), "--version"], check=True)  # noqa: S603 # this is all our own input
     if "GITHUB_PATH" in os.environ:
@@ -81,14 +162,21 @@ def install_task(uv_path: str, uv_env: dict[str, str]) -> None:
 def main():
     args = parser.parse_args(sys.argv[1:])
     uv_env = dict(os.environ)
-    uv_env.update({"UV_PYTHON_PREFERENCE": "only-system", "UV_PYTHON": args.python_version})
+    uv_env.update(
+        {
+            "UV_PYTHON_PREFERENCE": "only-system",
+            "UV_PYTHON": args.python_version,
+            # uv's own per-request retries (default 3) absorb most registry blips before run_with_retries has to
+            "UV_HTTP_RETRIES": "5",
+        }
+    )
     uv_path = "uv"
-    pnpm_install_sequence = ["npm -v", f"npm install -g pnpm@{PNPM_VERSION}", "pnpm -v"]
-    for cmd in pnpm_install_sequence:
-        _ = subprocess.run([cmd], shell=True, check=True, timeout=DOWNLOAD_TIMEOUT_SECONDS)  # noqa: S602 # we need shell=True for npm commands, and this is all our own input
-    install_uv(uv_env)
+    _ = subprocess.run(["npm -v"], shell=True, check=True)  # noqa: S602,S607 # we need shell=True for npm commands, and this is all our own input
+    run_with_retries([f"npm install -g pnpm@{PNPM_VERSION}"], description="Installing pnpm", shell=True)  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
+    _ = subprocess.run(["pnpm -v"], shell=True, check=True)  # noqa: S602,S607 # we need shell=True for pnpm commands, and this is all our own input
+    install_uv(uv_path=uv_path, uv_env=uv_env)
     if not args.no_python:
-        _ = subprocess.run(  # noqa: S603 # this is all our own input
+        run_with_retries(
             [
                 uv_path,
                 "tool",
@@ -97,11 +185,10 @@ def main():
                 "--with",
                 f"copier-template-extensions{COPIER_TEMPLATE_EXTENSIONS_VERSION}",
             ],
-            check=True,
+            description="Installing copier",
             env=uv_env,
-            timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
-        _ = subprocess.run(  # noqa: S603 # this is all our own input
+        run_with_retries(
             [
                 uv_path,
                 "tool",
@@ -110,22 +197,20 @@ def main():
                 "--with",
                 f"identify{IDENTIFY_VERSION}",
             ],
-            check=True,
+            description="Installing pre-commit",
             env=uv_env,
-            timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
-        _ = subprocess.run(  # noqa: S603 # this is all our own input
+        run_with_retries(
             [
                 uv_path,
                 "tool",
                 "install",
                 f"prek{PREK_VERSION}",
             ],
-            check=True,
+            description="Installing prek",
             env=uv_env,
-            timeout=DOWNLOAD_TIMEOUT_SECONDS,
         )
-    install_task(uv_path, uv_env)
+    install_task(uv_path=uv_path, uv_env=uv_env)
     _ = subprocess.run(  # noqa: S603 # this is all our own input
         [
             uv_path,
