@@ -23,8 +23,8 @@ repos:
         name: ensure python dependencies are up to date during commits
         stages:
           [pre-commit]
-          # When the install does change things, it exits 0, so needed to check for the phrase 'Installed' in stderr (where uv writes its progress) in order to cause things pre-commit command to fail
-        entry: python -c "import subprocess,sys; results=subprocess.run(['uv', 'sync', '--frozen'],timeout=360,capture_output=True); print ('stdout- ' + results.stdout.decode('utf-8', 'strict')); print ('stderr- ' + results.stderr.decode('utf-8', 'strict')); sys.exit(int(results.returncode or int('Installed' in results.stderr.decode('utf-8', 'strict'))));"
+          # When the install does change things, it exits 0, so needed to check for the phrases 'Installed' or 'Uninstalled' in stderr (where uv writes its progress) in order to cause things pre-commit command to fail. 'Uninstalled' is checked separately because a removal-only sync never prints 'Installed'
+        entry: python -c "import subprocess,sys; results=subprocess.run(['uv', 'sync', '--frozen'],timeout=360,capture_output=True); stderr=results.stderr.decode('utf-8', 'strict'); print ('stdout- ' + results.stdout.decode('utf-8', 'strict')); print ('stderr- ' + stderr); sys.exit(int(results.returncode or int('Installed' in stderr or 'Uninstalled' in stderr)));"
         # don't pass filenames else the command line sees them twice
         pass_filenames: false
         language: system
