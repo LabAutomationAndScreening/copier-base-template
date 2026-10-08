@@ -78,6 +78,7 @@ repos:
               .*/vendor_files/.*|
           )$
 
+  # Keep the global @biomejs/biome install in .devcontainer/on-create-command-boilerplate.sh on the same version (the VS Code extension uses it)
   - repo: https://github.com/biomejs/pre-commit
     rev: d1d67cb1a73ea0917eb553c4f025e212c8cd0465  # frozen: v2.5.15
     hooks:
