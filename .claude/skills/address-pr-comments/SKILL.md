@@ -66,7 +66,7 @@ If the user invokes the skill with `--resume` (e.g. `/address-pr-comments 42 --r
 - Body finalized, no placeholder → reply was approved by user but not posted. Pair against unpushed commits: if a matching commit exists, this is a post-pending reply. If no matching commit, treat as orphaned draft (ask user).
 - Comment ID in filename no longer present in unresolved threads → orphan (someone else resolved it). Warn, ask whether to discard.
 
-**Present inventory** to user, then ask via AskUserQuestion:
+**Ask via AskUserQuestion** with the inventory as the `question` field (see [Conventions](#conventions)):
 
 ```
 Resume inventory for PR <n>:
@@ -147,14 +147,14 @@ For each comment:
 
 3. **Handle each action:**
    - **Code changes**: Queue the comment for Phase 2. Move to next comment. In Phase 2, the code change is implemented first, then the reply is drafted (so it can include the resulting commit link) — do not draft the reply now.
-   - **Reply only (no code change)**: Draft a suggested reply — **do NOT include the AI attribution footer in the draft text; `check-footer.py` appends it**. Then ask using AskUserQuestion: "Post now or edit first?" Options:
+   - **Reply only (no code change)**: Draft a suggested reply — **do NOT include the AI attribution footer in the draft text; `check-footer.py` appends it**. Then ask using AskUserQuestion with the drafted reply in the `question` field above "Post now or edit first?". Options:
      - **Post now**: write the drafted reply to `<reply_file>`, run footer check, then post it.
      - **Edit first**: use the `Write` tool to write the draft to `<reply_file>`, then tell the user the absolute path to the file (per [Conventions](#conventions)) so they can Ctrl+click it open. Ask the user to confirm when done editing. Once confirmed, run the footer check script to ensure the AI attribution line is present (it appends the line if missing, prints "present" or "added"):
        ```bash
        .claude/skills/address-pr-comments/check-footer.py <reply_file>
        ```
 
-       Read the file back (using the `Read` tool), share your opinion on the edited text, then ask using AskUserQuestion: "Ready to post, or edit again?" Loop until the user says post. **When the user confirms post: do NOT write to the file again — post the file exactly as it is on disk.**
+       Read the file back (using the `Read` tool), then ask using AskUserQuestion with the file's current text and your opinion of it in the `question` field above "Ready to post, or edit again?". Loop until the user says post. **When the user confirms post: do NOT write to the file again — post the file exactly as it is on disk.**
 
      Once the final reply text is confirmed, post using the reply script:
      ```bash
@@ -201,12 +201,12 @@ Within a single Phase 2 invocation, the order below is strict. The invariants ap
    - **Finalize the reply body with the user — before committing.** Draft the reply text (everything except the commit link) — **do NOT include the AI attribution footer; `check-footer.py` appends it**. Write to `<reply_file>`, tell the user the absolute path (per [Conventions](#conventions)), and go through the approve/edit loop with the user until they approve. Do not proceed until the user explicitly confirms the text. Leave a clear `[COMMIT LINK]` placeholder where the link will go.
 
      Use AskUserQuestion with this wording (do NOT say "Post now" — the reply is queued for posting after the push, not posted immediately):
-     - Question: `Reply for comment <n> — approve text or edit first?`
+     - Question: the reply draft and its absolute `<reply_file>` path, then `Reply for comment <n> — approve text or edit first?`
      - Options:
        - `Approve` — "Use this draft as-is (commit link added after commit; posted after push)"
        - `Edit first` — "Edit the file at the path shown above, then confirm"
 
-     On `Edit first`: after user confirms edits done, run the footer check, Read the file, share opinion, then ask again: `Approve or edit again?` with options `Approve` / `Edit again`. Loop until approved.
+     On `Edit first`: after user confirms edits done, run the footer check, Read the file, then ask again with the file's current text and your opinion of it in the `question` field above `Approve or edit again?`, with options `Approve` / `Edit again`. Loop until approved.
    - **Commit** — one commit per comment, no batching, no exceptions. This applies to all changes including docs and markdown.
    - Fill in the `[COMMIT LINK]` placeholder in `<reply_file>`:
      ```bash
