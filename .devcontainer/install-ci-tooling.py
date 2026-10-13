@@ -1,6 +1,5 @@
 import argparse
 import os
-import platform
 import shutil
 import signal
 import subprocess
@@ -20,9 +19,6 @@ PREK_VERSION = "==0.5.5"
 TASK_VERSION = "==3.53.1"
 BIOME_VERSION = "2.5.15"
 DOWNLOAD_TIMEOUT_SECONDS = 90
-# The Biome binary is about 60 MB, too big for the 60-second limit in CURL_DOWNLOAD_ARGS on a slow connection
-BIOME_CURL_MAX_TIME_SECONDS = 300
-BIOME_DOWNLOAD_TIMEOUT_SECONDS = 330
 # CI runners regularly see transient network failures (connection resets, DNS blips, registry 5xx), so every step that
 # touches the network is retried with exponential backoff before the job is failed.
 NETWORK_ATTEMPTS = 4
@@ -186,42 +182,19 @@ def install_task(*, uv_path: str, uv_env: dict[str, str]) -> None:
 
 
 def install_biome() -> None:
-    """Install the pinned Biome release into `LOCAL_BIN_DIR` as Biome's standalone executable.
+    """Install the pinned Biome globally through npm.
 
-    The Biome pre-commit hooks run this binary (they are `language: system` hooks), and the VS Code extension finds it on
-    PATH, so the hooks and the editor always use the same version. The standalone executable needs no node, and an npm
-    global install would end up off PATH in CI (see `install_task`).
-
-    The download lands in a temporary directory inside `LOCAL_BIN_DIR` so the final rename stays on one filesystem: an
-    atomic rename replaces a binary the editor is already running, where copying over it fails with "Text file busy".
+    The Biome pre-commit hooks are `language: system` hooks that run this install, and the VS Code extension finds it in
+    the global npm root, so the hooks and the editor always use the same version. When node comes from `pnpm/setup` in
+    CI, npm's global bin directory is not on PATH (see `install_task`), so it is appended to `GITHUB_PATH`.
     """
-    machine = platform.machine()
-    if machine == "x86_64":
-        architecture = "x64"
-    elif machine == "aarch64":
-        architecture = "arm64"
-    else:
-        raise NotImplementedError(f"No Biome binary is published for the {machine} machine type")
-    LOCAL_BIN_DIR.mkdir(parents=True, exist_ok=True)
-    biome_path = LOCAL_BIN_DIR / "biome"
-    with tempfile.TemporaryDirectory(dir=LOCAL_BIN_DIR) as tmp_dir:
-        download_path = Path(tmp_dir) / "biome"
-        run_with_retries(
-            [
-                "curl",
-                *CURL_DOWNLOAD_ARGS,
-                "--max-time",
-                str(BIOME_CURL_MAX_TIME_SECONDS),
-                "--output",
-                str(download_path),
-                f"https://github.com/biomejs/biome/releases/download/@biomejs/biome@{BIOME_VERSION}/biome-linux-{architecture}",
-            ],
-            description="Downloading Biome",
-            timeout=BIOME_DOWNLOAD_TIMEOUT_SECONDS,
-        )
-        download_path.chmod(0o755)
-        _ = download_path.replace(biome_path)
-    _ = subprocess.run([str(biome_path), "--version"], check=True)  # noqa: S603 # this is all our own input
+    run_with_retries([f"npm install -g @biomejs/biome@{BIOME_VERSION}"], description="Installing Biome", shell=True)  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
+    npm_prefix = subprocess.run(["npm prefix -g"], shell=True, check=True, capture_output=True, text=True).stdout  # noqa: S602,S607 # we need shell=True for npm commands, and this is all our own input
+    global_bin_dir = Path(npm_prefix.strip()) / "bin"
+    _ = subprocess.run([str(global_bin_dir / "biome"), "--version"], check=True)  # noqa: S603 # this is all our own input
+    if "GITHUB_PATH" in os.environ:
+        with Path(os.environ["GITHUB_PATH"]).open("a", encoding="utf-8") as github_path_file:
+            _ = github_path_file.write(f"{global_bin_dir}\n")
 
 
 def main():
