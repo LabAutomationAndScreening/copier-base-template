@@ -82,7 +82,7 @@
           "editor.formatOnSave": true
         }{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %},
         "prettier.configPath": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/.config/.prettierrc",
-        "[vue][html][scss][less]": {
+        "[vue][html]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode",
           "editor.formatOnSave": true
         }{% endraw %}{% endif %}{% raw %}

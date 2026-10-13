@@ -102,7 +102,7 @@ repos:
     hooks:
       - id: prettier
         args: [--config, .config/.prettierrc]
-        # Biome formats everything else. These are the types it cannot format yet (SCSS, Less) or only formats experimentally (Vue, HTML)
+        # Biome formats everything else. Its Vue and HTML formatting is still experimental
         # TODO: get template YAML and MD files more in line with prettier expectations so we can start using prettier on those too
         exclude: |
           (?x)^(
@@ -110,7 +110,7 @@ repos:
               .*/vendor_files/.*|
               template/.*|
           )$
-        files: \.(vue|html|scss|less)$
+        files: \.(vue|html)$
 
 
   - repo: https://github.com/pamoller/xmlformatter
