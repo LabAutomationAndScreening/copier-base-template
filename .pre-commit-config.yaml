@@ -78,45 +78,39 @@ repos:
               .*/vendor_files/.*|
           )$
 
-  - repo: https://github.com/biomejs/pre-commit
-    rev: a450e9c04887b1305951c298db5999cd30155f74  # frozen: v2.1.1
+  # `language: system` so the hooks run the one Biome that .devcontainer/install-ci-tooling.py installs, which the VS Code
+  # extension uses too, instead of a second copy whose version has to be kept in sync (https://biomejs.dev/recipes/git-hooks/#pre-commit)
+  - repo: local
     hooks:
       - id: biome-check
-        # exclude generated files from codegen and strawberry
-        exclude: |
-          (?x)^(
-              .*generated/graphql.ts|
-              .*/generated/open[-_]api/.*|
-              .*/schema.graphql|
-          )$
+        name: biome check
+        entry: biome check --write --files-ignore-unknown=true --no-errors-on-unmatched --config-path .config/biome.jsonc
+        language: system
+        types: [text]
+        files: '\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\.(ts|cts|mts)|jsonc?|css|svelte|vue|astro|graphql|gql)$'
+        require_serial: true
+      - id: biome-format-config
+        name: format the biome config itself
+        # run from .config/ so Biome treats the file as its own root config instead of rejecting it as a second one
+        entry: bash -c 'cd .config && biome format --write biome.jsonc'
+        language: system
+        files: ^\.config/biome\.jsonc$
+        pass_filenames: false
 
   - repo: https://github.com/rbubley/mirrors-prettier
     rev: 0ee178619d696787ca73d210cc191d720868c631  # frozen: v3.9.6
     hooks:
       - id: prettier
         args: [--config, .config/.prettierrc]
+        # Biome formats everything else. Its Vue and HTML formatting is still experimental
         # TODO: get template YAML and MD files more in line with prettier expectations so we can start using prettier on those too
         exclude: |
           (?x)^(
-              .devcontainer/devcontainer.json|
-              .devcontainer/devcontainer-lock.json|
-              .*devcontainer.json|
-              .*tsconfig.json|
               .*/__snapshots__/.*|
-              .*.min.js|
-              .*.min.css|
-              .*.umd.js|
-              .*.yaml|
-              .*.yml|
-              .*.md|
-              .*.jsonc|
               .*/vendor_files/.*|
-              .*/schema.graphql|
-              .*/generated/open[-_]api/.*|
-              .*generated/graphql.ts|
               template/.*|
           )$
-        files: (.*.json)|(.*.ts)|(.*.jsx)|(.*.tsx)|(.*.yaml)|(.*.yml)|(.*.md)|(.*.html)|(.*.css)|(.*.scss)|(.*.less)|(.*.vue)|(.*.graphql)|(.*.gql)
+        files: \.(vue|html)$
 
 
   - repo: https://github.com/pamoller/xmlformatter

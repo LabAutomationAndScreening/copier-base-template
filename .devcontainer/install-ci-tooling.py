@@ -17,6 +17,7 @@ PRE_COMMIT_VERSION = "==4.6.2"
 IDENTIFY_VERSION = "==2.6.20"
 PREK_VERSION = "==0.5.5"
 TASK_VERSION = "==3.53.1"
+BIOME_VERSION = "2.5.15"
 DOWNLOAD_TIMEOUT_SECONDS = 90
 # CI runners regularly see transient network failures (connection resets, DNS blips, registry 5xx), so every step that
 # touches the network is retried with exponential backoff before the job is failed.
@@ -54,7 +55,7 @@ _ = parser.add_argument(
     "--install-pre-commit-tooling",
     default=False,
     action="store_true",
-    help="Install pre-commit, identify and prek in CI. Outside CI, this script always installs them.",
+    help="Install pre-commit, identify, prek and Biome in CI. Outside CI, this script always installs them.",
 )
 _ = parser.add_argument(
     "--install-copier",
@@ -180,6 +181,22 @@ def install_task(*, uv_path: str, uv_env: dict[str, str]) -> None:
             _ = github_path_file.write(f"{LOCAL_BIN_DIR}\n")
 
 
+def install_biome() -> None:
+    """Install the pinned Biome globally through npm.
+
+    The Biome pre-commit hooks are `language: system` hooks that run this install, and the VS Code extension finds it in
+    the global npm root, so the hooks and the editor always use the same version. When node comes from `pnpm/setup` in
+    CI, npm's global bin directory is not on PATH (see `install_task`), so it is appended to `GITHUB_PATH`.
+    """
+    run_with_retries([f"npm install -g @biomejs/biome@{BIOME_VERSION}"], description="Installing Biome", shell=True)  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
+    npm_prefix = subprocess.run(["npm prefix -g"], shell=True, check=True, capture_output=True, text=True).stdout  # noqa: S602,S607 # we need shell=True for npm commands, and this is all our own input
+    global_bin_dir = Path(npm_prefix.strip()) / "bin"
+    _ = subprocess.run([str(global_bin_dir / "biome"), "--version"], check=True)  # noqa: S603 # this is all our own input
+    if "GITHUB_PATH" in os.environ:
+        with Path(os.environ["GITHUB_PATH"]).open("a", encoding="utf-8") as github_path_file:
+            _ = github_path_file.write(f"{global_bin_dir}\n")
+
+
 def main():
     args = parser.parse_args(sys.argv[1:])
     uv_env = dict(os.environ)
@@ -196,6 +213,7 @@ def main():
     run_with_retries([f"npm install -g pnpm@{PNPM_VERSION}"], description="Installing pnpm", shell=True)  # noqa: S604 # we need shell=True for npm commands, and this is all our own input
     _ = subprocess.run(["pnpm -v"], shell=True, check=True)  # noqa: S602,S607 # we need shell=True for pnpm commands, and this is all our own input
     install_uv(uv_path=uv_path, uv_env=uv_env)
+    install_pre_commit_tooling = should_install(requested=args.install_pre_commit_tooling)
     if not args.no_python:
         if should_install(requested=args.install_copier):
             run_with_retries(
@@ -210,7 +228,7 @@ def main():
                 description="Installing copier",
                 env=uv_env,
             )
-        if should_install(requested=args.install_pre_commit_tooling):
+        if install_pre_commit_tooling:
             run_with_retries(
                 [
                     uv_path,
@@ -233,6 +251,8 @@ def main():
                 description="Installing prek",
                 env=uv_env,
             )
+    if install_pre_commit_tooling:
+        install_biome()
     install_task(uv_path=uv_path, uv_env=uv_env)
     _ = subprocess.run(  # noqa: S603 # this is all our own input
         [

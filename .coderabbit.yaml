@@ -25,6 +25,8 @@ reviews:
       enabled: false
     pylint: # when the code contains python, pylint will be run in the CI pipeline, and coderabbit often generates false positives
       enabled: false
+    biome: # biome runs in the CI pipeline through pre-commit, and coderabbit would not find the config in .config/ and fall back to its own defaults
+      enabled: false
     flake8: # we use ruff instead (when we use Python)
       enabled: false
   poem: false

@@ -19,6 +19,7 @@ class ContextUpdater(ContextHook):
         context["prek_version"] = "==0.5.5"
         context["pnpm_version"] = "12.9.1"
         context["task_version"] = "==3.53.1"
+        context["biome_version"] = "2.5.15"
         # These also in pyproject.toml and the install-ci-tooling.py script in this repository
         context["copier_version"] = "==9.18.2"
         context["copier_template_extensions_version"] = "==0.3.3"

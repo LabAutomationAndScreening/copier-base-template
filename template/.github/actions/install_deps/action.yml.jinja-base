@@ -24,7 +24,7 @@ inputs:
   install-pre-commit-tooling:
     required: false
     default: false
-    description: Whether to install the tooling the pre-commit hooks need (pre-commit, identify and prek), for jobs that run pre-commit
+    description: Whether to install the tooling the pre-commit hooks need (pre-commit, identify, prek and Biome), for jobs that run pre-commit
   install-copier:
     required: false
     default: false

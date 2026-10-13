@@ -49,6 +49,7 @@
         // VueJS
         "vue.volar@3.2.5",
         "vitest.explorer@1.36.0",
+        "esbenp.prettier-vscode@12.4.0",
 {% endraw %}{% endif %}{% raw %}{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_typescript is defined and template_uses_typescript is sameas(true) %}{% raw %}
         // All javascript
         "dbaeumer.vscode-eslint@3.0.24",
@@ -58,7 +59,7 @@
         "samuelcolvin.jinjahtml@0.20.0",
         "tamasfe.even-better-toml@0.19.2",
         "emilast.LogFileHighlighter@3.3.3",
-        "esbenp.prettier-vscode@12.4.0"
+        "biomejs.biome@2026.8.190716"
       ],
       "settings": {
         "editor.accessibilitySupport": "off", // turn off sounds
@@ -75,11 +76,16 @@
         // TODO: see if there's a way to specify different configurations for different folders
         "ruff.configuration": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/.config/ruff-non-src.toml", // use the non-src configuration since it's less restrictive and won't show false positives and underline things
         "python.pyrefly.configPath": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/.config/pyrefly.toml",{% endraw %}{% endif %}{% raw %}
+        "biome.configurationPath": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/.config/biome.jsonc",
+        "[jsonc][json][javascript][typescript][graphql][css]": {
+          "editor.defaultFormatter": "biomejs.biome",
+          "editor.formatOnSave": true
+        }{% endraw %}{% if is_child_of_copier_base_template is not defined and template_uses_vuejs is defined and template_uses_vuejs is sameas(true) %}{% raw %},
         "prettier.configPath": "/workspaces/{% endraw %}{{ repo_name }}{% raw %}/.config/.prettierrc",
-        "[jsonc][json][javascript][typescript][graphql][css][scss][html][vue]": {
+        "[vue][html]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode",
           "editor.formatOnSave": true
-        }
+        }{% endraw %}{% endif %}{% raw %}
       }
     }{% endraw %}{% if repo_names_for_codespaces_read_permissions is defined and repo_names_for_codespaces_read_permissions.strip() %}{% set _cs_repos = repo_names_for_codespaces_read_permissions.split(',') | map('trim') | reject('equalto', '') | list %}{% if _cs_repos %},
     "codespaces": {
