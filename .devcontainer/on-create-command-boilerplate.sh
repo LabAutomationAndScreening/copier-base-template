@@ -20,6 +20,9 @@ for workspace_file in *.code-workspace; do
         continue
     fi
     printf '%s\n' "$folders" | while IFS= read -r folder; do
+        case "$folder" in
+        .. | ../* | /*) continue ;;
+        esac
         if [ "$folder" != "$root_folder_path" ] && [ -d "$folder" ] && [ ! -e "$folder/.vscode/settings.json" ]; then
             mkdir -p "$folder/.vscode"
             echo '{ "biome.enabled": false }' >"$folder/.vscode/settings.json"
