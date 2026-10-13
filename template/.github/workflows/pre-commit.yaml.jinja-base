@@ -51,6 +51,7 @@ jobs:
           node-version: ${{ inputs.node-version }}
           skip-installing-ssm-plugin-manager: true
           skip-installing-pulumi-cli: true
+          install-pre-commit-tooling: true
 
       - name: Compute Pre-commit cache key # must run after checkout, since hashFiles needs the file on disk
         run: |
