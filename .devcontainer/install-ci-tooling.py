@@ -59,13 +59,13 @@ _ = parser.add_argument(
     "--install-pre-commit-tooling",
     default=False,
     action="store_true",
-    help="Install pre-commit, identify, prek and Biome. Always installed outside CI.",
+    help="Install pre-commit, identify, prek and Biome in CI. Outside CI, this script always installs them.",
 )
 _ = parser.add_argument(
     "--install-copier",
     default=False,
     action="store_true",
-    help="Install copier. Always installed outside CI.",
+    help="Install copier in CI. Outside CI, this script always installs it.",
 )
 
 
