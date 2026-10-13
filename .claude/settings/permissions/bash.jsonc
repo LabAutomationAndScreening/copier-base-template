@@ -54,7 +54,8 @@
       "Bash(gh search *)",
       "Bash(gh pr view *)",
       "Bash(gh pr diff *)",
-      "Bash(gh repo view *)", // AGENTS.md has Claude check repo visibility with it before posting
+      "Bash(gh repo view *)",
+      "Bash(gh repo clone *)",
       // Misc
       "Bash(amp *)",
       "Bash(atuin *)",
