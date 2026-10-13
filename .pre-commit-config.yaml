@@ -83,6 +83,14 @@ repos:
     rev: d1d67cb1a73ea0917eb553c4f025e212c8cd0465  # frozen: v2.5.15
     hooks:
       - id: biome-check
+        args: [--config-path, .config/biome.jsonc]
+      - id: biome-format
+        alias: biome-format-config
+        name: format the biome config itself
+        # run from .config/ so Biome treats the file as its own root config instead of rejecting it as a second one
+        entry: bash -c 'cd .config && biome format --write biome.jsonc'
+        files: ^\.config/biome\.jsonc$
+        pass_filenames: false
 
   - repo: https://github.com/rbubley/mirrors-prettier
     rev: 0ee178619d696787ca73d210cc191d720868c631  # frozen: v3.9.6

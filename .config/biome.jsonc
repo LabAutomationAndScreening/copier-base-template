@@ -14,9 +14,8 @@
   "files": {
     "includes": [
       "**",
-      // force-ignored (!!) so the scanner does not reject the generated repos' own root configs as nested root configs
-      "!!template/template/biome.jsonc",
-      "!!template/biome.jsonc",
+      // force-ignored (!!) because Biome treats any biome.jsonc it is handed as a config, so this file and the generated repos' copies of it would otherwise be rejected as a second root config
+      "!!**/.config/biome.jsonc",
       "!**/__snapshots__",
       "!**/vendor_files",
       "!**/generated", // codegen output stays exactly as the generator wrote it, so regenerating never shows formatting diffs
