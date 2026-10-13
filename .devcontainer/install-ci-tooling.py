@@ -50,6 +50,27 @@ _ = parser.add_argument(
     type=str,
     help="What version to install.",
 )
+_ = parser.add_argument(
+    "--install-pre-commit-tooling",
+    default=False,
+    action="store_true",
+    help="Install pre-commit, identify and prek in CI. Outside CI, this script always installs them.",
+)
+_ = parser.add_argument(
+    "--install-copier",
+    default=False,
+    action="store_true",
+    help="Install copier in CI. Outside CI, this script always installs it.",
+)
+
+
+def should_install(*, requested: bool) -> bool:
+    if requested:
+        return True
+    # GitHub Actions always sets CI, so its absence means a developer's machine or devcontainer, which gets every tool
+    if "CI" not in os.environ:
+        return True
+    return False
 
 
 def run_with_retries(
@@ -176,40 +197,42 @@ def main():
     _ = subprocess.run(["pnpm -v"], shell=True, check=True)  # noqa: S602,S607 # we need shell=True for pnpm commands, and this is all our own input
     install_uv(uv_path=uv_path, uv_env=uv_env)
     if not args.no_python:
-        run_with_retries(
-            [
-                uv_path,
-                "tool",
-                "install",
-                f"copier{COPIER_VERSION}",
-                "--with",
-                f"copier-template-extensions{COPIER_TEMPLATE_EXTENSIONS_VERSION}",
-            ],
-            description="Installing copier",
-            env=uv_env,
-        )
-        run_with_retries(
-            [
-                uv_path,
-                "tool",
-                "install",
-                f"pre-commit{PRE_COMMIT_VERSION}",
-                "--with",
-                f"identify{IDENTIFY_VERSION}",
-            ],
-            description="Installing pre-commit",
-            env=uv_env,
-        )
-        run_with_retries(
-            [
-                uv_path,
-                "tool",
-                "install",
-                f"prek{PREK_VERSION}",
-            ],
-            description="Installing prek",
-            env=uv_env,
-        )
+        if should_install(requested=args.install_copier):
+            run_with_retries(
+                [
+                    uv_path,
+                    "tool",
+                    "install",
+                    f"copier{COPIER_VERSION}",
+                    "--with",
+                    f"copier-template-extensions{COPIER_TEMPLATE_EXTENSIONS_VERSION}",
+                ],
+                description="Installing copier",
+                env=uv_env,
+            )
+        if should_install(requested=args.install_pre_commit_tooling):
+            run_with_retries(
+                [
+                    uv_path,
+                    "tool",
+                    "install",
+                    f"pre-commit{PRE_COMMIT_VERSION}",
+                    "--with",
+                    f"identify{IDENTIFY_VERSION}",
+                ],
+                description="Installing pre-commit",
+                env=uv_env,
+            )
+            run_with_retries(
+                [
+                    uv_path,
+                    "tool",
+                    "install",
+                    f"prek{PREK_VERSION}",
+                ],
+                description="Installing prek",
+                env=uv_env,
+            )
     install_task(uv_path=uv_path, uv_env=uv_env)
     _ = subprocess.run(  # noqa: S603 # this is all our own input
         [

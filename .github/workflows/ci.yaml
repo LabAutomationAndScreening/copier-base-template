@@ -35,7 +35,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Tooling
-        run: python .devcontainer/install-ci-tooling.py
+        run: python .devcontainer/install-ci-tooling.py --install-pre-commit-tooling
 
       - name: Install Dependencies
         run: |
@@ -157,7 +157,7 @@ jobs:
           node-version: 24.11.1
 
       - name: Install Tooling
-        run: python .devcontainer/install-ci-tooling.py
+        run: python .devcontainer/install-ci-tooling.py --install-copier --install-pre-commit-tooling
 
       - name: Instantiate copier template
         run: |
