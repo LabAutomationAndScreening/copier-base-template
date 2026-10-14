@@ -67,7 +67,7 @@ def post_via_gh_api(
     The comment's `body` field is read from body_file. string_fields are sent as strings (--raw-field) and int_fields as
     JSON numbers (--field), which is what GitHub expects for values like line numbers.
 
-    Exits with status 1 if gh api fails. Once gh api succeeds the comment exists, so an unparseable response still counts
+    Exits with status 1 if gh api fails. Once gh api succeeds the comment exists, so an unparsable response still counts
     as posted and the body file is still deleted (otherwise a retry would post a duplicate). A failure to delete the body
     file only warns.
     """
@@ -89,7 +89,7 @@ def post_via_gh_api(
     try:
         url = json.loads(result.stdout).get("html_url", "(no URL in response)")
     except json.JSONDecodeError:
-        url = "(unparseable response)"
+        url = "(unparsable response)"
     _ = sys.stdout.write(f"Posted: {url}\n")
 
     try:
