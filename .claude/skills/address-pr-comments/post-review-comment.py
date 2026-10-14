@@ -19,13 +19,14 @@ rather than requiring manual approval each time.
 """
 
 import argparse
-import json
 import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils import owner_repo_from_remote
+from utils import post_via_gh_api
+from utils import read_body_file
 from utils import run_cmd
 
 
@@ -59,11 +60,7 @@ def main() -> None:
         sys.exit(1)
 
     owner, repo = owner_repo_from_remote()
-    try:
-        body = args.body_file.read_text(encoding="utf-8")
-    except OSError as e:
-        _ = sys.stderr.write(f"Unable to read body file {args.body_file}: {e}\n")
-        sys.exit(1)
+    body = read_body_file(args.body_file)
 
     commit_id = args.commit_id
     if commit_id is None:
@@ -84,19 +81,7 @@ def main() -> None:
     if args.start_line is not None:
         cmd += ["--field", f"start_line={args.start_line}"]
 
-    try:
-        result = run_cmd(cmd, timeout=30, timeout_msg="gh api timed out while posting the review comment.")
-    except subprocess.CalledProcessError as e:
-        _ = sys.stderr.write(f"gh api error: {e.stderr}\n")
-        sys.exit(1)
-
-    response = json.loads(result.stdout)
-    _ = sys.stdout.write(f"Posted: {response.get('html_url', '(no URL in response)')}\n")
-
-    try:
-        args.body_file.unlink()
-    except OSError as e:
-        _ = sys.stderr.write(f"Warning: post succeeded but could not delete body file {args.body_file}: {e}\n")
+    post_via_gh_api(cmd=cmd, body_file=args.body_file, timeout_msg="gh api timed out while posting the review comment.")
 
 
 if __name__ == "__main__":
