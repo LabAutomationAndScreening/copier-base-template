@@ -56,7 +56,9 @@ def read_body_file(body_file: Path) -> str:
 def post_via_gh_api(*, cmd: list[str], body_file: Path, timeout_msg: str) -> None:
     """Run a gh api POST, print the new comment's URL, then delete the body file it was posted from.
 
-    Exits with status 1 if gh api fails. A failure to delete the body file only warns, since the post went through.
+    Exits with status 1 if gh api fails. Once gh api succeeds the comment exists, so an unparseable response still counts
+    as posted and the body file is still deleted (otherwise a retry would post a duplicate). A failure to delete the body
+    file only warns.
     """
     try:
         result = run_cmd(cmd, timeout=30, timeout_msg=timeout_msg)
@@ -64,8 +66,11 @@ def post_via_gh_api(*, cmd: list[str], body_file: Path, timeout_msg: str) -> Non
         _ = sys.stderr.write(f"gh api error: {e.stderr}\n")
         sys.exit(1)
 
-    response = json.loads(result.stdout)
-    _ = sys.stdout.write(f"Posted: {response.get('html_url', '(no URL in response)')}\n")
+    try:
+        url = json.loads(result.stdout).get("html_url", "(no URL in response)")
+    except json.JSONDecodeError:
+        url = "(unparseable response)"
+    _ = sys.stdout.write(f"Posted: {url}\n")
 
     try:
         body_file.unlink()
