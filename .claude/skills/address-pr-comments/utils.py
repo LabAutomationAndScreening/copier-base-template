@@ -2,6 +2,7 @@ import json
 import re
 import subprocess
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 
 
@@ -45,7 +46,7 @@ def owner_repo_from_remote() -> tuple[str, str]:
     return match.group(1), match.group(2)
 
 
-def read_body_file(body_file: Path) -> str:
+def _read_body_file(body_file: Path) -> str:
     try:
         return body_file.read_text(encoding="utf-8")
     except OSError as e:
@@ -53,13 +54,32 @@ def read_body_file(body_file: Path) -> str:
         sys.exit(1)
 
 
-def post_via_gh_api(*, cmd: list[str], body_file: Path, timeout_msg: str) -> None:
-    """Run a gh api POST, print the new comment's URL, then delete the body file it was posted from.
+def post_via_gh_api(
+    *,
+    endpoint: str,
+    body_file: Path,
+    string_fields: Mapping[str, str] | None = None,
+    int_fields: Mapping[str, int] | None = None,
+    timeout_msg: str,
+) -> None:
+    """POST a comment to a GitHub API endpoint with gh api, print its URL, then delete the body file it came from.
+
+    The comment's `body` field is read from body_file. string_fields are sent as strings (--raw-field) and int_fields as
+    JSON numbers (--field), which is what GitHub expects for values like line numbers.
 
     Exits with status 1 if gh api fails. Once gh api succeeds the comment exists, so an unparseable response still counts
     as posted and the body file is still deleted (otherwise a retry would post a duplicate). A failure to delete the body
     file only warns.
     """
+    body = _read_body_file(body_file)
+    cmd = ["gh", "api", endpoint, "--method", "POST", "--raw-field", f"body={body}"]
+    if string_fields is not None:
+        for key, value in string_fields.items():
+            cmd += ["--raw-field", f"{key}={value}"]
+    if int_fields is not None:
+        for key, value in int_fields.items():
+            cmd += ["--field", f"{key}={value}"]
+
     try:
         result = run_cmd(cmd, timeout=30, timeout_msg=timeout_msg)
     except subprocess.CalledProcessError as e:

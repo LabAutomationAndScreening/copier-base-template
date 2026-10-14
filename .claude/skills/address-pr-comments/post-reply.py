@@ -21,7 +21,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from utils import owner_repo_from_remote
 from utils import post_via_gh_api
-from utils import read_body_file
 
 
 def main() -> None:
@@ -37,7 +36,6 @@ def main() -> None:
     args = parser.parse_args()
 
     owner, repo = owner_repo_from_remote()
-    body = read_body_file(args.body_file)
 
     if args.comment_type == "pulls/comments":
         # Reply directly into the inline review comment thread.
@@ -46,11 +44,7 @@ def main() -> None:
         # GitHub has no "reply" concept for issue comments — post a new top-level comment.
         endpoint = f"repos/{owner}/{repo}/issues/{args.pr}/comments"
 
-    post_via_gh_api(
-        cmd=["gh", "api", endpoint, "--method", "POST", "--raw-field", f"body={body}"],
-        body_file=args.body_file,
-        timeout_msg="gh api timed out while posting reply.",
-    )
+    post_via_gh_api(endpoint=endpoint, body_file=args.body_file, timeout_msg="gh api timed out while posting reply.")
 
 
 if __name__ == "__main__":

@@ -26,7 +26,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from utils import owner_repo_from_remote
 from utils import post_via_gh_api
-from utils import read_body_file
 from utils import run_cmd
 
 
@@ -60,28 +59,24 @@ def main() -> None:
         sys.exit(1)
 
     owner, repo = owner_repo_from_remote()
-    body = read_body_file(args.body_file)
 
     commit_id = args.commit_id
     if commit_id is None:
         commit_id = pr_head_sha(owner=owner, repo=repo, pr=args.pr)
 
-    fields = {
-        "body": body,
-        "commit_id": commit_id,
-        "path": args.path,
-        "side": args.side,
-    }
+    string_fields = {"commit_id": commit_id, "path": args.path, "side": args.side}
+    int_fields = {"line": args.line}
     if args.start_line is not None:
-        fields["start_side"] = args.side if args.start_side is None else args.start_side
-    cmd = ["gh", "api", f"repos/{owner}/{repo}/pulls/{args.pr}/comments", "--method", "POST"]
-    for key, value in fields.items():
-        cmd += ["--raw-field", f"{key}={value}"]
-    cmd += ["--field", f"line={args.line}"]
-    if args.start_line is not None:
-        cmd += ["--field", f"start_line={args.start_line}"]
+        string_fields["start_side"] = args.side if args.start_side is None else args.start_side
+        int_fields["start_line"] = args.start_line
 
-    post_via_gh_api(cmd=cmd, body_file=args.body_file, timeout_msg="gh api timed out while posting the review comment.")
+    post_via_gh_api(
+        endpoint=f"repos/{owner}/{repo}/pulls/{args.pr}/comments",
+        body_file=args.body_file,
+        string_fields=string_fields,
+        int_fields=int_fields,
+        timeout_msg="gh api timed out while posting the review comment.",
+    )
 
 
 if __name__ == "__main__":
