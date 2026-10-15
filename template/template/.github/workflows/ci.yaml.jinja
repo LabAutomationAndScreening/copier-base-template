@@ -80,7 +80,7 @@ jobs:
         run: |
           # A code file that no other class claims forces every class on: an unclassified path can affect anything, so
           # nothing may be skipped because of it.
-          classes=$(grep -oE '^[A-Za-z0-9_-]+' .github/path-filters.yaml)
+          classes=$(yq 'keys | .[]' .github/path-filters.yaml)
           jq -n --arg run_everything "$RUN_EVERYTHING" --argjson outputs "$FILTER_OUTPUTS" --arg classes "$classes" '
             def files($class): $outputs[$class + "_files"] // "[]" | fromjson;
             ($classes | split("\n") | map(select(length > 0))) as $classes
