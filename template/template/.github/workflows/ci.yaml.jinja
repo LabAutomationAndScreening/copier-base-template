@@ -6,6 +6,7 @@ on:
       - 'gh-readonly-queue/**' # don't run (again) when on these special branches created during merge groups; the `on: merge_group` already triggers it.
   merge_group:
   pull_request:
+  workflow_dispatch: # a manual run executes every job for the chosen branch, as information only: it posts no required-check
 
 env:
   PYTHONUNBUFFERED: True
@@ -53,8 +54,8 @@ jobs:
         id: policy
         env:
           # The default branch always runs everything, so a class that was wrong on a feature branch or in the merge
-          # queue is still caught there.
-          RUN_EVERYTHING: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+          # queue is still caught there. A manual run is the way to get that full run for one branch.
+          RUN_EVERYTHING: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || github.event_name == 'workflow_dispatch' }}
         run: echo "run_everything=$RUN_EVERYTHING" >> "$GITHUB_OUTPUT"
 
       - name: Checkout code
