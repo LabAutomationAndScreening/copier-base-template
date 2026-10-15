@@ -43,7 +43,7 @@ class ContextUpdater(ContextHook):
         context["pulumi_aws_version"] = ">=7.48.0"
         context["pulumi_aws_native_version"] = ">=1.81.0"
         context["pulumi_command_version"] = ">=1.2.1"
-        context["pulumi_github_version"] = ">=6.14.0"
+        context["pulumi_github_version"] = ">=6.15.0"
         context["pulumi_okta_version"] = ">=6.6.0"
         context["boto3_version"] = ">=1.43.88"
         context["ephemeral_pulumi_deploy_version"] = ">=0.0.8"
