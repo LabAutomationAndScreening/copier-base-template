@@ -45,7 +45,7 @@ jobs:
       contents: read
       pull-requests: read # dorny/paths-filter reads a PR's file list through the API
     outputs:
-      # One boolean per class in .github/path-filters.yaml plus `code`, as a JSON object:
+      # One boolean per class in .github/path-filters.yaml, as a JSON object:
       # fromJSON(needs.changes.outputs.classes).<class>
       classes: ${{ steps.resolve.outputs.classes }}
     steps:
@@ -68,6 +68,7 @@ jobs:
         uses: dorny/paths-filter@{% endraw %}{{ gha_paths_filter }}{% raw %}
         with:
           filters: .github/path-filters.yaml
+          predicate-quantifier: some-with-excludes
           list-files: json
 
       - name: Resolve the class outputs
@@ -77,22 +78,17 @@ jobs:
           # Holds file names from the PR, so it only ever travels through env and jq, never a shell expansion
           FILTER_OUTPUTS: ${{ toJSON(steps.filter.outputs) }}
         run: |
-          # `code` is every changed file outside `docs`. A code file that no other class claims forces every class on:
-          # an unclassified path can affect anything, so nothing may be skipped because of it.
-          classes=$(grep -oE '^[A-Za-z0-9_-]+' .github/path-filters.yaml | grep -vx all)
+          # A code file that no other class claims forces every class on: an unclassified path can affect anything, so
+          # nothing may be skipped because of it.
+          classes=$(grep -oE '^[A-Za-z0-9_-]+' .github/path-filters.yaml)
           jq -n --arg run_everything "$RUN_EVERYTHING" --argjson outputs "$FILTER_OUTPUTS" --arg classes "$classes" '
             def files($class): $outputs[$class + "_files"] // "[]" | fromjson;
             ($classes | split("\n") | map(select(length > 0))) as $classes
-            | (files("all") - files("docs")) as $code
-            | ($code - ([$classes[] | select(. != "docs") | files(.)] | add // [])) as $unclassified
+            | (files("code") - ([$classes[] | select(. != "code") | files(.)] | add // [])) as $unclassified
             | ($run_everything == "true" or ($unclassified | length) > 0) as $force
             | {
                 unclassified: $unclassified,
-                classes: (
-                  [$classes[] | {key: ., value: ($force or $outputs[.] == "true")}]
-                  + [{key: "code", value: ($force or ($code | length) > 0)}]
-                  | from_entries
-                )
+                classes: ([$classes[] | {key: ., value: ($force or $outputs[.] == "true")}] | from_entries)
               }
           ' > "$RUNNER_TEMP/resolved.json"
           echo "classes=$(jq -c .classes "$RUNNER_TEMP/resolved.json")" >> "$GITHUB_OUTPUT"
