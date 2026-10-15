@@ -15,14 +15,12 @@ rather than requiring manual approval each time.
 """
 
 import argparse
-import json
-import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils import owner_repo_from_remote
-from utils import run_cmd
+from utils import post_via_gh_api
 
 
 def main() -> None:
@@ -38,11 +36,6 @@ def main() -> None:
     args = parser.parse_args()
 
     owner, repo = owner_repo_from_remote()
-    try:
-        body = args.body_file.read_text(encoding="utf-8")
-    except OSError as e:
-        _ = sys.stderr.write(f"Unable to read body file {args.body_file}: {e}\n")
-        sys.exit(1)
 
     if args.comment_type == "pulls/comments":
         # Reply directly into the inline review comment thread.
@@ -51,31 +44,7 @@ def main() -> None:
         # GitHub has no "reply" concept for issue comments — post a new top-level comment.
         endpoint = f"repos/{owner}/{repo}/issues/{args.pr}/comments"
 
-    try:
-        result = run_cmd(
-            [
-                "gh",
-                "api",
-                endpoint,
-                "--method",
-                "POST",
-                "--raw-field",
-                f"body={body}",
-            ],
-            timeout=30,
-            timeout_msg="gh api timed out while posting reply.",
-        )
-    except subprocess.CalledProcessError as e:
-        _ = sys.stderr.write(f"gh api error: {e.stderr}\n")
-        sys.exit(1)
-
-    response = json.loads(result.stdout)
-    _ = sys.stdout.write(f"Posted: {response.get('html_url', '(no URL in response)')}\n")
-
-    try:
-        args.body_file.unlink()
-    except OSError as e:
-        _ = sys.stderr.write(f"Warning: post succeeded but could not delete body file {args.body_file}: {e}\n")
+    post_via_gh_api(endpoint=endpoint, body_file=args.body_file, timeout_msg="gh api timed out while posting reply.")
 
 
 if __name__ == "__main__":
