@@ -244,10 +244,6 @@ _subdirectory: template
 
 _templates_suffix: .jinja
 
-_skip_if_exists:
-    # Seeded once, then owned by the project: it lists the project's own path classes for the CI `changes` job
-    - ".github/path-filters.yaml"
-
 _exclude:
     - "copier.yml"
 
