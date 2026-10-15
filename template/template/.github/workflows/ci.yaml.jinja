@@ -53,8 +53,8 @@ jobs:
         id: policy
         env:
           # The default branch always runs everything, so a class that was wrong on a feature branch or in the merge
-          # queue is still caught there. The ci-full label is the manual override for a PR.
-          RUN_EVERYTHING: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || contains(github.event.pull_request.labels.*.name, 'ci-full') }}
+          # queue is still caught there.
+          RUN_EVERYTHING: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
         run: echo "run_everything=$RUN_EVERYTHING" >> "$GITHUB_OUTPUT"
 
       - name: Checkout code
