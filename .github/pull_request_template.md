@@ -14,13 +14,13 @@
 
 
 
-## Test plan
+## How do we know this works?
 
-<!-- How do we know this works? Say which kinds of verification cover the change (unit, E2E, snapshot, manual in the
-app, physical device, deployed and checked live) and which part each one covers, any part none of them reaches, and
-whether a test was seen to fail with the code broken or the fix reverted. CI must pass on every PR, so leave out
-anything it covers: re-running its suites only counts somewhere CI can't (a Raspberry Pi, a lab PC). Don't list test
-names from the diff. -->
+<!-- For each part of the change, say which kind of verification pins it (unit, E2E, snapshot, manual in the app,
+physical device, deployed and checked live) and what it establishes, whether a test was seen to fail with the code
+broken or the fix reverted (and how it was broken), and any part nothing covers. Describe what the tests prove, never
+that they ran: CI reruns every suite on every push. Re-running a suite only
+counts somewhere CI can't (a Raspberry Pi, a lab PC). Don't list test names from the diff. -->
 
 
 ## Other
