@@ -1,0 +1,19 @@
+# Path classes for the `changes` job in .github/workflows/ci.yaml. Every top-level key becomes a boolean in that job's
+# `classes` output, read as fromJSON(needs.changes.outputs.classes).<key>, true when the change touched a matching
+# path. Globs follow dorny/paths-filter (picomatch).
+#
+# `all` stays as it is: the job derives `code` (any change outside `docs`) from it, and a code path that no other class
+# claims switches every class on, so an unlisted path can never cause a job to be skipped. `docs` lists the paths only
+# the lint job cares about. Project classes go below `docs`.
+all:
+  - '**'
+docs:
+  - '**/*.md'
+  - 'doc/**'
+  - 'docs/**'
+  - '.claude/**'
+  - '.coderabbit.yaml'
+  - '**/*.mmd'
+  - '*.code-workspace'
+  - '.github/ISSUE_TEMPLATE/**'
+  - 'LICENSE'

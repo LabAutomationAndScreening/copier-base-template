@@ -131,6 +131,7 @@ class ContextUpdater(ContextHook):
         context["gha_action_gh_release"] = "v3.0.3"
         context["gha_codecov"] = "v7.1.0"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
+        context["gha_paths_filter"] = "ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3"
         context["gha_pypi_publish"] = "v1.14.2"
         context["gha_sleep"] = "v2.0.4"
         context["gha_absaoss_k3d"] = "v2.4.0"
