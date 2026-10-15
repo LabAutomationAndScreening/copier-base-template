@@ -255,11 +255,14 @@ jobs:
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          # A status belongs to a commit: the PR's head commit on pull_request events, the merge group's head on
+          # merge_group events, whose payload carries no pull_request at all.
+          COMMIT_SHA: ${{ github.event_name == 'merge_group' && github.event.merge_group.head_sha || github.event.pull_request.head.sha }}
         run: |
           gh api \
             -X POST -H "Accept: application/vnd.github.v3+json" \
-            "${{ github.event.pull_request.statuses_url }}" \
-            -f state=success -f context="required-check" -f description="✅ All required checks passed in the job triggered by pull_request" \
+            "/repos/${{ github.repository }}/statuses/${COMMIT_SHA}" \
+            -f state=success -f context="required-check" -f description="✅ All required checks passed in the job triggered by ${{ github.event_name }}" \
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
       - name: Mark updated dependabot hash commit as succeeded
