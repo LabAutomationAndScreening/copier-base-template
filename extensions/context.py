@@ -35,7 +35,9 @@ class ContextUpdater(ContextHook):
         context["pytest_randomly_version"] = ">=5.0.0"
         context["pytest_cov_version"] = ">=7.1.0"
         context["mutmut_version"] = ">=3.8.0"
-        context["pyrefly_version"] = ">=1.4.0"
+        # Pinned exactly so CI runs of the copier templates don't pick up unanticipated pyrefly releases: projects rendered
+        # on the fly in CI have no committed lock file to hold the version still.
+        context["pyrefly_version"] = "==1.4.0"
         context["python_faker_version"] = ">=40.41.0"
         #######
         context["sphinx_version"] = "9.0.4"
