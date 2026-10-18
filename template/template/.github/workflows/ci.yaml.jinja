@@ -68,6 +68,13 @@ jobs:
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
         with:
           persist-credentials: false
+          # On push and merge_group events dorny/paths-filter compares against a base commit through git. Without
+          # persisted credentials it cannot fetch that commit from a private repository, so the full history is cloned
+          # up front and the base is already present locally.
+          # TODO: a full clone gets slow once a repository's history is large. Consider fetching only the base commit
+          # instead: resolve it (merge_group.base_sha, or the merge base from the compare API on push), fetch it at
+          # depth 1 with a one-off auth header that is never persisted, and pass it to the filter as `base`.
+          fetch-depth: 0
 
       - name: Match the changed files against the path classes
         if: steps.policy.outputs.run_everything != 'true'
