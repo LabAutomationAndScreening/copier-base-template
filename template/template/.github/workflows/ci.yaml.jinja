@@ -113,6 +113,7 @@ jobs:
     needs:
       - get-values
       - check-skip-duplicate
+      - changes
       - confirm-on-tagged-copier-template
     permissions:
       statuses: write # needed for updating status on Dependabot PRs
