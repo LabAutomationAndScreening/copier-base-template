@@ -115,6 +115,7 @@ class ContextUpdater(ContextHook):
         context["gha_action_gh_release"] = "{{ gha_action_gh_release }}"
         context["gha_codecov"] = "{{ gha_codecov }}"
         context["gha_mutex"] = "{{ gha_mutex }}"
+        context["gha_paths_filter"] = "{{ gha_paths_filter }}"
         context["gha_pypi_publish"] = "{{ gha_pypi_publish }}"
         context["gha_sleep"] = "{{ gha_sleep }}"
         context["gha_absaoss_k3d"] = "{{ gha_absaoss_k3d }}"

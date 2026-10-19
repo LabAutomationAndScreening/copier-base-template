@@ -31,8 +31,9 @@ def _existing_patterns(*, workspace_dir: Path) -> list[str]:
     parsed: object = json.loads(get_result.stdout)
     if not isinstance(parsed, list):
         return []
+    entries: list[object] = parsed
     patterns: list[str] = []
-    for entry in parsed:
+    for entry in entries:
         if not isinstance(entry, str):
             continue
         patterns.append(entry)

@@ -35,7 +35,9 @@ class ContextUpdater(ContextHook):
         context["pytest_randomly_version"] = ">=5.0.0"
         context["pytest_cov_version"] = ">=7.1.0"
         context["mutmut_version"] = ">=3.8.0"
-        context["pyrefly_version"] = ">=1.3.2"
+        # Pinned exactly so CI runs of the copier templates don't pick up unanticipated pyrefly releases: projects rendered
+        # on the fly in CI have no committed lock file to hold the version still.
+        context["pyrefly_version"] = "==1.4.0"
         context["python_faker_version"] = ">=40.41.0"
         #######
         context["sphinx_version"] = "9.0.4"
@@ -43,7 +45,7 @@ class ContextUpdater(ContextHook):
         context["pulumi_aws_version"] = ">=7.48.0"
         context["pulumi_aws_native_version"] = ">=1.81.0"
         context["pulumi_command_version"] = ">=1.2.1"
-        context["pulumi_github_version"] = ">=6.14.0"
+        context["pulumi_github_version"] = ">=6.15.0"
         context["pulumi_okta_version"] = ">=6.6.0"
         context["boto3_version"] = ">=1.43.88"
         context["ephemeral_pulumi_deploy_version"] = ">=0.0.8"
@@ -131,6 +133,7 @@ class ContextUpdater(ContextHook):
         context["gha_action_gh_release"] = "v3.0.3"
         context["gha_codecov"] = "v7.1.0"
         context["gha_mutex"] = "1ebad517141198e08d47cf72f3c0975316620a65 # v1.0.0-alpha.10"
+        context["gha_paths_filter"] = "ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3"
         context["gha_pypi_publish"] = "v1.14.2"
         context["gha_sleep"] = "v2.0.4"
         context["gha_absaoss_k3d"] = "v2.4.0"

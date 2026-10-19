@@ -6,6 +6,7 @@ on:
       - 'gh-readonly-queue/**' # don't run (again) when on these special branches created during merge groups; the `on: merge_group` already triggers it.
   merge_group:
   pull_request:
+  workflow_dispatch: # a manual run executes every job for the chosen branch, as information only: it posts no required-check
 
 env:
   PYTHONUNBUFFERED: True
@@ -37,6 +38,78 @@ jobs:
       - id: check
         uses: ./.github/actions/check-skip-duplicates
 
+  changes:
+    name: Classify changed paths
+    runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
+    timeout-minutes: {% endraw %}{{ gha_short_timeout_minutes }}{% raw %}
+    permissions:
+      contents: read
+      pull-requests: read # dorny/paths-filter reads a PR's file list through the API
+    outputs:
+      # One boolean per class in .github/path-filters.yaml, as a JSON object:
+      # fromJSON(needs.changes.outputs.classes).<class>
+      classes: ${{ steps.resolve.outputs.classes }}
+    steps:
+      - name: Decide whether the diff matters at all
+        id: policy
+        env:
+          # The default branch always runs everything, so a class that was wrong on a feature branch or in the merge
+          # queue is still caught there. A manual run is the way to get that full run for one branch.
+          FORCED_BY: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && 'the default branch' || github.event_name == 'workflow_dispatch' && 'a manual run' || '' }}
+        run: |
+          echo "forced_by=$FORCED_BY" >> "$GITHUB_OUTPUT"
+          if [ -n "$FORCED_BY" ]; then
+            echo "run_everything=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_everything=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
+        with:
+          persist-credentials: false
+          # On push and merge_group events dorny/paths-filter compares against a base commit through git. Without
+          # persisted credentials it cannot fetch that commit from a private repository, so the full history is cloned
+          # up front and the base is already present locally.
+          # TODO: a full clone gets slow once a repository's history is large. Consider fetching only the base commit
+          # instead: resolve it (merge_group.base_sha, or the merge base from the compare API on push), fetch it at
+          # depth 1 with a one-off auth header that is never persisted, and pass it to the filter as `base`.
+          fetch-depth: 0
+
+      - name: Match the changed files against the path classes
+        if: steps.policy.outputs.run_everything != 'true'
+        id: filter
+        uses: dorny/paths-filter@{% endraw %}{{ gha_paths_filter }}{% raw %}
+        with:
+          filters: .github/path-filters.yaml
+          predicate-quantifier: some-with-excludes
+          list-files: json
+
+      - name: Resolve the class outputs
+        id: resolve
+        env:
+          RUN_EVERYTHING: ${{ steps.policy.outputs.run_everything }}
+          FORCED_BY: ${{ steps.policy.outputs.forced_by }}
+          # Holds file names from the PR, so it only ever travels through env and jq, never a shell expansion
+          FILTER_OUTPUTS: ${{ toJSON(steps.filter.outputs) }}
+        run: |
+          # A code file that no other class claims forces every class on: an unclassified path can affect anything, so
+          # nothing may be skipped because of it.
+          classes=$(yq 'keys | .[]' .github/path-filters.yaml)
+          jq -n --arg run_everything "$RUN_EVERYTHING" --arg forced_by "$FORCED_BY" --argjson outputs "$FILTER_OUTPUTS" --arg classes "$classes" '
+            def files($class): $outputs[$class + "_files"] // "[]" | fromjson;
+            ($classes | split("\n") | map(select(length > 0))) as $classes
+            | (files("code") - ([$classes[] | select(. != "code") | files(.)] | add // [])) as $unclassified
+            | ($run_everything == "true" or ($unclassified | length) > 0) as $force
+            | {
+                forced_by: $forced_by,
+                unclassified: $unclassified,
+                classes: ([$classes[] | {key: ., value: ($force or $outputs[.] == "true")}] | from_entries)
+              }
+          ' > "$RUNNER_TEMP/resolved.json"
+          echo "classes=$(jq -c .classes "$RUNNER_TEMP/resolved.json")" >> "$GITHUB_OUTPUT"
+          jq -r '"classes: \(.classes)", (if .forced_by != "" then "every class forced on by \(.forced_by)" elif (.unclassified | length) > 0 then "every class forced on by unclassified paths:", .unclassified[] else empty end)' "$RUNNER_TEMP/resolved.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
   confirm-on-tagged-copier-template:
     if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
     uses: ./.github/workflows/confirm-on-tagged-copier-template.yaml
@@ -47,6 +120,7 @@ jobs:
     needs:
       - get-values
       - check-skip-duplicate
+      - changes
       - confirm-on-tagged-copier-template
     permissions:
       statuses: write # needed for updating status on Dependabot PRs
@@ -71,11 +145,14 @@ jobs:
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          # A status belongs to a commit: the PR's head commit on pull_request events, the merge group's head on
+          # merge_group events, whose payload carries no pull_request at all.
+          COMMIT_SHA: ${{ github.event_name == 'merge_group' && github.event.merge_group.head_sha || github.event.pull_request.head.sha }}
         run: |
           gh api \
             -X POST -H "Accept: application/vnd.github.v3+json" \
-            "${{ github.event.pull_request.statuses_url }}" \
-            -f state=success -f context="required-check" -f description="✅ All required checks passed in the job triggered by pull_request" \
+            "/repos/${{ github.repository }}/statuses/${COMMIT_SHA}" \
+            -f state=success -f context="required-check" -f description="✅ All required checks passed in the job triggered by ${{ github.event_name }}" \
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
       - name: Mark updated dependabot hash commit as succeeded
