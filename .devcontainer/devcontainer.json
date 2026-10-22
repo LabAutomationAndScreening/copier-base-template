@@ -18,6 +18,12 @@
       // view latest version https://raw.githubusercontent.com/aws/aws-cli/v2/CHANGELOG.rst
       "version": "2.36.49"
     },
+    "ghcr.io/devcontainers/features/node:2.1.0": {
+      // https://github.com/devcontainers/features/blob/main/src/node/devcontainer-feature.json
+      "version": "24.22.1",
+      "pnpmVersion": "12.9.1",
+      "nvmVersion": "0.40.5"
+    },
     // https://github.com/anthropics/devcontainer-features/blob/main/src/claude-code/devcontainer-feature.json
     "ghcr.io/anthropics/devcontainer-features/claude-code:1.0.5": {}
   },
