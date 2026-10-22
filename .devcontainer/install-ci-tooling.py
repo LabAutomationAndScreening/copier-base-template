@@ -8,7 +8,7 @@ import tempfile
 import time
 from pathlib import Path
 
-UV_VERSION = "0.12.23"
+UV_VERSION = "0.13.4"
 PNPM_VERSION = "12.9.1"
 COPIER_VERSION = "==9.18.2"
 COPIER_TEMPLATE_EXTENSIONS_VERSION = "==0.3.3"
