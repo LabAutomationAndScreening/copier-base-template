@@ -11,7 +11,7 @@ dependencies = [
     "faker>=40.41.0",
     "pyrefly==1.4.0",
     "mutmut>=3.8.0",
-    "copier==9.18.2",
+    "copier==9.19.1",
     "copier-template-extensions==0.3.3",
     "pyyaml>=6.0.3"
 ]
