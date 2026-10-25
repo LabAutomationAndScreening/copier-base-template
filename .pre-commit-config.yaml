@@ -60,7 +60,7 @@ repos:
           (?x)^(
               .*/vendor_files/.*|
               .*tests/.*/__snapshots__/.*|
-              .*/generated/.*|
+              (?:.*/)?generated/.*|
           )$
       - id: end-of-file-fixer
         # the XML formatter hook doesn't leave a blank line at the end, so excluding XML files from this hook to avoid conflicts
@@ -68,7 +68,7 @@ repos:
           (?x)^(
               \.github/pull_request_template.md|
               template/\.github/pull_request_template.md|
-              .*/generated/.*|
+              (?:.*/)?generated/.*|
               .*tests/.*/__snapshots__/.*|
               .devcontainer/devcontainer-lock.json|
               .*\.copier-answers\.yml(\.jinja(-base)?)?|
@@ -226,7 +226,7 @@ repos:
         files: src/.+\.py$
         exclude: |
           (?x)^(
-              .*/generated/.*|
+              (?:.*/)?generated/.*|
               template/.*|
           )$
       - id: ruff
@@ -235,14 +235,14 @@ repos:
         files: ^(?!src/)(?!.+/src/).+\.py$
         exclude: |
           (?x)^(
-              .*/generated/.*|
+              (?:.*/)?generated/.*|
               template/.*|
           )$
       - id: ruff-format
         args: [--config=./.config/ruff.toml]
         exclude: |
           (?x)^(
-              .*/generated/.*|
+              (?:.*/)?generated/.*|
           )$
 
   - repo: https://github.com/pylint-dev/pylint
@@ -255,7 +255,7 @@ repos:
         # exclude the template files---duplication within them will be discovered during CI of that template instantiation
         exclude: |
           (?x)^(
-              .*/generated/.*|
+              (?:.*/)?generated/.*|
               .*__init__\.py|
               template/.*|
           )$
@@ -271,7 +271,7 @@ repos:
         files: '.+\.py$'
         exclude: |
           (?x)^(
-              .*/generated/.*|
+              (?:.*/)?generated/.*|
           )$
         # don't pass filenames else the command line sees them twice
         pass_filenames: false
