@@ -13,7 +13,7 @@ class ContextUpdater(ContextHook):
         self, context: dict[Any, Any]
     ) -> dict[Any, Any]:
         # These are duplicated in the install-ci-tooling.py script in this repository
-        context["uv_version"] = "0.12.23"
+        context["uv_version"] = "0.13.4"
         context["pre_commit_version"] = "==4.6.2"
         context["identify_version"] = "==2.6.20"
         context["prek_version"] = "==0.5.5"
@@ -60,7 +60,7 @@ class ContextUpdater(ContextHook):
         context["fastapi_offline_version"] = ">=1.7.7"
         context["starlette_version"] = ">=1.7.0"
         context["uvicorn_version"] = ">=0.54.0"
-        context["lab_auto_pulumi_version"] = ">=0.3.0"
+        context["lab_auto_pulumi_version"] = ">=0.7.0"
         context["ariadne_codegen_version"] = ">=0.18.0"
         context["pytest_mock_version"] = ">=3.16.0"
         context["uuid_utils_version"] = ">=1.0.0"
@@ -114,7 +114,7 @@ class ContextUpdater(ContextHook):
 
         #######
         # These are duplicated in the CI files for this repository
-        context["default_node_version"] = "24.11.1"
+        context["default_node_version"] = "24.22.1"
         context["gha_checkout"] = "v7.0.1"
         context["gha_setup_python"] = "v7.0.0"
         context["gha_cache"] = "v6.1.0"
