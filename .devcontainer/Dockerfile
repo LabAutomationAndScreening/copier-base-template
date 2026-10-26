@@ -10,6 +10,15 @@ RUN apt-get update -y && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Take the newest trust store at build time instead of the one frozen into the base image, so a rebuild picks up CA
+# changes published after the image was. Unpinned on purpose; the floor check fails the build if the Ubuntu security
+# repo doesn't serve at least that release.
+# hadolint ignore=DL3008
+RUN apt-get update -y && apt-get install -y --no-install-recommends ca-certificates \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20260816ubuntu0.24.04.1 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create the venv folder and set permissions for anyone to modify---this is necessary to be able to break out the venv folder as a separate docker volume for better performance on Windows hosts
 ARG REPO_NAME=copier-base-template
 ENV VENV_PATH=/workspaces/${REPO_NAME}/.venv
