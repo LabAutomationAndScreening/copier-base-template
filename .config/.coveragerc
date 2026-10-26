@@ -3,8 +3,8 @@ branch = True
 omit =
     # omit anything supplied by vendors
     */vendor_files/*
-    # omit any auto-generated API client code
-    */generated/open_api/*
+    # omit any auto-generated code; the tool that generates it is responsible for testing it
+    */generated/*
     # omit CircuitPython firmware
     */firmware/code.py
     */firmware/boot.py
