@@ -29,6 +29,8 @@ reviews:
       enabled: false
     flake8: # we use ruff instead (when we use Python)
       enabled: false
+    github-checks: # we diagnose CI failures ourselves, and a CodeRabbit comment on one is just more noise while resolving it
+      enabled: false
   poem: false
   in_progress_fortune: false
   # the commit status is driven by our repository config and required checks, we don't want CodeRabbit messing with it
@@ -41,3 +43,5 @@ reviews:
       enabled: false # if we wanted AI to generate docstrings, it would be via CLI, not in the GitHub interface
     unit_tests:
       enabled: false # Quis custodiet ipsos custodes? not something we want AI doing, especially not via the GitHub interface
+    fix_ci:
+      enabled: false # if we wanted AI to fix CI failures, it would be via CLI, not in the GitHub interface
