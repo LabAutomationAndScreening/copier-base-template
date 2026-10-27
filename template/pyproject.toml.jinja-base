@@ -27,11 +27,11 @@ exclude-newer = "1 day"
 source_roots = ["src", "."]
 exclude = [".venv", "**/__pycache__", "**/*.egg-info", "template", "mutants"]
 
-# Never import from a conftest.py (https://docs.pytest.org/en/stable/how-to/writing_plugins.html#conftest-py-local-per-directory-plugins);
-# put shared helpers in a regular module instead.
 [[tool.tach.modules]]
 path = "tests.**.conftest"
 depends_on = ["tests"]
+# Never import from a conftest.py (https://docs.pytest.org/en/stable/how-to/writing_plugins.html#conftest-py-local-per-directory-plugins);
+# put shared helpers in a regular module instead.
 visibility = []
 
 # Declared so tach checks the tests' imports; a file outside every module is never checked.
