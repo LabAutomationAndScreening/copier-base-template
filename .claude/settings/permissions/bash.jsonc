@@ -54,6 +54,8 @@
       "Bash(gh search *)",
       "Bash(gh pr view *)",
       "Bash(gh pr diff *)",
+      "Bash(gh release list *)",
+      "Bash(gh release view *)",
       "Bash(gh repo view *)",
       "Bash(gh repo clone *)",
       // Misc
@@ -91,7 +93,6 @@
     "ask": [
       // let's hold off before we let it use the github CLI in any free running allow mode...I don't want it somehow approving PRs with the user's credentials
       "Bash(gh repo fork *)",
-      "Bash(gh release *)",
       "Bash(gh secret *)",
       "Bash(gh ruleset *)",
       "Bash(aws *)", // let's hold off before we let it use AWS CLI in any free running allow mode. We need to be very sure we don't have any access to staging or production credentials in our dev environment (...which we shouldn't...but we need to double check that or consider any other safeguards first)
@@ -114,7 +115,11 @@
       "Bash(gh api *)",
       "Bash(gh auth token*)",
       "Bash(gh auth status *-t*)", // -t / --show-token prints the token
-      // Creating or changing repositories should be a deliberate human step, so run these yourself with `!`
+      // Creating or changing repositories or releases should be a deliberate human step, so run these yourself with `!`
+      "Bash(gh release create*)",
+      "Bash(gh release delete*)",
+      "Bash(gh release edit*)",
+      "Bash(gh release upload*)",
       "Bash(gh repo archive *)",
       "Bash(gh repo autolink create *)",
       "Bash(gh repo autolink new *)",
