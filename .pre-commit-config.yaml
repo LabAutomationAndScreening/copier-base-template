@@ -282,6 +282,21 @@ repos:
         # print the number of files as a sanity-check
         verbose: true
 
+  - repo: local
+    hooks:
+      - id: tach
+        name: tach
+        # `language: python` with additional_dependencies gives tach its own env, so its CLI-only dependencies stay out
+        # of uv.lock and its pytest plugin never loads in test runs. Config is [tool.tach] in pyproject.toml.
+        entry: tach check
+        language: python
+        additional_dependencies: ['tach==0.35.3']
+        files: '(\.py|pyproject\.toml)$'
+        # don't pass filenames else the command line sees them twice
+        pass_filenames: false
+        # use require_serial so that script is only called once per commit
+        require_serial: true
+
   # Updating repo config/tooling files
   - repo: local
     hooks:
