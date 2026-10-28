@@ -7,8 +7,9 @@ runs as a pre-commit hook whenever anything under .claude/ changes, reads every 
 lists each `.claude/...` path that resolves to nothing.
 
 A path is checked up to its first placeholder or glob (`<`, `{`, `*`, `$`), so `.claude/skills/<skill>/` checks the
-skills directory. A path inside a longer one, such as `~/.claude/commands/`, is an example of a file elsewhere and is
-left alone. A directory counts.
+skills directory. One that starts partway through a name checks the directory holding that name, so
+`.claude/skills/pr-comments/read*.py` checks the pr-comments directory. A path inside a longer one, such as
+`~/.claude/commands/`, is an example of a file elsewhere and is left alone. A directory counts.
 """
 
 import re
@@ -17,6 +18,7 @@ import sys
 from pathlib import Path
 
 _PATH_RE = re.compile(r"(?<![\w/~])\.claude/[\w./-]*")
+_PLACEHOLDER_RE = re.compile(r"[<{*$]")
 
 
 def _tracked_documents() -> list[Path]:
@@ -33,8 +35,14 @@ def _tracked_documents() -> list[Path]:
 def _references(document: Path) -> list[tuple[int, str]]:
     found: list[tuple[int, str]] = []
     for number, line in enumerate(document.read_text(encoding="utf-8").splitlines(), start=1):
-        # a sentence may end right after the path
-        found.extend((number, match.group().rstrip(".")) for match in _PATH_RE.finditer(line))
+        for match in _PATH_RE.finditer(line):
+            path = match.group()
+            if _PLACEHOLDER_RE.match(line, match.end()) is not None and not path.endswith("/"):
+                path = path.rpartition("/")[0]
+            else:
+                # a sentence may end right after the path
+                path = path.rstrip(".")
+            found.append((number, path))
     return found
 
 
