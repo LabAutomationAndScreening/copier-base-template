@@ -68,8 +68,9 @@ def _post(*, endpoint: str, body_file: Path, body_suffix: str) -> None:
     The comment's `body` is read from body_file, with body_suffix appended (the file itself is not changed, so a failed
     post can be retried without the suffix piling up).
 
-    Exits with status 1 if gh api fails. Once gh api succeeds the comment exists, so an unparsable response still counts
-    as posted and the body file is still deleted (otherwise a retry would post a duplicate). A failure to delete the body
+    Exits with status 1 if gh api fails or times out; a timed-out POST may still have reached GitHub, so its message
+    says to check before retrying. Once gh api succeeds the comment exists, so an unparsable response still counts as
+    posted and the body file is still deleted (otherwise a retry would post a duplicate). A failure to delete the body
     file only warns.
     """
     body = _read_body_file(body_file) + body_suffix
@@ -81,7 +82,10 @@ def _post(*, endpoint: str, body_file: Path, body_suffix: str) -> None:
         _ = sys.stderr.write(f"gh api error: {e.stderr}\n")
         sys.exit(1)
     except subprocess.TimeoutExpired:
-        _ = sys.stderr.write("gh api timed out while posting the reply.\n")
+        _ = sys.stderr.write(
+            "gh api timed out while posting the reply, but GitHub may have accepted it anyway: check the thread before"
+            f" retrying, or the reply may be posted twice. The body file {body_file} was kept.\n"
+        )
         sys.exit(1)
 
     try:
