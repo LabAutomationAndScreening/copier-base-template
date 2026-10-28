@@ -250,20 +250,27 @@ repos:
       - id: pylint
         name: pylint
         # Runs pylint on every changed Python file, exactly as pylint's own hook does (`entry: pylint`). It is a local
-        # hook only so that skills under .claude/skills/ are checked for duplicate code separately: a skill is meant
-        # to stand alone, so it may repeat a helper that another skill also has. All other code is checked together,
-        # as one group.
-        entry: >-
-          bash -c 'rc=0;
-          lint() { if [ $# -gt 0 ]; then pylint --rcfile=./.config/pylintrc.toml "$@" || rc=1; fi; };
-          non_skill_files=(); skill_dirs=();
-          for f in "$@"; do case "$f" in .claude/skills/*/*) skill_dirs+=("$(cut -d/ -f1-3 <<< "$f")") ;; *) non_skill_files+=("$f") ;; esac; done;
-          lint "${non_skill_files[@]}";
-          while IFS= read -r dir; do
-          mapfile -d "" skill_files < <(find "$dir" -name "*.py" -not -name "__init__.py" -not -path "*/generated/*" -not -path "*/__pycache__/*" -print0);
-          lint "${skill_files[@]}";
-          done < <(printf "%s\n" "${skill_dirs[@]}" | sort -u | grep .);
-          exit $rc' --
+        # hook only so that each changed skill under .claude/skills/ is checked for duplicate code on its own, together
+        # with the skill's other tracked Python files: a skill is meant to stand alone, so it may repeat a helper that
+        # another skill also has. All other code is checked together, as one group.
+        entry: |
+          python -c '
+          import subprocess
+          import sys
+
+          groups: dict[str, set[str]] = {}
+          for path in sys.argv[1:]:
+              parts = path.split("/")
+              skill = "/".join(parts[:3]) if path.startswith(".claude/skills/") and len(parts) > 3 else ""
+              groups.setdefault(skill, set()).add(path)
+          rc = 0
+          for skill, files in sorted(groups.items()):
+              if skill:
+                  tracked = subprocess.run(["git", "ls-files", "-z", "--", skill], capture_output=True, text=True, check=True).stdout
+                  files |= {f for f in tracked.split("\0") if f.endswith(".py") and not f.endswith("/__init__.py") and "/generated/" not in f}
+              rc |= subprocess.run([sys.executable, "-m", "pylint", "--rcfile=./.config/pylintrc.toml", *sorted(files)], check=False).returncode
+          sys.exit(rc)
+          '
         language: python
         # the only place pylint's version is pinned; pre-commit autoupdate does not bump additional_dependencies
         additional_dependencies: ['pylint==4.0.7']
