@@ -101,7 +101,9 @@
       "Bash(*gh pr close*)",
       "Bash(*gh pr comment*)",
       "Bash(*gh pr create*)",
-      "Bash(*gh pr edit*)"
+      "Bash(*gh pr edit*)",
+      // A PR comment goes out under the user's account, so the pr-comments skill's generic post script prompts (an ask rule beats the skills allow rule above); its read script stays allowed
+      "Bash(.claude/skills/pr-comments/post.py *)"
     ],
     "deny": [
       // Exceptions to generally allowed AI tooling
