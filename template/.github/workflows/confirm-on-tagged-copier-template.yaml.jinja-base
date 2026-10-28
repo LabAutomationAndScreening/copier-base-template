@@ -48,7 +48,8 @@ jobs:
           fi
           UNTAGGED_COMMITS=()
           for ANSWERS_FILE in "${ANSWERS_FILES[@]}"; do
-            COMMIT=$(grep "^_commit:" "$ANSWERS_FILE" | sed 's/^_commit:[[:space:]]*//')
+            # YAML quotes a value that would otherwise parse as a number, such as an all-digit SHA
+            COMMIT=$(grep "^_commit:" "$ANSWERS_FILE" | sed -E "s/^_commit:[[:space:]]*//; s/[[:space:]]+$//; s/^['\"]//; s/['\"]$//")
             # git describe gives a dev commit as vX.Y.Z-N-g<sha>, or as a bare SHA when no tag is reachable
             if [[ "$COMMIT" == *-* ]] || [[ "$COMMIT" =~ ^[0-9a-f]{7,40}$ ]]; then
               echo "::$LEVEL file=$ANSWERS_FILE::_commit $COMMIT is untagged; it must be a clean release tag (e.g. v0.0.111), not a dev commit (e.g. v0.0.106-14-g7847d7b)"
