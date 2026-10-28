@@ -245,11 +245,29 @@ repos:
               (?:.*/)?generated/.*|
           )$
 
-  - repo: https://github.com/pylint-dev/pylint
-    rev: f5a6e3b1de17502747a40d7f92f285ccf9c6c459  # frozen: v4.0.7
+  - repo: local
     hooks:
       - id: pylint
         name: pylint
+        # Runs pylint on every changed Python file, exactly as pylint's own hook does (`entry: pylint`). It is a local
+        # hook only so that skills under .claude/skills/ are checked for duplicate code separately: a skill is meant
+        # to stand alone, so it may repeat a helper that another skill also has. All other code is checked together,
+        # as one group.
+        entry: >-
+          bash -c 'rc=0;
+          lint() { if [ $# -gt 0 ]; then pylint --rcfile=./.config/pylintrc.toml "$@" || rc=1; fi; };
+          non_skill_files=(); skill_dirs=();
+          for f in "$@"; do case "$f" in .claude/skills/*/*) skill_dirs+=("$(cut -d/ -f1-3 <<< "$f")") ;; *) non_skill_files+=("$f") ;; esac; done;
+          lint "${non_skill_files[@]}";
+          while IFS= read -r dir; do
+          mapfile -d "" skill_files < <(find "$dir" -name "*.py" -not -name "__init__.py" -not -path "*/generated/*" -not -path "*/__pycache__/*" -print0);
+          lint "${skill_files[@]}";
+          done < <(printf "%s\n" "${skill_dirs[@]}" | sort -u | grep .);
+          exit $rc' --
+        language: python
+        # the only place pylint's version is pinned; pre-commit autoupdate does not bump additional_dependencies
+        additional_dependencies: ['pylint==4.0.7']
+        types: [python]
         # exclude any generated code
         # flagging duplicate code for __all__ lists is a false positive
         # exclude the template files---duplication within them will be discovered during CI of that template instantiation
@@ -259,8 +277,7 @@ repos:
               .*__init__\.py|
               template/.*|
           )$
-        args:
-          - --rcfile=./.config/pylintrc.toml
+        require_serial: true
         verbose: true
 
   - repo: local
