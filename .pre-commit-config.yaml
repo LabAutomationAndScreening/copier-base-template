@@ -255,6 +255,7 @@ repos:
         # another skill also has. All other code is checked together, as one group.
         entry: |
           python -c '
+          import os
           import subprocess
           import sys
 
@@ -267,7 +268,12 @@ repos:
           for skill, files in sorted(groups.items()):
               if skill:
                   tracked = subprocess.run(["git", "ls-files", "-z", "--", skill], capture_output=True, text=True, check=True).stdout
-                  files |= {f for f in tracked.split("\0") if f.endswith(".py") and not f.endswith("/__init__.py") and "/generated/" not in f}
+                  # a tracked file deleted but not yet staged is still listed, and pylint fails on a path that is not there
+                  files |= {
+                      f
+                      for f in tracked.split("\0")
+                      if f.endswith(".py") and not f.endswith("/__init__.py") and "/generated/" not in f and os.path.isfile(f)
+                  }
               exit_code |= subprocess.run([sys.executable, "-m", "pylint", "--rcfile=./.config/pylintrc.toml", *sorted(files)], check=False).returncode
           sys.exit(exit_code)
           '
