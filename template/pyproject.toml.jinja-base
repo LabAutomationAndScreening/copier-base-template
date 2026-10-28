@@ -27,17 +27,18 @@ exclude-newer = "1 day"
 source_roots = ["src", "."]
 exclude = [".venv", "**/__pycache__", "**/*.egg-info", "template", "mutants", "copier_template_resources"]
 
-[[tool.tach.modules]]
-path = "tests.**.conftest"
-depends_on = ["tests"]
 # Never import from a conftest.py (https://docs.pytest.org/en/stable/how-to/writing_plugins.html#conftest-py-local-per-directory-plugins);
-# put shared helpers in a regular module instead.
-visibility = []
-
-# Declared so tach checks the tests' imports; a file outside every module is never checked.
+# put shared helpers in a regular module instead. Declaring `tests` as a module is what makes tach check the tests'
+# imports at all; a file outside every module is never checked.
 [[tool.tach.modules]]
 path = "tests"
-depends_on = []
+cannot_depend_on = ["tests.**.conftest"]
+
+# Makes each conftest.py its own module, so the rule above has something to match. tach puts a file only in its most
+# specific module, so conftests are not part of `tests` and need the rule repeated to block conftest-to-conftest imports.
+[[tool.tach.modules]]
+path = "tests.**.conftest"
+cannot_depend_on = ["tests.**.conftest"]
 
 [tool.tach.external]
 # Tooling run from the command line or as pytest plugins, or imported only by the tests (which check-external skips)
