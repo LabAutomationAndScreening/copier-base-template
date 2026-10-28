@@ -36,9 +36,12 @@ cannot_depend_on = ["tests.**.conftest"]
 
 # Makes each conftest.py its own module, so the rule above has something to match. tach puts a file only in its most
 # specific module, so conftests are not part of `tests` and need the rule repeated to block conftest-to-conftest imports.
+# `visibility = []` also rejects any module that lists a conftest in its `depends_on`. It can't stop a module that omits
+# `depends_on`, so any other module declared under `tests` needs the same `cannot_depend_on` line.
 [[tool.tach.modules]]
 path = "tests.**.conftest"
 cannot_depend_on = ["tests.**.conftest"]
+visibility = []
 
 [tool.tach.external]
 # Tooling run from the command line or as pytest plugins, or imported only by the tests (which check-external skips)
