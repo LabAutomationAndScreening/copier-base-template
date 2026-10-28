@@ -7,12 +7,22 @@ on:
         description: 'Regex pattern matching copier answers files (matched against file paths from repository root)'
         type: string
         default: '\.copier-answers\.yml$'
+    outputs:
+      tagged:
+        description: "'true' when every matching answers file pins _commit to a clean release tag, 'false' otherwise"
+        value: ${{ jobs.confirm-on-tagged-copier-template.outputs.tagged }}
+      untagged-commits:
+        description: 'Space-separated _commit values that are not clean release tags'
+        value: ${{ jobs.confirm-on-tagged-copier-template.outputs.untagged-commits }}
 
 jobs:
   confirm-on-tagged-copier-template:
     runs-on: {% endraw %}{{ gha_linux_runner }}{% raw %}
     timeout-minutes: {% endraw %}{{ gha_short_timeout_minutes }}{% raw %}
-    name: Fail if template under development
+    name: Check template is on a release tag
+    outputs:
+      tagged: ${{ steps.check.outputs.tagged }}
+      untagged-commits: ${{ steps.check.outputs.untagged-commits }}
     env:
         ANSWERS_FILE_PATTERN: ${{ inputs.answers_file_pattern }}
     steps:
@@ -22,6 +32,9 @@ jobs:
           persist-credentials: false
 
       - name: Check _commit is a clean release tag
+        id: check
+        # On a pull_request an untagged _commit only warns: the caller holds its required-check as pending, which blocks
+        # the merge without failing the run. In a merge group it fails outright so the queue ejects the PR fast.
         run: |
           PATTERN="$ANSWERS_FILE_PATTERN"
           mapfile -t ANSWERS_FILES < <(find . -type f -printf '%P\n' | grep -E "$PATTERN")
@@ -29,15 +42,26 @@ jobs:
             echo "Error: No files matching pattern '$PATTERN' found"
             exit 1
           fi
-          FAILED=0
+          LEVEL=warning
+          if [ "$GITHUB_EVENT_NAME" == "merge_group" ]; then
+            LEVEL=error
+          fi
+          UNTAGGED_COMMITS=()
           for ANSWERS_FILE in "${ANSWERS_FILES[@]}"; do
-            COMMIT_LINE=$(grep "^_commit:" "$ANSWERS_FILE")
-            if echo "$COMMIT_LINE" | grep -q "-"; then
-              echo "Error in $ANSWERS_FILE: $COMMIT_LINE"
-              echo "_commit must be a clean release tag (e.g. v0.0.111), not a dev commit (e.g. v0.0.106-14-g7847d7b)"
-              FAILED=1
+            # YAML quotes a value that would otherwise parse as a number, such as an all-digit SHA
+            COMMIT=$(grep "^_commit:" "$ANSWERS_FILE" | sed -E "s/^_commit:[[:space:]]*//; s/[[:space:]]+$//; s/^['\"]//; s/['\"]$//")
+            # git describe gives a dev commit as vX.Y.Z-N-g<sha>, or as a bare SHA when no tag is reachable
+            if [[ "$COMMIT" == *-* ]] || [[ "$COMMIT" =~ ^[0-9a-f]{7,40}$ ]]; then
+              echo "::$LEVEL file=$ANSWERS_FILE::_commit $COMMIT is untagged; it must be a clean release tag (e.g. v0.0.111), not a dev commit (e.g. v0.0.106-14-g7847d7b)"
+              UNTAGGED_COMMITS+=("$COMMIT")
             fi
           done
-          if [ "$FAILED" -eq 1 ]; then
+          if [ ${#UNTAGGED_COMMITS[@]} -eq 0 ]; then
+            echo "tagged=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "tagged=false" >> "$GITHUB_OUTPUT"
+          echo "untagged-commits=${UNTAGGED_COMMITS[*]}" >> "$GITHUB_OUTPUT"
+          if [ "$LEVEL" == "error" ]; then
             exit 1
           fi{% endraw %}
