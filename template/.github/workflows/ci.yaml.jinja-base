@@ -251,18 +251,33 @@ jobs:
           fi
           echo "✅ All jobs finished with skipped or success"
 
-      - name: Mark the required-check as succeeded so the PR can be merged
+      - name: Post the required-check status
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         env:
           GH_TOKEN: ${{ github.token }}
           # A status belongs to a commit: the PR's head commit on pull_request events, the merge group's head on
           # merge_group events, whose payload carries no pull_request at all.
           COMMIT_SHA: ${{ github.event_name == 'merge_group' && github.event.merge_group.head_sha || github.event.pull_request.head.sha }}
+          TEMPLATE_TAGGED: ${{ needs.confirm-on-tagged-copier-template.outputs.tagged }}
+          UNTAGGED_COMMITS: ${{ needs.confirm-on-tagged-copier-template.outputs.untagged-commits }}
         run: |
+          # An untagged copier _commit is expected while a template change is under development, so it holds the
+          # required-check as pending (blocking the merge) rather than failing the run.
+          STATE=success
+          DESCRIPTION="✅ All required checks passed in the job triggered by ${{ github.event_name }}"
+          if [ "$TEMPLATE_TAGGED" == "false" ]; then
+            STATE=pending
+            read -ra COMMITS <<< "$UNTAGGED_COMMITS"
+            DESCRIPTION="⏳ _commit ${UNTAGGED_COMMITS} is untagged; re-pin to a release tag to merge"
+            # a status description over 140 characters is rejected, and the check's warnings already name each file
+            if [ ${#COMMITS[@]} -gt 1 ]; then
+              DESCRIPTION="⏳ ${#COMMITS[@]} copier _commit values are untagged; re-pin to release tags to merge"
+            fi
+          fi
           gh api \
             -X POST -H "Accept: application/vnd.github.v3+json" \
             "/repos/${{ github.repository }}/statuses/${COMMIT_SHA}" \
-            -f state=success -f context="required-check" -f description="✅ All required checks passed in the job triggered by ${{ github.event_name }}" \
+            -f state="$STATE" -f context="required-check" -f description="$DESCRIPTION" \
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
       - name: Mark updated dependabot hash commit as succeeded
