@@ -282,6 +282,23 @@ repos:
         # print the number of files as a sanity-check
         verbose: true
 
+  - repo: local
+    hooks:
+      - id: tach
+        name: tach
+        # `uv run --with` adds tach to the project env for this command only: check-external needs the installed packages
+        # to map distribution names to module names, while uv.lock stays free of tach's CLI dependencies and its pytest
+        # plugin never loads in test runs. Config is [tool.tach] in pyproject.toml.
+        # Both checks always run and their exit codes are ORed, so neither result masks the other. check-external skips
+        # tests because tach reads only [project] dependencies, not the dev group the tests import from.
+        entry: bash -c 'uv run --frozen --with tach==0.35.3 tach check; internal=$?; uv run --frozen --with tach==0.35.3 tach check-external -e "tests/**"; external=$?; exit $((internal || external))'
+        language: system
+        files: '(\.py|pyproject\.toml|uv\.lock)$'
+        # don't pass filenames else the command line sees them twice
+        pass_filenames: false
+        # use require_serial so that script is only called once per commit
+        require_serial: true
+
   # Updating repo config/tooling files
   - repo: local
     hooks:
