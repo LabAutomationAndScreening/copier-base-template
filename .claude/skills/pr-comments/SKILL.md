@@ -3,7 +3,7 @@ name: pr-comments
 description: Reads a GitHub PR's review threads and top-level comments as JSON, and posts a reply in a thread or a new top-level comment with the AI attribution footer, on this repo or any other the stored gh login reaches. The scripts other skills and agents use for PR comments.
 when_to_use: /pr-comments, "what's open on PR N", "read the review threads on PR N", "what did the reviewer say", "reply on that thread", "answer the reviewer", or any skill or agent that needs a PR's comments or has to reply to one, in this repo or another.
 user-invocable: true
-allowed-tools: Bash, Read, Write, AskUserQuestion
+allowed-tools: Bash(.claude/skills/pr-comments/read.py *), Read, Write, AskUserQuestion
 argument-hint: "<pr number> [--repo OWNER/NAME]"
 ---
 
