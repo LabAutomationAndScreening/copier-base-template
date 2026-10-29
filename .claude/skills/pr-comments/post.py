@@ -53,7 +53,10 @@ _CODE_RE = re.compile(
 
 
 def _split_code(content: str) -> list[tuple[str, bool]]:
-    """Split the content into (text, is_code) pieces, in order: code spans and fenced blocks are code, the rest prose."""
+    """Split the content into (text, is_code) pieces, in order.
+
+    Code spans and fenced blocks are code. The text between them is prose.
+    """
     pieces: list[tuple[str, bool]] = []
     end_of_previous = 0
     for code in _CODE_RE.finditer(content):
