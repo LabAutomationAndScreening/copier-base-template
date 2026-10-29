@@ -102,7 +102,7 @@
       "Bash(*gh pr comment*)",
       "Bash(*gh pr create*)",
       "Bash(*gh pr edit*)",
-      // A PR comment goes out under the user's account, so the pr-comments skill's generic post script prompts (an ask rule beats the skills allow rule above); its read script stays allowed. The leading wildcard also catches it behind an allowed wrapper such as xargs or timeout
+      // A PR comment goes out under the user's account, so the pr-comments skill's generic post script prompts (an ask rule beats the skills allow rule above); its read script stays allowed
       "Bash(*pr-comments/post.py*)"
     ],
     "deny": [
