@@ -320,3 +320,16 @@ def owner_and_repo(*, repo: str | None) -> tuple[str, str]:
         _ = sys.stderr.write(f"--repo must be OWNER/NAME, not {repo}\n")
         sys.exit(1)
     return match.group("owner"), match.group("repo")
+
+
+COMMIT_LINK_PLACEHOLDER = "[COMMIT LINK]"
+
+
+def pr_commit_link(*, owner: str, repo: str, pr: int, commit: str) -> str:
+    """Return a markdown link to a commit as it appears in the PR.
+
+    GitHub redirects /pull/<pr>/changes/<commit> to the PR-scoped view of the commit, so a comment made against it
+    belongs to the PR, which a /commit/<commit> link does not give. The link has to be markdown: GitHub rewrites a
+    bare PR-scoped URL to the repo-wide commit view.
+    """
+    return f"[{commit[:7]}](https://github.com/{owner}/{repo}/pull/{pr}/changes/{commit})"

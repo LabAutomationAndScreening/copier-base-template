@@ -9,6 +9,9 @@ Usage:
   # comment, marked so that read.py knows which comment it answers:
   post.py --pr <number> --comment-id <id> --comment-type issues/comments --body-file <path> [--repo OWNER/NAME]
 
+Either form takes --commit <full sha>, which fills each [COMMIT LINK] in the body file with a markdown link to that
+commit as it appears in the PR, the form GitHub associates with the PR.
+
 Without --repo, the PR belongs to the current directory's origin remote. gh prefers the login `gh auth login` stored,
 which reaches every repo the user can, over a codespace's repo-scoped GITHUB_TOKEN; with no stored login it uses the
 environment's GH_TOKEN or GITHUB_TOKEN.
@@ -22,17 +25,50 @@ reply, then run it, and the prompt is their approval.
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+from utils import COMMIT_LINK_PLACEHOLDER
 from utils import GH_TIMEOUT_SECONDS
 from utils import gh_run
 from utils import issue_comment_reply_marker
 from utils import owner_and_repo
+from utils import pr_commit_link
 
 REPLY_FOOTER = "*Reply drafted by AI (Claude), reviewed and approved by the author before posting.*"
+_FULL_SHA_RE = re.compile(r"[0-9a-f]{40}")
+
+
+def _fill_commit_link(body_file: Path, *, owner: str, repo: str, pr: int, commit: str | None) -> None:
+    """Replace the [COMMIT LINK] placeholder in the body file with the commit's link in the PR.
+
+    A body that still carries the placeholder with no commit given, or a commit with no placeholder to fill, is
+    refused, so a reply never goes out with a placeholder or without the link it was written for. A body that already
+    holds this commit's link passes, so a failed post can be retried with the same arguments.
+    """
+    content = _read_body_file(body_file)
+    if commit is None:
+        if COMMIT_LINK_PLACEHOLDER in content:
+            _ = sys.stderr.write(f"{body_file} still has {COMMIT_LINK_PLACEHOLDER}; pass --commit <sha> to fill it.\n")
+            sys.exit(1)
+        return
+    if _FULL_SHA_RE.fullmatch(commit) is None:
+        _ = sys.stderr.write(f"--commit must be a full 40-character SHA, not {commit}\n")
+        sys.exit(1)
+    link = pr_commit_link(owner=owner, repo=repo, pr=pr, commit=commit)
+    if link in content:
+        return
+    if COMMIT_LINK_PLACEHOLDER not in content:
+        _ = sys.stderr.write(f"--commit given, but {body_file} has no {COMMIT_LINK_PLACEHOLDER} to fill.\n")
+        sys.exit(1)
+    try:
+        _ = body_file.write_text(content.replace(COMMIT_LINK_PLACEHOLDER, link), encoding="utf-8")
+    except OSError as e:
+        _ = sys.stderr.write(f"Unable to write body file {body_file}: {e}\n")
+        sys.exit(1)
 
 
 def _read_body_file(body_file: Path) -> str:
@@ -113,9 +149,13 @@ def main() -> None:
     _ = parser.add_argument(
         "--repo", default=None, metavar="OWNER/NAME", help="the PR's repo (default: the origin remote's)"
     )
+    _ = parser.add_argument(
+        "--commit", default=None, metavar="SHA", help="fills each [COMMIT LINK] in the body with this commit's link"
+    )
     args = parser.parse_args()
 
     owner, repo = owner_and_repo(repo=args.repo)
+    _fill_commit_link(args.body_file, owner=owner, repo=repo, pr=args.pr, commit=args.commit)
 
     if args.comment_type == "pulls/comments":
         # Reply directly into the inline review comment thread.
