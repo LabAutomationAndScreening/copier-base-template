@@ -1,0 +1,14 @@
+{% raw %}name: Check Clean Tree
+description: 'Fail when the job has left a changed or untracked file behind, such as a stale lock file, drifted codegen, or test or build output missing from .gitignore. Run it as the last step of any job that installs, generates, tests or builds.'
+
+runs:
+  using: composite
+  steps:
+    - name: Confirm the git tree is still clean
+      run: |
+        status="$(git status --porcelain)"
+        if [ -n "$status" ]; then
+          echo "$status"
+          exit 1
+        fi
+      shell: bash{% endraw %}

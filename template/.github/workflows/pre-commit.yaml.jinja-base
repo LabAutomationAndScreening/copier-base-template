@@ -90,4 +90,7 @@ jobs:
         uses: actions/cache/save@{% endraw %}{{ gha_cache }}{% raw %}
         with:
           path: ${{ env.PRE_COMMIT_HOME }}
-          key: ${{ env.CACHE_KEY }}{% endraw %}
+          key: ${{ env.CACHE_KEY }}
+
+      - name: Confirm the git tree is still clean # a CI step rather than a hook, so it sees what every hook wrote and never fails a local run over uncommitted work
+        uses: ./.github/actions/check-clean-tree{% endraw %}
