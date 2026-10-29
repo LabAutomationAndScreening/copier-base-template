@@ -1,4 +1,4 @@
-{% raw %}name: Check Clean Tree
+{% raw %}name: Confirm Git Tree Clean
 description: 'Fail when the job has left a changed or untracked file behind, such as a stale lock file, drifted codegen, or test or build output missing from .gitignore. Run it as the last step of any job that installs, generates, tests or builds.'
 
 runs:
