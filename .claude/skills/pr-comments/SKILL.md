@@ -75,7 +75,8 @@ to the file when that isn't already its last line (never write the footer yourse
 A reply about a commit links it: write `[COMMIT LINK]` where the commit goes and pass
 `--commit <full sha>`, which fills it with `[abc1234](https://github.com/OWNER/NAME/pull/N/changes/<sha>)`,
 the PR-scoped view GitHub ties to the PR. A placeholder left without `--commit`, or `--commit`
-with nothing to fill, is refused.
+with nothing to fill, is refused, unless the file already holds that commit's link, as it does
+after a failed post, so a retry with the same arguments works.
 
 A reply goes out under the user's account, so the permission settings put this script under
 ask, and the user approves its text before it goes. Draft it without the footer, then ask with

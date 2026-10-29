@@ -46,8 +46,9 @@ def _fill_commit_link(body_file: Path, *, owner: str, repo: str, pr: int, commit
     """Replace the [COMMIT LINK] placeholder in the body file with the commit's link in the PR.
 
     A body that still carries the placeholder with no commit given, or a commit with no placeholder to fill, is
-    refused, so a reply never goes out with a placeholder or without the link it was written for. A body that already
-    holds this commit's link passes, so a failed post can be retried with the same arguments.
+    refused, so a reply never goes out with a placeholder or without the link it was written for. A body with no
+    placeholder left that already holds this commit's link passes, so a failed post can be retried with the same
+    arguments.
     """
     content = _read_body_file(body_file)
     if commit is None:
@@ -59,9 +60,9 @@ def _fill_commit_link(body_file: Path, *, owner: str, repo: str, pr: int, commit
         _ = sys.stderr.write(f"--commit must be a full 40-character SHA, not {commit}\n")
         sys.exit(1)
     link = pr_commit_link(owner=owner, repo=repo, pr=pr, commit=commit)
-    if link in content:
-        return
     if COMMIT_LINK_PLACEHOLDER not in content:
+        if link in content:
+            return
         _ = sys.stderr.write(f"--commit given, but {body_file} has no {COMMIT_LINK_PLACEHOLDER} to fill.\n")
         sys.exit(1)
     try:
