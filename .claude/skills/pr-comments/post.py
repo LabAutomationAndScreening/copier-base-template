@@ -41,8 +41,15 @@ from utils import pr_commit_link
 
 REPLY_FOOTER = "*Reply drafted by AI (Claude), reviewed and approved by the author before posting.*"
 _FULL_SHA_RE = re.compile(r"[0-9a-f]{40}")
-# A fenced block (``` or ~~~), or an inline code span delimited by a backtick run of any length.
-_CODE_RE = re.compile(r"(?P<fence>```|~~~).*?(?P=fence)|(?P<ticks>`+)(?:(?!(?P=ticks)).)+?(?P=ticks)", re.DOTALL)
+# A fenced block, opened by a line starting with 3+ backticks or tildes and closed by a line of at least as many of
+# the same character (or running to the end, as GitHub renders an unclosed fence), or an inline code span delimited
+# by a backtick run of any length.
+_CODE_RE = re.compile(
+    r"^ {0,3}(?P<fence>(?P<fence_char>[`~])(?P=fence_char){2,})[^\n]*"
+    r"(?:\n.*?^ {0,3}(?P=fence)(?P=fence_char)*[ \t]*$|.*\Z)"
+    r"|(?P<ticks>`+)(?:(?!(?P=ticks)).)+?(?P=ticks)",
+    re.DOTALL | re.MULTILINE,
+)
 
 
 def _split_code(content: str) -> list[tuple[str, bool]]:
