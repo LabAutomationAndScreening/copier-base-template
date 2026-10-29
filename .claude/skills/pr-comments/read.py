@@ -5,7 +5,7 @@ Usage:
   read.py <pr_number> [--repo OWNER/NAME]                        actionable threads (the default)
   read.py <pr_number> --needs-verification [--repo OWNER/NAME]   AI review findings with a reply awaiting a verdict
   read.py <pr_number> --thread <comment id> [--repo OWNER/NAME]  one thread or top-level comment, whatever its state
-  read.py <pr_number> --all [--repo OWNER/NAME]                  every thread and top-level comment, whatever its state
+  read.py <pr_number> --all [--repo OWNER/NAME]                  resolved and addressed threads and comments too
 
 Without --repo, the PR belongs to the current directory's origin remote. gh prefers the login `gh auth login` stored,
 which reaches every repo the user can, over a codespace's repo-scoped GITHUB_TOKEN; with no stored login it uses the
@@ -64,8 +64,9 @@ Filtered out of the default output:
   - Top-level PR comments the current user has replied to (via post.py, which marks the reply), unless the last
     reply is a verdict disputing it
 
-`--all` applies none of these filters: every entry comes back, and its `resolved` and `open` flags say where it stands,
-so the caller can tell three resolved threads from none at all.
+`--all` brings back resolved and addressed threads and top-level comments, each with the `resolved` and `open` flags
+that say where it stands, so the caller can tell three resolved threads from none at all. Bot summary comments and
+the current user's own top-level comments stay out: a reply the user posted appears under the comment it answers.
 """
 
 import argparse
@@ -474,7 +475,7 @@ def main() -> None:
     _ = selection.add_argument(
         "--all",
         action="store_true",
-        help="list every thread and top-level comment, resolved and addressed ones included, with their flags",
+        help="list resolved and addressed threads and comments too, with their flags",
     )
     _ = parser.add_argument(
         "--repo", default=None, metavar="OWNER/NAME", help="the PR's repo (default: the origin remote's)"
