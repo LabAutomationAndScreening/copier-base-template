@@ -6,8 +6,8 @@ removed file breaks those instructions silently: the agent finds out when the co
 runs as a pre-commit hook whenever anything under .claude/ changes, reads every tracked markdown document there, and
 lists each `.claude/...` path that resolves to nothing.
 
-A path is checked up to its first placeholder or glob (`<`, `{`, `*`, `$`), so `.claude/skills/<skill>/` checks the
-skills directory. One that starts partway through a name checks the directory holding that name, so
+A path is checked up to its first placeholder or glob (`<`, `{`, `*`, `?`, `[`, `$`), so `.claude/skills/<skill>/`
+checks the skills directory. One that starts partway through a name checks the directory holding that name, so
 `.claude/skills/pr-comments/read*.py` checks the pr-comments directory. A path inside a longer one, such as
 `~/.claude/commands/`, is an example of a file elsewhere and is left alone. A directory counts.
 """
@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 _PATH_RE = re.compile(r"(?<![\w/~])\.claude/[\w./-]*")
-_PLACEHOLDER_RE = re.compile(r"[<{*$]")
+_PLACEHOLDER_RE = re.compile(r"[<{*?[$]")
 
 
 def _tracked_documents() -> list[Path]:
