@@ -34,12 +34,7 @@ Follows [Conventional Commits](https://www.conventionalcommits.org/) standard.
    - Use `owner/repo#123` for cross-repo issues
    - Common types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
 
-2. **AI Credits**: **NEVER include AI credits in commit messages**
-   - No "Generated with Claude Code"
-   - No "Co-Authored-By: Claude" or "Co-Authored-By: Happy"
-   - Focus on the actual changes made, not conversation history
-
-3. **Content**: Write clear, concise commit messages describing what changed and why
+2. **Content**: Describe what changed in a line or two, focusing on the actual changes made, not conversation history. Branch commits disappear when the PR is squash-merged, so put any explanation that should last in the PR description instead.
 
 ## Process
 
