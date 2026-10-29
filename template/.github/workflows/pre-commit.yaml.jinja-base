@@ -92,5 +92,5 @@ jobs:
           path: ${{ env.PRE_COMMIT_HOME }}
           key: ${{ env.CACHE_KEY }}
 
-      - name: Confirm the git tree is still clean # a CI step rather than a hook, so it sees what every hook wrote and never fails a local run over uncommitted work
+      - name: Confirm the git tree is still clean
         uses: ./.github/actions/confirm-git-tree-clean{% endraw %}
