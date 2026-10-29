@@ -19,8 +19,8 @@ environment's GH_TOKEN or GITHUB_TOKEN.
 The AI attribution footer is appended to the body file first if it isn't already its last line, so drafts never
 include it themselves. On success the body file is deleted, so a retry cannot post twice.
 
-Posting goes out under the user's account, so the permission settings put this script under ask: show the user the
-reply, then run it, and the prompt is their approval.
+Posting goes out under the user's account, so the pr-comments skill has the user approve the reply's text before this
+runs, and the file is posted as approved.
 """
 
 import argparse

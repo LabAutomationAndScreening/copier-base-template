@@ -80,12 +80,12 @@ the PR-scoped view GitHub ties to the PR. A placeholder left without `--commit`,
 with nothing to fill, is refused, unless the file already holds that commit's link, as it does
 after a failed post, so a retry with the same arguments works.
 
-A reply goes out under the user's account, so the permission settings put this script under
-ask, and the user approves its text before it goes. Draft it without the footer, then ask with
-the draft itself in the question (never only a path), "Post now or edit first?":
+A reply goes out under the user's account, so the user approves its text before it goes. Draft
+it without the footer, then ask with the draft itself in the question (never only a path),
+"Post now or edit first?":
 
 - **Post now**: write it to a file under `tmp/` and run the script on its own, never chained with
-  another command. Its permission prompt is the approval.
+  another command.
 - **Edit first**: write it to that file, give the user its absolute path, and wait until they're
   done. Then read it back and ask again, with its current text and your opinion of it, "Ready to
   post, or edit again?", until they say post.
