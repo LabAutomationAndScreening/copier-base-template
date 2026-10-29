@@ -9,6 +9,10 @@ Usage:
   # comment, marked so that read.py knows which comment it answers:
   post.py --pr <number> --comment-id <id> --comment-type issues/comments --body-file <path> [--repo OWNER/NAME]
 
+Either form takes --commit <full sha>, which fills each [COMMIT LINK] in the body file with a markdown link to that
+commit as it appears in the PR, the form GitHub associates with the PR. A [COMMIT LINK] inside a code span or a fenced
+code block is text about the placeholder, not a placeholder, and stays as written.
+
 Without --repo, the PR belongs to the current directory's origin remote. gh prefers the login `gh auth login` stored,
 which reaches every repo the user can, over a codespace's repo-scoped GITHUB_TOKEN; with no stored login it uses the
 environment's GH_TOKEN or GITHUB_TOKEN.
@@ -16,23 +20,105 @@ environment's GH_TOKEN or GITHUB_TOKEN.
 The AI attribution footer is appended to the body file first if it isn't already its last line, so drafts never
 include it themselves. On success the body file is deleted, so a retry cannot post twice.
 
-Posting goes out under the user's account, so the permission settings put this script under ask: show the user the
-reply, then run it, and the prompt is their approval.
+Posting goes out under the user's account, so the pr-comments skill has the user approve the reply's text before this
+runs, and the file is posted as approved.
 """
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+from utils import COMMIT_LINK_PLACEHOLDER
 from utils import GH_TIMEOUT_SECONDS
 from utils import gh_run
 from utils import issue_comment_reply_marker
 from utils import owner_and_repo
+from utils import pr_commit_link
 
 REPLY_FOOTER = "*Reply drafted by AI (Claude), reviewed and approved by the author before posting.*"
+_FULL_SHA_RE = re.compile(r"[0-9a-f]{40}")
+# A fenced block, opened by a line starting with 3+ backticks or tildes (a backtick fence's info string holds no
+# backtick) and closed by a line of at least as many of the same character (or running to the end, as GitHub renders
+# an unclosed fence), or an inline code span opened and closed by whole backtick runs of the same length.
+_CODE_RE = re.compile(
+    r"^ {0,3}(?P<fence>(?P<fence_char>[`~])(?P=fence_char){2,})(?:(?<=`)[^`\n]*|(?<=~)[^\n]*)$"
+    r"(?:\n.*?^ {0,3}(?P=fence)(?P=fence_char)*[ \t]*$|.*\Z)"
+    r"|(?<!`)(?P<ticks>`+)(?!`).+?(?<!`)(?P=ticks)(?!`)",
+    re.DOTALL | re.MULTILINE,
+)
+
+
+def _split_code(content: str) -> list[tuple[str, bool]]:
+    """Split the content into (text, is_code) pieces, in order.
+
+    Code spans and fenced blocks are code. The text between them is prose.
+    """
+    pieces: list[tuple[str, bool]] = []
+    end_of_previous = 0
+    for code in _CODE_RE.finditer(content):
+        pieces.append((content[end_of_previous : code.start()], False))
+        pieces.append((code.group(0), True))
+        end_of_previous = code.end()
+    pieces.append((content[end_of_previous:], False))
+    return pieces
+
+
+def _placeholders_in_prose(pieces: list[tuple[str, bool]]) -> int:
+    count = 0
+    for text, is_code in pieces:
+        if not is_code:
+            count += text.count(COMMIT_LINK_PLACEHOLDER)
+    return count
+
+
+def _fill_prose(pieces: list[tuple[str, bool]], *, link: str) -> str:
+    filled: list[str] = []
+    for text, is_code in pieces:
+        if is_code:
+            filled.append(text)
+        else:
+            filled.append(text.replace(COMMIT_LINK_PLACEHOLDER, link))
+    return "".join(filled)
+
+
+def _fill_commit_link(body_file: Path, *, owner: str, repo: str, pr: int, commit: str | None) -> None:
+    """Replace the [COMMIT LINK] placeholder in the body file with the commit's link in the PR.
+
+    A [COMMIT LINK] inside a code span or a fenced code block is text about the placeholder, not a placeholder: it is
+    neither filled nor counted. A body that still carries a placeholder with no commit given, or a commit with no
+    placeholder to fill, is refused, so a reply never goes out with a placeholder or without the link it was written
+    for. A body with no placeholder left that already holds this commit's link passes, so a failed post can be retried
+    with the same arguments.
+    """
+    content = _read_body_file(body_file)
+    pieces = _split_code(content)
+    placeholders = _placeholders_in_prose(pieces)
+    if commit is None:
+        if placeholders:
+            _ = sys.stderr.write(f"{body_file} still has {COMMIT_LINK_PLACEHOLDER}; pass --commit <sha> to fill it.\n")
+            sys.exit(1)
+        return
+    if _FULL_SHA_RE.fullmatch(commit) is None:
+        _ = sys.stderr.write(f"--commit must be a full 40-character SHA, not {commit}\n")
+        sys.exit(1)
+    link = pr_commit_link(owner=owner, repo=repo, pr=pr, commit=commit)
+    if placeholders == 0:
+        if link in content:
+            return
+        _ = sys.stderr.write(
+            f"--commit given, but {body_file} has no {COMMIT_LINK_PLACEHOLDER} to fill (one inside a code span or a"
+            " fenced block is text, not a placeholder).\n"
+        )
+        sys.exit(1)
+    try:
+        _ = body_file.write_text(_fill_prose(pieces, link=link), encoding="utf-8")
+    except OSError as e:
+        _ = sys.stderr.write(f"Unable to write body file {body_file}: {e}\n")
+        sys.exit(1)
 
 
 def _read_body_file(body_file: Path) -> str:
@@ -113,9 +199,13 @@ def main() -> None:
     _ = parser.add_argument(
         "--repo", default=None, metavar="OWNER/NAME", help="the PR's repo (default: the origin remote's)"
     )
+    _ = parser.add_argument(
+        "--commit", default=None, metavar="SHA", help="fills each [COMMIT LINK] in the body with this commit's link"
+    )
     args = parser.parse_args()
 
     owner, repo = owner_and_repo(repo=args.repo)
+    _fill_commit_link(args.body_file, owner=owner, repo=repo, pr=args.pr, commit=args.commit)
 
     if args.comment_type == "pulls/comments":
         # Reply directly into the inline review comment thread.

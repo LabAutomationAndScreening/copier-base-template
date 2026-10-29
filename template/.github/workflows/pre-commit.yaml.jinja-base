@@ -90,4 +90,6 @@ jobs:
         uses: actions/cache/save@{% endraw %}{{ gha_cache }}{% raw %}
         with:
           path: ${{ env.PRE_COMMIT_HOME }}
-          key: ${{ env.CACHE_KEY }}{% endraw %}
+          key: ${{ env.CACHE_KEY }}
+
+      - uses: ./.github/actions/confirm-git-tree-clean{% endraw %}

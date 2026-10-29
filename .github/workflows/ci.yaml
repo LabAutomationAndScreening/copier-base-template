@@ -81,6 +81,15 @@ jobs:
           path: ${{ env.PRE_COMMIT_HOME }}
           key: ${{ env.CACHE_KEY }}
 
+      - name: Confirm the git tree is still clean
+        # Setup and hooks must not leave a changed or untracked file behind, such as a stale lock file or drifted codegen.
+        run: |
+          status="$(git status --porcelain)"
+          if [ -n "$status" ]; then
+            echo "$status"
+            exit 1
+          fi
+
   unit-test:
     strategy:
       fail-fast: false
@@ -235,7 +244,7 @@ jobs:
       - name: Run pre-commit
         run: |
           # skip devcontainer context hash because the template instantiation may make it different every time
-          SKIP=git-dirty,compute-devcontainer-context-hash pre-commit run -a --show-diff-on-failure
+          SKIP=compute-devcontainer-context-hash pre-commit run -a --show-diff-on-failure
 
       - name: Save Pre-commit hooks cache
         if: ${{ steps.cache-probe.outputs.cache-hit != 'true' && steps.cache-recheck.outputs.cache-hit != 'true' }}
