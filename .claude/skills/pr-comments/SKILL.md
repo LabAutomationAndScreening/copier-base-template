@@ -88,7 +88,8 @@ the draft itself in the question (never only a path), "Post now or edit first?":
   done. Then read it back and ask again, with its current text and your opinion of it, "Ready to
   post, or edit again?", until they say post.
 
-Once approved, never write to the file again: post it exactly as it is on disk.
+Once approved, never write to the file again: post it as it is on disk, with `--commit` filling
+`[COMMIT LINK]` as the only change.
 
 ## Markers
 
