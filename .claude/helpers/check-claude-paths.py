@@ -29,7 +29,16 @@ def _tracked_documents() -> list[Path]:
         encoding="utf-8",
         check=True,
     ).stdout
-    return [Path(name) for name in listed.split("\0") if name]
+    documents: list[Path] = []
+    for name in listed.split("\0"):
+        if not name:
+            continue
+        document = Path(name)
+        # deleted but not yet staged: `pre-commit run --all-files` does not stash it back, and the commit drops it
+        if not document.exists():
+            continue
+        documents.append(document)
+    return documents
 
 
 def _references(document: Path) -> list[tuple[int, str]]:
