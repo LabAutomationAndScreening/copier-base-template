@@ -289,6 +289,14 @@ repos:
 
   - repo: local
     hooks:
+      - id: test-name-clause-separator
+        name: separate mid-name Then/When clauses in test names with a double underscore
+        entry: 'def test_\w*[^_]_(Then|When)_'
+        language: pygrep
+        files: (^|/)test_[^/]*\.py$
+
+  - repo: local
+    hooks:
       - id: pyrefly
         name: pyrefly
         entry: bash -c "uv run --frozen pyrefly check -c ./.config/pyrefly.toml"
