@@ -9,6 +9,7 @@ This project is a Copier template used to generate other copier templates. It is
 - Comments should be used very rarely. Code should generally express its intent to a reader without your context.
   - A reviewer's question about what code means or why it is the way it is marks a spot where the code doesn't yet express its intent: put into the code whatever part of your answer a reader without your context would need to avoid misreading the code or undoing it.
   - If your reply to the reviewer also explains things the code can't show, such as alternatives you weighed, add those to the PR description, or to an ADR for a decision that spans modules or would be costly to reverse.
+  - When the reason a value, constraint or setting is what it is does need a comment, put it on the code that implements it, not in the test that pins it. Someone changing the code reads the code, not the test. A comment in a test should only explain the test itself, such as why its setup is unusual.
 - Never write a one-line docstring — either the name is sufficient or the behavior warrants a full explanation.
 - Don't name a value that is used once where a reader without your context could already tell, at the point of use, what the literal is and why it has that value — the extra variable adds a line and a hop without adding meaning.
 - Prefer keyword-only parameters (unless a very clear single-argument function): use `*` in Python signatures and destructured options objects in TypeScript.
