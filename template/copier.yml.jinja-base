@@ -51,6 +51,10 @@ node_version:
 install_aws_ssm_port_forwarding_plugin:
     type: bool
     help: Should the AWS SSM Port Forwarding Plugin be installed?
+    default: no{% endraw %}{% endif %}{% raw %}{% endraw %}{% if template_might_want_to_use_helm %}{% raw %}
+install_helm:
+    type: bool
+    help: Should a pinned Helm be installed, and the chart in deployment/helm/ linted with it?
     default: no{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_python %}{% if template_might_want_to_use_vcrpy %}{% raw %}
 configure_vcrpy:

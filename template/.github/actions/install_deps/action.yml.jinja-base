@@ -25,7 +25,11 @@ inputs:
     required: false
     default: false
     description: Whether to install the tooling the pre-commit hooks need (pre-commit, identify, prek and Biome), for jobs that run pre-commit
-  install-copier:
+{% endraw %}{% if template_might_want_to_use_helm %}{% raw %}  install-helm:
+    required: false
+    default: false
+    description: Whether to install the pinned Helm, for jobs that deploy a chart (install-pre-commit-tooling installs it too)
+{% endraw %}{% endif %}{% raw %}  install-copier:
     required: false
     default: false
     description: Whether to install copier, for jobs that instantiate a copier template
@@ -103,7 +107,7 @@ runs:
     - name: Install tooling
       # the funky syntax is github action ternary
       # --no-node is always passed because the only node tooling this script installs is pnpm, which pnpm/setup above already installed
-      run: python .devcontainer/install-ci-tooling.py ${{ inputs.python-version == 'notUsing' && '--no-python' || '' }} --no-node ${{ inputs.skip-installing-ssm-plugin-manager == 'true' && '--skip-installing-ssm-plugin' || '' }} ${{ inputs.install-pre-commit-tooling == 'true' && '--install-pre-commit-tooling' || '' }} ${{ inputs.install-copier == 'true' && '--install-copier' || '' }}
+      run: python .devcontainer/install-ci-tooling.py ${{ inputs.python-version == 'notUsing' && '--no-python' || '' }} --no-node ${{ inputs.skip-installing-ssm-plugin-manager == 'true' && '--skip-installing-ssm-plugin' || '' }} ${{ inputs.install-pre-commit-tooling == 'true' && '--install-pre-commit-tooling' || '' }} {% endraw %}{% if template_might_want_to_use_helm %}{% raw %}${{ inputs.install-helm == 'true' && '--install-helm' || '' }} {% endraw %}{% endif %}{% raw %}${{ inputs.install-copier == 'true' && '--install-copier' || '' }}
       shell: pwsh
 
     - name: OIDC Auth for CodeArtifact
