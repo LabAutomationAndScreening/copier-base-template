@@ -42,7 +42,7 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
   ci --repo OWNER/NAME --sha SHA     wait for every push and pull_request CI run on SHA, then for
                                     every one of their jobs to report completed, and list each
                                     job's conclusion, and any job that never started, with
-                                    GitHub's reason
+                                    GitHub's reason, and any run that failed before creating a job
   ai-review --repo R --pr N         wait for every AI reviewer the repo configures (one module
                                     per reviewer in ai_reviewers/) to give its verdict on the
                                     PR's latest commit: clean, flagged or skipped, settled when
@@ -916,18 +916,37 @@ def cmd_ci(a: argparse.Namespace) -> dict[str, Any]:
         for run_id in run_ids:
             reasons.update(_failure_annotations(repo=a.repo, run_id=run_id))
     failed = [j["name"] for j in jobs if j["conclusion"] not in {"success", "skipped"} and j["name"] not in not_started]
+    failed_runs = _jobless_failed_runs(views)
     return {
         "events": sorted({v["event"] for v in views}),
         "runs": [
             {"id": run_id, "event": v["event"], "url": v["url"], "conclusion": v["conclusion"]}
             for run_id, v in zip(run_ids, views, strict=True)
         ],
-        "passed": not failed and not not_started,
+        "passed": not failed and not not_started and not failed_runs,
         "failed_jobs": failed,
+        "failed_runs": failed_runs,
         "not_started_jobs": not_started,
         "not_started_reasons": sorted(reasons),
         "jobs": jobs,
     }
+
+
+def _jobless_failed_runs(views: list[dict[str, Any]]) -> list[str]:
+    """List the URL of each run that failed before creating a single job, such as one with an invalid workflow file.
+
+    Such a run has no job to put in failed_jobs, so without this it would count as passed.
+    """
+    urls: list[str] = []
+    for view in views:
+        if view["jobs"]:
+            continue
+        if view["conclusion"] == "success":
+            continue
+        if view["conclusion"] == "skipped":
+            continue
+        urls.append(view["url"])
+    return urls
 
 
 def _failure_annotations(*, repo: str, run_id: int) -> list[str]:

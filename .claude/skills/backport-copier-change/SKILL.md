@@ -209,8 +209,9 @@ run the repo's hooks, and commit in its commit style (its `commit` skill if it h
 two commits. Then `$BP push --checkout <checkout> --chain <chain.json>` and
 `$BP ci --repo <layer> --sha <sha from push>`.
 
-`passed` is the verdict. `failed_jobs` need a fix (see Rules: stop for the user).
-`not_started_jobs` never got a runner (`not_started_reasons` says why, such as a spent Actions
+`passed` is the verdict. `failed_jobs` need a fix (see Rules: stop for the user), and so do
+`failed_runs`, runs that failed before creating any job, such as on an invalid workflow file
+(open the run's URL for GitHub's error). `not_started_jobs` never got a runner (`not_started_reasons` says why, such as a spent Actions
 budget): there is nothing to fix, so tell the user, and once they say it's sorted,
 `gh run rerun <id> --failed` and run `ci` again.
 
