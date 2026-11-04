@@ -87,9 +87,10 @@ posted, and changes and posts nothing.
 
 A reply about a commit links it: write `[COMMIT LINK]` where the commit goes and pass
 `--commit <full sha>`, which fills it with `[abc1234](https://github.com/OWNER/NAME/pull/N/commits/<sha>)`,
-the PR-scoped view GitHub ties to the PR. A placeholder left without `--commit`, or `--commit`
-with nothing to fill, is refused, unless the file already holds that commit's link, as it does
-after a failed post, so a retry with the same arguments works. To mention the placeholder
+the PR-scoped view GitHub ties to the PR. A `--commit` that isn't one of the PR's pushed
+commits is refused. So is a placeholder left without `--commit`, or `--commit` with nothing to
+fill, unless the file already holds that commit's link, as it does after a failed post, so a
+retry with the same arguments works. To mention the placeholder
 itself, put it in a code span: `[COMMIT LINK]` inside backticks or a fenced block is text and
 stays as written.
 

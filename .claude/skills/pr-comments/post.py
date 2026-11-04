@@ -17,8 +17,9 @@ Usage:
   post.py --pr <number> --comment-id <review id> --comment-type pulls/reviews --body-file <path> [--repo OWNER/NAME]
 
 Either form takes --commit <full sha>, which fills each [COMMIT LINK] in the body file with a markdown link to that
-commit as it appears in the PR, the form GitHub associates with the PR. A [COMMIT LINK] inside a code span or a fenced
-code block is text about the placeholder, not a placeholder, and stays as written.
+commit as it appears in the PR, the form GitHub associates with the PR. A commit that isn't one of the PR's pushed
+commits is refused. A [COMMIT LINK] inside a code span or a fenced code block is text about the placeholder, not a
+placeholder, and stays as written.
 
 Without --repo, the PR belongs to the current directory's origin remote. In place of --repo, --checkout PATH posts as
 if run from that checkout of another repo, whose origin remote the PR belongs to. gh prefers the login
@@ -50,6 +51,7 @@ from utils import add_repo_arguments
 from utils import count_commit_link_placeholders
 from utils import enter_checkout
 from utils import fill_commit_link_placeholders
+from utils import gh_rest
 from utils import gh_run
 from utils import issue_comment_reply_marker
 from utils import owner_and_repo
@@ -70,11 +72,23 @@ def _in_prose(text: str, *, content: str) -> bool:
     return False
 
 
+def _pr_commit_shas(*, owner: str, repo: str, pr: int) -> set[str]:
+    try:
+        commits = gh_rest("api", f"repos/{owner}/{repo}/pulls/{pr}/commits", "--paginate")
+    except subprocess.CalledProcessError as e:
+        _ = sys.stderr.write(f"Cannot list PR #{pr}'s commits: {e.stderr}\n")
+        sys.exit(1)
+    return {commit["sha"] for commit in commits}
+
+
 def _commit_link(commit: str | None, *, owner: str, repo: str, pr: int) -> str | None:
     if commit is None:
         return None
     if _FULL_SHA_RE.fullmatch(commit) is None:
         _ = sys.stderr.write(f"--commit must be a full 40-character SHA, not {commit}\n")
+        sys.exit(1)
+    if commit not in _pr_commit_shas(owner=owner, repo=repo, pr=pr):
+        _ = sys.stderr.write(f"--commit {commit} is not one of PR #{pr}'s commits: push it first, or check the SHA.\n")
         sys.exit(1)
     return pr_commit_link(owner=owner, repo=repo, pr=pr, commit=commit)
 
