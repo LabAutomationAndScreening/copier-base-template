@@ -24,6 +24,8 @@ def run(
         capture_output=True,
         text=True,
         encoding="utf-8",
+        # a hook's stray bytes must not turn a commit that happened into a crash that hides its SHA
+        errors="replace",
         check=False,
         timeout=timeout,
         env=env,
