@@ -162,6 +162,8 @@ def _answers_commit(repo: Path) -> str | None:
 SEARCH_ATTEMPTS = 3
 # GitHub's code search allows a few requests a minute, and the limit resets each minute
 SEARCH_LIMIT_RESET_SECONDS = 61
+# one page of code search hits; a template has a few dozen consumers, and more pages would spend that rate limit
+CODE_SEARCH_LIMIT = 100
 
 
 def _gh_search(*args: str) -> Any:  # noqa: ANN401 # gh's JSON output has a different shape per command
@@ -187,8 +189,13 @@ def _src_paths(*, query: str, extra: list[str]) -> list[dict[str, Any]]:
         "--json",
         "repository,path,textMatches",
         "--limit",
-        "100",
+        str(CODE_SEARCH_LIMIT),
     )
+    if len(hits) >= CODE_SEARCH_LIMIT:
+        raise FailError(
+            f"code search for {query!r} returned {CODE_SEARCH_LIMIT} hits, its limit here, so the list of repos"
+            " generated from the template may be incomplete"
+        )
     return [
         {
             "repo": hit["repository"]["nameWithOwner"],
