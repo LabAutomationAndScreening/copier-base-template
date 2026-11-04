@@ -35,7 +35,7 @@ With `--checkout <path>` (e.g. `/address-pr-comments 42 --checkout /abs/path/to/
 .claude/skills/address-pr-comments/verify_env.py [--pr <number>] [--checkout <path>]
 ```
 
-Without `--pr` it detects the PR from the current branch. It prints `repo_root`, `has_remote`, `branch`, `on_protected_branch`, `dirty` and `pr` (`{number, state, title}` or `null`).
+Without `--pr` it detects the PR from the current branch. It prints `repo_root`, `has_remote`, `branch`, `on_protected_branch`, `dirty` and `pr` (`{number, state, title, headRefName}` or `null`).
 
 Stop if:
 - `has_remote` is false: "This skill requires a GitHub remote. Please add one with `git remote add origin <url>` first."
@@ -43,6 +43,7 @@ Stop if:
 - `dirty` is true: "Please commit or stash your changes first." (Not with `--resume`; see [Resume Mode](#resume-mode).)
 - `pr` is `null`: ask for a PR number and re-run with `--pr`.
 - `pr.state` isn't `OPEN`: tell the user it must be open.
+- `pr.headRefName` differs from `branch`: "Please check out the PR's branch (`<headRefName>`) first." A fix committed on another branch would be pushed there, and its reply would link a commit that isn't on this PR.
 
 ### Resume Mode
 

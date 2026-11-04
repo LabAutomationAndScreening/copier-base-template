@@ -12,7 +12,7 @@ Emits a JSON object to stdout:
   branch               current branch name
   on_protected_branch  whether the branch is main or master
   dirty                whether the working tree has uncommitted changes
-  pr                   {number, state, title} for the PR, or null if none found
+  pr                   {number, state, title, headRefName} for the PR, or null if none found
 
 This reports facts only — it does not enforce the skill's STOP / resume policy.
 The caller decides what to do (e.g. dirty is fatal normally but expected under
@@ -94,7 +94,7 @@ def find_pr(pr_number: int | None) -> dict[str, object] | None:
     check_gh_auth()
     target = [] if pr_number is None else [str(pr_number)]
     try:
-        result = gh_run(["gh", "pr", "view", *target, "--json", "number,state,title"], timeout=30)
+        result = gh_run(["gh", "pr", "view", *target, "--json", "number,state,title,headRefName"], timeout=30)
     except subprocess.CalledProcessError:
         return None
     return json.loads(result.stdout)
