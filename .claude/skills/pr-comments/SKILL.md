@@ -17,7 +17,8 @@ repo's PR needs a stored login: if `gh auth status` shows none, ask the user to 
 `env -u GITHUB_TOKEN -u GH_TOKEN gh auth login --hostname github.com --git-protocol https --web`.
 `--repo OWNER/NAME` names the PR's repo; without it, the current directory's `origin` remote.
 In place of `--repo`, `--checkout <path>` runs as if from that clone of another repo: the PR
-belongs to its `origin` remote, and `read.py` works out `current_line` at its HEAD.
+belongs to its `origin` remote, and `read.py` works out `current_line` at its HEAD. A file path
+you pass still resolves against the directory you run in.
 
 ## Read
 

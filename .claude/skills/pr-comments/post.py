@@ -22,9 +22,10 @@ commits is refused. A [COMMIT LINK] inside a code span or a fenced code block is
 placeholder, and stays as written.
 
 Without --repo, the PR belongs to the current directory's origin remote. In place of --repo, --checkout PATH posts as
-if run from that checkout of another repo, whose origin remote the PR belongs to. gh prefers the login
-`gh auth login` stored, which reaches every repo the user can, over a codespace's repo-scoped GITHUB_TOKEN; with no
-stored login it uses the environment's GH_TOKEN or GITHUB_TOKEN.
+if run from that checkout of another repo, whose origin remote the PR belongs to; --body-file still resolves against
+the directory this runs in, as every path argument of these scripts does. gh prefers the login `gh auth login` stored,
+which reaches every repo the user can, over a codespace's repo-scoped GITHUB_TOKEN; with no stored login it uses the
+environment's GH_TOKEN or GITHUB_TOKEN.
 
 The AI attribution footer is appended to the body file first if it isn't already its last line, so drafts never
 include it themselves. On success the comment's URL is printed, then the body exactly as it was posted (links filled,
