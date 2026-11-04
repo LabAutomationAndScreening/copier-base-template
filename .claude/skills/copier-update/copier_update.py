@@ -744,13 +744,22 @@ def require_one_line_subject(message_file: Path) -> None:
         )
 
 
-def cmd_commit(a: argparse.Namespace) -> dict[str, Any]:
-    project = Path(a.project)
-    where = guard_not_default_branch(project)
+def _require_pre_commit_hook(project: Path) -> None:
     # the commit runs every hook not in --skip only through the git hook, so without it nothing would be checked
     hook = project / _git("rev-parse", "--git-path", "hooks/pre-commit", cwd=project).strip()
     if not hook.is_file():
         raise FailError(f"no pre-commit git hook installed in {project}; run `prek install` or `pre-commit install`")
+    if not os.access(hook, os.X_OK):
+        raise FailError(
+            f"the pre-commit git hook in {project} is not executable, so git would skip it; run `prek install` or"
+            " `pre-commit install` again"
+        )
+
+
+def cmd_commit(a: argparse.Namespace) -> dict[str, Any]:
+    project = Path(a.project)
+    where = guard_not_default_branch(project)
+    _require_pre_commit_hook(project)
     require_one_line_subject(Path(a.message_file))
     draft = json.loads(Path(a.draft).read_text())
     # the confidence gate reads `filename` and `confidence`; a draft with other keys would pass it unchecked
