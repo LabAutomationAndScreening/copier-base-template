@@ -224,9 +224,11 @@ ask. For each file in `rej_files`:
 
 Always add an answers-file entry (`is_answers_file: true`, `resolution_strategy:
 "regenerated"`), so the draft is never empty on a clean update. Its `reason` lists each new
-question's answer and why. Its `confidence` is the lowest confidence among those answers
-(`high` when there were none), so `commit` holds an unapproved answer exactly as it holds an
-unapproved `.rej` resolution.
+question's answer and why, except a `secret: true` question's value: the report is posted on
+the PR, so for that question it says only that the value went in through `--data-file`, and
+`description` doesn't name the value either. Its `confidence` is the lowest confidence among
+those answers (`high` when there were none), so `commit` holds an unapproved answer exactly
+as it holds an unapproved `.rej` resolution.
 
 A clean update's draft, for the shape (field names and allowed values are in
 `report.schema.json`; `commit` and `report` name any field that's wrong):
