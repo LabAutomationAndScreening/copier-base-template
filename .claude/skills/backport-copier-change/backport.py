@@ -1209,6 +1209,10 @@ def _require_downstream_off_branch(*, checkout: Path, branch: str, downstream: P
     res = _attempt(cmd=["git", "merge-base", "--is-ancestor", match.group(1), f"origin/{branch}"], cwd=checkout)
     if res.returncode == 0:
         raise FailError(f"{downstream} still records {current}, which is on {branch}; re-pin it to the tag first")
+    if res.returncode != 1:
+        raise FailError(
+            f"git merge-base --is-ancestor {match.group(1)} origin/{branch} failed in {checkout}:\n{res.stderr.strip()}"
+        )
     return current
 
 
