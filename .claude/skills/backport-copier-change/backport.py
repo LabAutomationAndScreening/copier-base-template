@@ -1108,22 +1108,22 @@ def cmd_ai_review(a: argparse.Namespace) -> dict[str, Any]:
         return {"verdict": "none_configured", "reviewers": {}}
     verdicts: dict[str, dict[str, Any]] = {}
     latest: dict[str, dict[str, list[str]]] = {}
+    verdicts_head = ""
 
     def all_reviewed() -> str | None:
+        nonlocal verdicts_head
         state = _pr_review_state(repo=a.repo, pr=a.pr, reviewers=reviewers)
+        # a verdict holds only for the head it was reached on, so a push mid-wait sends every reviewer back to classify
+        if state["head"] != verdicts_head:
+            verdicts.clear()
+            verdicts_head = state["head"]
         bodies = state["bodies"]
         latest.update(bodies)
         for reviewer in reviewers:
             if reviewer.NAME in verdicts:
                 continue
-            result = reviewer.classify(
-                reviews=bodies[reviewer.NAME]["reviews"], comments=bodies[reviewer.NAME]["comments"], head=state["head"]
-            )
-            if result is None:
-                result = _quiet_on_head(reviewer=reviewer, state=state, checkout=Path(a.checkout))
+            result = _reviewer_verdict(reviewer=reviewer, state=state, repo=a.repo, pr=a.pr, checkout=Path(a.checkout))
             if result is not None:
-                if result["verdict"] == "flagged":
-                    _add_findings(result=result, repo=a.repo, pr=a.pr, checkout=Path(a.checkout), reviewer=reviewer)
                 verdicts[reviewer.NAME] = result
         if len(verdicts) < len(reviewers):
             return None
@@ -1134,6 +1134,20 @@ def cmd_ai_review(a: argparse.Namespace) -> dict[str, Any]:
     except FailError as e:
         raise _review_timeout(error=e, reviewers=reviewers, verdicts=verdicts, latest=latest) from e
     return {"verdict": _overall_verdict(verdicts), "head": head, "reviewers": verdicts}
+
+
+def _reviewer_verdict(
+    *, reviewer: ModuleType, state: dict[str, Any], repo: str, pr: str, checkout: Path
+) -> dict[str, Any] | None:
+    bodies = state["bodies"][reviewer.NAME]
+    result = reviewer.classify(reviews=bodies["reviews"], comments=bodies["comments"], head=state["head"])
+    if result is None:
+        result = _quiet_on_head(reviewer=reviewer, state=state, checkout=checkout)
+    if result is None:
+        return None
+    if result["verdict"] == "flagged":
+        _add_findings(result=result, repo=repo, pr=pr, checkout=checkout, reviewer=reviewer)
+    return result
 
 
 def _review_timeout(
