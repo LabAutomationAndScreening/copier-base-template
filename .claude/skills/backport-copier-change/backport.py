@@ -837,14 +837,14 @@ def _wait[T](*, timeout: int, interval: int, what: str, probe: Callable[[], T | 
                 raise FailError(
                     f"{MAX_CONSECUTIVE_FAILURES} failed checks in a row while waiting for {what}: {e}"
                 ) from e
-            time.sleep(interval)
-            continue
-        failures = 0
-        if result is not None:
-            return result
-        if time.monotonic() > deadline:
+        else:
+            failures = 0
+            if result is not None:
+                return result
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
             raise FailError(f"timed out after {timeout}s waiting for {what}")
-        time.sleep(interval)
+        time.sleep(min(interval, remaining))
 
 
 CI_EVENTS = {"push", "pull_request", "pull_request_target"}
