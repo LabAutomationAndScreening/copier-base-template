@@ -542,6 +542,8 @@ def cmd_update(a: argparse.Namespace) -> dict[str, Any]:
     cmd = update_command(project=project, task_name=task_name, task_vars=task_vars, data=data, data_file=a.data_file)
     res = _run(cmd=cmd, cwd=project, stored_gh_credentials=a.stored_gh_credentials)
     _, new_answers = read_answers(project=project, answers_file=answers_file)
+    # TODO: consider comparing by parsed value: copier saves `--data enabled=True` (or `yes`) as `true`, which this
+    # text comparison reports as dropped, so for now a boolean has to be passed the way copier writes it
     dropped = [k for k, v in data.items() if str(new_answers.get(k)) != v]
     if res.returncode == 0 and dropped:
         raise FailError(f"copier ran but these --data answers did not reach {answers_file}: {', '.join(dropped)}")
