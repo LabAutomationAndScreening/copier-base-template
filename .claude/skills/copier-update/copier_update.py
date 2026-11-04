@@ -919,6 +919,11 @@ def report_markdown(*, report: dict[str, Any], commits: list[dict[str, str]]) ->
     return "\n".join(lines) + "\n"
 
 
+def _remote_repo(*, project: Path, remote: str) -> str:
+    remote_url = _git("remote", "get-url", remote, cwd=project).strip()
+    return re.sub(r"^(https://github\.com/|git@github\.com:)", "", remote_url).removesuffix(".git")
+
+
 def cmd_pr(a: argparse.Namespace) -> dict[str, Any]:
     project = Path(a.project)
     where = guard_not_default_branch(project)
@@ -928,8 +933,7 @@ def cmd_pr(a: argparse.Namespace) -> dict[str, Any]:
     _ = _git("push", "-u", a.remote, f"HEAD:{branch}", cwd=project, stored_gh_credentials=creds)
     log = _git("log", "--format=%h%x00%s", f"{a.remote}/{base}..HEAD", cwd=project).strip()
     commits = [dict(zip(("sha", "subject"), line.split("\0", 1), strict=True)) for line in log.splitlines()]
-    remote_url = _git("remote", "get-url", a.remote, cwd=project).strip()
-    repo = re.sub(r"^(https://github\.com/|git@github\.com:)", "", remote_url).removesuffix(".git")
+    repo = _remote_repo(project=project, remote=a.remote)
     prefix = ""
     if creds:
         prefix = "env -u GITHUB_TOKEN -u GH_TOKEN "
@@ -960,7 +964,17 @@ def cmd_comment_report(a: argparse.Namespace) -> dict[str, Any]:
     comment.parent.mkdir(exist_ok=True)
     _ = comment.write_text(report_markdown(report=json.loads(Path(a.report).read_text()), commits=commits))
     res = _run(
-        cmd=["gh", "pr", "comment", branch, "--body-file", str(comment)],
+        # the PR lives where cmd_pr opened it: in --remote's repo, whatever gh would pick from this checkout
+        cmd=[
+            "gh",
+            "pr",
+            "comment",
+            branch,
+            "--repo",
+            _remote_repo(project=project, remote=a.remote),
+            "--body-file",
+            str(comment),
+        ],
         cwd=project,
         stored_gh_credentials=a.stored_gh_credentials,
     )
