@@ -262,8 +262,7 @@ For each repo:
 
 1. **Draft PR.** Just before opening it, fill the repo's PR template
    (`.github/pull_request_template.md`) into `<checkout>/tmp/pr-body.md`, linking the upstream
-   PRs, and claim only what is verified by then: CI results and the checks you ran are the
-   evidence; build no demos unless the user asks. `$BP pr-command` checks it and prints the
+   PRs. `$BP pr-command` checks it and prints the
    `gh pr create --draft …` command: run it. Then post each copier-update report this repo's
    pulls wrote (`<checkout>/tmp/copier-update-report-*.json`, oldest first), so a reviewer
    sees what each hand merge kept and left out: after `scan` in a public repo, one
