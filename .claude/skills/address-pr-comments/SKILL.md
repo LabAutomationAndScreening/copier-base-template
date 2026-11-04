@@ -97,9 +97,11 @@ If there are no comments, say so, and stop once any verifiers started here have 
 
 ### Step 2b: Triage — read every comment before deciding on any
 
-Comments interact: one fix can settle another comment, make it moot, change what its fix should be, or conflict with it. Read them all, with the code they point at, and work out those relationships, starting from each `ai_review.related`. For a comment with `line_changed: true`, compare the code it was made on (`git show <original_commit_id>:<path>`, around `original_line`) with today's: if a change already addresses it, it's a candidate for "Reply only" with that commit. CodeRabbit resolves only threads it sees fixed, so a thread where it accepted a decline stays open. When a CodeRabbit thread's last reply is CodeRabbit accepting an earlier answer and asking nothing new, list the thread in the triage question below as already addressed, with that reply as the evidence. Treat a disputed finding's objection as part of the comment.
+CodeRabbit resolves only threads it sees fixed, so a thread where it accepted a decline or a deferral stays open. When a CodeRabbit thread's last reply is CodeRabbit accepting an earlier answer and asking nothing new, it's settled: it gets no Phase 1 decision and no reply, and the report lists it with that reply as the evidence. A closing offer to open a follow-up issue is not something new. Set these threads aside before anything else, however many comments there are; when none is left, say so and go to the report ([Step 5](#step-5-report-completion)).
 
-With two or more comments, ask with AskUserQuestion. The `question` field gives the groups of related comments (one line each on how they relate), comments that look already addressed (with evidence), and a proposed order with root causes first, then "Process the comments in this order?". Options: **Use this order**, **Change the order**, **Original order**. Number the comments in the chosen order.
+Comments interact: one fix can settle another comment, make it moot, change what its fix should be, or conflict with it. Read them all, with the code they point at, and work out those relationships, starting from each `ai_review.related`. For a comment with `line_changed: true`, compare the code it was made on (`git show <original_commit_id>:<path>`, around `original_line`) with today's: if a change already addresses it, it's a candidate for "Reply only" with that commit. Treat a disputed finding's objection as part of the comment.
+
+With two or more comments, ask with AskUserQuestion. The `question` field gives the settled CodeRabbit threads set aside above, the groups of related comments (one line each on how they relate), comments that look already addressed (with evidence), and a proposed order with root causes first, then "Process the comments in this order?". Options: **Use this order**, **Change the order**, **Original order**. Number the comments in the chosen order.
 
 ### Step 3: Phase 1 — Collect Decisions
 
@@ -201,7 +203,7 @@ First collect every verifier's result. If some are still running, say so and rep
 - comments set aside for the template layer, each with its ID, path, owning template and agreed change;
 - replies posted;
 - verdicts: resolved, accepted but left to another participant, disputed (with URLs), or skipped at the cap;
-- comments skipped or left open.
+- comments skipped or left open, including settled CodeRabbit threads (with the reply that settled each).
 
 If any reply was disputed, ask whether to go through the disputed threads now, listing each finding and the objection in one line. On yes, re-run [Step 2](#step-2-fetch-pr-comments), since they're back in its output, and continue from Step 2b.
 
