@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# ///
 """Run the full mutation suite, then report a status breakdown.
 
 Usage:
-  run-mutmut.py [--clean]
+  run_mutmut.py [--clean]
 
 Options:
   --clean   Delete mutants/ before running, forcing a fresh mutant generation

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# ///
 """Post a reply to a PR comment, for the pr-comments skill.
 
 Usage:
@@ -9,19 +12,28 @@ Usage:
   # comment, marked so that read.py knows which comment it answers:
   post.py --pr <number> --comment-id <id> --comment-type issues/comments --body-file <path> [--repo OWNER/NAME]
 
+  # Answer a review's own body (pulls/reviews, --comment-id being the review's id): a new top-level comment, marked
+  # the same way:
+  post.py --pr <number> --comment-id <review id> --comment-type pulls/reviews --body-file <path> [--repo OWNER/NAME]
+
 Either form takes --commit <full sha>, which fills each [COMMIT LINK] in the body file with a markdown link to that
 commit as it appears in the PR, the form GitHub associates with the PR. A [COMMIT LINK] inside a code span or a fenced
 code block is text about the placeholder, not a placeholder, and stays as written.
 
-Without --repo, the PR belongs to the current directory's origin remote. gh prefers the login `gh auth login` stored,
-which reaches every repo the user can, over a codespace's repo-scoped GITHUB_TOKEN; with no stored login it uses the
-environment's GH_TOKEN or GITHUB_TOKEN.
+Without --repo, the PR belongs to the current directory's origin remote. In place of --repo, --checkout PATH posts as
+if run from that checkout of another repo, whose origin remote the PR belongs to. gh prefers the login
+`gh auth login` stored, which reaches every repo the user can, over a codespace's repo-scoped GITHUB_TOKEN; with no
+stored login it uses the environment's GH_TOKEN or GITHUB_TOKEN.
 
 The AI attribution footer is appended to the body file first if it isn't already its last line, so drafts never
-include it themselves. On success the body file is deleted, so a retry cannot post twice.
+include it themselves. On success the comment's URL is printed, then the body exactly as it was posted (links filled,
+footer included), so the result can be checked without reading the thread back; the body file is deleted, so a retry
+cannot post twice. With --check, it prints where the reply would go and the body as it would be posted, and neither
+changes the file nor posts.
 
-Posting goes out under the user's account, so the pr-comments skill has the user approve the reply's text before this
-runs, and the file is posted as approved.
+Run this only on a reply whose text the user has approved: it posts under their account, and nothing asks them again
+before it does. The pr-comments skill has the user approve the draft first; the file then goes out as approved, with
+--commit filling [COMMIT LINK] as the only change.
 """
 
 import argparse
@@ -34,91 +46,63 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from utils import COMMIT_LINK_PLACEHOLDER
 from utils import GH_TIMEOUT_SECONDS
+from utils import add_repo_arguments
+from utils import count_commit_link_placeholders
+from utils import enter_checkout
+from utils import fill_commit_link_placeholders
 from utils import gh_run
 from utils import issue_comment_reply_marker
 from utils import owner_and_repo
 from utils import pr_commit_link
+from utils import review_reply_marker
+from utils import split_code
 
 REPLY_FOOTER = "*Reply drafted by AI (Claude), reviewed and approved by the author before posting.*"
 _FULL_SHA_RE = re.compile(r"[0-9a-f]{40}")
-# A fenced block, opened by a line starting with 3+ backticks or tildes (a backtick fence's info string holds no
-# backtick) and closed by a line of at least as many of the same character (or running to the end, as GitHub renders
-# an unclosed fence), or an inline code span opened and closed by whole backtick runs of the same length.
-_CODE_RE = re.compile(
-    r"^ {0,3}(?P<fence>(?P<fence_char>[`~])(?P=fence_char){2,})(?:(?<=`)[^`\n]*|(?<=~)[^\n]*)$"
-    r"(?:\n.*?^ {0,3}(?P=fence)(?P=fence_char)*[ \t]*$|.*\Z)"
-    r"|(?<!`)(?P<ticks>`+)(?!`).+?(?<!`)(?P=ticks)(?!`)",
-    re.DOTALL | re.MULTILINE,
-)
 
 
-def _split_code(content: str) -> list[tuple[str, bool]]:
-    """Split the content into (text, is_code) pieces, in order.
-
-    Code spans and fenced blocks are code. The text between them is prose.
-    """
-    pieces: list[tuple[str, bool]] = []
-    end_of_previous = 0
-    for code in _CODE_RE.finditer(content):
-        pieces.append((content[end_of_previous : code.start()], False))
-        pieces.append((code.group(0), True))
-        end_of_previous = code.end()
-    pieces.append((content[end_of_previous:], False))
-    return pieces
-
-
-def _placeholders_in_prose(pieces: list[tuple[str, bool]]) -> int:
-    count = 0
-    for text, is_code in pieces:
-        if not is_code:
-            count += text.count(COMMIT_LINK_PLACEHOLDER)
-    return count
-
-
-def _fill_prose(pieces: list[tuple[str, bool]], *, link: str) -> str:
-    filled: list[str] = []
-    for text, is_code in pieces:
+def _in_prose(text: str, *, content: str) -> bool:
+    for piece, is_code in split_code(content):
         if is_code:
-            filled.append(text)
-        else:
-            filled.append(text.replace(COMMIT_LINK_PLACEHOLDER, link))
-    return "".join(filled)
+            continue
+        if text in piece:
+            return True
+    return False
 
 
-def _fill_commit_link(body_file: Path, *, owner: str, repo: str, pr: int, commit: str | None) -> None:
-    """Replace the [COMMIT LINK] placeholder in the body file with the commit's link in the PR.
+def _commit_link(commit: str | None, *, owner: str, repo: str, pr: int) -> str | None:
+    if commit is None:
+        return None
+    if _FULL_SHA_RE.fullmatch(commit) is None:
+        _ = sys.stderr.write(f"--commit must be a full 40-character SHA, not {commit}\n")
+        sys.exit(1)
+    return pr_commit_link(owner=owner, repo=repo, pr=pr, commit=commit)
+
+
+def _with_commit_link(content: str, *, body_file: Path, link: str | None) -> str:
+    """Return the body with each [COMMIT LINK] placeholder replaced by the commit's link in the PR.
 
     A [COMMIT LINK] inside a code span or a fenced code block is text about the placeholder, not a placeholder: it is
     neither filled nor counted. A body that still carries a placeholder with no commit given, or a commit with no
     placeholder to fill, is refused, so a reply never goes out with a placeholder or without the link it was written
-    for. A body with no placeholder left that already holds this commit's link passes, so a failed post can be retried
-    with the same arguments.
+    for. A body with no placeholder left whose prose already holds this commit's link passes, so a failed post can be
+    retried with the same arguments.
     """
-    content = _read_body_file(body_file)
-    pieces = _split_code(content)
-    placeholders = _placeholders_in_prose(pieces)
-    if commit is None:
+    placeholders = count_commit_link_placeholders(content)
+    if link is None:
         if placeholders:
             _ = sys.stderr.write(f"{body_file} still has {COMMIT_LINK_PLACEHOLDER}; pass --commit <sha> to fill it.\n")
             sys.exit(1)
-        return
-    if _FULL_SHA_RE.fullmatch(commit) is None:
-        _ = sys.stderr.write(f"--commit must be a full 40-character SHA, not {commit}\n")
-        sys.exit(1)
-    link = pr_commit_link(owner=owner, repo=repo, pr=pr, commit=commit)
+        return content
     if placeholders == 0:
-        if link in content:
-            return
+        if _in_prose(link, content=content):
+            return content
         _ = sys.stderr.write(
             f"--commit given, but {body_file} has no {COMMIT_LINK_PLACEHOLDER} to fill (one inside a code span or a"
             " fenced block is text, not a placeholder).\n"
         )
         sys.exit(1)
-    try:
-        _ = body_file.write_text(_fill_prose(pieces, link=link), encoding="utf-8")
-    except OSError as e:
-        _ = sys.stderr.write(f"Unable to write body file {body_file}: {e}\n")
-        sys.exit(1)
+    return fill_commit_link_placeholders(content, link=link)
 
 
 def _read_body_file(body_file: Path) -> str:
@@ -129,37 +113,37 @@ def _read_body_file(body_file: Path) -> str:
         sys.exit(1)
 
 
-def _ensure_reply_footer(body_file: Path) -> None:
-    """Make the AI attribution footer the last line of the reply file.
-
-    Adding it is idempotent, so a reply file can go through this any number of times. Exits with status 1 if the file
-    can't be read or written.
-    """
-    content = _read_body_file(body_file)
+def _with_reply_footer(content: str) -> str:
+    """Return the body with the AI attribution footer as its last line, adding it only if it isn't there already."""
     non_empty_lines = [line.strip() for line in content.splitlines() if line.strip()]
     if non_empty_lines and non_empty_lines[-1] == REPLY_FOOTER:
-        return
+        return content
     # a blank line between the reply and the footer
     suffix = "\n" if content.endswith("\n") else "\n\n"
+    return content + suffix + REPLY_FOOTER + "\n"
+
+
+def _write_body_file(body_file: Path, content: str) -> None:
     try:
-        _ = body_file.write_text(content + suffix + REPLY_FOOTER + "\n", encoding="utf-8")
+        _ = body_file.write_text(content, encoding="utf-8")
     except OSError as e:
         _ = sys.stderr.write(f"Unable to write body file {body_file}: {e}\n")
         sys.exit(1)
 
 
-def _post(*, endpoint: str, body_file: Path, body_suffix: str) -> None:
-    """POST the reply to a GitHub API endpoint with gh api, print its URL, then delete the body file it came from.
+def _post(*, endpoint: str, body: str, body_file: Path) -> None:
+    """POST the reply with gh api, print its URL and the body as posted, then delete the body file it came from.
 
-    The comment's `body` is read from body_file, with body_suffix appended (the file itself is not changed, so a failed
-    post can be retried without the suffix piling up).
+    body is the body file's content plus the reply marker, which is never written to the file, so a failed post can be
+    retried without markers piling up. The body is printed after the URL because the file is gone once
+    the post succeeds, and what went out (the filled links, the footer) is what the user approved only if the fill
+    behaved; printing it makes that visible without a read of the thread.
 
     Exits with status 1 if gh api fails or times out; a timed-out POST may still have reached GitHub, so its message
     says to check before retrying. Once gh api succeeds the comment exists, so an unparsable response still counts as
     posted and the body file is still deleted (otherwise a retry would post a duplicate). A failure to delete the body
     file only warns.
     """
-    body = _read_body_file(body_file) + body_suffix
     try:
         result = gh_run(
             ["gh", "api", endpoint, "--method", "POST", "--raw-field", f"body={body}"], timeout=GH_TIMEOUT_SECONDS
@@ -178,7 +162,9 @@ def _post(*, endpoint: str, body_file: Path, body_suffix: str) -> None:
         url = json.loads(result.stdout).get("html_url", "(no URL in response)")
     except json.JSONDecodeError:
         url = "(unparsable response)"
-    _ = sys.stdout.write(f"Posted: {url}\n")
+    _ = sys.stdout.write(f"Posted: {url}\nBody as posted:\n{body}")
+    if not body.endswith("\n"):
+        _ = sys.stdout.write("\n")
 
     try:
         body_file.unlink()
@@ -192,33 +178,45 @@ def main() -> None:
     _ = parser.add_argument(
         "--comment-type",
         required=True,
-        choices=["pulls/comments", "issues/comments"],
+        choices=["pulls/comments", "issues/comments", "pulls/reviews"],
     )
     _ = parser.add_argument("--body-file", required=True, type=Path)
     _ = parser.add_argument("--pr", type=int, required=True, help="PR number")
-    _ = parser.add_argument(
-        "--repo", default=None, metavar="OWNER/NAME", help="the PR's repo (default: the origin remote's)"
-    )
+    add_repo_arguments(parser)
     _ = parser.add_argument(
         "--commit", default=None, metavar="SHA", help="fills each [COMMIT LINK] in the body with this commit's link"
     )
+    _ = parser.add_argument(
+        "--check", action="store_true", help="print the body as it would be posted; change and post nothing"
+    )
     args = parser.parse_args()
+    body_file = args.body_file.resolve()
+    enter_checkout(args.checkout)
 
     owner, repo = owner_and_repo(repo=args.repo)
-    _fill_commit_link(args.body_file, owner=owner, repo=repo, pr=args.pr, commit=args.commit)
+    link = _commit_link(args.commit, owner=owner, repo=repo, pr=args.pr)
+    content = _with_reply_footer(_with_commit_link(_read_body_file(body_file), body_file=body_file, link=link))
 
     if args.comment_type == "pulls/comments":
         # Reply directly into the inline review comment thread.
         endpoint = f"repos/{owner}/{repo}/pulls/{args.pr}/comments/{args.comment_id}/replies"
         body_suffix = ""
+    elif args.comment_type == "pulls/reviews":
+        # A review's own body has no thread either, so the answer is a new top-level comment, marked likewise.
+        endpoint = f"repos/{owner}/{repo}/issues/{args.pr}/comments"
+        body_suffix = f"\n{review_reply_marker(args.comment_id)}\n"
     else:
         # GitHub has no "reply" concept for issue comments — post a new top-level comment, marked so that
         # read.py knows which comment it answers.
         endpoint = f"repos/{owner}/{repo}/issues/{args.pr}/comments"
         body_suffix = f"\n{issue_comment_reply_marker(args.comment_id)}\n"
 
-    _ensure_reply_footer(args.body_file)
-    _post(endpoint=endpoint, body_file=args.body_file, body_suffix=body_suffix)
+    if args.check:
+        _ = sys.stdout.write(f"Would post to {endpoint}:\n{content}{body_suffix}")
+        return
+    # the file keeps the filled link and the footer, so a failed post can be retried with the same arguments
+    _write_body_file(body_file, content)
+    _post(endpoint=endpoint, body=content + body_suffix, body_file=body_file)
 
 
 if __name__ == "__main__":

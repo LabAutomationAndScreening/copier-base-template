@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# ///
 """List mutants that indicate a test gap, grouped by source file.
 
 Usage:
-  list-survived.py [--status survived,no-tests] [--all]
+  list_survived.py [--status survived,no-tests] [--all]
 
 By default lists only actionable statuses (survived + no tests) — the mutants
 a stronger test can kill. Pass --all to include every status (killed, timeout,
@@ -20,7 +23,7 @@ Outputs JSON to stdout:
     }
   }
 
-Reads cached mutants/*.meta — run run-mutmut.py first. Does not re-run anything.
+Reads cached mutants/*.meta — run run_mutmut.py first. Does not re-run anything.
 """
 
 import sys

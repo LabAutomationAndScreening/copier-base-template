@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# ///
 """Re-run a single mutant and report whether it is now killed.
 
 Usage:
-  verify-mutant.py <mutant_name>
+  verify_mutant.py <mutant_name>
 
 Run after adding/strengthening a test, to confirm the mutant is detected. Only
 the named mutant is re-tested (fast), then its fresh status is read back from
@@ -32,7 +35,7 @@ EXPECTED_ARG_COUNT = 2
 
 def main() -> None:
     if len(sys.argv) != EXPECTED_ARG_COUNT:
-        _ = sys.stderr.write("Usage: verify-mutant.py <mutant_name>\n")
+        _ = sys.stderr.write("Usage: verify_mutant.py <mutant_name>\n")
         sys.exit(2)
 
     key = sys.argv[1]

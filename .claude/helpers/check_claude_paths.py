@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# ///
 """Check that every path under .claude/ written in a document under .claude/ exists.
 
 A skill's or agent's instructions name scripts by path, and an agent types a path as it is written, so a renamed or

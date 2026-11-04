@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# ///
 """Read a PR's comments, grouped into threads, for the pr-comments skill.
 
 Usage:
@@ -7,29 +10,31 @@ Usage:
   read.py <pr_number> --thread <comment id> [--repo OWNER/NAME]  one thread or top-level comment, whatever its state
   read.py <pr_number> --all [--repo OWNER/NAME]                  resolved and addressed threads and comments too
 
-Without --repo, the PR belongs to the current directory's origin remote. gh prefers the login `gh auth login` stored,
-which reaches every repo the user can, over a codespace's repo-scoped GITHUB_TOKEN; with no stored login it uses the
-environment's GH_TOKEN or GITHUB_TOKEN.
+Without --repo, the PR belongs to the current directory's origin remote. In place of --repo, --checkout PATH reads as
+if run from that checkout of another repo: the PR belongs to its origin remote, and `current_line` is worked out at its
+HEAD. gh prefers the login `gh auth login` stored, which reaches every repo the user can, over a codespace's
+repo-scoped GITHUB_TOKEN; with no stored login it uses the environment's GH_TOKEN or GITHUB_TOKEN.
 
 Outputs JSON array of comment threads to stdout. Each entry:
   {
     "id": <root comment id>,
-    "type": "pulls/comments" | "issues/comments",
+    "type": "pulls/comments" | "issues/comments" | "pulls/reviews",
     "url": "<html url of the root comment>",
     "author": "<login>",
     "author_is_bot": <bool>,
     "body": "<text>",
+    "body_text": "<body with the reviewer's AI-agent prompt block, HTML comments and HTML tags removed; code untouched>",
     "created_at": "<iso8601>",
     "path": "<file path, pulls/comments only>",
     "line": <line number, pulls/comments with subject_type "line" only>,
     "subject_type": "line" | "file" | null,
     "outdated": <true when the commented line changed after the comment was made>,
     "original_line": <line number in original_commit_id, pulls/comments only>,
-    "original_commit_id": "<sha the comment was made on, pulls/comments only>",
+    "original_commit_id": "<sha the comment was made on, or the review's commit; null for issues/comments>",
     "current_line": <where original_line is at the current directory's HEAD; null if that line changed, or for a
                      file-level comment, or when original_commit_id is not in the current directory's repo>,
     "line_changed": <true if original_line has been changed or deleted since original_commit_id; null if unknown>,
-    "resolved": <bool; always false for issues/comments, which GitHub cannot resolve>,
+    "resolved": <bool; always false for issues/comments and pulls/reviews, which GitHub cannot resolve>,
     "open": <bool; whether it is actionable, i.e. in the default output>,
     "ai_review": null | {
       "finding_id": "<e.g. F8>",
@@ -37,7 +42,7 @@ Outputs JSON array of comment threads to stdout. Each entry:
       "status": "open" | "awaiting_verification" | "accepted" | "disputed",
       "verdict_rounds": <number of verdicts posted so far>
     },
-    "replies": [{"id", "url", "author", "author_is_bot", "body", "created_at", "ai_review_verdict"}, ...]
+    "replies": [{"id", "url", "author", "author_is_bot", "body", "body_text", "created_at", "ai_review_verdict"}, ...]
   }
 
 When a comment is outdated, `line` falls back to `original_line`, which is a line number in original_commit_id, not in
@@ -53,7 +58,12 @@ default output. `status` says who the thread is waiting on:
     thread is actionable again.
 
 A reply's `ai_review_verdict` is null, or {"verdict": "accept" | "disagree", "round": <n>} for a verdict. For a
-top-level comment, `replies` are the current user's comments that carry the reply marker for it (see utils.py).
+top-level comment or a review body, `replies` are the current user's comments that carry the reply marker for it (see
+utils.py).
+
+A pulls/reviews entry is a review's own body, which can hold findings outside any inline thread: CodeRabbit lists its
+follow-ups, nitpicks and outside-diff comments there. It is listed when it is a person's non-empty review body, or a
+bot's that has such a section; a bot's other review bodies only summarize its inline threads. Its `id` is the review's.
 
 Filtered out of the default output:
   - Resolved threads
@@ -63,6 +73,7 @@ Filtered out of the default output:
   - Top-level PR comments authored by the current user, unless they are an AI review finding
   - Top-level PR comments the current user has replied to (via post.py, which marks the reply), unless the last
     reply is a verdict disputing it
+  - Review bodies the current user has replied to (via post.py, likewise)
 
 `--all` brings back resolved and addressed threads and top-level comments, each with the `resolved` and `open` flags
 that say where it stands, so the caller can tell three resolved threads from none at all. Bot summary comments and
@@ -71,14 +82,18 @@ the current user's own top-level comments stay out: a reply the user posted appe
 
 import argparse
 import json
+import re
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils import GH_TIMEOUT_SECONDS
 from utils import VERDICT_DISAGREE
+from utils import add_repo_arguments
+from utils import enter_checkout
 from utils import gh_graphql
 from utils import gh_rest
 from utils import map_line_between
@@ -86,6 +101,8 @@ from utils import owner_and_repo
 from utils import parse_ai_review_finding
 from utils import parse_ai_review_verdict
 from utils import parse_issue_comment_reply
+from utils import parse_review_reply
+from utils import strip_markup
 
 # Fetches only what we need to determine resolution: the root comment URL.
 # We intentionally do NOT use databaseId here — it does not match the REST
@@ -119,6 +136,10 @@ def fetch_current_user_login() -> str:
 
 
 _BOT_LOGINS = frozenset({"coderabbitai[bot]", "copilot-pull-request-reviewer[bot]", "Copilot"})
+# The sections in which CodeRabbit lists findings in a review's body, with no inline thread to hold them
+_REVIEW_BODY_FINDINGS_RE = re.compile(
+    r"Follow-ups \(\d+\)|Nitpick comments \(\d+\)|Outside diff range comments \(\d+\)|Additional comments: \d+"
+)
 
 
 def _login_from_comment(c: dict[str, Any]) -> str:
@@ -180,6 +201,7 @@ def _reply_entry(c: dict[str, Any]) -> dict[str, Any]:
         "author": _login_from_comment(c),
         "author_is_bot": _author_is_bot(c),
         "body": c["body"],
+        "body_text": strip_markup(c["body"]),
         "created_at": c["created_at"],
         "ai_review_verdict": None if verdict is None else {"verdict": verdict.verdict, "round": verdict.round},
     }
@@ -265,6 +287,7 @@ def _collect_thread_roots(pulls_raw: list[dict[str, Any]]) -> dict[int, dict[str
                 "author": _login_from_comment(c),
                 "author_is_bot": _author_is_bot(c),
                 "body": c["body"],
+                "body_text": strip_markup(c["body"]),
                 "created_at": c["created_at"],
                 "path": c.get("path"),
                 # a file-level comment is about the whole file, so any line GitHub reports for it is not a position
@@ -322,13 +345,15 @@ def _all_pulls_threads(pulls_raw: list[dict[str, Any]], resolved_urls: set[str])
     return [{**t, "resolved": t["url"] in resolved_urls} for t in roots.values()]
 
 
-def _issue_comment_replies(issues_raw: list[dict[str, Any]], current_user: str) -> dict[int, list[dict[str, Any]]]:
-    """Map each top-level comment's id to the current user's comments marked as answering it, oldest first."""
+def _marked_replies(
+    issues_raw: list[dict[str, Any]], *, current_user: str, parse_marker: Callable[[str], int | None]
+) -> dict[int, list[dict[str, Any]]]:
+    """Map each answered id to the current user's top-level comments whose marker names it, oldest first."""
     replies: dict[int, list[dict[str, Any]]] = {}
     for c in issues_raw:
         if _login_from_comment(c) != current_user:
             continue
-        replied_id = parse_issue_comment_reply(c["body"])
+        replied_id = parse_marker(c["body"])
         if replied_id is not None:
             replies.setdefault(replied_id, []).append(_reply_entry(c))
     for chain in replies.values():
@@ -342,7 +367,7 @@ def _all_flat_issues(issues_raw: list[dict[str, Any]], current_user: str) -> lis
     The current user's AI review findings are kept: they are posted under that account but still await a response.
     Their replies and verdicts are attached to the comment they answer instead.
     """
-    replies = _issue_comment_replies(issues_raw, current_user)
+    replies = _marked_replies(issues_raw, current_user=current_user, parse_marker=parse_issue_comment_reply)
     flat: list[dict[str, Any]] = []
     for c in issues_raw:
         if is_bot_pr_body_comment(c):
@@ -358,6 +383,7 @@ def _all_flat_issues(issues_raw: list[dict[str, Any]], current_user: str) -> lis
                 "author": _login_from_comment(c),
                 "author_is_bot": _author_is_bot(c),
                 "body": c["body"],
+                "body_text": strip_markup(c["body"]),
                 "created_at": c["created_at"],
                 "path": None,
                 "line": None,
@@ -373,6 +399,60 @@ def _all_flat_issues(issues_raw: list[dict[str, Any]], current_user: str) -> lis
             }
         )
     return flat
+
+
+def _review_body_to_answer(review: dict[str, Any], current_user: str) -> bool:
+    """Return whether a review's own body holds something to answer, apart from the review's inline threads.
+
+    A person's review body says something whenever it isn't empty. A bot's mostly summarizes its inline comments,
+    which are threads of their own, so it counts only when it lists findings that have no thread.
+    """
+    if review.get("submitted_at") is None:
+        return False
+    if _login_from_comment(review) == current_user:
+        return False
+    if not strip_markup(review.get("body") or ""):
+        return False
+    if not _author_is_bot(review):
+        return True
+    if _REVIEW_BODY_FINDINGS_RE.search(review["body"]) is None:
+        return False
+    return True
+
+
+def _all_review_bodies(
+    *, reviews_raw: list[dict[str, Any]], issues_raw: list[dict[str, Any]], current_user: str
+) -> list[dict[str, Any]]:
+    """Project each review body that holds something to answer, with the current user's replies to it."""
+    replies = _marked_replies(issues_raw, current_user=current_user, parse_marker=parse_review_reply)
+    entries: list[dict[str, Any]] = []
+    for r in reviews_raw:
+        if not _review_body_to_answer(r, current_user):
+            continue
+        entries.append(
+            {
+                "id": r["id"],
+                "type": "pulls/reviews",
+                "url": r.get("html_url", ""),
+                "author": _login_from_comment(r),
+                "author_is_bot": _author_is_bot(r),
+                "body": r["body"],
+                "body_text": strip_markup(r["body"]),
+                "created_at": r["submitted_at"],
+                "path": None,
+                "line": None,
+                "subject_type": None,
+                "outdated": False,
+                "original_line": None,
+                "original_commit_id": r.get("commit_id"),
+                "current_line": None,
+                "line_changed": None,
+                "resolved": False,
+                "_ai_review": None,
+                "replies": replies.get(r["id"], []),
+            }
+        )
+    return entries
 
 
 def _ai_review_finding_comment_ids(comments_raw: list[dict[str, Any]]) -> dict[str, int]:
@@ -427,12 +507,21 @@ def fetch(*, owner: str, repo: str, pr_number: int, current_user: str) -> list[d
     #
     # - issues/comments: general comments on the PR conversation (not tied to a
     #   line). These are flat — GitHub has no threading or resolved concept for them.
+    #
+    # - pulls/reviews: each review's own body, which can hold findings outside any
+    #   inline thread (CodeRabbit's follow-ups, nitpicks and outside-diff comments).
+    #   Flat like issues/comments.
     resolved_urls = fetch_resolved_html_urls(owner=owner, repo=repo, pr_number=pr_number)
 
     pulls_raw: list[dict[str, Any]] = gh_rest("api", f"repos/{owner}/{repo}/pulls/{pr_number}/comments", "--paginate")
     issues_raw: list[dict[str, Any]] = gh_rest("api", f"repos/{owner}/{repo}/issues/{pr_number}/comments", "--paginate")
+    reviews_raw: list[dict[str, Any]] = gh_rest("api", f"repos/{owner}/{repo}/pulls/{pr_number}/reviews", "--paginate")
 
-    everything = _all_pulls_threads(pulls_raw, resolved_urls) + _all_flat_issues(issues_raw, current_user)
+    everything = (
+        _all_pulls_threads(pulls_raw, resolved_urls)
+        + _all_flat_issues(issues_raw, current_user)
+        + _all_review_bodies(reviews_raw=reviews_raw, issues_raw=issues_raw, current_user=current_user)
+    )
     open_ids = {e["id"] for e in everything if not e["resolved"] and not _addressed_by_current_user(e, current_user)}
     combined = _with_ai_review(
         everything,
@@ -477,10 +566,9 @@ def main() -> None:
         action="store_true",
         help="list resolved and addressed threads and comments too, with their flags",
     )
-    _ = parser.add_argument(
-        "--repo", default=None, metavar="OWNER/NAME", help="the PR's repo (default: the origin remote's)"
-    )
+    add_repo_arguments(parser)
     args = parser.parse_args()
+    enter_checkout(args.checkout)
 
     pr_number_raw = args.pr_number.strip().lstrip("#")
     try:

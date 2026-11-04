@@ -346,7 +346,7 @@ repos:
         # A skill's or agent's instructions name scripts by path, and an agent types a path as written, so a renamed or
         # removed file breaks them silently. Any change under .claude/ re-checks every path written in a document there.
         name: check paths written in Claude documents exist
-        entry: python3 .claude/helpers/check-claude-paths.py
+        entry: python3 .claude/helpers/check_claude_paths.py
         files: ^\.claude/
         pass_filenames: false
         language: system
