@@ -28,8 +28,8 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
                                     change, and whether the newest tag lacks a pin taken from the
                                     parent's branch
   push --chain F [--checkout DIR]   push the branch and print its full head SHA; for a public repo,
-                                    first refuse any unpushed commit whose message names a private
-                                    repo from the chain
+                                    first refuse any unpushed commit whose message or changes name a
+                                    private repo from the chain
   net-diff [--checkout DIR]         drop copier's staged-then-reversed changes, list the net
                                     change against HEAD, and say whether only `_commit` moved
   scan --chain F --repo R --file T  private repo names from the chain that text T would leak
@@ -551,12 +551,28 @@ def _catch_up_pull_points(parent: Path) -> list[dict[str, str]]:
     return points
 
 
+def _added_text(*, checkout: Path, sha: str) -> str:
+    """Return the paths a commit touches and the lines it adds, the part of its diff a push publishes anew."""
+    diff = _git("show", "--format=", "--no-color", "--no-ext-diff", "-M", "--unified=0", sha, cwd=checkout)
+    added: list[str] = []
+    for line in diff.splitlines():
+        if line.startswith(("diff --git ", "rename to ")):
+            added.append(line)
+            continue
+        if line.startswith("+"):
+            added.append(line[1:])
+    return "\n".join(added)
+
+
 def _leaking_commits(*, checkout: Path, since: str, repo: str, chain: dict[str, Any]) -> list[str]:
     leaks: list[str] = []
     for sha in _git("rev-list", f"{since}..HEAD", cwd=checkout).split():
-        hits = scan_text(text=_git("log", "-1", "--format=%B", sha, cwd=checkout), repo=repo, chain=chain)
-        if hits:
-            leaks.append(f"{sha[:12]}: {', '.join(hits)}")
+        in_message = scan_text(text=_git("log", "-1", "--format=%B", sha, cwd=checkout), repo=repo, chain=chain)
+        in_changes = scan_text(text=_added_text(checkout=checkout, sha=sha), repo=repo, chain=chain)
+        if in_message:
+            leaks.append(f"{sha[:12]} message: {', '.join(in_message)}")
+        if in_changes:
+            leaks.append(f"{sha[:12]} changes: {', '.join(in_changes)}")
     return leaks
 
 
@@ -573,8 +589,9 @@ def cmd_push(a: argparse.Namespace) -> dict[str, Any]:
     leaks = _leaking_commits(checkout=checkout, since=since, repo=repo, chain=json.loads(Path(a.chain).read_text()))
     if leaks:
         raise FailError(
-            f"{repo} is public and these unpushed commit messages name a private repo; nothing was pushed. Reword "
-            "them (they are not on GitHub yet, so rewriting them is safe), then push again:\n" + "\n".join(leaks)
+            f"{repo} is public and these unpushed commits name a private repo in their message or changes; nothing was "
+            "pushed. Reword or edit them (they are not on GitHub yet, so rewriting them is safe), then push again:\n"
+            + "\n".join(leaks)
         )
     _ = _git("push", "-u", "origin", branch, cwd=checkout)
     return {"branch": branch, "sha": _git("rev-parse", "HEAD", cwd=checkout).strip()}
@@ -1408,7 +1425,9 @@ def _add_checkout_verbs(add: AddVerb) -> None:
         sp.add_argument("--checkout", default=".")
         sp.set_defaults(fn=fn)
         if name == "push":
-            sp.add_argument("--chain", required=True, help="the chain file, to check commit messages for a public repo")
+            sp.add_argument(
+                "--chain", required=True, help="the chain file, to check commit messages and changes for a public repo"
+            )
         if name == "behind":
             sp.add_argument(
                 "--parent-checkout",

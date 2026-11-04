@@ -36,7 +36,7 @@ $BP checkout --branch B --path P [--repo OWNER/NAME]       # clone or fetch, cle
 $BP checkout --branch B --path P --worktree-of <origin checkout>   # the originating repo: a new worktree
 $BP behind --checkout P [--parent-checkout P2]   # `_commit` against the parent template's newest tag
 $BP behind --repo OWNER/NAME         # the same, read from its default branch: no checkout needed
-$BP push --checkout P --chain <chain.json>   # check commit messages if public, push, print the full head SHA
+$BP push --checkout P --chain <chain.json>   # check commit messages and changes if public, push, print the full head SHA
 $BP net-diff --checkout P            # net change after a copier pull; only_commit_changed for re-pins
 $BP ci --repo OWNER/NAME --sha SHA  # wait for every CI run on that commit, push and pull_request alike
 $BP scan --chain <chain.json> --repo R --file F   # private repo names F would leak into public R
