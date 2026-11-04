@@ -195,6 +195,11 @@ resumes the pushed branch (see Resuming).
 
 ### Step 4: Make the change in the layer
 
+A file copied up from the originating repo carries the copier banner of the template that
+placed it: strip it, since the layer's own copy has none and copier adds it again downstream.
+Shebang scripts carry it at the end of the file, other files at the top. Prove the strip by
+comparing every file the change doesn't touch byte for byte against the layer's copy.
+
 Edit, then prove the change before committing it: render the layer the way its CI does (its
 workflow names the `copier copy` flags, the `tests/copier_data/*.yaml` data files and any
 `--data` it passes: `uv run copier copy --trust --skip-tasks --defaults --vcs-ref HEAD --data-file <data file> . <scratchpad>/render`)
@@ -342,7 +347,9 @@ After its PR merges:
 1. `$BP update-branch --checkout <origin checkout> --branch <feature branch>` merges the
    default branch into the feature branch and pushes. When it refuses or reports `conflicts`,
    its output says what to do; pass `--allow-unpushed` only if the user says the unpushed
-   commits belong on the branch. For each conflicted file, `branch_commits` lists the feature
+   commits belong on the branch. Expect a conflict on every file this backport copied up:
+   main's copy, pulled down the chain, carries the copier banner and the branch's doesn't (an
+   add/add conflict for a new file). For each conflicted file, `branch_commits` lists the feature
    branch's own commits that touched it: if any came after the backport copied the file, take
    main's side (`git checkout --theirs -- <file>`) and re-apply those commits on it
    (`git show <sha> -- <file> | git apply`); else main's side alone; a hook-regenerated file
