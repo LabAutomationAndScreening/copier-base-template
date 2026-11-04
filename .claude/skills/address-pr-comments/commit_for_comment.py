@@ -123,7 +123,7 @@ def _close_bd_issue(*, bd_root: Path, issue_id: str, commit: str, reply_file: Pa
     description = json.loads(shown.stdout)[0].get("description") or ""
     reply = reply_file.read_text(encoding="utf-8").strip()
     updated = f"{description}\n\ncommit: {commit}\nreply: {reply}".strip()
-    errors: list[str] = []
+    # each step needs the one before it: an issue closed without its commit and reply recorded would look settled
     steps: list[tuple[list[str], str | None]] = [
         (["bd", "update", issue_id, "--stdin", "--json"], updated),
         (["bd", "close", issue_id, "--reason", "Addressed in PR review", "--json"], None),
@@ -132,8 +132,8 @@ def _close_bd_issue(*, bd_root: Path, issue_id: str, commit: str, reply_file: Pa
     for command, stdin in steps:
         result = run(command, cwd=bd_root, stdin=stdin)
         if result.returncode != 0:
-            errors.append(f"{' '.join(command[:3])}: {result.stderr.strip()}")
-    return errors
+            return [f"{' '.join(command[:3])}: {result.stderr.strip()}"]
+    return []
 
 
 def main() -> None:
