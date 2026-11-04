@@ -607,9 +607,18 @@ def cmd_conflicts(a: argparse.Namespace) -> dict[str, Any]:
         raise FailError(f"the project has no `task {PRUNE_TASK}`")
     # the task exits non-zero while real conflicts remain: that is the answer, not a failure
     res = _run(cmd=["task", PRUNE_TASK], cwd=project)
+    output = (res.stdout + res.stderr).strip()
+    rej_files = list_rej_files(project)
+    # a crash also exits non-zero, and would leave false positives listed as real conflicts
+    if "Traceback (most recent call last)" in output:
+        raise FailError(f"`task {PRUNE_TASK}` crashed, so the .rej files left may not all be real conflicts:\n{output}")
+    if res.returncode != 0:
+        if not rej_files:
+            raise FailError(f"`task {PRUNE_TASK}` failed with no .rej file left to explain it:\n{output}")
     return {
-        "prune_output": (res.stdout + res.stderr).strip(),
-        "rej_files": list_rej_files(project),
+        "prune_output": output,
+        "prune_returncode": res.returncode,
+        "rej_files": rej_files,
         "conflict_markers": find_conflict_markers(project),
     }
 
