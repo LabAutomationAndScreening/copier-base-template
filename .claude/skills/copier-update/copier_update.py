@@ -189,8 +189,10 @@ def question_names(copier_yaml: str) -> list[str]:
 def _question_info(*, name: str, spec: str) -> dict[str, Any]:
     inline, __, settings = spec.partition("\n")
     if inline:
-        # `name: value` is copier's short form for a question whose default is that value
-        return {"name": name, "spec": inline, "has_default": True}
+        # `name: # ...` is YAML's null with a comment after it, not a default
+        if not inline.startswith("#"):
+            # `name: value` is copier's short form for a question whose default is that value
+            return {"name": name, "spec": inline, "has_default": True}
     settings = textwrap.dedent(settings)
     return {
         "name": name,
