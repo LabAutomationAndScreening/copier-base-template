@@ -1278,14 +1278,38 @@ def _require_every_child(*, repo: str, downstream: list[Path], chain: dict[str, 
         )
 
 
+def _default_to_switch_to(checkout: Path) -> str:
+    """Return the default branch the checkout can move to off the branch being deleted, or refuse before anything is.
+
+    Moving there resets the local default branch to origin's, so a dirty worktree, or a local default branch holding
+    commits origin lacks, refuses here: found only after the remote branch is gone, a rerun could no longer delete it.
+    """
+    dirty = _dirty(checkout)
+    if dirty:
+        raise FailError(f"{checkout} has uncommitted changes; nothing was deleted:\n" + "\n".join(dirty))
+    default = _default_branch(checkout)
+    _ = _git("fetch", "--quiet", "origin", default, cwd=checkout)
+    if _has_ref(checkout=checkout, ref=f"refs/heads/{default}"):
+        unpushed = _git("log", "--oneline", f"origin/{default}..{default}", cwd=checkout).strip()
+        if unpushed:
+            raise FailError(
+                f"{default} in {checkout} has commits not on origin, which moving it to origin/{default} would drop;"
+                f" nothing was deleted:\n{unpushed}"
+            )
+    return default
+
+
 def _delete_branch(*, checkout: Path, branch: str) -> bool:
+    has_local = _has_ref(checkout=checkout, ref=f"refs/heads/{branch}")
+    switch_to = None
+    if has_local:
+        if _git("symbolic-ref", "--short", "HEAD", cwd=checkout).strip() == branch:
+            switch_to = _default_to_switch_to(checkout)
     _ = _git("push", "origin", "--delete", branch, cwd=checkout)
-    if not _has_ref(checkout=checkout, ref=f"refs/heads/{branch}"):
+    if not has_local:
         return False
-    if _git("symbolic-ref", "--short", "HEAD", cwd=checkout).strip() == branch:
-        default = _default_branch(checkout)
-        _ = _git("fetch", "--quiet", "origin", default, cwd=checkout)
-        _ = _git("switch", "-C", default, f"origin/{default}", cwd=checkout)
+    if switch_to is not None:
+        _ = _git("switch", "-C", switch_to, f"origin/{switch_to}", cwd=checkout)
     _ = _git("branch", "-D", branch, cwd=checkout)
     return True
 
