@@ -46,11 +46,12 @@ Stop if:
 
 ### Resume Mode
 
-With `--resume` (e.g. `/address-pr-comments 42 --resume`), uncommitted changes and unpushed commits are leftovers from an earlier run, not a reason to stop. Gather this inventory first:
+With `--resume` (e.g. `/address-pr-comments 42 --resume`), uncommitted changes and unpushed commits may be leftovers from an earlier run, so they aren't a reason to stop. Gather this inventory first:
 
 | Source | Command |
 |--------|---------|
 | Unpushed commits | `git log --oneline @{u}..HEAD` |
+| Uncommitted changes | `git status --short` |
 | Reply drafts | `ls <repo_root>/tmp/pr-reply-*.txt` |
 | In-progress bd issues | `bd list --status in_progress --json` |
 | Unresolved threads | pr-comments' Read, actionable threads |
@@ -61,8 +62,10 @@ Classify each reply draft:
 - **Finalized:** approved but not posted. With a matching unpushed commit it's waiting to be posted; without one it's an orphan, so ask.
 - **Its comment is no longer unresolved:** an orphan (someone resolved it). Ask whether to discard it.
 
-Ask with AskUserQuestion, listing the inventory in the `question` field (the commits, each draft and its class, the bd issues), then "How to proceed?". Options:
-- **Resume all**: Phase 2 for drafts with placeholders, then `push_and_post.py` for the commits and finalized drafts; close the in-progress bd issues; discard orphans after confirming. Start verifiers for replies awaiting a verdict ([Step 4b](#step-4b-verify-replies-to-ai-review-findings)).
+Classify each uncommitted path as a **leftover**, the change a placeholder draft's comment was being given, or **unrelated**, anything else. `commit_for_comment.py` commits a path's whole content, so an unrelated edit in a path a leftover touches would go into that commit too: such a path counts as unrelated.
+
+Ask with AskUserQuestion, listing the inventory in the `question` field (the commits, each uncommitted path and its class, each draft and its class, the bd issues), then "How to proceed?". Options:
+- **Resume all**: Phase 2 for drafts with placeholders, committing only leftover paths (unrelated ones stay uncommitted and are named in the report), then `push_and_post.py` for the commits and finalized drafts; close the in-progress bd issues; discard orphans after confirming. Start verifiers for replies awaiting a verdict ([Step 4b](#step-4b-verify-replies-to-ai-review-findings)).
 - **Cherry-pick**: go through each item, asking keep, drop or re-enter.
 - **Discard drafts, keep commits**: delete only the reply files, then start Phase 1 fresh.
 - **Abort**: change nothing.
@@ -150,8 +153,8 @@ For each comment:
 Phase 2 drains the queue: once at the end of Phase 1, or at each "Flush queue now". Within a batch, in this order:
 
 1. **For each queued code change:**
-   - **Plan it.** Invoke the `Skill` tool with `skill: "create-issues"`, passing the comment and the agreed change as `args`, and follow it to create the bd issue (why, design, Given/When/Then acceptance criteria). Mark the issue in progress and export bd. Skip this for a trivial change, one with no design to record and no behaviour to assert (a code comment, a TODO, a one-line docs fix): it gets no bd issue, and is made directly.
-   - **Make the change.**
+   - **Plan it** (not with `--checkout`; see [Another repo's checkout](#another-repos-checkout)). Invoke the `Skill` tool with `skill: "create-issues"`, passing the comment and the agreed change as `args`, and follow it to create the bd issue (why, design, Given/When/Then acceptance criteria). Mark the issue in progress and export bd. Skip this for a trivial change, one with no design to record and no behaviour to assert (a code comment, a TODO, a one-line docs fix): it gets no bd issue, and is made directly.
+   - **Make the change.** With `--checkout`, make it and check it as [Another repo's checkout](#another-repos-checkout) says, in place of the three cases below.
      - **No behaviour to assert** (docs, markdown, comments, config, unharnessed shell scripts): make it directly. Don't invoke `red`, `green` or `refactor`, and don't invent a test for it.
      - **Tests only**: skip `red`, `green` and `refactor`, since there's no failing test to drive, but check the tests. A new or tightened test of behaviour that already works must be shown to fail: temporarily break the code it guards, see it fail for the right reason, then restore the code exactly. `git diff` must show only the test change. For a test refactor, the tests you touched must pass.
      - **Testable code**: work in cycles of `red`, then `green`, then `refactor`, each a real `Skill` tool call with the bd issue ID and the acceptance criterion as `args`, until every criterion is met. Those skills carry this project's own rules, so writing a test or an implementation without the `Skill` call for that phase breaks the workflow.
