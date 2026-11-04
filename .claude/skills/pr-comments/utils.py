@@ -384,11 +384,13 @@ def pr_commit_link(*, owner: str, repo: str, pr: int, commit: str) -> str:
 
 # Markdown code: a fenced block, opened by a line starting with 3+ backticks or tildes (a backtick fence's info string
 # holds no backtick) and closed by a line of at least as many of the same character (or running to the end, as GitHub
-# renders an unclosed fence), or an inline code span opened and closed by whole backtick runs of the same length.
+# renders an unclosed fence), or an inline code span opened and closed by whole backtick runs of the same length. A
+# backslash-escaped backtick is literal text and opens no span; one closes a span, since backslashes inside code are
+# literal too.
 _CODE_RE = re.compile(
     r"^ {0,3}(?P<fence>(?P<fence_char>[`~])(?P=fence_char){2,})(?:(?<=`)[^`\n]*|(?<=~)[^\n]*)$"
     r"(?:\n.*?^ {0,3}(?P=fence)(?P=fence_char)*[ \t]*$|.*\Z)"
-    r"|(?<!`)(?P<ticks>`+)(?!`).+?(?<!`)(?P=ticks)(?!`)",
+    r"|(?<![`\\])(?P<ticks>`+)(?!`).+?(?<!`)(?P=ticks)(?!`)",
     re.DOTALL | re.MULTILINE,
 )
 # A reviewer's block of instructions written for AI agents: CodeRabbit wraps it in these markers, and its older
