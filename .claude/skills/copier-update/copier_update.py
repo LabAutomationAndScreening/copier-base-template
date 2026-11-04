@@ -468,7 +468,7 @@ def task_copier_command(*, project: Path, task_name: str, task_vars: list[str]) 
 
 
 def unanswerable_questions(
-    *, answers: dict[str, Any], ref: str, data: dict[str, str], a: argparse.Namespace
+    *, answers: dict[str, Any], ref: str, answered: set[str], a: argparse.Namespace
 ) -> list[str]:
     mirror = template_mirror(
         src_path=answers["_src_path"], cache_dir=a.cache_dir, stored_gh_credentials=a.stored_gh_credentials
@@ -485,7 +485,7 @@ def unanswerable_questions(
     for question in diff["new"]:
         if question["has_default"]:
             continue
-        if question["name"] in data:
+        if question["name"] in answered:
             continue
         missing.append(question["name"])
     return missing
@@ -528,9 +528,15 @@ def cmd_update(a: argparse.Namespace) -> dict[str, Any]:
             f"the project has no `task {task_name}`; this skill only updates through the project's own task"
         )
     data = _parse_data(a.data)
-    missing = unanswerable_questions(answers=answers, ref=target_ref, data=data, a=a)
+    answered = set(data)
+    if a.data_file is not None:
+        # only the keys: the values stay in the file, which copier reads from the project directory
+        answered |= set(_top_level_values((project / a.data_file).read_text()))
+    missing = unanswerable_questions(answers=answers, ref=target_ref, answered=answered, a=a)
     if missing:
-        raise FailError(f"new template questions with no default need an answer via --data: {', '.join(missing)}")
+        raise FailError(
+            f"new template questions with no default need an answer via --data or --data-file: {', '.join(missing)}"
+        )
     cmd = update_command(project=project, task_name=task_name, task_vars=task_vars, data=data, data_file=a.data_file)
     res = _run(cmd=cmd, cwd=project, stored_gh_credentials=a.stored_gh_credentials)
     _, new_answers = read_answers(project=project, answers_file=answers_file)
