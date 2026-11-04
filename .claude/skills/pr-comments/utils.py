@@ -20,11 +20,12 @@ _AI_REVIEW_FINDING_RE = re.compile(
 )
 
 # GitHub has no threading for top-level PR comments, so a reply to one is a new top-level comment carrying this hidden
-# marker, which lets read.py treat the original as addressed. post.py writes it.
-_ISSUE_COMMENT_REPLY_RE = re.compile(r"<!-- reply-to-issue-comment id=(?P<id>\d+) -->")
-# A review's own body has no thread either, so a reply to it is a top-level comment carrying this marker, by the same
+# marker, which lets read.py treat the original as addressed. post.py writes it as the body's last line, and only a
+# marker there counts: one quoted earlier in a comment, such as a reply explaining the markers, answers nothing.
+_ISSUE_COMMENT_REPLY_RE = re.compile(r"<!-- reply-to-issue-comment id=(?P<id>\d+) -->\s*\Z")
+# A review's own body has no thread either, so a reply to it is a top-level comment ending in this marker, by the same
 # logic.
-_REVIEW_REPLY_RE = re.compile(r"<!-- reply-to-review id=(?P<id>\d+) -->")
+_REVIEW_REPLY_RE = re.compile(r"<!-- reply-to-review id=(?P<id>\d+) -->\s*\Z")
 
 # An independent verifier posts its verdict on a reply to an AI review finding under the same account as the reply,
 # so this hidden marker is how read.py tells a verdict apart from the reply it judges: a disagreement reopens the
