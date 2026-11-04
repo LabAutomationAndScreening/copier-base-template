@@ -832,6 +832,44 @@ def _object_errors(*, value: object, spec: dict[str, Any], path: str) -> list[st
                 errors.append(f"{path}/{key}: must be true or false, not {field_value!r}")
         if field.get("type") == "object" and "properties" in field:
             errors += _object_errors(value=field_value, spec=field, path=f"{path}/{key}")
+    return errors + _conditional_errors(value=value, spec=spec, path=path)
+
+
+def _condition_holds(*, value: dict[str, Any], condition: dict[str, Any]) -> bool:
+    for key in condition.get("required", []):
+        if key not in value:
+            return False
+    for key, constraint in condition.get("properties", {}).items():
+        if key not in value:
+            continue
+        if "const" in constraint:
+            if value[key] != constraint["const"]:
+                return False
+        if "enum" in constraint:
+            if value[key] not in constraint["enum"]:
+                return False
+    return True
+
+
+def _conditional_errors(*, value: dict[str, Any], spec: dict[str, Any], path: str) -> list[str]:
+    """Check an object against its schema's `allOf` if/then rules, such as an unfinished resolution's needs_review.
+
+    Only the keywords those rules use are understood: `required`, and `const` or `enum` on a property.
+    """
+    errors: list[str] = []
+    for rule in spec.get("allOf", []):
+        if not _condition_holds(value=value, condition=rule["if"]):
+            continue
+        then: dict[str, Any] = rule["then"]
+        errors += [
+            f"{path}: missing {key!r}; {rule['description']}" for key in then.get("required", []) if key not in value
+        ]
+        for key, constraint in then.get("properties", {}).items():
+            if key not in value:
+                continue
+            if "const" in constraint:
+                if value[key] != constraint["const"]:
+                    errors.append(f"{path}/{key}: must be {json.dumps(constraint['const'])}; {rule['description']}")
     return errors
 
 
