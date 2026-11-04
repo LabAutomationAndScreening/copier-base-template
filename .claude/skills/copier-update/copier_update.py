@@ -826,6 +826,10 @@ def _object_errors(*, value: object, spec: dict[str, Any], path: str) -> list[st
         field: dict[str, Any] = properties.get(key, {})
         if "enum" in field and field_value not in field["enum"]:
             errors.append(f"{path}/{key}: {field_value!r} is not one of {', '.join(map(str, field['enum']))}")
+        # the report reads these for truthiness, where the string "false" counts as true
+        if field.get("type") == "boolean":
+            if not isinstance(field_value, bool):
+                errors.append(f"{path}/{key}: must be true or false, not {field_value!r}")
         if field.get("type") == "object" and "properties" in field:
             errors += _object_errors(value=field_value, spec=field, path=f"{path}/{key}")
     return errors
