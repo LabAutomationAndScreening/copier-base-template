@@ -455,6 +455,22 @@ def fill_commit_link_placeholders(content: str, *, link: str) -> str:
     return "".join(filled)
 
 
+def _without_review_footer(body: str) -> str:
+    """Return the body up to its review footer, or all of it when it has none.
+
+    The footer is searched for in prose only: a finding that quotes the footer's markup in a code span or fenced block
+    is talking about it, and the text after the quote is still the finding's.
+    """
+    offset = 0
+    for text, is_code in split_code(body):
+        if not is_code:
+            footer = _REVIEW_FOOTER_RE.search(text)
+            if footer is not None:
+                return body[: offset + footer.start()]
+        offset += len(text)
+    return body
+
+
 def strip_markup(body: str) -> str:
     """Return a comment body as readable text: its Markdown with the reviewer's machinery removed.
 
@@ -464,10 +480,7 @@ def strip_markup(body: str) -> str:
     HTML tags (the text inside a <details> or <summary> stays). Runs of blank lines left behind, quoted or not,
     collapse to one.
     """
-    footer = _REVIEW_FOOTER_RE.search(body)
-    if footer is not None:
-        body = body[: footer.start()]
-    body = _ANALYSIS_CHAIN_RE.sub("", _AI_AGENT_PROMPT_RE.sub("", body))
+    body = _ANALYSIS_CHAIN_RE.sub("", _AI_AGENT_PROMPT_RE.sub("", _without_review_footer(body)))
     stripped: list[str] = []
     for text, is_code in split_code(body):
         if is_code:
