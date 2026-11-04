@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     rej_files = [path for path in _status_paths(repo_root=repo_root) if path.endswith(".rej")]
 
-    deleted = 0
+    deleted: list[str] = []
     for rej in rej_files:
         source = rej.removesuffix(".rej")
         status = subprocess.check_output(  # noqa: S603 # untrusted input is not a big risk, it's our own repo and this is a manually invoked script
@@ -54,13 +54,17 @@ if __name__ == "__main__":
         ).strip()
         if not status:
             (repo_root / rej).unlink()
-            deleted += 1
+            deleted.append(rej)
 
     remaining = [path for path in _status_paths(repo_root=repo_root) if path.endswith(".rej")]
 
     print(  # noqa: T201 # we want the script to print to console for easy viewing
-        f"Deleted {deleted} .rej file(s)."
+        f"Deleted {len(deleted)} .rej file(s)."
     )
+    for f in deleted:
+        print(  # noqa: T201 # we want the script to print to console for easy viewing
+            f"  {f}"
+        )
     if remaining:
         print(  # noqa: T201 # we want the script to print to console for easy viewing
             "Remaining .rej conflicts:"
