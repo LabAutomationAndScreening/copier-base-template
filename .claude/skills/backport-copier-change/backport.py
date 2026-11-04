@@ -63,11 +63,12 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
   delete-branch --repo R --branch B --checkout DIR --chain F --downstream DIR ...
                                     delete a template repo's merged branch, on GitHub and locally,
                                     once every repo generated from it records no commit only it holds
-  update-branch --checkout DIR --branch B [--finish]
+  update-branch --checkout DIR --branch B --chain F [--finish]
                                     merge the default branch into the feature branch when it is
                                     checked out there and clean, and push; on a conflict, leave
                                     the merge for the agent to resolve, then --finish commits
-                                    and pushes once nothing is unmerged or marked
+                                    and pushes once nothing is unmerged or marked; for a public
+                                    repo, first refuse as push does
   cleanup --worktree DIR            remove a clean, fully pushed worktree
 
 No verb opens, marks ready or merges a PR. Whether an agent may do those is decided by the permission
@@ -564,9 +565,9 @@ def _added_text(*, checkout: Path, sha: str) -> str:
     return "\n".join(added)
 
 
-def _leaking_commits(*, checkout: Path, since: str, repo: str, chain: dict[str, Any]) -> list[str]:
+def _leaking_commits(*, checkout: Path, pushed: list[str], repo: str, chain: dict[str, Any]) -> list[str]:
     leaks: list[str] = []
-    for sha in _git("rev-list", f"{since}..HEAD", cwd=checkout).split():
+    for sha in _git("rev-list", "HEAD", *[f"^{ref}" for ref in pushed], cwd=checkout).split():
         in_message = scan_text(text=_git("log", "-1", "--format=%B", sha, cwd=checkout), repo=repo, chain=chain)
         in_changes = scan_text(text=_added_text(checkout=checkout, sha=sha), repo=repo, chain=chain)
         if in_message:
@@ -576,23 +577,35 @@ def _leaking_commits(*, checkout: Path, since: str, repo: str, chain: dict[str, 
     return leaks
 
 
-def cmd_push(a: argparse.Namespace) -> dict[str, Any]:
-    checkout = Path(a.checkout)
-    branch = _git("symbolic-ref", "--short", "HEAD", cwd=checkout).strip()
-    default = _default_branch(checkout)
-    if branch == default:
-        raise FailError(f"refusing to push the default branch {branch}")
-    since = f"origin/{default}"
+def _require_no_leaks(*, checkout: Path, branch: str, default: str, chain_file: str) -> None:
+    """Refuse a push of `branch` that would publish a private repo's name.
+
+    Only what the push adds is scanned: the commits on HEAD that neither origin's default branch nor origin's copy of
+    `branch` holds. After a merge of the default branch, that is the branch's unpushed commits and the merge commit
+    itself, not the default branch's own history.
+    """
+    pushed = [f"origin/{default}"]
     if _has_ref(checkout=checkout, ref=f"refs/remotes/origin/{branch}"):
-        since = f"origin/{branch}"
+        pushed.append(f"origin/{branch}")
     repo = _repo_slug(_git("remote", "get-url", "origin", cwd=checkout).strip())
-    leaks = _leaking_commits(checkout=checkout, since=since, repo=repo, chain=json.loads(Path(a.chain).read_text()))
+    leaks = _leaking_commits(
+        checkout=checkout, pushed=pushed, repo=repo, chain=json.loads(Path(chain_file).read_text())
+    )
     if leaks:
         raise FailError(
             f"{repo} is public and these unpushed commits name a private repo in their message or changes; nothing was "
             "pushed. Reword or edit them (they are not on GitHub yet, so rewriting them is safe), then push again:\n"
             + "\n".join(leaks)
         )
+
+
+def cmd_push(a: argparse.Namespace) -> dict[str, Any]:
+    checkout = Path(a.checkout)
+    branch = _git("symbolic-ref", "--short", "HEAD", cwd=checkout).strip()
+    default = _default_branch(checkout)
+    if branch == default:
+        raise FailError(f"refusing to push the default branch {branch}")
+    _require_no_leaks(checkout=checkout, branch=branch, default=default, chain_file=a.chain)
     _ = _git("push", "-u", "origin", branch, cwd=checkout)
     return {"branch": branch, "sha": _git("rev-parse", "HEAD", cwd=checkout).strip()}
 
@@ -1371,6 +1384,7 @@ def cmd_update_branch(a: argparse.Namespace) -> dict[str, Any]:
                 ),
                 "next": "resolve each file, show the user the resolution, and after their approval rerun with --finish",
             }
+    _require_no_leaks(checkout=checkout, branch=a.branch, default=default, chain_file=a.chain)
     _ = _git("push", "origin", a.branch, cwd=checkout)
     return {
         "branch": a.branch,
@@ -1474,6 +1488,9 @@ def _add_checkout_verbs(add: AddVerb) -> None:
     ub = add("update-branch")
     ub.add_argument("--checkout", required=True, help="the checkout that has the feature branch")
     ub.add_argument("--branch", required=True)
+    ub.add_argument(
+        "--chain", required=True, help="the chain file, to check commit messages and changes for a public repo"
+    )
     ub.add_argument("--finish", action="store_true", help="commit and push a merge whose conflicts are resolved")
     ub.add_argument(
         "--allow-unpushed", action="store_true", help="push commits that were not on GitHub yet; only after asking"

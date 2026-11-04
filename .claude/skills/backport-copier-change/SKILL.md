@@ -46,7 +46,7 @@ $BP ai-review --repo R --pr N --checkout P        # every configured AI reviewer
 $BP merge-command --repo R --pr N --checkout P   # refuses while the branch is behind its base; else the commands that mark the PR ready and merge it, in order
 $BP tag --repo R --pr N              # wait for the merge, then for the tag on the merge commit
 $BP delete-branch --repo R --branch B --checkout P --chain F --downstream D1 --downstream D2   # once every child is re-pinned; one --downstream per child
-$BP update-branch --checkout P --branch B [--finish]   # merge the default branch in and push; conflicts list each file's branch commits, --finish stages the resolved files
+$BP update-branch --checkout P --branch B --chain <chain.json> [--finish]   # merge the default branch in and push; conflicts list each file's branch commits, --finish stages the resolved files
 $BP cleanup --worktree P             # remove a clean, fully pushed worktree
 ```
 
@@ -224,8 +224,8 @@ For each next repo in the chain file's order, each pulling its own parent templa
    commit, so the change's pull commit carries only the change. When `latest_tag_lacks_pin`
    is true, the parent released a tag after this repo pinned its branch, and an update to
    that tag would drop the change: propose merging the parent's default branch into its
-   branch instead (`update-branch` on the parent's checkout), then `ci`, and pull that head
-   here with `--ref`.
+   branch instead (`update-branch` on the parent's checkout, with `--chain`), then `ci`, and
+   pull that head here with `--ref`.
 2. Pull the change: copier-update with `--ref <sha from the parent's push>`, one pull for all
    of the parent's commits. Every upstream commit is pulled, even one that renders no file
    differently here: `net-diff` then shows `only_commit_changed`, which is the proof it renders
@@ -325,9 +325,9 @@ top, one level at a time:
    every open thread, since a reviewer may have written since the last look and a merge never
    starts over an unread finding, and refresh the description (Step 6.1). Then
    `$BP merge-command --repo R --pr N --checkout <checkout>`: while the branch is behind its
-   base it refuses, so run `update-branch` on the checkout, `ci` on the new head, and the
-   pre-merge check again. Run its `commands` in order, each as its own command, and
-   start `$BP tag --repo R --pr N` in the background: it confirms the merge, then waits for
+   base it refuses, so run `update-branch` on the checkout (with `--chain`), `ci` on the new
+   head, and the pre-merge check again. Run its `commands` in order, each as its own command,
+   and start `$BP tag --repo R --pr N` in the background: it confirms the merge, then waits for
    the tag. Pass `--merge-only` for a repo with no tag-on-merge workflow (often a project).
 2. **Re-pin its children** as soon as a repo's tag lands: copier-update with no `--ref`, then
    `net-diff`. `only_commit_changed` must be true; if not, stop and show the user what else
@@ -343,10 +343,10 @@ top, one level at a time:
 
 After its PR merges:
 
-1. `$BP update-branch --checkout <origin checkout> --branch <feature branch>` merges the
-   default branch into the feature branch and pushes. When it refuses or reports `conflicts`,
-   its output says what to do; pass `--allow-unpushed` only if the user says the unpushed
-   commits belong on the branch. Expect a conflict on every file this backport copied up:
+1. `$BP update-branch --checkout <origin checkout> --branch <feature branch> --chain <chain.json>`
+   merges the default branch into the feature branch and pushes. When it refuses or reports
+   `conflicts`, its output says what to do; pass `--allow-unpushed` only if the user says the
+   unpushed commits belong on the branch. Expect a conflict on every file this backport copied up:
    main's copy, pulled down the chain, carries the copier banner and the branch's doesn't (an
    add/add conflict for a new file). For each conflicted file, `branch_commits` lists the feature
    branch's own commits that touched it: if any came after the backport copied the file, take
