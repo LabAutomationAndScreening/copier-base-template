@@ -22,7 +22,7 @@ tasks:
     cmds:
       - copier update --answers-file .config/.copier-answers.yml --trust --conflict rej --defaults {{.REF_FLAG}}
       - |
-        echo "Reviewers should be able to skim the update commit and study the fixes. So one commit holds copier's output, the resolved .rej conflicts and every mechanical fix: lock files, formatting, the devcontainer hash (--no-verify if hooks still fail). Each hand-made fix for a remaining hook failure goes in a later commit."
+        echo "Reviewers should be able to skim the update commit and study the fixes. So one commit holds copier's output, the resolved .rej conflicts and every mechanical fix: lock files, formatting, the devcontainer hash. A hook that still fails is skipped by name with SKIP=<hook id>, and the commit message names it and the later fix; never --no-verify. Each hand-made fix for a remaining hook failure goes in a later commit."
 
   prune-copier-rejects:
     desc: Delete .rej files whose target file is unchanged, failing if any real conflict is left to resolve
