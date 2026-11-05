@@ -242,9 +242,11 @@ For each next repo in the chain file's order, each pulling its own parent templa
    minor for a reviewer.
 3. `$BP net-diff --checkout <checkout> --base <the noted sha>`, since copier-update has
    committed the pull. `changed` should be exactly the upstream change, as it renders here,
-   plus the answers file; stop and show the user anything else. A file in `removed_lines` that
-   the upstream change doesn't remove lines from was overwritten by copier: restore the repo's
-   own lines, as a commit of its own. Until this repo's PR is open, copy the pull's report
+   plus the answers file; stop and show the user anything else. For every file in
+   `removed_lines`, compare its removed lines (`git -C <checkout> diff <the noted sha> -- <file>`)
+   with the ones the upstream change itself removes: any other removed line was overwritten by
+   copier, even in a file the upstream change also removes lines from. Restore those repo lines,
+   as a commit of its own. Until this repo's PR is open, copy the pull's report
    (`<checkout>/tmp/copier-update-report-*.json`) to `<origin>/tmp/backport-reports/<name>/`
    and name it in this repo's bd note: the checkout's `tmp/` goes with the scratchpad, and the
    originating repo's doesn't.
