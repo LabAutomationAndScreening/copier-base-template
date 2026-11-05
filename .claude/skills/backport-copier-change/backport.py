@@ -68,7 +68,8 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
                                     PR's state: waiting, quiet, held (with until) or needs_action
   status --chain F --branch B       a snapshot of every chain PR, waiting on nothing: its head, CI
                                     checks passed, pending and failed, each AI reviewer's check, and
-                                    how many threads are open, for a status message to quote
+                                    what awaits an answer (inline threads, top-level comments and
+                                    review bodies), for a status message to quote
   merge-command --repo R --pr N --checkout DIR
                                     refuse while the PR's branch is behind its base; else the
                                     commands that mark the draft ready and merge it the way the
@@ -1432,7 +1433,11 @@ def _pr_status(*, repo: str, pr: str) -> dict[str, Any]:
             continue
         checks[_check_state(check)].append(name)
     read = Path(__file__).resolve().parent.parent / "pr-comments" / "read.py"
-    open_threads = len(json.loads(_run(cmd=[str(read), pr, "--repo", repo])))
+    # read.py's default output is everything that awaits an answer: inline threads, top-level comments, review bodies
+    kinds = {"pulls/comments": "threads", "issues/comments": "top_level_comments", "pulls/reviews": "review_bodies"}
+    to_answer = dict.fromkeys(kinds.values(), 0)
+    for entry in json.loads(_run(cmd=[str(read), pr, "--repo", repo])):
+        to_answer[kinds[entry["type"]]] += 1
     return {
         "pr": pr,
         "url": view["url"],
@@ -1441,7 +1446,7 @@ def _pr_status(*, repo: str, pr: str) -> dict[str, Any]:
         "head": view["headRefOid"],
         "checks": {"passed": len(checks["passed"]), "pending": checks["pending"], "failed": checks["failed"]},
         "reviewer_checks": reviewers,
-        "open_threads": open_threads,
+        "to_answer": to_answer,
     }
 
 

@@ -44,7 +44,7 @@ $BP pr-command --checkout P --chain <chain.json> --title T --body-file B   # sca
 $BP pr-body --checkout P --chain <chain.json> --pr N --body-file B   # merge in others' edits, then the edit command
 $BP ai-review --repo R --pr N --checkout P        # every configured AI reviewer's verdict on the PR head
 $BP review-watch --chain F --branch B --checkouts DIR [--settled SHA ...]   # every chain PR's reviews; stops at the first one needing you
-$BP status --chain F --branch B      # snapshot of every chain PR: head, CI, reviewer checks, open threads
+$BP status --chain F --branch B      # snapshot of every chain PR: head, CI, reviewer checks, what awaits an answer
 $BP merge-command --repo R --pr N --checkout P   # refuses while the branch is behind its base; else the commands that mark the PR ready and merge it, in order
 $BP tag --repo R --pr N              # wait for the merge, then for the tag on the merge commit
 $BP delete-branch --repo R --branch B --checkout P --chain F --downstream D1 --downstream D2   # once every child is re-pinned; one --downstream per child
