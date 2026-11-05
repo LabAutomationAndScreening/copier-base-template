@@ -67,15 +67,18 @@ def classify(*, reviews: list[str], comments: list[str], head: str) -> dict[str,
 
 
 def _clean_details(*, text: str, current_reviews: list[str]) -> dict[str, Any] | None:
-    # None unless the text says the review found nothing; else what the clean verdict should add
-    if _CLEAN in text:
-        return {}
-    if _ACTIONABLE.search(text):
-        return {}
+    # None unless the text says the review found nothing; else what the clean verdict should add. A review of the head
+    # that found nothing in the code still lists the PR-wide pre-merge checks that failed, whichever way it says clean
     failed_checks = _failed_pre_merge_checks("\n".join(current_reviews))
+    details: dict[str, Any] = {}
     if failed_checks:
-        # a review of the head that found nothing in the code still lists the PR-wide pre-merge checks that failed
-        return {"failed_pre_merge_checks": failed_checks}
+        details["failed_pre_merge_checks"] = failed_checks
+    if _CLEAN in text:
+        return details
+    if _ACTIONABLE.search(text):
+        return details
+    if failed_checks:
+        return details
     return None
 
 
