@@ -491,6 +491,17 @@ def task_copier_command(*, project: Path, task_name: str, task_vars: list[str]) 
     raise FailError(f"`task --dry {task_name}` printed no `copier update` line:\n{output.strip()}")
 
 
+def _copier_answers_file(command: list[str]) -> str:
+    for index, arg in enumerate(command):
+        if arg == "--answers-file":
+            return command[index + 1]
+        if arg == "-a":
+            return command[index + 1]
+        if arg.startswith("--answers-file="):
+            return arg.removeprefix("--answers-file=")
+    return ".copier-answers.yml"
+
+
 def unanswerable_questions(
     *, answers: dict[str, Any], ref: str, answered: set[str], a: argparse.Namespace
 ) -> list[str]:
@@ -554,6 +565,15 @@ def cmd_update(a: argparse.Namespace) -> dict[str, Any]:
     if task_name not in tasks:
         raise FailError(
             f"the project has no `task {task_name}`; this skill only updates through the project's own task"
+        )
+    task_answers_file = _copier_answers_file(
+        task_copier_command(project=project, task_name=task_name, task_vars=task_vars)
+    )
+    if Path(task_answers_file) != Path(answers_file):
+        # the task would update another template's instance while this checks and reports the selected one
+        raise FailError(
+            f"`task {task_name}` updates {task_answers_file}, not the selected {answers_file}; "
+            "this skill only updates the instance the project's own task updates"
         )
     data = _parse_data(a.data)
     answered = set(data)
