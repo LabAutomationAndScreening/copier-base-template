@@ -135,7 +135,7 @@ For each finding with `changed_since_review: true`, check whether the current co
 ## Step 6: Get approval
 
 Tell the user the absolute path of `<preview_file>`. Then ask with AskUserQuestion. The `question` field holds:
-- the PR number, `anchor_commit` and `pr_head`;
+- the PR number, `anchor_commit`, `pr_head` and `pr_base`;
 - a table of each finding's ID, placement and location;
 - the findings that look already fixed, with your evidence;
 - the relations you added that the report did not state;
@@ -149,13 +149,13 @@ Options:
 ## Step 7: Post
 
 ```bash
-.claude/skills/post-review-findings/post_review.py post --findings-file <findings_file> --head <pr_head>
+.claude/skills/post-review-findings/post_review.py post --findings-file <findings_file> --head <pr_head> --base <pr_base>
 ```
 
-`<pr_head>` is the one the approved question showed.
+`<pr_head>` and `<pr_base>` are the ones the approved question showed.
 
 The script:
-1. Re-runs the plan and refuses if anything blocks posting, or if the PR head is no longer `--head`.
+1. Re-runs the plan and refuses if anything blocks posting, or if the PR head or base is no longer `--head` or `--base`.
 2. Creates a pending review on `anchor_commit`, so nothing is visible and no notifications go out.
 3. Adds each finding as a thread, then posts `pr_comment` findings as top-level comments.
 4. Fills in the links between related findings now that their URLs exist.
@@ -176,7 +176,7 @@ When it reports an error:
 1. Show the user the script's output verbatim.
 2. Find what is actually on the PR by reading its threads with the **pr-comments** skill (Skill tool), as its Read section says. Each posted finding has its `ai_review.finding_id`.
 3. If some findings are on the PR and some aren't, run `plan --findings-file <findings_file> --resume --preview <preview_file>`. It skips findings already on the PR (`already_posted`) and lists the earlier comments it will edit to link the new ones (`will_edit_posted_findings`; GitHub marks those edited).
-4. Get approval as in [Step 6](#step-6-get-approval), then run `post --findings-file <findings_file> --head <pr_head> --resume`.
+4. Get approval as in [Step 6](#step-6-get-approval), then run `post --findings-file <findings_file> --head <pr_head> --base <pr_base> --resume`.
 
 Do not write your own repair script or call `gh api` directly. `gh api` is not allowed for agents, and the script's checks (pending reviews, ID collisions, links in both directions) would be skipped.
 
