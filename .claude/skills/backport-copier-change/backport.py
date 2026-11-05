@@ -1310,10 +1310,22 @@ def _default_to_switch_to(checkout: Path) -> str:
     return default
 
 
+def _require_branch_pushed(*, checkout: Path, branch: str) -> None:
+    if not _has_ref(checkout=checkout, ref=f"refs/remotes/origin/{branch}"):
+        return
+    unpushed = _git("log", "--oneline", f"origin/{branch}..{branch}", cwd=checkout).strip()
+    if unpushed:
+        raise FailError(
+            f"{branch} in {checkout} has commits not on origin, which deleting it would drop; nothing was deleted:\n"
+            f"{unpushed}"
+        )
+
+
 def _delete_branch(*, checkout: Path, branch: str) -> bool:
     has_local = _has_ref(checkout=checkout, ref=f"refs/heads/{branch}")
     switch_to = None
     if has_local:
+        _require_branch_pushed(checkout=checkout, branch=branch)
         if _git("symbolic-ref", "--short", "HEAD", cwd=checkout).strip() == branch:
             switch_to = _default_to_switch_to(checkout)
     _ = _git("push", "origin", "--delete", branch, cwd=checkout)
