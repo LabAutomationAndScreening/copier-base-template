@@ -1039,12 +1039,14 @@ def _pr_review_state(*, repo: str, pr: str, reviewers: list[ModuleType]) -> dict
 def _head_checks(*, repo: str, head: str, reviewers: list[ModuleType]) -> dict[str, dict[str, str] | None]:
     """Find each reviewer's newest check run on the head commit, or None for a reviewer that has none there.
 
-    A reviewer asked to review the same commit again starts another run, and the newest is its current state. The
-    check's own title and summary go to the agent as they are, so no wording of them is matched here.
+    A reviewer asked to review the same commit again starts another run, and the newest is its current state. Runs
+    are ordered by id, which GitHub assigns increasing when it creates a run: a queued run has no started_at yet, and
+    ordering by that would put an older finished run ahead of it. The check's own title and summary go to the agent as
+    they are, so no wording of them is matched here.
     """
     runs = _gh_json("api", "--paginate", "--slurp", f"repos/{repo}/commits/{head}/check-runs")
     checks: dict[str, dict[str, str] | None] = {r.NAME: None for r in reviewers}
-    for run in sorted((r for page in runs for r in page["check_runs"]), key=lambda r: r.get("started_at") or ""):
+    for run in sorted((r for page in runs for r in page["check_runs"]), key=lambda r: r["id"]):
         for reviewer in reviewers:
             if run["name"] != reviewer.CHECK_NAME:
                 continue
