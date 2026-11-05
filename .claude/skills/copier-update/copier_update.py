@@ -422,7 +422,7 @@ def cmd_refs(a: argparse.Namespace) -> dict[str, Any]:
     ).splitlines():
         name, sha, date, subject = line.split("\0", 3)
         branches[name] = {"name": name, "sha": sha, "date": date, "subject": subject}
-    tags = _git("tag", "--sort=-v:refname", cwd=mirror).split()
+    tags = release_tags(mirror)
     latest_tag = None
     if tags:
         latest_tag = {"name": tags[0], "sha": _git("rev-parse", "--short", f"{tags[0]}^{{commit}}", cwd=mirror).strip()}
@@ -530,11 +530,29 @@ def unanswerable_questions(
     return missing
 
 
+_RELEASE_TAG = re.compile(r"^v?\d+(\.\d+)*$")
+
+
+def release_tags(mirror: Path) -> list[str]:
+    """List the template's release tags, newest first: the ones copier picks its default target from.
+
+    Copier updates to the newest PEP 440 release and skips prereleases, while `git tag --sort=-v:refname` puts
+    `v1.2.0-rc1` ahead of `v1.2.0`, sorts tags such as `latest` in with the versions, and ranks every `v` tag apart
+    from the unprefixed ones. So this keeps the release-shaped tags and orders them by their numbers.
+    """
+    tags: list[str] = []
+    for tag in _git("tag", cwd=mirror).split():
+        if _RELEASE_TAG.match(tag) is None:
+            continue
+        tags.append(tag)
+    return sorted(tags, key=lambda tag: tuple(int(part) for part in tag.removeprefix("v").split(".")), reverse=True)
+
+
 def latest_tag(*, answers: dict[str, Any], a: argparse.Namespace) -> str:
     mirror = template_mirror(
         src_path=answers["_src_path"], cache_dir=a.cache_dir, stored_gh_credentials=a.stored_gh_credentials
     )
-    tags = _git("tag", "--sort=-v:refname", cwd=mirror).split()
+    tags = release_tags(mirror)
     if not tags:
         raise FailError("the template has no tags; pass --ref")
     return tags[0]
