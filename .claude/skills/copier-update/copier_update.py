@@ -962,8 +962,9 @@ def validate_report(report: object) -> list[str]:
 
 
 def render_report_html(report: dict[str, Any]) -> str:
-    # the JSON sits inside a <script> block, so "</" must not appear literally
-    payload = json.dumps(report, ensure_ascii=False).replace("</", "<\\/")
+    # the JSON sits inside a <script> block, where "</" ends it and "<!--" followed by "<script" keeps it from ending
+    # at all, so no "<" appears literally; JSON reads < back as "<"
+    payload = json.dumps(report, ensure_ascii=False).replace("<", "\\u003c")
     return VIEWER_PATH.read_text().replace("__REPORT_JSON__", payload)
 
 
