@@ -19,11 +19,13 @@ cost, performance, and known gaps or risks the change leaves. The intended outco
 
 ## How do we know this works?
 
-<!-- For each part of the change, say which kind of verification pins it (unit, E2E, snapshot, manual in the app,
-physical device, deployed and checked live) and what it establishes, whether a test was seen to fail with the code
-broken or the fix reverted (and how it was broken), and any part nothing covers. Describe what the tests prove, never
-that they ran: CI runs every suite a change can affect. Re-running a suite only counts somewhere CI can't (a Raspberry
-Pi, a lab PC). Don't list test names from the diff. -->
+<!-- Don't report that anything ran or passed: no CI status (green, failed, queued), hook results, test counts,
+"ran it locally", or another repo's CI. CI shows all of that on the PR. The one exception is a run somewhere CI can't
+reach (a Raspberry Pi, a lab PC).
+
+For each part of the change, say which kind of verification pins it (unit, E2E, snapshot, manual in the app, physical
+device, deployed and checked live) and what it establishes, whether a test was seen to fail with the code broken or
+the fix reverted (and how it was broken), and any part nothing covers. Don't list test names from the diff. -->
 
 
 ## Incidental changes and reviewer notes
