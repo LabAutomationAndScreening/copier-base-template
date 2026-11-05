@@ -835,6 +835,21 @@ def _object_errors(*, value: object, spec: dict[str, Any], path: str) -> list[st
     return errors + _conditional_errors(value=value, spec=spec, path=path)
 
 
+def _property_holds(*, field_value: object, constraint: dict[str, Any]) -> bool:
+    if "const" in constraint:
+        if field_value != constraint["const"]:
+            return False
+    if "enum" in constraint:
+        if field_value not in constraint["enum"]:
+            return False
+    if "properties" in constraint:
+        if not isinstance(field_value, dict):
+            return False
+        if not _condition_holds(value=field_value, condition=constraint):
+            return False
+    return True
+
+
 def _condition_holds(*, value: dict[str, Any], condition: dict[str, Any]) -> bool:
     for key in condition.get("required", []):
         if key not in value:
@@ -842,19 +857,16 @@ def _condition_holds(*, value: dict[str, Any], condition: dict[str, Any]) -> boo
     for key, constraint in condition.get("properties", {}).items():
         if key not in value:
             continue
-        if "const" in constraint:
-            if value[key] != constraint["const"]:
-                return False
-        if "enum" in constraint:
-            if value[key] not in constraint["enum"]:
-                return False
+        if not _property_holds(field_value=value[key], constraint=constraint):
+            return False
     return True
 
 
 def _conditional_errors(*, value: dict[str, Any], spec: dict[str, Any], path: str) -> list[str]:
     """Check an object against its schema's `allOf` if/then rules, such as an unfinished resolution's needs_review.
 
-    Only the keywords those rules use are understood: `required`, and `const` or `enum` on a property.
+    Only the keywords those rules use are understood: `required`, and `const` or `enum` on a property, or, in an `if`,
+    a property's own `properties` and `required`, for a rule on a field of a nested object such as `rej_file`.
     """
     errors: list[str] = []
     for rule in spec.get("allOf", []):

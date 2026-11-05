@@ -103,6 +103,30 @@
             },
             "required": ["needs_review"]
           }
+        },
+        {
+          "description": "A rejected hunk still pending must be flagged for review.",
+          "if": {
+            "properties": {
+              "rej_file": {
+                "properties": {
+                  "disposition": {
+                    "const": "pending"
+                  }
+                },
+                "required": ["disposition"]
+              }
+            },
+            "required": ["rej_file"]
+          },
+          "then": {
+            "properties": {
+              "needs_review": {
+                "const": true
+              }
+            },
+            "required": ["needs_review"]
+          }
         }
       ],
       "description": "How the conflicts in one file were resolved.",
