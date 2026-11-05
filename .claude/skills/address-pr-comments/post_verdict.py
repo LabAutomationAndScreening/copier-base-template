@@ -140,6 +140,27 @@ def _thread_node_id(*, owner: str, repo: str, pr: int, root_url: str) -> str | N
         after = page["pageInfo"]["endCursor"]
 
 
+def _resolve_posted_thread(*, owner: str, repo: str, pr: int, root_url: str) -> bool:
+    """Resolve the thread a verdict was just posted on, and return whether it is now resolved.
+
+    The verdict is already on GitHub by now, so a failure here is a warning, not an error: the caller still prints the
+    posted verdict, and a retry would be refused because the thread no longer awaits verification.
+    """
+    try:
+        thread_id = _thread_node_id(owner=owner, repo=repo, pr=pr, root_url=root_url)
+        if thread_id is None:
+            _ = sys.stderr.write(f"Posted, but could not find the review thread for {root_url} to resolve.\n")
+            return False
+        return gh_graphql(RESOLVE_THREAD, {"threadId": thread_id})["resolveReviewThread"]["thread"]["isResolved"]
+    except subprocess.CalledProcessError as e:
+        _ = sys.stderr.write(f"Posted, but could not resolve the thread: {e.stderr}\n")
+    except subprocess.TimeoutExpired:
+        _ = sys.stderr.write("Posted, but resolving the thread timed out.\n")
+    except RuntimeError as e:
+        _ = sys.stderr.write(f"Posted, but could not resolve the thread: {e}\n")
+    return False
+
+
 OUTCOME_BY_RESOLUTION = {
     "resolve": "**accepted**, so this thread is resolved.",
     "leave_to_others": "**accepted**. Someone else has joined this thread, so resolving it is left to them.",
@@ -209,13 +230,7 @@ def main() -> None:
 
         resolved = False
         if resolution == "resolve":
-            thread_id = _thread_node_id(owner=owner, repo=repo, pr=args.pr, root_url=thread["url"])
-            if thread_id is None:
-                _ = sys.stderr.write(f"Posted, but could not find the review thread for {thread['url']} to resolve.\n")
-            else:
-                resolved = gh_graphql(RESOLVE_THREAD, {"threadId": thread_id})["resolveReviewThread"]["thread"][
-                    "isResolved"
-                ]
+            resolved = _resolve_posted_thread(owner=owner, repo=repo, pr=args.pr, root_url=thread["url"])
         _ = sys.stdout.write(
             json.dumps(
                 {
