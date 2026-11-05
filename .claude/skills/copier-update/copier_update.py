@@ -865,7 +865,15 @@ def cmd_commit(a: argparse.Namespace) -> dict[str, Any]:
     }
 
 
-def _object_errors(*, value: object, spec: dict[str, Any], path: str) -> list[str]:
+def _resolved(*, spec: dict[str, Any], defs: dict[str, Any]) -> dict[str, Any]:
+    # the schema's only references are to its own definitions, "#/$defs/<name>"
+    ref = spec.get("$ref")
+    if ref is None:
+        return spec
+    return defs[ref.removeprefix("#/$defs/")]
+
+
+def _object_errors(*, value: object, spec: dict[str, Any], path: str, defs: dict[str, Any]) -> list[str]:
     if not isinstance(value, dict):
         return [f"{path}: must be an object"]
     properties: dict[str, Any] = spec.get("properties", {})
@@ -878,20 +886,30 @@ def _object_errors(*, value: object, spec: dict[str, Any], path: str) -> list[st
         ]
     errors += [f"{path}: missing {key!r}" for key in spec.get("required", []) if key not in value]
     for key, field_value in value.items():
-        field: dict[str, Any] = properties.get(key, {})
-        if "enum" in field and field_value not in field["enum"]:
-            errors.append(f"{path}/{key}: {field_value!r} is not one of {', '.join(map(str, field['enum']))}")
-        # the report reads these for truthiness, where the string "false" counts as true
-        if field.get("type") == "boolean":
-            if not isinstance(field_value, bool):
-                errors.append(f"{path}/{key}: must be true or false, not {field_value!r}")
-        # the report maps over these, and one that isn't a list stops the whole page rendering
-        if field.get("type") == "array":
-            if not isinstance(field_value, list):
-                errors.append(f"{path}/{key}: must be a list, not {field_value!r}")
-        if field.get("type") == "object" and "properties" in field:
-            errors += _object_errors(value=field_value, spec=field, path=f"{path}/{key}")
+        field = _resolved(spec=properties.get(key, {}), defs=defs)
+        errors += _field_errors(value=field_value, field=field, path=f"{path}/{key}", defs=defs)
     return errors + _conditional_errors(value=value, spec=spec, path=path)
+
+
+def _field_errors(*, value: object, field: dict[str, Any], path: str, defs: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if "enum" in field and value not in field["enum"]:
+        errors.append(f"{path}: {value!r} is not one of {', '.join(map(str, field['enum']))}")
+    # the report reads these for truthiness, where the string "false" counts as true
+    if field.get("type") == "boolean":
+        if not isinstance(value, bool):
+            errors.append(f"{path}: must be true or false, not {value!r}")
+    # the report maps over these, and one that isn't a list stops the whole page rendering
+    if field.get("type") == "array":
+        if not isinstance(value, list):
+            return [*errors, f"{path}: must be a list, not {value!r}"]
+        items = _resolved(spec=field.get("items", {}), defs=defs)
+        if "properties" in items:
+            for index, item in enumerate(value):
+                errors += _object_errors(value=item, spec=items, path=f"{path}/{index}", defs=defs)
+    if "properties" in field:
+        errors += _object_errors(value=value, spec=field, path=path, defs=defs)
+    return errors
 
 
 def _property_holds(*, field_value: object, constraint: dict[str, Any]) -> bool:
@@ -949,20 +967,11 @@ def validate_report(report: object) -> list[str]:
 
     report.schema.json documents the whole shape, but checking all of it would take a JSON Schema library, and this
     script sticks to the standard library. These checks take the field names, the required fields and each field's
-    allowed values from that schema, for the report, each resolution and the `copier` section.
+    allowed values from that schema, for the report and every object nested in it, through its `$defs` references
+    and the items of its lists.
     """
     schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
-    errors = _object_errors(value=report, spec=schema, path="<root>")
-    if not isinstance(report, dict):
-        return errors
-    resolutions = report.get("resolutions")
-    if not isinstance(resolutions, list):
-        return [*errors, "resolutions: must be a list of resolution objects"]
-    for index, resolution in enumerate(resolutions):
-        errors += _object_errors(value=resolution, spec=schema["$defs"]["fileResolution"], path=f"resolutions/{index}")
-    if "copier" in report:
-        errors += _object_errors(value=report["copier"], spec=schema["$defs"]["copierUpdate"], path="copier")
-    return errors
+    return _object_errors(value=report, spec=schema, path="<root>", defs=schema["$defs"])
 
 
 def render_report_html(report: dict[str, Any]) -> str:
@@ -1093,6 +1102,10 @@ def cmd_comment_report(a: argparse.Namespace) -> dict[str, Any]:
     where = guard_not_default_branch(project)
     branch = where["branch"]
     report = json.loads(Path(a.report).read_text(encoding="utf-8"))
+    # `report` wrote it valid, but a report edited by hand since would fail mid-format, after nothing could be posted
+    errors = validate_report(report)
+    if errors:
+        raise FailError(f"{a.report} does not match report.schema.json, nothing posted:\n" + "\n".join(errors))
     # gh runs in the project, so a path relative to where the command was typed would be read from the wrong place
     comment = (project / "tmp" / "pr-comment.md").resolve()
     comment.parent.mkdir(exist_ok=True)
