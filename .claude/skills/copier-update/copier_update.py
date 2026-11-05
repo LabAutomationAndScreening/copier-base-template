@@ -909,18 +909,35 @@ def _object_errors(*, value: object, spec: dict[str, Any], path: str, defs: dict
     return errors + _conditional_errors(value=value, spec=spec, path=path)
 
 
-def _field_errors(*, value: object, field: dict[str, Any], path: str, defs: dict[str, Any]) -> list[str]:
+def _scalar_errors(*, value: object, field: dict[str, Any], path: str) -> list[str]:
     errors: list[str] = []
     if "enum" in field and value not in field["enum"]:
         errors.append(f"{path}: {value!r} is not one of {', '.join(map(str, field['enum']))}")
+    kind = field.get("type")
     # the report reads these for truthiness, where the string "false" counts as true
-    if field.get("type") == "boolean":
+    if kind == "boolean":
         if not isinstance(value, bool):
             errors.append(f"{path}: must be true or false, not {value!r}")
+    if kind == "string":
+        if not isinstance(value, str):
+            errors.append(f"{path}: must be a string, not {value!r}")
+    # bool is an int in Python, but not an integer in the schema
+    if kind == "integer":
+        if isinstance(value, bool):
+            errors.append(f"{path}: must be a whole number, not {value!r}")
+        elif not isinstance(value, int):
+            errors.append(f"{path}: must be a whole number, not {value!r}")
+    return errors
+
+
+def _field_errors(*, value: object, field: dict[str, Any], path: str, defs: dict[str, Any]) -> list[str]:
+    errors = _scalar_errors(value=value, field=field, path=path)
     # the report maps over these, and one that isn't a list stops the whole page rendering
     if field.get("type") == "array":
         if not isinstance(value, list):
             return [*errors, f"{path}: must be a list, not {value!r}"]
+        if len(value) < field.get("minItems", 0):
+            errors.append(f"{path}: needs at least {field['minItems']} item(s), not {len(value)}")
         items = _resolved(spec=field.get("items", {}), defs=defs)
         if "properties" in items:
             for index, item in enumerate(value):
