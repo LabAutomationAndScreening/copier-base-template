@@ -1183,13 +1183,17 @@ def _unreviewed_by_check(
     waited on; once the module's quiet period has passed with still no body, a person has to read the PR. Any other
     conclusion (neutral, skipped, cancelled, failure) means the head went unreviewed, for a reason such as a rate
     limit that the check's title and summary give in the reviewer's own words. That makes the verdict skipped for a
-    reviewer that never reviewed this PR, else head_not_reviewed.
+    reviewer that never reviewed this PR, else head_not_reviewed. While the reviewer's own comment says a review is
+    running, though, that review's check is about to replace this one, so that is waited on too.
     """
     if check["conclusion"] == "success":
         completed = datetime.datetime.fromisoformat(check["completed_at"]).timestamp()
         if time.time() - completed < reviewer.QUIET_AFTER_SECONDS:
             return None
         return {"verdict": "unrecognized", "check": check}
+    # a review asked for again shows as running in the reviewer's comment a moment before its new check run exists
+    if reviewer.still_reviewing(state["bodies"][reviewer.NAME]["comments"]):
+        return None
     held_back = reviewer.held_back(state["comments"][reviewer.NAME])
     last = state["last_reviewed"][reviewer.NAME]
     if last is None:
