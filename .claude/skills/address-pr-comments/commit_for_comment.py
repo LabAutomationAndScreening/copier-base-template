@@ -121,17 +121,32 @@ def _link(*, link: str, reply_files: list[Path]) -> tuple[list[str], list[str]]:
     return linked, errors
 
 
-def _close_bd_issue(*, bd_root: Path, issue_id: str, commit: str, reply_file: Path) -> list[str]:
-    # the commit already exists, so a bd call that times out is reported under errors, never raised: exit 1 has to
-    # keep meaning nothing was committed
+def _issue_description(*, bd_root: Path, issue_id: str) -> tuple[str, list[str]]:
     try:
         shown = run(["bd", "show", issue_id, "--json"], cwd=bd_root)
     except subprocess.TimeoutExpired:
-        return [f"bd show {issue_id} timed out; record the commit on the issue and close it by hand"]
+        return "", [f"bd show {issue_id} timed out; record the commit on the issue and close it by hand"]
     if shown.returncode != 0:
-        return [f"bd show {issue_id}: {shown.stderr.strip()}"]
-    description = json.loads(shown.stdout)[0].get("description") or ""
-    reply = reply_file.read_text(encoding="utf-8").strip()
+        return "", [f"bd show {issue_id}: {shown.stderr.strip()}"]
+    try:
+        issues = json.loads(shown.stdout)
+    except json.JSONDecodeError as e:
+        return "", [f"bd show {issue_id} printed no JSON ({e}); record the commit on the issue and close it by hand"]
+    if not issues:
+        return "", [f"bd show {issue_id} returned no issue; record the commit on it and close it by hand"]
+    return issues[0].get("description") or "", []
+
+
+def _close_bd_issue(*, bd_root: Path, issue_id: str, commit: str, reply_file: Path) -> list[str]:
+    # the commit already exists, so every failure from here on is reported under errors, never raised: exit 1 has to
+    # keep meaning nothing was committed
+    description, errors = _issue_description(bd_root=bd_root, issue_id=issue_id)
+    if errors:
+        return errors
+    try:
+        reply = reply_file.read_text(encoding="utf-8").strip()
+    except OSError as e:
+        return [f"reading {reply_file}: {e}; record the commit on {issue_id} and close it by hand"]
     updated = f"{description}\n\ncommit: {commit}\nreply: {reply}".strip()
     # each step needs the one before it: an issue closed without its commit and reply recorded would look settled
     steps: list[tuple[list[str], str | None]] = [
