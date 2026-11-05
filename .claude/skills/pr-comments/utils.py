@@ -347,7 +347,12 @@ def owner_and_repo(*, repo: str | None) -> tuple[str, str]:
 
 
 def add_repo_arguments(parser: argparse.ArgumentParser) -> None:
-    """Add --repo and --checkout, the two ways a script is told which repo the PR belongs to."""
+    """Add --repo and --checkout, the two ways a script is told which repo the PR belongs to.
+
+    They are mutually exclusive: --repo names the repo outright, while --checkout points at a clone of it and the
+    script then acts as if run from there (see `enter_checkout`). With neither, the origin remote of the current
+    directory decides.
+    """
     repo_source = parser.add_mutually_exclusive_group()
     _ = repo_source.add_argument(
         "--repo", default=None, metavar="OWNER/NAME", help="the PR's repo (default: the origin remote's)"

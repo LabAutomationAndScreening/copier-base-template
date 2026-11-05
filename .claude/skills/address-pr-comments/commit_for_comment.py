@@ -58,7 +58,12 @@ def _git_output(*args: str, cwd: Path) -> str:
 
 
 def _reply_files(*, repo_root: Path, comment_ids: list[int]) -> list[Path]:
-    """Return the reply files to link, failing before anything is committed if one is missing or already linked."""
+    """Return the reply file of each comment the commit settles, checking them all before anything is committed.
+
+    Each must exist, since its reply is approved before the commit, and must still hold a [COMMIT LINK] placeholder
+    outside code to fill: one without has been linked already, by an earlier run of this commit. Every problem is
+    reported at once, and nothing is committed while there is one.
+    """
     problems: list[str] = []
     files: list[Path] = []
     for comment_id in comment_ids:

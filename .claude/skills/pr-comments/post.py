@@ -141,7 +141,11 @@ def _read_body_file(body_file: Path) -> str:
 
 
 def _with_reply_footer(content: str) -> str:
-    """Return the body with the AI attribution footer as its last line, adding it only if it isn't there already."""
+    """Return the body with the AI attribution footer as its last line.
+
+    A body that already ends with the footer (a retry of a failed post, say) is returned as it is, so the footer is
+    never doubled; otherwise the footer is appended after a blank line.
+    """
     non_empty_lines = [line.strip() for line in content.splitlines() if line.strip()]
     if non_empty_lines and non_empty_lines[-1] == REPLY_FOOTER:
         return content
