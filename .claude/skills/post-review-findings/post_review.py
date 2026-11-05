@@ -808,6 +808,10 @@ def _clean_up(*, review_id: str | None, posted: dict[str, PostedComment]) -> Non
             _ = gh_graphql(mutation, variables)
         except subprocess.CalledProcessError as e:
             _ = sys.stderr.write(f"Could not delete {description}; remove it by hand: {e.stderr}\n")
+        except subprocess.TimeoutExpired:
+            _ = sys.stderr.write(
+                f"Could not delete {description} (timed out after {GH_TIMEOUT_SECONDS}s); remove it by hand.\n"
+            )
         except RuntimeError as e:
             _ = sys.stderr.write(f"Could not delete {description}; remove it by hand: {e}\n")
 
