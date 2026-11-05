@@ -115,7 +115,9 @@ asked before acting. Then:
   session's scratchpad; its `head` must match the notes.
 - A waiting verb (`ci`, `ai-review`, `tag`) that was in flight died with the old session: run
   it again.
-- The old checkouts' `tmp/` went with the old scratchpad, and `pr-body` needs
+- The old checkouts' `tmp/` went with the old scratchpad. Reports of pulls whose PR wasn't
+  open yet are in `<origin>/tmp/backport-reports/<name>/` (Step 5.3), for Step 6.1 to post.
+  `pr-body` needs
   `<checkout>/tmp/pr-body.posted.md`, the body as last posted. Ask the user whether anyone else
   has edited the PR, then save the live body as that record
   (`env -u GITHUB_TOKEN -u GH_TOKEN gh pr view N --repo R --json body --jq .body > <checkout>/tmp/pr-body.posted.md`)
@@ -236,7 +238,10 @@ For each next repo in the chain file's order, each pulling its own parent templa
    committed the pull. `changed` should be exactly the upstream change, as it renders here,
    plus the answers file; stop and show the user anything else. A file in `removed_lines` that
    the upstream change doesn't remove lines from was overwritten by copier: restore the repo's
-   own lines, as a commit of its own.
+   own lines, as a commit of its own. Until this repo's PR is open, copy the pull's report
+   (`<checkout>/tmp/copier-update-report-*.json`) to `<origin>/tmp/backport-reports/<name>/`
+   and name it in this repo's bd note: the checkout's `tmp/` goes with the scratchpad, and the
+   originating repo's doesn't.
 4. This repo's own edits from the plan, each as its own commit after the pull's.
    A child template's own edit to its rendered files gets Step 4's proof before its commit:
    render with `--vcs-ref HEAD` (without it, copier renders the last tag, not the edit) and
@@ -267,7 +272,7 @@ For each repo:
    (`.github/pull_request_template.md`) into `<checkout>/tmp/pr-body.md`, linking the upstream
    PRs. `$BP pr-command` checks it and prints the
    `gh pr create --draft …` command: run it. Then post each copier-update report this repo's
-   pulls wrote (`<checkout>/tmp/copier-update-report-*.json`, oldest first), so a reviewer
+   pulls wrote (those saved in `<origin>/tmp/backport-reports/<name>/`, oldest first), so a reviewer
    sees what each hand merge kept and left out: after `scan` in a public repo, one
    `.claude/skills/copier-update/copier_update.py comment-report <checkout> --report <report> --stored-gh-credentials`
    per report. A pull made after the PR is open gets its report posted once it is pushed.
