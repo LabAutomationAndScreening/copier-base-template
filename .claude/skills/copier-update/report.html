@@ -298,7 +298,7 @@
       ${r.related_issues?.length ? row("Issues", r.related_issues.map(esc).join(", ")) : ""}
       ${
         rj
-          ? `<details><summary>.rej ${esc(rj.path || "")} — ${rj.hunk_count ?? "?"} hunk(s)${rj.disposition ? " · " + esc(rj.disposition) : ""}${rj.truncated ? " · TRUNCATED" : ""}</summary>
+          ? `<details><summary>.rej ${esc(rj.path || "")} — ${esc(String(rj.hunk_count ?? "?"))} hunk(s)${rj.disposition ? " · " + esc(rj.disposition) : ""}${rj.truncated ? " · TRUNCATED" : ""}</summary>
         <pre>${esc(rj.encoding === "base64" ? "(base64) " + rj.contents : rj.contents)}</pre>
         ${rj.sha256 ? `<div class="row"><b>sha256</b> <code>${esc(rj.sha256)}</code> · ${esc(rj.byte_size)} bytes</div>` : ""}
       </details>`
