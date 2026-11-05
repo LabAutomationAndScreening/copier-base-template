@@ -873,7 +873,7 @@ def _conditional_errors(*, value: dict[str, Any], spec: dict[str, Any], path: st
     return errors
 
 
-def validate_report(report: dict[str, Any]) -> list[str]:
+def validate_report(report: object) -> list[str]:
     """Catch what a hand-written draft gets wrong: a misnamed, missing or misshapen field, or a value off its list.
 
     report.schema.json documents the whole shape, but checking all of it would take a JSON Schema library, and this
@@ -882,6 +882,8 @@ def validate_report(report: dict[str, Any]) -> list[str]:
     """
     schema = json.loads(SCHEMA_PATH.read_text())
     errors = _object_errors(value=report, spec=schema, path="<root>")
+    if not isinstance(report, dict):
+        return errors
     resolutions = report.get("resolutions")
     if not isinstance(resolutions, list):
         return [*errors, "resolutions: must be a list of resolution objects"]
