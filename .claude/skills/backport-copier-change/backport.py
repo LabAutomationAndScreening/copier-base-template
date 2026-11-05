@@ -104,6 +104,8 @@ ANSWERS = Path(".config/.copier-answers.yml")
 
 
 MAX_CONSECUTIVE_FAILURES = 5
+# long enough for `checkout`'s clone, uv sync and npm ci; a hung gh or git call otherwise outlives every wait's deadline
+SUBPROCESS_TIMEOUT_SECONDS = 900
 TRANSIENT = re.compile(r"HTTP 5\d\d|connection reset|timed out|TLS handshake|EOF", re.IGNORECASE)
 
 
@@ -119,7 +121,13 @@ def _attempt(*, cmd: list[str], cwd: Path | None = None) -> subprocess.Completed
     env = dict(os.environ)
     _ = env.pop("GITHUB_TOKEN", None)
     _ = env.pop("GH_TOKEN", None)
-    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, env=env, check=False)  # noqa: S603 # argv lists, never a shell; the variable parts come from this script's own CLI arguments
+    try:
+        return subprocess.run(  # noqa: S603 # argv lists, never a shell; the variable parts come from this script's own CLI arguments
+            cmd, cwd=cwd, capture_output=True, text=True, env=env, check=False, timeout=SUBPROCESS_TIMEOUT_SECONDS
+        )
+    except subprocess.TimeoutExpired as e:
+        # transient, so a wait counts it as one failed check and tries again
+        raise TransientError(f"{' '.join(cmd)} timed out after {SUBPROCESS_TIMEOUT_SECONDS}s") from e
 
 
 def _run(*, cmd: list[str], cwd: Path | None = None) -> str:
