@@ -1062,7 +1062,7 @@ def _head_checks(*, repo: str, head: str, reviewers: list[ModuleType]) -> dict[s
     return checks
 
 
-def _summed_count(total: str | None, count: str) -> str:
+def _summed_count(*, total: str | None, count: str) -> str:
     # git numstat writes "-" for a binary file, which has no line counts to add
     if total is None:
         return count
@@ -1104,13 +1104,13 @@ def _changes_since(*, checkout: Path, since: str, head: str) -> list[dict[str, s
         if not line:
             continue
         lines_added, lines_removed, path = line.split("\t", 2)
-        added[path] = _summed_count(added.get(path), lines_added)
-        removed[path] = _summed_count(removed.get(path), lines_removed)
+        added[path] = _summed_count(total=added.get(path), count=lines_added)
+        removed[path] = _summed_count(total=removed.get(path), count=lines_removed)
     merges = _git("rev-list", "--merges", f"{since}..{head}", "--not", default, cwd=checkout).split()
     for merge in merges:
         for path, lines_added, lines_removed in _merge_resolution_counts(checkout=checkout, merge=merge):
-            added[path] = _summed_count(added.get(path), lines_added)
-            removed[path] = _summed_count(removed.get(path), lines_removed)
+            added[path] = _summed_count(total=added.get(path), count=lines_added)
+            removed[path] = _summed_count(total=removed.get(path), count=lines_removed)
     return [{"file": path, "added": added[path], "removed": removed[path]} for path in added]
 
 
