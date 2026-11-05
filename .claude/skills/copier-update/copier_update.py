@@ -829,8 +829,10 @@ def cmd_commit(a: argparse.Namespace) -> dict[str, Any]:
     staged = [p for p in _git("diff", "--cached", "--name-only", "-z", cwd=project).split("\0") if p]
     if not staged:
         raise FailError("nothing staged: did the update run?")
+    # deleting a tracked artifact removes it from the tree, so only paths the commit adds or changes are checked
+    kept = [p for p in _git("diff", "--cached", "--name-only", "--diff-filter=d", "-z", cwd=project).split("\0") if p]
     leftovers: list[str] = []
-    for path in staged:
+    for path in kept:
         if path.endswith((".rej", ".orig")):
             leftovers.append(path)
             continue
