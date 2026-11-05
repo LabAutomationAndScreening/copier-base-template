@@ -881,6 +881,10 @@ def _object_errors(*, value: object, spec: dict[str, Any], path: str) -> list[st
         if field.get("type") == "boolean":
             if not isinstance(field_value, bool):
                 errors.append(f"{path}/{key}: must be true or false, not {field_value!r}")
+        # the report maps over these, and one that isn't a list stops the whole page rendering
+        if field.get("type") == "array":
+            if not isinstance(field_value, list):
+                errors.append(f"{path}/{key}: must be a list, not {field_value!r}")
         if field.get("type") == "object" and "properties" in field:
             errors += _object_errors(value=field_value, spec=field, path=f"{path}/{key}")
     return errors + _conditional_errors(value=value, spec=spec, path=path)
