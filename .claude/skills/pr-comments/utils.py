@@ -17,8 +17,10 @@ GH_TIMEOUT_SECONDS = 30
 # user's own replies (which mark a thread as addressed). A finding ID outside FINDING_ID_PATTERN would make a marker
 # this can't parse, so the finding would pass for one of the user's replies.
 FINDING_ID_PATTERN = r"[A-Za-z0-9_-]+"
+# render_finding_body writes it as the first line, so one quoted later, such as in a comment explaining the markers,
+# is not taken for a finding
 _AI_REVIEW_FINDING_RE = re.compile(
-    rf"<!-- ai-review-finding id=(?P<id>{FINDING_ID_PATTERN})"
+    rf"\A\s*<!-- ai-review-finding id=(?P<id>{FINDING_ID_PATTERN})"
     rf"(?: related=(?P<related>{FINDING_ID_PATTERN}(?:,{FINDING_ID_PATTERN})*))? -->"
 )
 
