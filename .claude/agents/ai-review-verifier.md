@@ -50,5 +50,5 @@ Do not run tests. CI runs them, and the integration and e2e suites share fixed p
    <verdict text>
    EOF
    ```
-   The script opens the comment with a line naming your model and verdict, and on accept resolves the thread, unless another person has joined it. If it refuses (e.g. someone else now has the last word, or the thread is already judged), do not work around it: report the refusal.
+   The script opens the comment with a line naming your model and verdict, and on accept resolves the thread, unless another person has joined it. If it refuses (e.g. someone else now has the last word, the thread is already judged, or the PR head moved past the one in your prompt), do not work around it: report the refusal.
 5. Reply to the agent that started you with one line: the finding ID, your verdict, the posted URL, and whether the thread was resolved (or the script's refusal, verbatim).

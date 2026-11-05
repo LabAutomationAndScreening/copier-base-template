@@ -5,7 +5,7 @@
 """Post the ai-review-verifier agent's verdict on a reply to an AI review finding, and resolve the thread on accept.
 
 Usage:
-  post_verdict.py --pr <number> --comment-id <root id> --verdict accept|disagree --model <model id>
+  post_verdict.py --pr <number> --comment-id <root id> --head <sha> --verdict accept|disagree --model <model id>
                   [--effort <level>] [--dry-run] [--checkout <path>] < verdict.md
 
 The verdict text is read from stdin. The posted comment opens with a line naming the verdict and the model (and
@@ -18,7 +18,9 @@ resolved on GitHub, so for those the verdict is only posted.
 
 Refuses to post when the comment is not an AI review finding, when its latest reply is not one from the current
 user awaiting a verdict (nothing to judge, already judged, or someone else has the last word), or when the thread
-already has MAX_VERDICT_ROUNDS verdicts, at which point the thread is left to the user.
+already has MAX_VERDICT_ROUNDS verdicts, at which point the thread is left to the user. It also refuses when the PR's
+head is no longer --head, the commit the verdict was reached on: a later push may have changed what the reply relies
+on, so a new verifier judges the new head.
 
 With --dry-run, prints the comment and what would happen to the thread, and posts nothing.
 """
@@ -124,6 +126,15 @@ def _check_can_post(thread: dict[str, Any]) -> dict[str, Any]:
     return ai_review
 
 
+def _check_head(*, owner: str, repo: str, pr: int, head: str) -> None:
+    current = gh_rest("api", f"repos/{owner}/{repo}/pulls/{pr}")["head"]["sha"]
+    if current != head:
+        raise RefusedError(
+            f"the PR head moved from {head}, where this verdict was reached, to {current}; start a new verifier "
+            "to judge the reply at the new head"
+        )
+
+
 def _thread_node_id(*, owner: str, repo: str, pr: int, root_url: str) -> str | None:
     after: str | None = None
     while True:
@@ -188,6 +199,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     _ = parser.add_argument("--pr", required=True, type=int)
     _ = parser.add_argument("--comment-id", required=True, type=int, help="the AI review finding's root comment ID")
+    _ = parser.add_argument("--head", required=True, help="the PR head commit the verdict was reached on")
     _ = parser.add_argument("--verdict", required=True, choices=[VERDICT_ACCEPT, VERDICT_DISAGREE])
     _ = parser.add_argument("--model", required=True, help="the exact model ID of the agent that reached the verdict")
     _ = parser.add_argument("--effort", default=None, help="the effort level it ran at, when known")
@@ -205,6 +217,7 @@ def main() -> None:
         current_user = gh_rest("api", "user")["login"]
         thread = _fetch_thread(pr=args.pr, comment_id=args.comment_id)
         ai_review = _check_can_post(thread)
+        _check_head(owner=owner, repo=repo, pr=args.pr, head=args.head)
         others = other_participants(thread=thread, current_user=current_user)
         resolution = _resolution(verdict=args.verdict, thread=thread, others=others)
         body = render_verdict(
