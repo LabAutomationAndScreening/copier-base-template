@@ -56,7 +56,7 @@ With `--resume` (e.g. `/address-pr-comments 42 --resume`), uncommitted changes a
 | Reply drafts | `ls <repo_root>/tmp/pr-reply-*.txt` |
 | In-progress bd issues | `bd list --status in_progress --json` |
 | Unresolved threads | pr-comments' Read, actionable threads |
-| Replies awaiting a verdict | `.claude/skills/address-pr-comments/verifier_prompt.py --pr <pr> --all-awaiting` |
+| Replies awaiting a verdict | `.claude/skills/address-pr-comments/verifier_prompt.py --pr <pr> --all-awaiting [--checkout <path>]` |
 
 Classify each reply draft:
 - **Still has `[COMMIT LINK]`:** its commit never happened. Re-enter Phase 2 for that comment alone, checking `git log` and `git diff @{u}` for work already done.
@@ -78,7 +78,7 @@ Never delete a commit without the user's explicit confirmation. Never re-post a 
 Read the actionable threads as pr-comments' Read says, then run:
 
 ```bash
-.claude/skills/address-pr-comments/verifier_prompt.py --pr <pr_number> --all-awaiting
+.claude/skills/address-pr-comments/verifier_prompt.py --pr <pr_number> --all-awaiting [--checkout <path>]
 ```
 
 The threads come with resolved threads and bot summaries already removed. Each entry has:
@@ -145,7 +145,7 @@ For each comment:
 
    **Fix in the template layer.** Agree on the change with the user, then set the comment aside: no bd issue, change, commit or reply in this run. The report ([Step 5](#step-5-report-completion)) hands it to the skill that started the run, with the comment's ID, path, owning template and the agreed change. Once the copier pull that carries the fix is pushed to this PR, the comment gets a reply-only answer saying where the fix was made, with the link from `commit_link.py <reply_file> --pr <pr_number> --commit <pull commit> --checkout <path>`.
 
-   **Covered by another comment.** If the covering fix is already committed, it's a reply-only answer naming that comment and commit, with the link from `commit_link.py <reply_file> --pr <pr_number> --commit <hash>`. If the covering fix is queued, this comment becomes its **follower**. It has no bd issue, change or commit of its own, and its reply links the covering commit (see [Phase 2](#step-4-phase-2--execute-batch-executor)).
+   **Covered by another comment.** If the covering fix is already committed, it's a reply-only answer naming that comment and commit, with the link from `commit_link.py <reply_file> --pr <pr_number> --commit <hash> [--checkout <path>]`. If the covering fix is queued, this comment becomes its **follower**. It has no bd issue, change or commit of its own, and its reply links the covering commit (see [Phase 2](#step-4-phase-2--execute-batch-executor)).
 
 4. **Offer to flush.** After a decision that queued a code change, when more comments remain, ask `Flush queue now? (<queued_count> queued, <remaining_count> comments remaining)` (Yes / No, default No). Yes runs Phase 2 on everything queued so far, before the next comment is shown. Ask it on its own, never in the same AskUserQuestion call as the next comment, so a Yes flushes right away.
 
@@ -166,17 +166,17 @@ Phase 2 drains the queue: once at the end of Phase 1, or at each "Flush queue no
      Choosing `Approve` also approves this comment's commit, so commit without asking again.
    - **Commit.** One commit per comment, docs included; only a follower shares its covering comment's commit.
      ```bash
-     .claude/skills/address-pr-comments/commit_for_comment.py --pr <pr_number> --reply <comment id> --files <path> … [--follower <comment id> …] [--bd <issue id>] <<'EOF'
+     .claude/skills/address-pr-comments/commit_for_comment.py --pr <pr_number> --reply <comment id> --files <path> … [--follower <comment id> …] [--bd <issue id>] [--checkout <path>] <<'EOF'
      <commit message>
      EOF
      ```
      It stages exactly `--files` and commits them, showing hook output. It fills the `[COMMIT LINK]` in the reply files of `--reply` and each `--follower`. With `--bd`, it also records the commit on that issue, closes it and exports bd. **Exit 1 means nothing was committed:** usually a hook failed, so fix it and run it again. Otherwise the commit exists. Fix anything under `errors` by hand, and never run it again for the same change.
-   - **Followers' replies** say that this commit settles them, and why. Draft each one and get it approved like the covering reply, ideally as a second question in the same AskUserQuestion, so it can be passed as `--follower`. One drafted after the commit gets its link from `commit_link.py <reply_file> --pr <pr_number> --commit <hash>`.
+   - **Followers' replies** say that this commit settles them, and why. Draft each one and get it approved like the covering reply, ideally as a second question in the same AskUserQuestion, so it can be passed as `--follower`. One drafted after the commit gets its link from `commit_link.py <reply_file> --pr <pr_number> --commit <hash> [--checkout <path>]`.
    - **Re-check the queue.** This commit may have settled, mooted or changed comments still queued. For any that looks so, ask with the comment, the commit and your evidence. Options: "Keep as queued", "Covered by this commit" (it becomes a follower), "Rethink the change".
 
 2. **Push, then post the batch's replies**, without asking again, since they were approved above:
    ```bash
-   .claude/skills/address-pr-comments/push_and_post.py --pr <pr_number> --inline <thread root ids…> --top-level <top-level comment ids…> --review <review ids…>
+   .claude/skills/address-pr-comments/push_and_post.py --pr <pr_number> --inline <thread root ids…> --top-level <top-level comment ids…> --review <review ids…> [--checkout <path>]
    ```
    It refuses before pushing if a reply file is missing or still has its placeholder, and posts nothing if the push fails. In that case, show the user the error verbatim and wait. Otherwise it prints each reply's URL and the pushed `head`. Then start the verifiers for the replies to AI review findings ([Step 4b](#step-4b-verify-replies-to-ai-review-findings)).
 
@@ -187,7 +187,7 @@ An independent AI agent checks each reply to an AI review finding and posts its 
 Right after replies to AI review findings are posted (reply-only answers, a batch's replies, followers' replies):
 
 ```bash
-.claude/skills/address-pr-comments/verifier_prompt.py --pr <pr_number> --comment-id <root ids just replied to…>
+.claude/skills/address-pr-comments/verifier_prompt.py --pr <pr_number> --comment-id <root ids just replied to…> [--checkout <path>]
 ```
 
 For each entry under `verifiers`, start an `Agent` with:
@@ -197,7 +197,7 @@ For each entry under `verifiers`, start an `Agent` with:
 
 It runs in the background, so carry on. An entry under `skipped` gets no verifier: for example, a thread with two verdicts is the user's call from then on. Mention it in the report. The verifier reads only git objects, so it's safe while you edit. On **accept** it resolves the thread, unless another person (not a bot) has replied in it; top-level comments can't be resolved. On **disagree** the thread stays open and comes back as `disputed`.
 
-A verifier that reports `post_verdict.py` refused because the PR head moved posted nothing, and its finding still awaits a verdict. Run `verifier_prompt.py --pr <pr_number> --comment-id <that root id>` again, and start a new verifier from the prompt it prints, which names the new head.
+A verifier that reports `post_verdict.py` refused because the PR head moved posted nothing, and its finding still awaits a verdict. Run `verifier_prompt.py --pr <pr_number> --comment-id <that root id> [--checkout <path>]` again, and start a new verifier from the prompt it prints, which names the new head.
 
 ### Step 5: Report Completion
 
