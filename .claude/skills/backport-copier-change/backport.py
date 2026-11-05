@@ -1407,11 +1407,12 @@ def _check_state(check: dict[str, Any]) -> str:
     # gh lists GitHub Actions jobs and app checks as CheckRun (status, conclusion), commit statuses as StatusContext
     if check.get("__typename") == "StatusContext":
         state = check.get("state") or ""
-        if state == "PENDING":
-            return "pending"
+        if state == "SUCCESS":
+            return "passed"
         if state in _CHECK_FAILURES:
             return "failed"
-        return "passed"
+        # PENDING, or EXPECTED: a required status that hasn't reported yet, so never green
+        return "pending"
     if check.get("status") != "COMPLETED":
         return "pending"
     if (check.get("conclusion") or "") in _CHECK_FAILURES:
