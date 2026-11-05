@@ -68,7 +68,7 @@ def _fetch(*, pr: int, args: list[str]) -> list[dict[str, Any]]:
     return json.loads(result.stdout)
 
 
-def _require_local_head(head: str) -> None:
+def _require_local_head(*, head: str, checkout: Path | None) -> None:
     # a verifier reads only local git objects, and the head may have been pushed from somewhere else
     present = subprocess.run(  # noqa: S603 — git with every value a separate argument
         ["git", "cat-file", "-e", f"{head}^{{commit}}"],  # noqa: S607 — git is expected on PATH
@@ -76,8 +76,16 @@ def _require_local_head(head: str) -> None:
         check=False,
         timeout=GH_TIMEOUT_SECONDS,
     )
-    if present.returncode != 0:
-        _fail(f"The PR head {head} is not in this checkout. Run `git fetch origin` there first, then run this again.")
+    if present.returncode == 0:
+        return
+    if checkout is None:
+        fetch = "git fetch origin"
+    else:
+        # a codespace's injected tokens reach only its own repo, so another repo's checkout fetches with the stored login
+        fetch = shlex.join(
+            ["env", "-u", "GITHUB_TOKEN", "-u", "GH_TOKEN", "git", "-C", str(checkout), "fetch", "origin"]
+        )
+    _fail(f"The PR head {head} is not in the PR's checkout. Run `{fetch}` first, then run this again.")
 
 
 def _reply_to_judge(thread: dict[str, Any]) -> dict[str, Any] | None:
@@ -156,7 +164,7 @@ def main() -> None:
         head = gh_rest("api", f"repos/{owner}/{repo}/pulls/{args.pr}")["head"]["sha"]
     except subprocess.CalledProcessError as e:
         _fail(f"gh api error: {e.stderr}")
-    _require_local_head(head)
+    _require_local_head(head=head, checkout=checkout)
     if args.all_awaiting:
         threads = _fetch(pr=args.pr, args=["--needs-verification"])
     else:
