@@ -1459,7 +1459,7 @@ def _require_feature_branch(*, checkout: Path, branch: str) -> None:
 
 
 def _branch_commits(*, checkout: Path, since: str, paths: list[str]) -> dict[str, list[str]]:
-    """List the feature branch's own commits touching each conflicted file, newest first.
+    """List the feature branch's own commits touching each conflicted file, oldest first.
 
     A file the branch changed after the backport copied it (an add/add conflict on a helper or a skill) is resolved
     from the default branch's side with those commits re-applied; one the branch never changed since takes the
@@ -1467,7 +1467,7 @@ def _branch_commits(*, checkout: Path, since: str, paths: list[str]) -> dict[str
     """
     commits: dict[str, list[str]] = {}
     for path in paths:
-        log = _git("log", "--format=%h %s", f"{since}..HEAD", "--", path, cwd=checkout)
+        log = _git("log", "--reverse", "--format=%h %s", f"{since}..HEAD", "--", path, cwd=checkout)
         commits[path] = [line for line in log.splitlines() if line]
     return commits
 

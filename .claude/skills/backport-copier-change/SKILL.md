@@ -351,7 +351,7 @@ After its PR merges:
    main's copy, pulled down the chain, carries the copier banner and the branch's doesn't (an
    add/add conflict for a new file). For each conflicted file, `branch_commits` lists the feature
    branch's own commits that touched it: if any came after the backport copied the file, take
-   main's side (`git checkout --theirs -- <file>`) and re-apply those commits on it
+   main's side (`git checkout --theirs -- <file>`) and re-apply those commits on it, oldest first as listed
    (`git show <sha> -- <file> | git apply`); else main's side alone; a hook-regenerated file
    (the devcontainer hash) takes either. Show the user the resolution per file, then `--finish`,
    which stages the resolved files, commits and pushes.
