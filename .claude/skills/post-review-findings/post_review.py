@@ -353,7 +353,7 @@ def _optional_str(*, raw: dict[str, Any], key: str, context: str) -> str | None:
     return value
 
 
-def _optional_line(raw: dict[str, Any], *, context: str) -> int | None:
+def _optional_line(*, raw: dict[str, Any], context: str) -> int | None:
     value = raw.get("line")
     if value is None:
         return None
@@ -367,13 +367,13 @@ def _optional_line(raw: dict[str, Any], *, context: str) -> int | None:
     return value
 
 
-def _require_finding_id(finding_id: str, *, context: str) -> str:
+def _require_finding_id(*, finding_id: str, context: str) -> str:
     if re.fullmatch(FINDING_ID_PATTERN, finding_id) is None:
         raise InputError(f"{context}: finding ID {finding_id!r} may hold only letters, digits, '_' and '-'")
     return finding_id
 
 
-def _parse_related(raw: dict[str, Any], *, context: str) -> list[Related]:
+def _parse_related(*, raw: dict[str, Any], context: str) -> list[Related]:
     value = raw.get("related", [])
     if not isinstance(value, list):
         raise InputError(f"{context}: `related` must be a list")
@@ -383,29 +383,32 @@ def _parse_related(raw: dict[str, Any], *, context: str) -> list[Related]:
             raise InputError(f"{context}: each `related` entry must be an object with `id` and `note`")
         related.append(
             Related(
-                finding_id=_require_finding_id(_require_str(raw=entry, key="id", context=context), context=context),
+                finding_id=_require_finding_id(
+                    finding_id=_require_str(raw=entry, key="id", context=context), context=context
+                ),
                 note=_require_str(raw=entry, key="note", context=context),
             )
         )
     return related
 
 
-def _parse_finding(raw: object, *, finding_id: str | None, index: int) -> Finding:
+def _parse_finding(*, raw: object, finding_id: str | None, index: int) -> Finding:
     context = f"finding #{index + 1}"
     if not isinstance(raw, dict):
         raise InputError(f"{context}: must be an object")
     return Finding(
         finding_id=_require_finding_id(
-            _require_str(raw=raw, key="id", context=context) if finding_id is None else finding_id, context=context
+            finding_id=_require_str(raw=raw, key="id", context=context) if finding_id is None else finding_id,
+            context=context,
         ),
         file=_require_str(raw=raw, key="file", context=context),
-        line=_optional_line(raw, context=context),
+        line=_optional_line(raw=raw, context=context),
         line_commit=_optional_str(raw=raw, key="line_commit", context=context),
         category=_optional_str(raw=raw, key="category", context=context),
         short_summary=_optional_str(raw=raw, key="short_summary", context=context),
         summary=_require_str(raw=raw, key="summary", context=context),
         failure_scenario=_require_str(raw=raw, key="failure_scenario", context=context),
-        related=_parse_related(raw, context=context),
+        related=_parse_related(raw=raw, context=context),
     )
 
 
@@ -422,7 +425,7 @@ def load_findings_file(path: Path) -> FindingsFile:
     posted = raw.get("posted")
     if posted is not None and not isinstance(posted, dict):
         raise InputError("`posted` must be an object or absent")
-    findings = [_parse_finding(f, finding_id=None, index=i) for i, f in enumerate(findings_raw)]
+    findings = [_parse_finding(raw=f, finding_id=None, index=i) for i, f in enumerate(findings_raw)]
     ids = [f.finding_id for f in findings]
     duplicates = sorted({i for i in ids if ids.count(i) > 1})
     if duplicates:
@@ -944,7 +947,7 @@ def cmd_import(args: argparse.Namespace) -> None:
     next_number = _next_finding_number(set(_existing_findings(owner=owner, repo=repo, pr=args.pr)))
     findings = [
         _parse_finding(
-            {**raw, "related": []} if isinstance(raw, dict) else raw, finding_id=f"F{next_number + i}", index=i
+            raw={**raw, "related": []} if isinstance(raw, dict) else raw, finding_id=f"F{next_number + i}", index=i
         )
         for i, raw in enumerate(raw_findings)
     ]
