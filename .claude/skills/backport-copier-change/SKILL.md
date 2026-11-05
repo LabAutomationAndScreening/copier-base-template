@@ -43,6 +43,8 @@ $BP scan --chain <chain.json> --repo R --file F   # private repo names F would l
 $BP pr-command --checkout P --chain <chain.json> --title T --body-file B   # scan, then the draft PR command
 $BP pr-body --checkout P --chain <chain.json> --pr N --body-file B   # merge in others' edits, then the edit command
 $BP ai-review --repo R --pr N --checkout P        # every configured AI reviewer's verdict on the PR head
+$BP review-watch --chain F --branch B --checkouts DIR [--settled SHA ...]   # every chain PR's reviews; stops at the first one needing you
+$BP status --chain F --branch B      # snapshot of every chain PR: head, CI, reviewer checks, open threads
 $BP merge-command --repo R --pr N --checkout P   # refuses while the branch is behind its base; else the commands that mark the PR ready and merge it, in order
 $BP tag --repo R --pr N              # wait for the merge, then for the tag on the merge commit
 $BP delete-branch --repo R --branch B --checkout P --chain F --downstream D1 --downstream D2   # once every child is re-pinned; one --downstream per child
@@ -51,7 +53,7 @@ $BP cleanup --worktree P             # remove a clean, fully pushed worktree
 ```
 
 Every verb prints JSON: take SHAs, URLs and PR numbers from it, never retype them. When a verb
-refuses, its error says why and what to do. Run a waiting verb (`ci`, `ai-review`, `tag`) in
+refuses, its error says why and what to do. Run a waiting verb (`ci`, `ai-review`, `review-watch`, `tag`) in
 the background and on its own, with nothing chained before it (a `bd` update goes in its own
 command), so `head -1 <file> | jq` reads its JSON; the harness appends a status line after it.
 
@@ -87,6 +89,10 @@ another repo's files from its checkout (Step 3) or a shallow clone in your scrat
   a pull changes anything the upstream change doesn't explain; CI fails (show the fix, commit
   it on approval, then push without asking again); a CI job never starts; an AI reviewer
   flags anything.
+- **Say only what something is watching for you.** A status message may call a CI run or a
+  review running, pending or due at a time only when it names the background task that will
+  report it, one you started and haven't seen finish; quote `$BP status` for anything else.
+  End a turn only with such a task running, or a question asked.
 - **Settle a fix before asking about it:** check each option through (lock files, other configs
   it touches), then ask once, with a recommendation you won't need to change.
 - **One outward action per command:** each PR create or edit, comment or review request runs on
@@ -113,8 +119,8 @@ asked before acting. Then:
 
 - Rerun `checkout` for a repo when a step needs it, with the same branch and a path in this
   session's scratchpad; its `head` must match the notes.
-- A waiting verb (`ci`, `ai-review`, `tag`) that was in flight died with the old session: run
-  it again.
+- A waiting verb (`ci`, `ai-review`, `review-watch`, `tag`) that was in flight died with the old
+  session: run it again. `$BP status` shows where every PR stands first.
 - The old checkouts' `tmp/` went with the old scratchpad. Reports of pulls whose PR wasn't
   open yet are in `<origin>/tmp/backport-reports/<name>/` (Step 5.3), for Step 6.1 to post.
   `pr-body` needs
@@ -261,10 +267,18 @@ public).
 
 Once CI is green in every repo, open draft PRs in the chain file's order, **one at a time
 across the whole tree**: open a PR and start its AI review only after the previous one,
-siblings included, is `clean` or settled and any fix is carried down. Never run two reviews at
-once: a fix anywhere moves the heads below it, and a review that starts after the fix sees the
-latest change. Once a PR is open, push fixes in rounds, since each push can spend one of a
-reviewer's few reviews an hour.
+siblings included, is `clean` or settled and any fix is carried down. Never *ask* for two
+reviews at once: a fix anywhere moves the heads below it, a review that starts after the fix
+sees the latest change, and each request can spend one of a reviewer's few reviews an hour.
+Once a PR is open, push fixes in rounds for the same reason.
+
+*Reading* is not serialized: a reviewer like CodeRabbit reviews every pushed head of an open PR
+by itself. So after every round of pushes, start
+`$BP review-watch --chain <chain.json> --branch <branch> --checkouts <scratchpad>/backport`
+in the background, with one `--settled <head>` per head already settled or waived. It waits
+while any review is running, or while a reviewer's next review is due at a known time, and
+stops at the first PR that needs you (`needs_action`) or once every PR is quiet (`all_quiet`).
+Work that PR as below, then start it again.
 
 For each repo:
 
@@ -307,11 +321,12 @@ For each repo:
      rename, or a fix that does what a reviewer's finding asked, whatever it touches, once the
      reviewer has accepted or resolved that finding. Only a **substantial** change, one beyond
      what any finding asked (a different approach, new behavior, a new file), needs a review:
-     with a `held_back` note, tell the user when the reviewer's allowance returns, rather than
-     sleeping in a background command (the harness may kill it, and the user may prefer a
-     waiver). Once it returns, or with no `held_back` note, ask for a review (for CodeRabbit, a
-     `@coderabbitai full review` comment), then run `ai-review` again. CodeRabbit does not start a
-     held-back review by itself once its limit lifts, even one already asked for.
+     with a `held_back` note, tell the user when the reviewer's allowance returns (they may prefer
+     a waiver); `review-watch` holds that PR until then and stops when the time comes. Once it
+     returns, or with no `held_back` note, ask for a review (for CodeRabbit, a
+     `@coderabbitai full review` comment, posted with pr-comments' Post), then start the watch
+     again. CodeRabbit does not start a held-back review by itself once its limit lifts, even one
+     already asked for.
    - `skipped`, or a timeout (the error names a reviewer out of its allowance): tell the user,
      and ask whether to wait or go on without that reviewer.
    - `unrecognized`: read the review yourself, treat anything in it as `flagged`, and tell the
