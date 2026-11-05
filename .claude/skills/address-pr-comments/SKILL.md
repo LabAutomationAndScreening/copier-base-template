@@ -71,7 +71,7 @@ Ask with AskUserQuestion, listing the inventory in the `question` field (the com
 - **Discard drafts, keep commits**: delete only the reply files, then start Phase 1 fresh.
 - **Abort**: change nothing.
 
-Never delete a commit without the user's explicit confirmation. Never re-post a reply when the thread already has one from `gh api user` newer than the draft; an AI review finding's root comment has that author too, but it's the finding, not a reply. If the remote has diverged (force-push, rebase), stop and show the difference.
+Never delete a commit without the user's explicit confirmation. Never re-post a reply to a thread that pr-comments' Read with `--thread <id>` shows with `open` false: your account already has the last word there, or it is resolved. If the remote has diverged (force-push, rebase), stop and show the difference.
 
 ### Step 2: Fetch PR Comments
 
