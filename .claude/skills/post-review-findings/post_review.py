@@ -360,6 +360,8 @@ def _optional_line(raw: dict[str, Any], *, context: str) -> int | None:
         raise InputError(f"{context}: `line` must be an integer or null")
     if not isinstance(value, int):
         raise InputError(f"{context}: `line` must be an integer or null")
+    if value < 1:
+        raise InputError(f"{context}: `line` must be a positive integer or null, not {value}")
     return value
 
 
