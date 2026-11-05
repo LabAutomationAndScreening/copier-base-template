@@ -108,16 +108,42 @@ def held_back(comments: list[dict[str, str]]) -> str | None:
     rewrite, which can be hours old by the time anyone reads it. So the countdown becomes the time it ends, and a
     note whose time has passed is dropped: the allowance is back. A note with no countdown says when it was written.
     """
+    note = _newest_note(comments)
+    if note is None:
+        return None
+    text, edited_at, available_at = note
+    if available_at is None:
+        return f"{text} (as of {edited_at})"
+    if available_at <= datetime.datetime.now(datetime.UTC):
+        return None
+    return f"{text}; next included review available at {available_at.isoformat()}"
+
+
+def allowance_returns_at(comments: list[dict[str, str]]) -> datetime.datetime | None:
+    """Return when CodeRabbit's newest limit note says its next review is available, or None without a future one.
+
+    A wait can end then: CodeRabbit doesn't start a held-back review by itself, so that is when to ask for it again.
+    """
+    note = _newest_note(comments)
+    if note is None:
+        return None
+    available_at = note[2]
+    if available_at is None:
+        return None
+    if available_at <= datetime.datetime.now(datetime.UTC):
+        return None
+    return available_at
+
+
+def _newest_note(comments: list[dict[str, str]]) -> tuple[str, str, datetime.datetime | None] | None:
+    # the note's text, when its comment was last edited, and when the countdown in it ends, if it has one
     for comment in reversed(comments):
         match = _HELD_BACK.search(comment["body"])
         if match is None:
             continue
-        edited_at = datetime.datetime.fromisoformat(comment["edited_at"])
         timing = _NEXT_REVIEW.search(comment["body"])
         if timing is None:
-            return f"{match.group()} (as of {comment['edited_at']})"
-        available_at = edited_at + datetime.timedelta(minutes=int(timing.group(1)))
-        if available_at <= datetime.datetime.now(datetime.UTC):
-            return None
-        return f"{match.group()}; next included review available at {available_at.isoformat()}"
+            return match.group(), comment["edited_at"], None
+        edited_at = datetime.datetime.fromisoformat(comment["edited_at"])
+        return match.group(), comment["edited_at"], edited_at + datetime.timedelta(minutes=int(timing.group(1)))
     return None

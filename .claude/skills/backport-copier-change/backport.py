@@ -59,6 +59,16 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
                                     commits, not a merge of the default branch;
                                     a flagged reviewer's entry lists its open findings (id, type,
                                     path, line, url, body_text), read through the pr-comments skill
+  review-watch --chain F --branch B --checkouts DIR [--settled SHA ...]
+                                    ai-review across every chain PR at once (each found by branch B,
+                                    its checkout at DIR/<name>): wait while a review is running or
+                                    a reviewer's next review is due at a known time, and stop as soon
+                                    as any PR needs the agent (outcome needs_action) or every PR is
+                                    clean, settled or at a --settled head (all_quiet), printing each
+                                    PR's state: waiting, quiet, held (with until) or needs_action
+  status --chain F --branch B       a snapshot of every chain PR, waiting on nothing: its head, CI
+                                    checks passed, pending and failed, each AI reviewer's check, and
+                                    how many threads are open, for a status message to quote
   merge-command --repo R --pr N --checkout DIR
                                     refuse while the PR's branch is behind its base; else the
                                     commands that mark the draft ready and merge it the way the
@@ -1238,41 +1248,192 @@ def _add_findings(*, result: dict[str, Any], repo: str, pr: str, checkout: Path,
         result["verdict"] = "settled"
 
 
+class _PrReviews:
+    """Every configured reviewer's verdict on one PR's head, kept between probes of a wait.
+
+    A verdict holds only for the head it was reached on, so a push mid-wait sends every reviewer back to classify.
+    """
+
+    def __init__(self, *, repo: str, pr: str, checkout: Path, reviewers: list[ModuleType]) -> None:
+        self.repo = repo
+        self.pr = pr
+        self.checkout = checkout
+        self.reviewers = reviewers
+        self.verdicts: dict[str, dict[str, Any]] = {}
+        self.latest: dict[str, dict[str, list[str]]] = {}
+        self.comments: dict[str, list[dict[str, str]]] = {}
+        self.head = ""
+        self.head_first_seen_at = 0.0
+
+    def probe(self) -> dict[str, Any] | None:
+        # the PR's verdict once every reviewer has one on its current head, else None to keep waiting
+        state = _pr_review_state(repo=self.repo, pr=self.pr, reviewers=self.reviewers)
+        if state["head"] != self.head:
+            self.verdicts.clear()
+            self.head = state["head"]
+            self.head_first_seen_at = time.time()
+        state["head_first_seen_at"] = self.head_first_seen_at
+        self.latest.update(state["bodies"])
+        self.comments = state["comments"]
+        for reviewer in self.reviewers:
+            if reviewer.NAME in self.verdicts:
+                continue
+            result = _reviewer_verdict(
+                reviewer=reviewer, state=state, repo=self.repo, pr=self.pr, checkout=self.checkout
+            )
+            if result is not None:
+                self.verdicts[reviewer.NAME] = result
+        if len(self.verdicts) < len(self.reviewers):
+            return None
+        return {"verdict": _overall_verdict(self.verdicts), "head": self.head, "reviewers": self.verdicts}
+
+
 def cmd_ai_review(a: argparse.Namespace) -> dict[str, Any]:
     reviewers = enabled_reviewers(checkout=Path(a.checkout), names=a.reviewer)
     if not reviewers:
         return {"verdict": "none_configured", "reviewers": {}}
-    verdicts: dict[str, dict[str, Any]] = {}
-    latest: dict[str, dict[str, list[str]]] = {}
-    verdicts_head = ""
-    head_first_seen_at = 0.0
+    reviews = _PrReviews(repo=a.repo, pr=a.pr, checkout=Path(a.checkout), reviewers=reviewers)
+    try:
+        return _wait(timeout=a.timeout, interval=60, what=f"every AI reviewer on PR {a.pr}", probe=reviews.probe)
+    except FailError as e:
+        raise _review_timeout(error=e, reviewers=reviewers, verdicts=reviews.verdicts, latest=reviews.latest) from e
 
-    def all_reviewed() -> str | None:
-        nonlocal verdicts_head, head_first_seen_at
-        state = _pr_review_state(repo=a.repo, pr=a.pr, reviewers=reviewers)
-        # a verdict holds only for the head it was reached on, so a push mid-wait sends every reviewer back to classify
-        if state["head"] != verdicts_head:
-            verdicts.clear()
-            verdicts_head = state["head"]
-            head_first_seen_at = time.time()
-        state["head_first_seen_at"] = head_first_seen_at
-        bodies = state["bodies"]
-        latest.update(bodies)
-        for reviewer in reviewers:
-            if reviewer.NAME in verdicts:
-                continue
-            result = _reviewer_verdict(reviewer=reviewer, state=state, repo=a.repo, pr=a.pr, checkout=Path(a.checkout))
-            if result is not None:
-                verdicts[reviewer.NAME] = result
-        if len(verdicts) < len(reviewers):
+
+def _chain_prs(*, chain: dict[str, Any], branch: str) -> list[tuple[str, str | None]]:
+    """Find each chain repo's open PR from the branch, in chain order, with None for a repo that has none yet.
+
+    Every repo in the chain uses the same branch, so its name finds the PRs without keeping their numbers anywhere.
+    """
+    found: list[tuple[str, str | None]] = []
+    for link in chain["chain"]:
+        prs = _gh_json("pr", "list", "--repo", link["repo"], "--head", branch, "--state", "open", "--json", "number")
+        if not prs:
+            found.append((link["repo"], None))
+            continue
+        found.append((link["repo"], str(prs[0]["number"])))
+    return found
+
+
+_QUIET_VERDICTS = frozenset({"clean", "settled"})
+
+
+def _watched_pr(*, reviews: _PrReviews, result: dict[str, Any] | None, settled: set[str]) -> dict[str, Any]:
+    """Sort one PR into what review-watch does about it: wait, leave it, or stop for the agent.
+
+    `waiting`: a reviewer is still reviewing the head, or hasn't started yet. `quiet`: clean, settled, or a head the
+    agent already settled (--settled). `held`: unreviewed, but a reviewer's own note says when its next review is
+    available, which `until` gives. `needs_action`: anything else, such as a finding, a review nobody can read, or a
+    head left unreviewed with no time for its next review (including one whose time has come).
+    """
+    entry: dict[str, Any] = {"pr": reviews.pr, "head": reviews.head}
+    if result is None:
+        return {**entry, "state": "waiting"}
+    entry["result"] = result
+    if reviews.head in settled:
+        return {**entry, "state": "quiet"}
+    if result["verdict"] in _QUIET_VERDICTS:
+        return {**entry, "state": "quiet"}
+    times = [r.allowance_returns_at(reviews.comments[r.NAME]) for r in reviews.reviewers]
+    future = sorted(t for t in times if t is not None)
+    if future:
+        return {**entry, "state": "held", "until": future[0].isoformat()}
+    return {**entry, "state": "needs_action"}
+
+
+def _chain_reviews(*, a: argparse.Namespace) -> tuple[list[_PrReviews], list[str]]:
+    # each chain PR whose repo configures a reviewer, then the repos with no PR yet
+    chain = json.loads(Path(a.chain).read_text())
+    no_pr: list[str] = []
+    watched: list[_PrReviews] = []
+    for repo, pr in _chain_prs(chain=chain, branch=a.branch):
+        if pr is None:
+            no_pr.append(repo)
+            continue
+        checkout = Path(a.checkouts) / repo.split("/", 1)[1]
+        if not checkout.is_dir():
+            raise FailError(f"no checkout of {repo} at {checkout}; check it out there first (Step 3)")
+        reviewers = enabled_reviewers(checkout=checkout, names=a.reviewer)
+        if reviewers:
+            watched.append(_PrReviews(repo=repo, pr=pr, checkout=checkout, reviewers=reviewers))
+    return watched, no_pr
+
+
+def cmd_review_watch(a: argparse.Namespace) -> dict[str, Any]:
+    watched, no_pr = _chain_reviews(a=a)
+    settled = set(a.settled)
+    report: dict[str, dict[str, Any]] = {}
+
+    def probe() -> dict[str, Any] | None:
+        for reviews in watched:
+            report[reviews.repo] = _watched_pr(reviews=reviews, result=reviews.probe(), settled=settled)
+        states = [entry["state"] for entry in report.values()]
+        if "needs_action" in states:
+            return {"outcome": "needs_action", "prs": report, "no_pr": no_pr}
+        if "waiting" in states:
             return None
-        return state["head"]
+        if "held" in states:
+            return None
+        return {"outcome": "all_quiet", "prs": report, "no_pr": no_pr}
 
     try:
-        head = _wait(timeout=a.timeout, interval=60, what=f"every AI reviewer on PR {a.pr}", probe=all_reviewed)
+        return _wait(timeout=a.timeout, interval=60, what="the AI reviews across the chain", probe=probe)
     except FailError as e:
-        raise _review_timeout(error=e, reviewers=reviewers, verdicts=verdicts, latest=latest) from e
-    return {"verdict": _overall_verdict(verdicts), "head": head, "reviewers": verdicts}
+        raise FailError(f"{e}. Where each PR stood: {json.dumps(report)}") from e
+
+
+_CHECK_FAILURES = frozenset({"FAILURE", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE", "ERROR"})
+
+
+def _check_state(check: dict[str, Any]) -> str:
+    # gh lists GitHub Actions jobs and app checks as CheckRun (status, conclusion), commit statuses as StatusContext
+    if check.get("__typename") == "StatusContext":
+        state = check.get("state") or ""
+        if state == "PENDING":
+            return "pending"
+        if state in _CHECK_FAILURES:
+            return "failed"
+        return "passed"
+    if check.get("status") != "COMPLETED":
+        return "pending"
+    if (check.get("conclusion") or "") in _CHECK_FAILURES:
+        return "failed"
+    return "passed"
+
+
+def _pr_status(*, repo: str, pr: str) -> dict[str, Any]:
+    view = _gh_json("pr", "view", pr, "--repo", repo, "--json", "url,state,isDraft,headRefOid,statusCheckRollup")
+    reviewer_checks = {r.CHECK_NAME: r.NAME for r in REVIEWERS if r.CHECK_NAME is not None}
+    checks: dict[str, list[str]] = {"passed": [], "pending": [], "failed": []}
+    reviewers: dict[str, str] = {}
+    for check in view["statusCheckRollup"]:
+        name = check.get("name") or check.get("context") or ""
+        if name in reviewer_checks:
+            reviewers[reviewer_checks[name]] = f"{check.get('status')} {check.get('conclusion') or ''}".strip()
+            continue
+        checks[_check_state(check)].append(name)
+    read = Path(__file__).resolve().parent.parent / "pr-comments" / "read.py"
+    open_threads = len(json.loads(_run(cmd=[str(read), pr, "--repo", repo])))
+    return {
+        "pr": pr,
+        "url": view["url"],
+        "state": view["state"],
+        "draft": view["isDraft"],
+        "head": view["headRefOid"],
+        "checks": {"passed": len(checks["passed"]), "pending": checks["pending"], "failed": checks["failed"]},
+        "reviewer_checks": reviewers,
+        "open_threads": open_threads,
+    }
+
+
+def cmd_status(a: argparse.Namespace) -> dict[str, Any]:
+    chain = json.loads(Path(a.chain).read_text())
+    prs: dict[str, dict[str, Any] | None] = {}
+    for repo, pr in _chain_prs(chain=chain, branch=a.branch):
+        if pr is None:
+            prs[repo] = None
+            continue
+        prs[repo] = _pr_status(repo=repo, pr=pr)
+    return {"branch": a.branch, "prs": prs}
 
 
 def _reviewer_verdict(
@@ -1769,12 +1930,32 @@ def _add_github_verbs(add: AddVerb) -> None:
             )
 
 
+def _add_chain_review_verbs(add: AddVerb) -> None:
+    rw = add("review-watch")
+    rw.add_argument("--chain", required=True, help="the chain file, whose repos' PRs are watched")
+    rw.add_argument("--branch", required=True, help="the branch every repo in the chain uses")
+    rw.add_argument("--checkouts", required=True, help="the directory holding each repo's checkout, by repo name")
+    rw.add_argument(
+        "--settled", action="append", default=[], metavar="SHA", help="a head the agent already settled or waived"
+    )
+    rw.add_argument(
+        "--reviewer", action="append", default=[], help="only these reviewers (default: every configured one)"
+    )
+    rw.add_argument("--timeout", type=int, default=5400, help="seconds")
+    rw.set_defaults(fn=cmd_review_watch)
+    st = add("status")
+    st.add_argument("--chain", required=True)
+    st.add_argument("--branch", required=True)
+    st.set_defaults(fn=cmd_status)
+
+
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="verb", required=True)
     _add_chain_verbs(sub.add_parser)
     _add_checkout_verbs(sub.add_parser)
     _add_github_verbs(sub.add_parser)
+    _add_chain_review_verbs(sub.add_parser)
     return p
 
 

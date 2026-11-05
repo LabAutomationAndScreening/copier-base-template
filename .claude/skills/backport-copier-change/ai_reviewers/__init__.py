@@ -27,6 +27,9 @@ Each module defines:
                 on. `comments` are the agent's PR comments, oldest first, each a dict with its
                 `body` and `edited_at` (ISO 8601), since a note in a comment rewritten in place is
                 only as current as that edit
+  allowance_returns_at(comments) -> datetime | None
+                when the agent's newest note says its next review is available, if that is still to
+                come: review-watch keeps waiting until then rather than calling the PR's head unreviewed
   allowance_used_up(review_bodies) -> bool
                 whether the agent's last review says it has no reviews left for now, so a wait
                 that times out can say why
