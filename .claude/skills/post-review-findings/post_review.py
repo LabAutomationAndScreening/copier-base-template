@@ -51,6 +51,7 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "pr-comments"))
+from utils import FINDING_ID_PATTERN
 from utils import GH_TIMEOUT_SECONDS
 from utils import HUNK_HEADER_RE
 from utils import ai_review_finding_marker
@@ -364,6 +365,12 @@ def _optional_line(raw: dict[str, Any], *, context: str) -> int | None:
     return value
 
 
+def _require_finding_id(finding_id: str, *, context: str) -> str:
+    if re.fullmatch(FINDING_ID_PATTERN, finding_id) is None:
+        raise InputError(f"{context}: finding ID {finding_id!r} may hold only letters, digits, '_' and '-'")
+    return finding_id
+
+
 def _parse_related(raw: dict[str, Any], *, context: str) -> list[Related]:
     value = raw.get("related", [])
     if not isinstance(value, list):
@@ -374,7 +381,7 @@ def _parse_related(raw: dict[str, Any], *, context: str) -> list[Related]:
             raise InputError(f"{context}: each `related` entry must be an object with `id` and `note`")
         related.append(
             Related(
-                finding_id=_require_str(raw=entry, key="id", context=context),
+                finding_id=_require_finding_id(_require_str(raw=entry, key="id", context=context), context=context),
                 note=_require_str(raw=entry, key="note", context=context),
             )
         )
@@ -386,7 +393,9 @@ def _parse_finding(raw: object, *, finding_id: str | None, index: int) -> Findin
     if not isinstance(raw, dict):
         raise InputError(f"{context}: must be an object")
     return Finding(
-        finding_id=_require_str(raw=raw, key="id", context=context) if finding_id is None else finding_id,
+        finding_id=_require_finding_id(
+            _require_str(raw=raw, key="id", context=context) if finding_id is None else finding_id, context=context
+        ),
         file=_require_str(raw=raw, key="file", context=context),
         line=_optional_line(raw, context=context),
         line_commit=_optional_str(raw=raw, key="line_commit", context=context),

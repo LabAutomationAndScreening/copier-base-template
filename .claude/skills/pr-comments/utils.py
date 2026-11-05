@@ -14,9 +14,12 @@ GH_TIMEOUT_SECONDS = 30
 
 # Findings from an AI code review are posted under the account of the person who ran the review, so their author is
 # the current user. This hidden marker is how read.py tells such a finding (still awaiting a response) apart from the
-# user's own replies (which mark a thread as addressed).
+# user's own replies (which mark a thread as addressed). A finding ID outside FINDING_ID_PATTERN would make a marker
+# this can't parse, so the finding would pass for one of the user's replies.
+FINDING_ID_PATTERN = r"[A-Za-z0-9_-]+"
 _AI_REVIEW_FINDING_RE = re.compile(
-    r"<!-- ai-review-finding id=(?P<id>[A-Za-z0-9_-]+)(?: related=(?P<related>[A-Za-z0-9_,-]+))? -->"
+    rf"<!-- ai-review-finding id=(?P<id>{FINDING_ID_PATTERN})"
+    rf"(?: related=(?P<related>{FINDING_ID_PATTERN}(?:,{FINDING_ID_PATTERN})*))? -->"
 )
 
 # GitHub has no threading for top-level PR comments, so a reply to one is a new top-level comment carrying this hidden
