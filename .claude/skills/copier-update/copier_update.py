@@ -805,7 +805,9 @@ def cmd_commit(a: argparse.Namespace) -> dict[str, Any]:
         raise FailError(
             "refusing to commit inline conflict markers:\n  " + "\n  ".join(f"{m['path']}:{m['line']}" for m in markers)
         )
-    _ = _git("commit", "-q", "-F", a.message_file, cwd=project, extra_env={"SKIP": ",".join(a.skip)})
+    # git runs in the project, so a relative --message-file is resolved here first, from where the command was typed
+    message_file = str(Path(a.message_file).resolve())
+    _ = _git("commit", "-q", "-F", message_file, cwd=project, extra_env={"SKIP": ",".join(a.skip)})
     return {
         **where,
         "sha": _git("rev-parse", "HEAD", cwd=project).strip(),
@@ -1038,7 +1040,8 @@ def cmd_comment_report(a: argparse.Namespace) -> dict[str, Any]:
     where = guard_not_default_branch(project)
     branch = where["branch"]
     report = json.loads(Path(a.report).read_text())
-    comment = project / "tmp" / "pr-comment.md"
+    # gh runs in the project, so a path relative to where the command was typed would be read from the wrong place
+    comment = (project / "tmp" / "pr-comment.md").resolve()
     comment.parent.mkdir(exist_ok=True)
     _ = comment.write_text(report_markdown(report=report, commits=report.get("commits", [])))
     res = _run(
