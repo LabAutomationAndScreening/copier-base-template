@@ -78,10 +78,13 @@ itself, one decision per comment.
 
 ```bash
 .claude/skills/pr-comments/post.py --pr <n> --comment-id <id> --comment-type <pulls/comments|issues/comments|pulls/reviews> --body-file <file> [--repo OWNER/NAME] [--commit <full sha>]
+.claude/skills/pr-comments/post.py --pr <n> --body-file <file> [--repo OWNER/NAME] [--commit <full sha>]   # a new top-level comment
 ```
 
 Replies in the inline thread or, since GitHub has no threads for top-level comments or review
-bodies, posts a new top-level comment marked as answering `--comment-id`. It appends the AI attribution footer
+bodies, posts a new top-level comment marked as answering `--comment-id`. Without `--comment-id` and
+`--comment-type`, it posts a new top-level comment that answers nothing, such as asking a reviewer
+for a review. It appends the AI attribution footer
 to the file when that isn't already its last line (never write the footer yourself), prints
 `Posted: <url>` followed by the body as it was posted (links filled, footer included), so what
 went out can be checked there rather than by reading the thread back, and deletes the file, so a

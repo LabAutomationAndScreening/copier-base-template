@@ -2,9 +2,12 @@
 # /// script
 # requires-python = ">=3.12"
 # ///
-"""Post a reply to a PR comment, for the pr-comments skill.
+"""Post a reply to a PR comment, or a new top-level comment, for the pr-comments skill.
 
 Usage:
+  # A new top-level comment that answers no other comment (asking a reviewer for a review, say):
+  post.py --pr <number> --body-file <path> [--repo OWNER/NAME]
+
   # Reply in an inline review thread (pulls/comments):
   post.py --pr <number> --comment-id <id> --comment-type pulls/comments --body-file <path> [--repo OWNER/NAME]
 
@@ -16,7 +19,9 @@ Usage:
   # the same way:
   post.py --pr <number> --comment-id <review id> --comment-type pulls/reviews --body-file <path> [--repo OWNER/NAME]
 
-Either form takes --commit <full sha>, which fills each [COMMIT LINK] in the body file with a markdown link to that
+--comment-id and --comment-type go together: both to answer a comment, neither for a new top-level comment.
+
+Every form takes --commit <full sha>, which fills each [COMMIT LINK] in the body file with a markdown link to that
 commit as it appears in the PR, the form GitHub associates with the PR. A commit that isn't one of the PR's pushed
 commits is refused, except on a PR with more commits than GitHub lists (250), where it is only warned about. A
 [COMMIT LINK] inside a code span or a fenced code block is text about the placeholder, not a placeholder, and stays
@@ -205,11 +210,12 @@ def _post(*, endpoint: str, body: str, body_file: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    _ = parser.add_argument("--comment-id", required=True, type=int)
+    _ = parser.add_argument("--comment-id", default=None, type=int, help="the comment this answers")
     _ = parser.add_argument(
         "--comment-type",
-        required=True,
+        default=None,
         choices=["pulls/comments", "issues/comments", "pulls/reviews"],
+        help="the answered comment's type",
     )
     _ = parser.add_argument("--body-file", required=True, type=Path)
     _ = parser.add_argument("--pr", type=int, required=True, help="PR number")
@@ -221,6 +227,8 @@ def main() -> None:
         "--check", action="store_true", help="print the body as it would be posted; change and post nothing"
     )
     args = parser.parse_args()
+    if (args.comment_id is None) != (args.comment_type is None):
+        parser.error("--comment-id and --comment-type go together: both to answer a comment, neither for a new one")
     body_file = args.body_file.resolve()
     enter_checkout(args.checkout)
 
@@ -228,7 +236,10 @@ def main() -> None:
     link = _commit_link(args.commit, owner=owner, repo=repo, pr=args.pr)
     content = _with_reply_footer(_with_commit_link(_read_body_file(body_file), body_file=body_file, link=link))
 
-    if args.comment_type == "pulls/comments":
+    if args.comment_type is None:
+        endpoint = f"repos/{owner}/{repo}/issues/{args.pr}/comments"
+        body_suffix = ""
+    elif args.comment_type == "pulls/comments":
         # Reply directly into the inline review comment thread.
         endpoint = f"repos/{owner}/{repo}/pulls/{args.pr}/comments/{args.comment_id}/replies"
         body_suffix = ""
