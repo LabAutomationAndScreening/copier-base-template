@@ -170,5 +170,5 @@
   "resolved_at": "2026-09-13T18:42:07Z",
   "resolved_by": "claude-opus-5",
   "schema_version": "1.0.0",
-  "summary": "Updated from v1.4.2 to feature/uv-0.8 (9 commits). Four files rejected hunks; the CI workflow and ruff config took the template side, the Dockerfile kept ours because it carries the Tecan SDK install the template knows nothing about, and pyproject.toml was merged by hand. Update landed as 5f0e2d1; lint fallout fixed in 9b7c3aa (ruff format) and c2d4e61 (yamllint indentation)."
+  "summary": "Updated from v1.4.2 to feature/uv-0.8 (9 commits). Four files rejected hunks: the CI workflow took the template side, the Dockerfile kept ours because it carries the Tecan SDK install the template knows nothing about, pyproject.toml was merged by hand to carry the project's ruff rules into the new layout, and the __version__ change in src/driver_tecan_fluent/__init__.py is deferred for owner review (LAB-1432). Update landed as 5f0e2d1; lint fallout fixed in 9b7c3aa (ruff format) and c2d4e61 (yamllint indentation)."
 }
