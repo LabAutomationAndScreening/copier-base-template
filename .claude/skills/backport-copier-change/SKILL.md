@@ -37,7 +37,7 @@ $BP checkout --branch B --path P --worktree-of <origin checkout>   # the origina
 $BP behind --checkout P [--parent-checkout P2]   # `_commit` against the parent template's newest tag
 $BP behind --repo OWNER/NAME         # the same, read from its default branch: no checkout needed
 $BP push --checkout P --chain <chain.json>   # check commit messages and changes if public, push, print the full head SHA
-$BP net-diff --checkout P            # net change after a copier pull; only_commit_changed for re-pins
+$BP net-diff --checkout P --base SHA  # net change since SHA, the commit before a copier pull; only_commit_changed for re-pins
 $BP ci --repo OWNER/NAME --sha SHA  # wait for every CI run on that commit, push and pull_request alike
 $BP scan --chain <chain.json> --repo R --file F   # private repo names F would leak into public R
 $BP pr-command --checkout P --chain <chain.json> --title T --body-file B   # scan, then the draft PR command
@@ -227,15 +227,17 @@ For each next repo in the chain file's order, each pulling its own parent templa
    that tag would drop the change: propose merging the parent's default branch into its
    branch instead (`update-branch` on the parent's checkout, with `--chain`), then `ci`, and
    pull that head here with `--ref`.
-2. Pull the change: copier-update with `--ref <sha from the parent's push>`, one pull for all
-   of the parent's commits. Every upstream commit is pulled, even one that renders no file
-   differently here: `net-diff` then shows `only_commit_changed`, which is the proof it renders
-   the same, and such a pull is minor for a reviewer.
-3. `$BP net-diff --checkout <checkout>`. `changed` should be exactly the upstream change, as it
-   renders here, plus the answers file; stop and show the user anything else. A file in
-   `removed_lines` that the upstream change doesn't remove lines from was overwritten by
-   copier: restore the repo's own lines.
-4. Commit the pull. Then this repo's own edits from the plan, each as its own commit after it.
+2. Note `git -C <checkout> rev-parse HEAD`, then pull the change: copier-update with
+   `--ref <sha from the parent's push>`, one pull for all of the parent's commits. Every
+   upstream commit is pulled, even one that renders no file differently here: `net-diff` then
+   shows `only_commit_changed`, which is the proof it renders the same, and such a pull is
+   minor for a reviewer.
+3. `$BP net-diff --checkout <checkout> --base <the noted sha>`, since copier-update has
+   committed the pull. `changed` should be exactly the upstream change, as it renders here,
+   plus the answers file; stop and show the user anything else. A file in `removed_lines` that
+   the upstream change doesn't remove lines from was overwritten by copier: restore the repo's
+   own lines, as a commit of its own.
+4. This repo's own edits from the plan, each as its own commit after the pull's.
    A child template's own edit to its rendered files gets Step 4's proof before its commit:
    render with `--vcs-ref HEAD` (without it, copier renders the last tag, not the edit) and
    check the rendered files.
@@ -332,9 +334,9 @@ top, one level at a time:
    head, and the pre-merge check again. Run its `commands` in order, each as its own command,
    and start `$BP tag --repo R --pr N` in the background: it confirms the merge, then waits for
    the tag. Pass `--merge-only` for a repo with no tag-on-merge workflow (often a project).
-2. **Re-pin its children** as soon as a repo's tag lands: copier-update with no `--ref`, then
-   `net-diff`. `only_commit_changed` must be true; if not, stop and show the user what else
-   changed. Commit, `push`, `ci`.
+2. **Re-pin its children** as soon as a repo's tag lands: note the child's HEAD, copier-update
+   with no `--ref`, then `net-diff --base <the noted sha>`. `only_commit_changed` must be true;
+   if not, stop and show the user what else changed. Then `push`, `ci`.
 3. **Delete a template's branch** once every child of it is re-pinned and pushed:
    `$BP delete-branch --repo <template> --branch <branch> --checkout <its checkout> --chain <chain.json> --downstream <child checkout> --downstream <next child's checkout>`,
    one `--downstream` per child.

@@ -30,8 +30,11 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
   push --chain F [--checkout DIR]   push the branch and print its full head SHA; for a public repo,
                                     first refuse any unpushed commit whose message or changes name a
                                     private repo from the chain
-  net-diff [--checkout DIR]         drop copier's staged-then-reversed changes, list the net
-                                    change against HEAD, and say whether only `_commit` moved
+  net-diff [--checkout DIR] [--base REV]
+                                    drop copier's staged-then-reversed changes, list the net
+                                    change against REV (HEAD by default; the commit before the
+                                    pull once copier-update has committed it), and say whether
+                                    only `_commit` moved
   scan --chain F --repo R --file T  private repo names from the chain that text T would leak
                                     into public repo R
   pr-command --chain F --title T --body-file B   scan, then print the command that opens the
@@ -634,9 +637,9 @@ def cmd_push(a: argparse.Namespace) -> dict[str, Any]:
 def cmd_net_diff(a: argparse.Namespace) -> dict[str, Any]:
     checkout = Path(a.checkout)
     # copier can stage a change and reverse it in the working tree; only the net change
-    # against HEAD is real, so drop the index's half
+    # against the base is real, so drop the index's half
     _ = _git("reset", "-q", cwd=checkout)
-    changed = [p for p in _git("diff", "HEAD", "--name-only", cwd=checkout).splitlines() if p]
+    changed = [p for p in _git("diff", a.base, "--name-only", cwd=checkout).splitlines() if p]
     untracked: list[str] = []
     for path in _git("ls-files", "--others", "--exclude-standard", cwd=checkout).splitlines():
         parts = Path(path).parts
@@ -646,19 +649,19 @@ def cmd_net_diff(a: argparse.Namespace) -> dict[str, Any]:
             continue
         untracked.append(path)
     before = None
-    head_answers = _attempt(cmd=["git", "show", f"HEAD:{ANSWERS.as_posix()}"], cwd=checkout)
+    head_answers = _attempt(cmd=["git", "show", f"{a.base}:{ANSWERS.as_posix()}"], cwd=checkout)
     if head_answers.returncode == 0:
         before = _commit_in(head_answers.stdout)
     answers_lines = [
         line
-        for line in _git("diff", "HEAD", "--unified=0", "--", ANSWERS.as_posix(), cwd=checkout).splitlines()
+        for line in _git("diff", a.base, "--unified=0", "--", ANSWERS.as_posix(), cwd=checkout).splitlines()
         if re.match(r"^[+-](?![+-])", line)
     ]
     only_commit = all(re.match(r"^[+-]_commit: ", line) for line in answers_lines)
     # copier can write a template's new block over the repo's own lines next to it and reject re-adding them, so
     # a file that lost lines needs a look even when its .rej has been dealt with
     removed_lines: dict[str, int] = {}
-    for line in _git("diff", "HEAD", "--numstat", cwd=checkout).splitlines():
+    for line in _git("diff", a.base, "--numstat", cwd=checkout).splitlines():
         __, removed, path = line.split("\t", 2)
         if removed not in {"0", "-"}:
             removed_lines[path] = int(removed)
@@ -1653,6 +1656,11 @@ def _add_chain_verbs(add: AddVerb) -> None:
     cs = add("consumers")
     cs.add_argument("--template", required=True, help="OWNER/NAME of a template in the chain")
     cs.set_defaults(fn=cmd_consumers)
+    sc = add("scan")
+    sc.add_argument("--chain", required=True)
+    sc.add_argument("--repo", required=True, help="OWNER/NAME the text will be posted to")
+    sc.add_argument("--file", required=True)
+    sc.set_defaults(fn=cmd_scan)
 
 
 def _add_checkout_verbs(add: AddVerb) -> None:
@@ -1672,6 +1680,8 @@ def _add_checkout_verbs(add: AddVerb) -> None:
             sp.add_argument(
                 "--chain", required=True, help="the chain file, to check commit messages and changes for a public repo"
             )
+        if name == "net-diff":
+            sp.add_argument("--base", default="HEAD", help="the commit before the pull, once the pull is committed")
         if name == "behind":
             sp.add_argument(
                 "--parent-checkout",
@@ -1681,11 +1691,6 @@ def _add_checkout_verbs(add: AddVerb) -> None:
             sp.add_argument(
                 "--repo", default=None, help="OWNER/NAME to read from its default branch instead of a checkout"
             )
-    sc = add("scan")
-    sc.add_argument("--chain", required=True)
-    sc.add_argument("--repo", required=True, help="OWNER/NAME the text will be posted to")
-    sc.add_argument("--file", required=True)
-    sc.set_defaults(fn=cmd_scan)
     op = add("pr-command")
     op.add_argument("--checkout", default=".")
     op.add_argument("--chain", required=True)
