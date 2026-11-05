@@ -117,7 +117,12 @@ def _link(*, link: str, reply_files: list[Path]) -> tuple[list[str], list[str]]:
 
 
 def _close_bd_issue(*, bd_root: Path, issue_id: str, commit: str, reply_file: Path) -> list[str]:
-    shown = run(["bd", "show", issue_id, "--json"], cwd=bd_root)
+    # the commit already exists, so a bd call that times out is reported under errors, never raised: exit 1 has to
+    # keep meaning nothing was committed
+    try:
+        shown = run(["bd", "show", issue_id, "--json"], cwd=bd_root)
+    except subprocess.TimeoutExpired:
+        return [f"bd show {issue_id} timed out; record the commit on the issue and close it by hand"]
     if shown.returncode != 0:
         return [f"bd show {issue_id}: {shown.stderr.strip()}"]
     description = json.loads(shown.stdout)[0].get("description") or ""
@@ -130,7 +135,10 @@ def _close_bd_issue(*, bd_root: Path, issue_id: str, commit: str, reply_file: Pa
         (["bd", "export", "-o", str(BD_EXPORT_PATH)], None),
     ]
     for command, stdin in steps:
-        result = run(command, cwd=bd_root, stdin=stdin)
+        try:
+            result = run(command, cwd=bd_root, stdin=stdin)
+        except subprocess.TimeoutExpired:
+            return [f"{' '.join(command[:3])} timed out; finish this step and the ones after it by hand"]
         if result.returncode != 0:
             return [f"{' '.join(command[:3])}: {result.stderr.strip()}"]
     return []
