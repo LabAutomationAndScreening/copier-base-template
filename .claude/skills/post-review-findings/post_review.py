@@ -1026,6 +1026,13 @@ def cmd_post(args: argparse.Namespace) -> None:
     problems = plan.blocking_problems(resume=args.resume)
     if problems:
         _fail("Not posting; resolve these first (see `plan`):\n- " + "\n- ".join(problems))
+    already_posted = plan.already_posted(resume=args.resume)
+    if not [p for p in plan.planned if p.finding.finding_id not in already_posted]:
+        # no review would be created, so recording the file as posted would only block a real post of it later
+        _fail(
+            "Not posting; no finding in the file is left to post, so there would be no review. "
+            "Add findings, or, after a --resume, check `plan`: every finding is already on the PR."
+        )
     findings_file.posted = _post(plan=plan, findings_file=findings_file, resume=args.resume)
     _write_findings_file(path=args.findings_file, findings_file=findings_file)
     _ = sys.stdout.write(json.dumps(findings_file.posted, indent=2) + "\n")
