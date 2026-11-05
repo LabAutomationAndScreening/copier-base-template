@@ -271,12 +271,13 @@ def resolve_answers_file(*, project: Path, answers_file: str | None) -> str:
 
 def default_branch(project: Path) -> str:
     res = _run(cmd=["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], cwd=project)
-    if res.returncode == 0:
-        return res.stdout.strip().split("/", 1)[-1]
-    for name in ("main", "master"):
-        if _run(cmd=["git", "rev-parse", "--verify", "-q", f"refs/heads/{name}"], cwd=project).returncode == 0:
-            return name
-    return "main"
+    if res.returncode != 0:
+        # guessing main or master would let the default-branch guard pass on a repo whose default is something else
+        raise FailError(
+            f"origin/HEAD is not set in {project}, so its default branch is unknown; "
+            "run `git remote set-head origin --auto` there first"
+        )
+    return res.stdout.strip().split("/", 1)[-1]
 
 
 def current_branch(project: Path) -> str | None:
