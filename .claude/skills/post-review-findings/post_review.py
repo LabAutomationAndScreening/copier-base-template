@@ -31,9 +31,8 @@ post    Re-runs the plan and refuses if anything needs attention, or if its anch
         can apply a submit yet return an empty response) means the post succeeded; unreadable means nothing is
         deleted. On success the posted URLs are written back into the findings file, and a findings file that has
         been posted is refused next time.
-        With --resume, findings whose IDs are already on the PR are skipped and the rest are posted (as a new
-        review if any need a thread). Links are filled in both ways, editing the earlier findings that point at a
-        newly posted one.
+        With --resume, findings whose IDs are already on the PR are skipped and the rest are posted as a new
+        review. Links are filled in both ways, editing the earlier findings that point at a newly posted one.
 
 Placement is computed against the reviewed commit. If that commit is still in the PR, the review is pinned to it, so
 line numbers are never recomputed and GitHub shows findings on code changed since as outdated. If the branch was
@@ -875,7 +874,7 @@ def _post(*, plan: Plan, findings_file: FindingsFile, resume: bool) -> dict[str,
     to_post = [p for p in plan.planned if p.finding.finding_id not in already_posted]
     threads = [p for p in to_post if p.placement != "pr_comment"]
     review_id: str | None = None
-    if threads:
+    if to_post:
         review_id = gh_graphql(ADD_REVIEW, {"pullRequestId": plan.pr_node_id, "commitOID": plan.anchor_commit})[
             "addPullRequestReview"
         ]["pullRequestReview"]["id"]
@@ -962,7 +961,7 @@ def render_preview(*, plan: Plan, findings_file: FindingsFile, resume: bool) -> 
         relinked = plan.earlier_findings_to_relink(resume=resume)
         if relinked:
             sections.append(f"Edited to link the new findings (GitHub marks them edited): {', '.join(relinked)}.")
-    if any(p.placement != "pr_comment" for p in to_post):
+    if to_post:
         sections += [
             "---\n\n# Review body",
             render_review_body(planned=to_post, findings_file=findings_file, urls=urls, continued=bool(already_posted)),
