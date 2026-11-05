@@ -157,9 +157,9 @@ Options:
 The script:
 1. Re-runs the plan and refuses if anything blocks posting, or if the PR head or base is no longer `--head` or `--base`.
 2. Creates a pending review on `anchor_commit`, so nothing is visible and no notifications go out.
-3. Adds each finding as a thread, then posts `pr_comment` findings as top-level comments.
+3. Adds each finding as a thread, then posts `pr_comment` findings as top-level comments. GitHub has no pending top-level comment, so each of these is visible, and notifies, as soon as it is posted.
 4. Fills in the links between related findings now that their URLs exist.
-5. Submits the review as a `COMMENT`, so there is one notification.
+5. Submits the review as a `COMMENT`: one notification for every finding posted as a thread.
 
 On success it prints the review URL and each finding's URL, and records them under `posted` in `<findings_file>`. The script refuses to post that file again.
 
