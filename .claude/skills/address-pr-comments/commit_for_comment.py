@@ -121,6 +121,21 @@ def _link(*, link: str, reply_files: list[Path]) -> tuple[list[str], list[str]]:
     return linked, errors
 
 
+def _shown_description(*, shown: object, issue_id: str) -> tuple[str, list[str]]:
+    unknown_shape = f"bd show {issue_id} printed JSON of an unknown shape; record the commit on it and close it by hand"
+    # BD_JSON_ENVELOPE=1 wraps the usual array as {"schema_version": ..., "data": [...]}
+    if isinstance(shown, dict):
+        shown = shown.get("data")
+    if not isinstance(shown, list):
+        return "", [unknown_shape]
+    if not shown:
+        return "", [f"bd show {issue_id} returned no issue; record the commit on it and close it by hand"]
+    issue = shown[0]
+    if not isinstance(issue, dict):
+        return "", [unknown_shape]
+    return issue.get("description") or "", []
+
+
 def _issue_description(*, bd_root: Path, issue_id: str) -> tuple[str, list[str]]:
     try:
         shown = run(["bd", "show", issue_id, "--json"], cwd=bd_root)
@@ -129,12 +144,10 @@ def _issue_description(*, bd_root: Path, issue_id: str) -> tuple[str, list[str]]
     if shown.returncode != 0:
         return "", [f"bd show {issue_id}: {shown.stderr.strip()}"]
     try:
-        issues = json.loads(shown.stdout)
+        parsed = json.loads(shown.stdout)
     except json.JSONDecodeError as e:
         return "", [f"bd show {issue_id} printed no JSON ({e}); record the commit on the issue and close it by hand"]
-    if not issues:
-        return "", [f"bd show {issue_id} returned no issue; record the commit on it and close it by hand"]
-    return issues[0].get("description") or "", []
+    return _shown_description(shown=parsed, issue_id=issue_id)
 
 
 def _close_bd_issue(*, bd_root: Path, issue_id: str, commit: str, reply_file: Path) -> list[str]:
