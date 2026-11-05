@@ -18,8 +18,9 @@ Usage:
 
 Either form takes --commit <full sha>, which fills each [COMMIT LINK] in the body file with a markdown link to that
 commit as it appears in the PR, the form GitHub associates with the PR. A commit that isn't one of the PR's pushed
-commits is refused. A [COMMIT LINK] inside a code span or a fenced code block is text about the placeholder, not a
-placeholder, and stays as written.
+commits is refused, except on a PR with more commits than GitHub lists (250), where it is only warned about. A
+[COMMIT LINK] inside a code span or a fenced code block is text about the placeholder, not a placeholder, and stays
+as written.
 
 Without --repo, the PR belongs to the current directory's origin remote. In place of --repo, --checkout PATH posts as
 if run from that checkout of another repo, whose origin remote the PR belongs to; --body-file still resolves against
@@ -62,6 +63,8 @@ from utils import split_code
 
 REPLY_FOOTER = "*Reply drafted by AI (Claude), reviewed and approved by the author before posting.*"
 _FULL_SHA_RE = re.compile(r"[0-9a-f]{40}")
+# GitHub lists at most this many of a PR's commits, through REST and GraphQL alike
+PR_COMMITS_LISTED_AT_MOST = 250
 
 
 def _in_prose(text: str, *, content: str) -> bool:
@@ -88,9 +91,18 @@ def _commit_link(commit: str | None, *, owner: str, repo: str, pr: int) -> str |
     if _FULL_SHA_RE.fullmatch(commit) is None:
         _ = sys.stderr.write(f"--commit must be a full 40-character SHA, not {commit}\n")
         sys.exit(1)
-    if commit not in _pr_commit_shas(owner=owner, repo=repo, pr=pr):
-        _ = sys.stderr.write(f"--commit {commit} is not one of PR #{pr}'s commits: push it first, or check the SHA.\n")
-        sys.exit(1)
+    pr_commits = _pr_commit_shas(owner=owner, repo=repo, pr=pr)
+    if commit not in pr_commits:
+        if len(pr_commits) >= PR_COMMITS_LISTED_AT_MOST:
+            _ = sys.stderr.write(
+                f"Warning: --commit {commit} is not among the {len(pr_commits)} commits GitHub lists for PR #{pr}, "
+                "its most it will list, so it can't be checked; linking it anyway.\n"
+            )
+        else:
+            _ = sys.stderr.write(
+                f"--commit {commit} is not one of PR #{pr}'s commits: push it first, or check the SHA.\n"
+            )
+            sys.exit(1)
     return pr_commit_link(owner=owner, repo=repo, pr=pr, commit=commit)
 
 
