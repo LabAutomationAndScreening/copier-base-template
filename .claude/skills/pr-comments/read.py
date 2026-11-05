@@ -136,9 +136,11 @@ def fetch_current_user_login() -> str:
 
 
 _BOT_LOGINS = frozenset({"coderabbitai[bot]", "copilot-pull-request-reviewer[bot]", "Copilot"})
-# The sections in which CodeRabbit lists findings in a review's body, with no inline thread to hold them
+# The sections in which CodeRabbit lists findings in a review's body, with no inline thread to hold them; a heading
+# with a count of zero lists none
 _REVIEW_BODY_FINDINGS_RE = re.compile(
-    r"Follow-ups \(\d+\)|Nitpick comments \(\d+\)|Outside diff range comments \(\d+\)|Additional comments: \d+"
+    r"Follow-ups \([1-9]\d*\)|Nitpick comments \([1-9]\d*\)"
+    r"|Outside diff range comments \([1-9]\d*\)|Additional comments: [1-9]\d*"
 )
 
 
