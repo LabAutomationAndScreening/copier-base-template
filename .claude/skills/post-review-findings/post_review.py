@@ -974,6 +974,14 @@ def render_preview(*, plan: Plan, findings_file: FindingsFile, resume: bool) -> 
         relinked = plan.earlier_findings_to_relink(resume=resume)
         if relinked:
             sections.append(f"Edited to link the new findings (GitHub marks them edited): {', '.join(relinked)}.")
+            # an edit to a comment already on the PR goes out too, so its new body is shown like a new one
+            for p in plan.planned:
+                if p.finding.finding_id not in relinked:
+                    continue
+                sections += [
+                    f"---\n\n# {p.finding.finding_id} (already posted; edited to this)",
+                    render_finding_body(planned=p, urls=urls, findings_file=findings_file),
+                ]
     if to_post:
         sections += [
             "---\n\n# Review body",
