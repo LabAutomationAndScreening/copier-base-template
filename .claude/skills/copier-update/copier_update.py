@@ -511,6 +511,10 @@ def unanswerable_questions(
             continue
         if question["name"] in answered:
             continue
+        if re.search(r"^when\s*:", question["spec"], flags=re.MULTILINE) is not None:
+            # copier skips such a question while its `when` is false, and leaves an answer to it out of the answers
+            # file; while true, `copier update --defaults` stops with "is required" before it renders anything
+            continue
         missing.append(question["name"])
     return missing
 
