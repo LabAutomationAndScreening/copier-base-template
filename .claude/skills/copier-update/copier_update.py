@@ -385,7 +385,8 @@ def cmd_branch(a: argparse.Namespace) -> dict[str, Any]:
         _ = _git("switch", "-c", name, f"origin/{default}", cwd=project)
         path = project
     else:
-        path = Path(a.worktree)
+        # git runs in the project, so a relative --worktree is resolved here first, from where the command was typed
+        path = Path(a.worktree).resolve()
         _ = _git("worktree", "add", "-b", name, str(path), f"origin/{default}", cwd=project)
     return {"branch": name, "path": str(path.resolve()), "base": f"origin/{default}"}
 
