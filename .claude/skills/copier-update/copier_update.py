@@ -659,8 +659,9 @@ def cmd_conflicts(a: argparse.Namespace) -> dict[str, Any]:
     if "Traceback (most recent call last)" in output:
         raise FailError(f"`task {PRUNE_TASK}` crashed, so the .rej files left may not all be real conflicts:\n{output}")
     if res.returncode != 0:
-        if not rej_files:
-            raise FailError(f"`task {PRUNE_TASK}` failed with no .rej file left to explain it:\n{output}")
+        # a task that failed before the script ran pruned nothing, so its .rej files may still hold false positives
+        if "Remaining .rej conflicts:" not in output:
+            raise FailError(f"`task {PRUNE_TASK}` failed without listing the conflicts it left:\n{output}")
     return {
         "prune_output": output,
         "prune_returncode": res.returncode,
