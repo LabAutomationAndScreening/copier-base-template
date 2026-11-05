@@ -1215,6 +1215,7 @@ def enabled_reviewers(*, checkout: Path, names: list[str]) -> list[ModuleType]:
     return [r for r in REVIEWERS if any((checkout / f).is_file() for f in r.CONFIG_FILES)]
 
 
+PR_COMMENTS_READ = Path(__file__).resolve().parent.parent / "pr-comments" / "read.py"
 _FINDING_KEYS = ("id", "type", "path", "line", "url", "body_text")
 
 
@@ -1224,8 +1225,7 @@ def _reviewer_findings(*, repo: str, pr: str, checkout: Path, reviewer: ModuleTy
     The checkout is the working directory, so each thread's line maps to its HEAD; the read script picks its own
     credentials, the stored login first.
     """
-    read = Path(__file__).resolve().parent.parent / "pr-comments" / "read.py"
-    threads = json.loads(_run(cmd=[str(read), pr, "--repo", repo], cwd=checkout))
+    threads = json.loads(_run(cmd=[str(PR_COMMENTS_READ), pr, "--repo", repo], cwd=checkout))
     findings: list[dict[str, Any]] = []
     for thread in threads:
         if not reviewer.LOGIN.search(thread["author"]):
@@ -1432,11 +1432,10 @@ def _pr_status(*, repo: str, pr: str) -> dict[str, Any]:
             reviewers[reviewer_checks[name]] = f"{check.get('status')} {check.get('conclusion') or ''}".strip()
             continue
         checks[_check_state(check)].append(name)
-    read = Path(__file__).resolve().parent.parent / "pr-comments" / "read.py"
     # read.py's default output is everything that awaits an answer: inline threads, top-level comments, review bodies
     kinds = {"pulls/comments": "threads", "issues/comments": "top_level_comments", "pulls/reviews": "review_bodies"}
     to_answer = dict.fromkeys(kinds.values(), 0)
-    for entry in json.loads(_run(cmd=[str(read), pr, "--repo", repo])):
+    for entry in json.loads(_run(cmd=[str(PR_COMMENTS_READ), pr, "--repo", repo])):
         to_answer[kinds[entry["type"]]] += 1
     return {
         "pr": pr,
