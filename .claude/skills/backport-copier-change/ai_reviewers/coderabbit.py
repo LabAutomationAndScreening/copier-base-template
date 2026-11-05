@@ -56,8 +56,9 @@ def classify(*, reviews: list[str], comments: list[str], head: str) -> dict[str,
     if any(counts.values()):
         return {"verdict": "flagged", **counts}
     # each review of the head is judged on its own, so one listing failed checks can't make another clean
-    if not all(_recognized(body) for body in current_reviews):
-        return {"verdict": "unrecognized", **counts}
+    for body in current_reviews:
+        if not _recognized(body):
+            return {"verdict": "unrecognized", **counts}
     clean = _clean_details(text=text, current_reviews=current_reviews)
     if clean is not None:
         return {"verdict": "clean", **counts, **clean}
