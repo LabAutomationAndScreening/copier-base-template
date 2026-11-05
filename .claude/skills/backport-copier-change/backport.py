@@ -1266,11 +1266,22 @@ def cmd_tag(a: argparse.Namespace) -> dict[str, Any]:
     return {"merge_commit": merge_sha, "tag": tag}
 
 
-def _merged_pr(*, repo: str, branch: str) -> int:
-    prs = _gh_json("pr", "list", "--repo", repo, "--head", branch, "--state", "merged", "--json", "number")
+def _merged_pr(*, repo: str, branch: str) -> dict[str, Any]:
+    prs = _gh_json("pr", "list", "--repo", repo, "--head", branch, "--state", "merged", "--json", "number,headRefOid")
     if not prs:
         raise FailError(f"{repo} has no merged PR from {branch}")
-    return prs[0]["number"]
+    return prs[0]
+
+
+def _require_remote_tip_merged(*, checkout: Path, branch: str, merged_head: str) -> None:
+    tip = _git("ls-remote", "origin", f"refs/heads/{branch}", cwd=checkout).split()
+    if not tip:
+        raise FailError(f"origin has no {branch} to delete")
+    if tip[0] != merged_head:
+        raise FailError(
+            f"origin/{branch} is at {tip[0]}, not {merged_head}, the head its PR merged; "
+            "deleting it would delete the commits pushed since"
+        )
 
 
 def _require_downstream_off_branch(*, checkout: Path, branch: str, downstream: Path) -> str:
@@ -1339,14 +1350,17 @@ def _require_branch_pushed(*, checkout: Path, branch: str) -> None:
         )
 
 
-def _delete_branch(*, checkout: Path, branch: str) -> bool:
+def _delete_branch(*, checkout: Path, branch: str, merged_head: str) -> bool:
     has_local = _has_ref(checkout=checkout, ref=f"refs/heads/{branch}")
     switch_to = None
     if has_local:
         _require_branch_pushed(checkout=checkout, branch=branch)
         if _git("symbolic-ref", "--short", "HEAD", cwd=checkout).strip() == branch:
             switch_to = _default_to_switch_to(checkout)
-    _ = _git("push", "origin", "--delete", branch, cwd=checkout)
+    # the lease refuses the delete if a push moved the branch after _require_remote_tip_merged looked
+    _ = _git(
+        "push", f"--force-with-lease=refs/heads/{branch}:{merged_head}", "origin", "--delete", branch, cwd=checkout
+    )
     if not has_local:
         return False
     if switch_to is not None:
@@ -1371,13 +1385,14 @@ def cmd_delete_branch(a: argparse.Namespace) -> dict[str, Any]:
     current: dict[str, str] = {}
     for path in downstream:
         current[str(path)] = _require_downstream_off_branch(checkout=checkout, branch=a.branch, downstream=path)
+    _require_remote_tip_merged(checkout=checkout, branch=a.branch, merged_head=merged_pr["headRefOid"])
     deleted_local = False
     if not a.dry_run:
-        deleted_local = _delete_branch(checkout=checkout, branch=a.branch)
+        deleted_local = _delete_branch(checkout=checkout, branch=a.branch, merged_head=merged_pr["headRefOid"])
     return {
         "repo": a.repo,
         "branch": a.branch,
-        "merged_pr": merged_pr,
+        "merged_pr": merged_pr["number"],
         "downstream_commits": current,
         "dry_run": a.dry_run,
         "deleted_local": deleted_local,
