@@ -38,7 +38,9 @@ with something to answer:
   have no inline thread: follow-ups, nitpicks, outside-diff comments).
 - `url`, `author`, `author_is_bot`, `body`, `created_at`; `body_text`, the body with the
   reviewer's block of instructions for AI agents, HTML comments and HTML tags removed, code spans
-  and fenced blocks untouched, so a comment can be quoted without stripping anything yourself.
+  and fenced blocks untouched, so a comment can be quoted without stripping anything yourself. The
+  one exception: a whole machinery block quoted at the start of a line inside a fenced block is
+  removed like a real one.
 - `path`, `line`, `subject_type` (`line`, or `file` for a comment on a whole file). Once a
   later commit changes the commented line, `outdated` is true and `line` falls back to
   `original_line`, a line in `original_commit_id`.

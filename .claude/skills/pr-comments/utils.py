@@ -397,15 +397,18 @@ _CODE_RE = re.compile(
     re.DOTALL | re.MULTILINE,
 )
 # A reviewer's block of instructions written for AI agents: CodeRabbit wraps it in these markers, and its older
-# reviews put it in a <details> block whose summary says so.
+# reviews put it in a <details> block whose summary says so. Each block opens at the start of a line (inside a
+# quote, after its `>`), which a marker quoted in a code span never does; a match starting at a quoted marker would
+# run on to the real block's end and take the finding's own text with it.
 _AI_AGENT_PROMPT_RE = re.compile(
-    r"<!-- ai-agent-prompt:start -->.*?<!-- ai-agent-prompt:end -->"
-    r"|<details>\s*<summary>(?:(?!</summary>).)*Prompt for AI Agents(?:(?!</summary>).)*</summary>.*?</details>",
-    re.DOTALL,
+    r"^[ \t>]*<!-- ai-agent-prompt:start -->.*?<!-- ai-agent-prompt:end -->"
+    r"|^[ \t>]*<details>\s*<summary>(?:(?!</summary>).)*Prompt for AI Agents(?:(?!</summary>).)*</summary>.*?</details>",
+    re.DOTALL | re.MULTILINE,
 )
 # The scripts CodeRabbit ran while checking a finding, and their output: how it got there, not what it found.
 _ANALYSIS_CHAIN_RE = re.compile(
-    r"<details>\s*<summary>(?:(?!</summary>).)*Analysis chain(?:(?!</summary>).)*</summary>.*?</details>", re.DOTALL
+    r"^[ \t>]*<details>\s*<summary>(?:(?!</summary>).)*Analysis chain(?:(?!</summary>).)*</summary>.*?</details>",
+    re.DOTALL | re.MULTILINE,
 )
 # CodeRabbit ends a review body with machinery rather than findings: a fix-everything checkbox, a prompt covering
 # every comment, and its "Review info" (configuration, commits, files processed).
