@@ -291,7 +291,7 @@ repos:
     hooks:
       - id: test-name-clause-separator
         name: separate mid-name Then/When clauses in test names with a double underscore, and start a leading clause with a single one
-        entry: 'def test_(_|\w*[^_]_(Then|When)_)'
+        entry: '^\s*(async\s+)?def test_(_|\w*[^_]_(Then|When)_)'
         language: pygrep
         files: (^|/)test_[^/]*\.py$
 
