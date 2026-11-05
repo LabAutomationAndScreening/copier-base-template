@@ -1108,15 +1108,17 @@ def _quiet_on_head(*, reviewer: ModuleType, state: dict[str, Any], checkout: Pat
     """Give a verdict for a reviewer that reviewed this PR before but has stayed quiet about its latest commit.
 
     A reviewer can leave a small follow-up commit unreviewed without saying so, or say that it is out of allowance or
-    still reviewing. Once its module's quiet period has passed since that commit, the verdict reports the silence,
-    with the reviewer's own note under held_back when it left one, and the agent judges from the changes since the
-    last reviewed commit whether to wait for the review, ask for one, or go on.
+    still reviewing. Once its module's quiet period has passed since that commit reached the PR, the verdict reports
+    the silence, with the reviewer's own note under held_back when it left one, and the agent judges from the changes
+    since the last reviewed commit whether to wait for the review, ask for one, or go on.
     """
     last = state["last_reviewed"][reviewer.NAME]
     if last is None:
         return None
     committed = datetime.datetime.fromisoformat(state["head_committed_at"]).timestamp()
-    quiet = time.time() - committed
+    # a commit can be made long before it is pushed (a round of review fixes goes up together), so its own date can
+    # make a reviewer that hasn't started yet look quiet; count from when this wait first saw it, if that is later
+    quiet = time.time() - max(committed, state["head_first_seen_at"])
     if quiet < reviewer.QUIET_AFTER_SECONDS:
         return None
     if reviewer.still_reviewing(state["bodies"][reviewer.NAME]["comments"]):
@@ -1124,7 +1126,7 @@ def _quiet_on_head(*, reviewer: ModuleType, state: dict[str, Any], checkout: Pat
     return {
         "verdict": "head_not_reviewed",
         "last_reviewed": last,
-        "minutes_since_head_commit": int(quiet // 60),
+        "minutes_since_head_commit": int((time.time() - committed) // 60),
         "held_back": reviewer.held_back(state["comments"][reviewer.NAME]),
         "changed_since_last_review": _changes_since(checkout=checkout, since=last, head=state["head"]),
     }
@@ -1183,14 +1185,17 @@ def cmd_ai_review(a: argparse.Namespace) -> dict[str, Any]:
     verdicts: dict[str, dict[str, Any]] = {}
     latest: dict[str, dict[str, list[str]]] = {}
     verdicts_head = ""
+    head_first_seen_at = 0.0
 
     def all_reviewed() -> str | None:
-        nonlocal verdicts_head
+        nonlocal verdicts_head, head_first_seen_at
         state = _pr_review_state(repo=a.repo, pr=a.pr, reviewers=reviewers)
         # a verdict holds only for the head it was reached on, so a push mid-wait sends every reviewer back to classify
         if state["head"] != verdicts_head:
             verdicts.clear()
             verdicts_head = state["head"]
+            head_first_seen_at = time.time()
+        state["head_first_seen_at"] = head_first_seen_at
         bodies = state["bodies"]
         latest.update(bodies)
         for reviewer in reviewers:
