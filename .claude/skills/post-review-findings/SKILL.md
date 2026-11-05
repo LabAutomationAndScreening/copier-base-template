@@ -149,11 +149,13 @@ Options:
 ## Step 7: Post
 
 ```bash
-.claude/skills/post-review-findings/post_review.py post --findings-file <findings_file>
+.claude/skills/post-review-findings/post_review.py post --findings-file <findings_file> --anchor <anchor_commit>
 ```
 
+`<anchor_commit>` is the one the approved question showed.
+
 The script:
-1. Re-runs the plan and refuses if anything blocks posting.
+1. Re-runs the plan and refuses if anything blocks posting, or if its `anchor_commit` is no longer `--anchor`.
 2. Creates a pending review on `anchor_commit`, so nothing is visible and no notifications go out.
 3. Adds each finding as a thread, then posts `pr_comment` findings as top-level comments.
 4. Fills in the links between related findings now that their URLs exist.
@@ -161,7 +163,7 @@ The script:
 
 On success it prints the review URL and each finding's URL, and records them under `posted` in `<findings_file>`. The script refuses to post that file again.
 
-If the plan changed between approval and posting (e.g. someone pushed and a line became unmappable), the script stops. Go back to Step 5.
+If the plan changed between approval and posting (e.g. someone pushed, moving the anchor or making a line unmappable), the script stops. Go back to Step 5.
 
 ### If posting fails
 
@@ -174,7 +176,7 @@ When it reports an error:
 1. Show the user the script's output verbatim.
 2. Find what is actually on the PR by reading its threads with the **pr-comments** skill (Skill tool), as its Read section says. Each posted finding has its `ai_review.finding_id`.
 3. If some findings are on the PR and some aren't, run `plan --findings-file <findings_file> --resume --preview <preview_file>`. It skips findings already on the PR (`already_posted`) and lists the earlier comments it will edit to link the new ones (`will_edit_posted_findings`; GitHub marks those edited).
-4. Get approval as in [Step 6](#step-6-get-approval), then run `post --findings-file <findings_file> --resume`.
+4. Get approval as in [Step 6](#step-6-get-approval), then run `post --findings-file <findings_file> --anchor <anchor_commit> --resume`.
 
 Do not write your own repair script or call `gh api` directly. `gh api` is not allowed for agents, and the script's checks (pending reviews, ID collisions, links in both directions) would be skipped.
 

@@ -7,7 +7,7 @@
 Usage:
   post_review.py import --from <file> --pr <number> --commit <sha> --out <findings file> [--model <id>] [--effort <level>]
   post_review.py plan --findings-file <findings file> [--preview <markdown file>] [--resume]
-  post_review.py post --findings-file <findings file> [--resume]
+  post_review.py post --findings-file <findings file> --anchor <approved anchor_commit> [--resume]
 
 import  Reads either a file holding the JSON array of findings /code-review reports, or the transcript of the
         /code-review agent (the .jsonl output file named in its task notification, whose final message holds that
@@ -23,7 +23,8 @@ import  Reads either a file holding the JSON array of findings /code-review repo
 plan    Prints, as JSON, where each finding would be posted and anything that must be resolved first. Posts nothing.
         With --preview, also writes the review body and every comment, exactly as they would be posted, to a
         markdown file for the user to read.
-post    Re-runs the plan and refuses if anything needs attention. Then creates a pending review on the anchor commit,
+post    Re-runs the plan and refuses if anything needs attention, or if its anchor commit is no longer the --anchor the
+        user approved (a push since can re-place every line). Then creates a pending review on the anchor commit,
         adds every finding as a thread (or as a top-level PR comment when its file is not in the PR), fills in the
         links between related findings now that their URLs exist, and submits the review as a COMMENT. If anything
         fails, it reads the review's state: still pending means everything it created is deleted; submitted (GitHub
@@ -989,6 +990,11 @@ def cmd_post(args: argparse.Namespace) -> None:
     if findings_file.posted is not None:
         _fail(f"{args.findings_file} was already posted: {findings_file.posted.get('review_url')}")
     plan = build_plan(findings_file)
+    if plan.anchor_commit != args.anchor:
+        _fail(
+            f"Not posting; the anchor commit is now {plan.anchor_commit}, not the approved {args.anchor}: the PR changed "
+            "since approval, so lines may land elsewhere than the preview showed. Run `plan` again and get a new approval."
+        )
     problems = plan.blocking_problems(resume=args.resume)
     if problems:
         _fail("Not posting; resolve these first (see `plan`):\n- " + "\n- ".join(problems))
@@ -1023,6 +1029,11 @@ def main() -> None:
 
     post_parser = subparsers.add_parser("post", help="post the findings as one review")
     _ = post_parser.add_argument("--findings-file", required=True, type=Path)
+    _ = post_parser.add_argument(
+        "--anchor",
+        required=True,
+        help="the anchor_commit of the plan the user approved; posting stops if the PR has moved it since",
+    )
     for sub in (plan_parser, post_parser):
         _ = sub.add_argument(
             "--resume",
