@@ -1329,11 +1329,12 @@ def _watched_pr(*, reviews: _PrReviews, result: dict[str, Any] | None, settled: 
     time has come), so a finding is never held behind another reviewer's countdown.
     """
     entry: dict[str, Any] = {"pr": reviews.pr, "head": reviews.head}
+    # a settled or waived head is quiet whatever its reviewers are doing, even one that never starts a review
+    if reviews.head in settled:
+        return {**entry, "state": "quiet", "result": result}
     if result is None:
         return {**entry, "state": "waiting"}
     entry["result"] = result
-    if reviews.head in settled:
-        return {**entry, "state": "quiet"}
     if result["verdict"] in _QUIET_VERDICTS:
         return {**entry, "state": "quiet"}
     until = _held_until(reviews=reviews, verdicts=result["reviewers"])
