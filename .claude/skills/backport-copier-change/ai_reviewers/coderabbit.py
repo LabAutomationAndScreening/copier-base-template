@@ -153,8 +153,9 @@ def allowance_returns_at(comments: list[dict[str, str]]) -> datetime.datetime | 
 
 
 def _newest_note(comments: list[dict[str, str]]) -> tuple[str, str, datetime.datetime | None] | None:
-    # the note's text, when its comment was last edited, and when the countdown in it ends, if it has one
-    for comment in reversed(comments):
+    # the note's text, when its comment was last edited, and when the countdown in it ends, if it has one. The summary
+    # comment is CodeRabbit's oldest but is rewritten in place, so notes are taken newest edit first, not newest comment
+    for comment in sorted(comments, key=lambda c: c["edited_at"], reverse=True):
         match = _HELD_BACK.search(comment["body"])
         if match is None:
             continue
