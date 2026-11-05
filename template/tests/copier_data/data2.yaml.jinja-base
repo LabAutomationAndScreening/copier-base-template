@@ -7,7 +7,13 @@ install_claude_cli: true
 ssh_port_number: 54321
 pull_from_ecr: true
 repo_names_for_codespaces_read_permissions: best-repo,good-project
-use_windows_in_ci: true
+target_platforms:
+  - linux-x64
+  - linux-arm64
+  - windows-x64
+  - windows-arm64
+linux_arm64_runner_label: ubuntu-arm-2core
+windows_arm64_runner_label: windows-arm-8core
 {% endraw %}{% if template_might_want_to_install_aws_ssm_port_forwarding_plugin %}{% raw %}install_aws_ssm_port_forwarding_plugin: false{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_might_want_to_use_vcrpy %}{% raw %}configure_vcrpy: false{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_might_want_to_use_python_asyncio %}{% raw %}configure_python_asyncio: false{% endraw %}{% endif %}{% raw %}
