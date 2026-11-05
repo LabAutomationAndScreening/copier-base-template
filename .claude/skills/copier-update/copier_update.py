@@ -304,7 +304,7 @@ def read_answers(*, project: Path, answers_file: str | None) -> tuple[str, dict[
     path = project / rel
     if not path.is_file():
         raise FailError(f"answers file not found: {path}")
-    data = {key: _scalar(value) for key, value in _top_level_values(path.read_text()).items()}
+    data = {key: _scalar(value) for key, value in _top_level_values(path.read_text(encoding="utf-8")).items()}
     if "_src_path" not in data:
         raise FailError(f"{path} has no _src_path")
     if _is_relative_local_path(data["_src_path"]):
@@ -579,7 +579,7 @@ def cmd_update(a: argparse.Namespace) -> dict[str, Any]:
     answered = set(data)
     if a.data_file is not None:
         # only the keys: the values stay in the file, which copier reads from the project directory
-        answered |= set(_top_level_values((project / a.data_file).read_text()))
+        answered |= set(_top_level_values((project / a.data_file).read_text(encoding="utf-8")))
     missing = unanswerable_questions(answers=answers, ref=target_ref, answered=answered, a=a)
     if missing:
         raise FailError(
@@ -642,7 +642,11 @@ def list_rej_files(project: Path) -> list[dict[str, Any]]:
             continue
         rel = p.relative_to(project).as_posix()
         rejs.append(
-            {"path": rel, "target": rel.removesuffix(".rej"), "hunk_count": count_hunks(p.read_text(errors="replace"))}
+            {
+                "path": rel,
+                "target": rel.removesuffix(".rej"),
+                "hunk_count": count_hunks(p.read_text(encoding="utf-8", errors="replace")),
+            }
         )
     return rejs
 
@@ -783,7 +787,7 @@ def subject_lines(message: str) -> list[str]:
 
 
 def require_one_line_subject(message_file: Path) -> None:
-    subject = subject_lines(message_file.read_text())
+    subject = subject_lines(message_file.read_text(encoding="utf-8"))
     if len(subject) > 1:
         raise FailError(
             "the message's first paragraph spans more than one line, which git joins into one long subject; "
@@ -808,7 +812,7 @@ def cmd_commit(a: argparse.Namespace) -> dict[str, Any]:
     where = guard_not_default_branch(project)
     _require_pre_commit_hook(project)
     require_one_line_subject(Path(a.message_file))
-    draft = json.loads(Path(a.draft).read_text())
+    draft = json.loads(Path(a.draft).read_text(encoding="utf-8"))
     # the confidence gate reads `filename` and `confidence`; a draft with other keys would pass it unchecked
     errors = validate_report(draft)
     if errors:
@@ -947,7 +951,7 @@ def validate_report(report: object) -> list[str]:
     script sticks to the standard library. These checks take the field names, the required fields and each field's
     allowed values from that schema, for the report, each resolution and the `copier` section.
     """
-    schema = json.loads(SCHEMA_PATH.read_text())
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
     errors = _object_errors(value=report, spec=schema, path="<root>")
     if not isinstance(report, dict):
         return errors
@@ -965,7 +969,7 @@ def render_report_html(report: dict[str, Any]) -> str:
     # the JSON sits inside a <script> block, where "</" ends it and "<!--" followed by "<script" keeps it from ending
     # at all, so no "<" appears literally; JSON reads < back as "<"
     payload = json.dumps(report, ensure_ascii=False).replace("<", "\\u003c")
-    return VIEWER_PATH.read_text().replace("__REPORT_JSON__", payload)
+    return VIEWER_PATH.read_text(encoding="utf-8").replace("__REPORT_JSON__", payload)
 
 
 def _commits_since(*, project: Path, report: dict[str, Any]) -> list[dict[str, str]]:
@@ -987,7 +991,7 @@ def _commits_since(*, project: Path, report: dict[str, Any]) -> list[dict[str, s
 
 def cmd_report(a: argparse.Namespace) -> dict[str, Any]:
     project = Path(a.project)
-    report = json.loads(Path(a.draft).read_text())
+    report = json.loads(Path(a.draft).read_text(encoding="utf-8"))
     if not isinstance(report, dict):
         raise FailError("draft must be a JSON object")
     now = _now()
@@ -1002,9 +1006,9 @@ def cmd_report(a: argparse.Namespace) -> dict[str, Any]:
     out_dir = project / "tmp"
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / f"copier-update-report-{now.strftime('%Y%m%dT%H%M%SZ')}.json"
-    _ = out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
+    _ = out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     html = out.with_suffix(".html")
-    _ = html.write_text(render_report_html(report))
+    _ = html.write_text(render_report_html(report), encoding="utf-8")
     return {
         "report": str(out),
         "html": str(html),
@@ -1088,11 +1092,11 @@ def cmd_comment_report(a: argparse.Namespace) -> dict[str, Any]:
     project = Path(a.project)
     where = guard_not_default_branch(project)
     branch = where["branch"]
-    report = json.loads(Path(a.report).read_text())
+    report = json.loads(Path(a.report).read_text(encoding="utf-8"))
     # gh runs in the project, so a path relative to where the command was typed would be read from the wrong place
     comment = (project / "tmp" / "pr-comment.md").resolve()
     comment.parent.mkdir(exist_ok=True)
-    _ = comment.write_text(report_markdown(report=report, commits=report.get("commits", [])))
+    _ = comment.write_text(report_markdown(report=report, commits=report.get("commits", [])), encoding="utf-8")
     res = _run(
         # the PR lives where cmd_pr opened it: in --remote's repo, whatever gh would pick from this checkout
         cmd=[
@@ -1121,7 +1125,7 @@ def write_abort_marker(*, a: argparse.Namespace, error: str) -> None:
     try:
         (project / "tmp").mkdir(exist_ok=True)
         _ = (project / "tmp" / "copier-update-aborted.json").write_text(
-            json.dumps({"verb": a.verb, "error": error, "at": _iso(_now())}, indent=2) + "\n"
+            json.dumps({"verb": a.verb, "error": error, "at": _iso(_now())}, indent=2) + "\n", encoding="utf-8"
         )
     except OSError:
         pass
