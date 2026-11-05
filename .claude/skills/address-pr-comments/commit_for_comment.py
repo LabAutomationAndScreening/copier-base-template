@@ -146,6 +146,8 @@ def _issue_description(*, bd_root: Path, issue_id: str) -> tuple[str, list[str]]
         shown = run(["bd", "show", issue_id, "--json"], cwd=bd_root)
     except subprocess.TimeoutExpired:
         return "", [f"bd show {issue_id} timed out; record the commit on the issue and close it by hand"]
+    except OSError as e:
+        return "", [f"bd could not run ({e}); record the commit on {issue_id} and close it by hand"]
     if shown.returncode != 0:
         return "", [f"bd show {issue_id}: {shown.stderr.strip()}"]
     try:
@@ -177,6 +179,8 @@ def _close_bd_issue(*, bd_root: Path, issue_id: str, commit: str, reply_file: Pa
             result = run(command, cwd=bd_root, stdin=stdin)
         except subprocess.TimeoutExpired:
             return [f"{' '.join(command[:3])} timed out; finish this step and the ones after it by hand"]
+        except OSError as e:
+            return [f"{' '.join(command[:3])} could not run ({e}); finish this step and the ones after it by hand"]
         if result.returncode != 0:
             return [f"{' '.join(command[:3])}: {result.stderr.strip()}"]
     return []
