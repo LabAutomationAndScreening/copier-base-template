@@ -33,8 +33,9 @@ _REVIEW_REPLY_RE = re.compile(r"<!-- reply-to-review id=(?P<id>\d+) -->\s*\Z")
 # An independent verifier posts its verdict on a reply to an AI review finding under the same account as the reply,
 # so this hidden marker is how read.py tells a verdict apart from the reply it judges: a disagreement reopens the
 # thread instead of counting as the user having addressed it.
+# render_verdict writes it as the first line, so one quoted later in a reply is not taken for a verdict
 _AI_REVIEW_VERDICT_RE = re.compile(
-    r"<!-- ai-review-verdict finding=(?P<finding>[A-Za-z0-9_-]+) verdict=(?P<verdict>accept|disagree) "
+    rf"\A\s*<!-- ai-review-verdict finding=(?P<finding>{FINDING_ID_PATTERN}) verdict=(?P<verdict>accept|disagree) "
     r"round=(?P<round>\d+) -->"
 )
 VERDICT_ACCEPT = "accept"
