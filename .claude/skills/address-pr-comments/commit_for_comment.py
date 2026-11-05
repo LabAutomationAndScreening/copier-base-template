@@ -94,7 +94,12 @@ def _commit(*, repo_root: Path, files: list[str], message: str) -> str:
     try:
         result = run(["git", "commit", "-F", "-"], cwd=repo_root, stdin=message, timeout=COMMIT_TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
-        _fail(f"git commit did not finish within {COMMIT_TIMEOUT_SECONDS}s. Check `git log -1` before running again.")
+        after = _git_output("rev-parse", "HEAD", cwd=repo_root)
+        if after != before:
+            # a post-commit hook ran past the timeout, but git had already made the commit
+            return after
+        _ = run(["git", "reset", "-q", "--", *files], cwd=repo_root)
+        _fail(f"Nothing committed: git commit did not finish within {COMMIT_TIMEOUT_SECONDS}s.")
     after = _git_output("rev-parse", "HEAD", cwd=repo_root)
     if result.returncode != 0:
         # git leaves --files staged when a hook fails; unstaged, they pass the guard above when this is run again
