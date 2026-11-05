@@ -147,7 +147,8 @@ def main() -> None:
     else:
         threads = [
             thread
-            for comment_id in args.comment_id
+            # a repeated id would start two verifiers on one thread, which could post two verdicts
+            for comment_id in dict.fromkeys(args.comment_id)
             for thread in _fetch(pr=args.pr, args=["--thread", str(comment_id)])
         ]
         missing = sorted(set(args.comment_id) - {thread["id"] for thread in threads})
