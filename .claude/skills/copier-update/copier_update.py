@@ -924,6 +924,8 @@ def _scalar_errors(*, value: object, field: dict[str, Any], path: str) -> list[s
     if kind == "string":
         if not isinstance(value, str):
             errors.append(f"{path}: must be a string, not {value!r}")
+        elif len(value) < field.get("minLength", 0):
+            errors.append(f"{path}: needs at least {field['minLength']} character(s), not {len(value)}")
     # bool is an int in Python, but not an integer in the schema
     if kind == "integer":
         if isinstance(value, bool):
