@@ -325,11 +325,12 @@ def template_mirror(*, src_path: str, cache_dir: str | None, stored_gh_credentia
     return dest
 
 
-def show_file(*, mirror: Path, ref: str) -> str:
+def show_file(*, mirror: Path, ref: str, stored_gh_credentials: bool) -> str:
     errors: list[str] = []
     for name in COPIER_FILES:
         try:
-            return _git("show", f"{ref}:{name}", cwd=mirror)
+            # a --filter=blob:none mirror fetches the blob from the template repo here, which needs the same credentials
+            return _git("show", f"{ref}:{name}", cwd=mirror, stored_gh_credentials=stored_gh_credentials)
         except FailError as e:
             errors.append(str(e))
     raise FailError(f"no {'/'.join(COPIER_FILES)} at {ref}:\n" + "\n".join(errors))
@@ -428,8 +429,8 @@ def cmd_new_questions(a: argparse.Namespace) -> dict[str, Any]:
         src_path=answers["_src_path"], cache_dir=a.cache_dir, stored_gh_credentials=a.stored_gh_credentials
     )
     diff = diff_questions(
-        old_yaml=show_file(mirror=mirror, ref=current),
-        new_yaml=show_file(mirror=mirror, ref=a.ref),
+        old_yaml=show_file(mirror=mirror, ref=current, stored_gh_credentials=a.stored_gh_credentials),
+        new_yaml=show_file(mirror=mirror, ref=a.ref, stored_gh_credentials=a.stored_gh_credentials),
         answered={str(k) for k in answers if not str(k).startswith("_")},
     )
     return {
@@ -481,8 +482,8 @@ def unanswerable_questions(
     if not current:
         raise FailError("answers file has no _commit; cannot tell which template questions are new")
     diff = diff_questions(
-        old_yaml=show_file(mirror=mirror, ref=current),
-        new_yaml=show_file(mirror=mirror, ref=ref),
+        old_yaml=show_file(mirror=mirror, ref=current, stored_gh_credentials=a.stored_gh_credentials),
+        new_yaml=show_file(mirror=mirror, ref=ref, stored_gh_credentials=a.stored_gh_credentials),
         answered={str(k) for k in answers if not str(k).startswith("_")},
     )
     missing: list[str] = []
