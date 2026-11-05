@@ -530,6 +530,9 @@ def unanswerable_questions(
     return missing
 
 
+# TODO: copier ranks every PEP 440 release, including post-releases such as v1.2.0.post1 and epochs, which this leaves
+# out; consider supporting them if a template ever tags one (these templates tag plain vX.Y.Z), since the script sticks
+# to the standard library and can't use `packaging` to parse them
 _RELEASE_TAG = re.compile(r"^v?\d+(\.\d+)*$")
 
 
