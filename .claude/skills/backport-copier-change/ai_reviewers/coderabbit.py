@@ -55,6 +55,9 @@ def classify(*, reviews: list[str], comments: list[str], head: str) -> dict[str,
     }
     if any(counts.values()):
         return {"verdict": "flagged", **counts}
+    # each review of the head is judged on its own, so one listing failed checks can't make another clean
+    if not all(_recognized(body) for body in current_reviews):
+        return {"verdict": "unrecognized", **counts}
     clean = _clean_details(text=text, current_reviews=current_reviews)
     if clean is not None:
         return {"verdict": "clean", **counts, **clean}
@@ -64,6 +67,17 @@ def classify(*, reviews: list[str], comments: list[str], head: str) -> dict[str,
         # a review of the head exists but says nothing this module recognizes; waiting would never end
         return {"verdict": "unrecognized", **counts}
     return None
+
+
+def _recognized(body: str) -> bool:
+    # whether one review says, in wording this module knows, that it found nothing, found something, or was skipped
+    if _CLEAN in body:
+        return True
+    if _ACTIONABLE.search(body):
+        return True
+    if _SKIPPED.search(body):
+        return True
+    return bool(_failed_pre_merge_checks(body))
 
 
 def _clean_details(*, text: str, current_reviews: list[str]) -> dict[str, Any] | None:
