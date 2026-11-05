@@ -12,6 +12,7 @@ the included plan ends "0 remain after this review", so that line alone does not
 allowance is used up.
 """
 
+import datetime
 import re
 from typing import Any
 
@@ -31,7 +32,7 @@ _HELD_BACK = re.compile(
     r"review limit reached|rate limit exceeded|review in progress|currently processing", re.IGNORECASE
 )
 _REVIEWING = re.compile(r"review in progress|currently processing", re.IGNORECASE)
-_NEXT_REVIEW = re.compile(r"next included review available in \d+ minutes", re.IGNORECASE)
+_NEXT_REVIEW = re.compile(r"next included review available in (\d+) minutes", re.IGNORECASE)
 # CodeRabbit can leave a small follow-up commit unreviewed without saying so; this long after the commit its silence
 # is a verdict in itself, and any note that it is held back goes to the agent with it
 QUIET_AFTER_SECONDS = 300
@@ -75,19 +76,23 @@ def still_reviewing(comments: list[str]) -> bool:
     return False
 
 
-def held_back(comments: list[str]) -> str | None:
-    """Return CodeRabbit's own note that it is out of allowance or still reviewing, or None without one.
+def held_back(comments: list[dict[str, str]]) -> str | None:
+    """Return CodeRabbit's newest note that it is out of allowance or still reviewing, or None without a current one.
 
-    CodeRabbit rewrites its summary comment in place, so a note there is its current state. A limit note comes with
-    when the next review is available, counted from the summary's last refresh, which the note keeps.
+    CodeRabbit rewrites its summary comment in place, and a limit note's "available in N minutes" counts from that
+    rewrite, which can be hours old by the time anyone reads it. So the countdown becomes the time it ends, and a
+    note whose time has passed is dropped: the allowance is back. A note with no countdown says when it was written.
     """
-    for body in comments:
-        match = _HELD_BACK.search(body)
+    for comment in reversed(comments):
+        match = _HELD_BACK.search(comment["body"])
         if match is None:
             continue
-        note = match.group()
-        timing = _NEXT_REVIEW.search(body)
-        if timing is not None:
-            note = f"{note}; {timing.group()}"
-        return note
+        edited_at = datetime.datetime.fromisoformat(comment["edited_at"])
+        timing = _NEXT_REVIEW.search(comment["body"])
+        if timing is None:
+            return f"{match.group()} (as of {comment['edited_at']})"
+        available_at = edited_at + datetime.timedelta(minutes=int(timing.group(1)))
+        if available_at <= datetime.datetime.now(datetime.UTC):
+            return None
+        return f"{match.group()}; next included review available at {available_at.isoformat()}"
     return None

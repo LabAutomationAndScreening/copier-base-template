@@ -973,25 +973,35 @@ def _pr_review_state(*, repo: str, pr: str, reviewers: list[ModuleType]) -> dict
     Review and comment bodies are kept apart, oldest first: a review of the head is a verdict even in wording a
     reviewer module does not know, while a comment (a walkthrough, a summary) may still be waiting to be refreshed.
     """
-    view = _gh_json("pr", "view", pr, "--repo", repo, "--json", "headRefOid,comments,reviews,commits")
+    view = _gh_json("pr", "view", pr, "--repo", repo, "--json", "headRefOid,reviews,commits")
+    # gh pr view leaves out when a comment was last edited, and a note in a comment the reviewer rewrites in place
+    # (such as when its next review is available) counts from that edit, not from now
+    pages = _gh_json("api", "--paginate", "--slurp", f"repos/{repo}/issues/{pr}/comments")
     bodies: dict[str, dict[str, list[str]]] = {r.NAME: {"reviews": [], "comments": []} for r in reviewers}
+    comments: dict[str, list[dict[str, str]]] = {r.NAME: [] for r in reviewers}
     last_reviewed: dict[str, str | None] = {r.NAME: None for r in reviewers}
-    for kind, stamp in (("reviews", "submittedAt"), ("comments", "createdAt")):
-        for item in sorted(view[kind], key=lambda i: i.get(stamp) or ""):
-            for reviewer in reviewers:
-                if not reviewer.LOGIN.search(item["author"]["login"]):
-                    continue
-                bodies[reviewer.NAME][kind].append(item["body"])
-                if not item.get("commit"):
-                    continue
-                if not item["body"]:
-                    # a review with no text is the reviewer answering a thread, not a review of that commit
-                    continue
-                last_reviewed[reviewer.NAME] = item["commit"]["oid"]
+    for item in sorted(view["reviews"], key=lambda i: i.get("submittedAt") or ""):
+        for reviewer in reviewers:
+            if not reviewer.LOGIN.search(item["author"]["login"]):
+                continue
+            bodies[reviewer.NAME]["reviews"].append(item["body"])
+            if not item.get("commit"):
+                continue
+            if not item["body"]:
+                # a review with no text is the reviewer answering a thread, not a review of that commit
+                continue
+            last_reviewed[reviewer.NAME] = item["commit"]["oid"]
+    for item in sorted((c for page in pages for c in page), key=lambda i: i["created_at"]):
+        for reviewer in reviewers:
+            if not reviewer.LOGIN.search(item["user"]["login"]):
+                continue
+            bodies[reviewer.NAME]["comments"].append(item["body"])
+            comments[reviewer.NAME].append({"body": item["body"], "edited_at": item["updated_at"]})
     return {
         "head": view["headRefOid"],
         "head_committed_at": view["commits"][-1]["committedDate"],
         "bodies": bodies,
+        "comments": comments,
         "last_reviewed": last_reviewed,
     }
 
@@ -1062,7 +1072,7 @@ def _quiet_on_head(*, reviewer: ModuleType, state: dict[str, Any], checkout: Pat
         "verdict": "head_not_reviewed",
         "last_reviewed": last,
         "minutes_since_head_commit": int(quiet // 60),
-        "held_back": reviewer.held_back(state["bodies"][reviewer.NAME]["comments"]),
+        "held_back": reviewer.held_back(state["comments"][reviewer.NAME]),
         "changed_since_last_review": _changes_since(checkout=checkout, since=last, head=state["head"]),
     }
 

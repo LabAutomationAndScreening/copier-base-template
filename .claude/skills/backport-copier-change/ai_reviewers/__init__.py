@@ -16,10 +16,13 @@ Each module defines:
   still_reviewing(comment_bodies) -> bool
                 whether the agent says a review is running right now, so its silence about the
                 latest commit is waited on rather than reported
-  held_back(comment_bodies) -> str | None
+  held_back(comments) -> str | None
                 the agent's own note that it is out of allowance or still reviewing, with when its
-                next review is available if it says; it goes into a head_not_reviewed verdict so
-                the agent reading it can wait for that review or go on
+                next review is available if it says, as a time rather than a countdown; it goes into
+                a head_not_reviewed verdict so the agent reading it can wait for that review or go
+                on. `comments` are the agent's PR comments, oldest first, each a dict with its
+                `body` and `edited_at` (ISO 8601), since a note in a comment rewritten in place is
+                only as current as that edit
   allowance_used_up(review_bodies) -> bool
                 whether the agent's last review says it has no reviews left for now, so a wait
                 that times out can say why
