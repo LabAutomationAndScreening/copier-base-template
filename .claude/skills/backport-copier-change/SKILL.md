@@ -299,10 +299,11 @@ For each repo:
      rename, or a fix that does what a reviewer's finding asked, whatever it touches, once the
      reviewer has accepted or resolved that finding. Only a **substantial** change, one beyond
      what any finding asked (a different approach, new behavior, a new file), needs a review:
-     with a `held_back` note, tell the user when the reviewer's allowance returns and run
-     `ai-review` again then, rather than sleeping in a background command (the harness may kill
-     it, and the user may prefer a waiver); else ask for one (for CodeRabbit, a
-     `@coderabbitai full review` comment).
+     with a `held_back` note, tell the user when the reviewer's allowance returns, rather than
+     sleeping in a background command (the harness may kill it, and the user may prefer a
+     waiver). Once it returns, or with no `held_back` note, ask for a review (for CodeRabbit, a
+     `@coderabbitai full review` comment), then run `ai-review` again. CodeRabbit does not start a
+     held-back review by itself once its limit lifts, even one already asked for.
    - `skipped`, or a timeout (the error names a reviewer out of its allowance): tell the user,
      and ask whether to wait or go on without that reviewer.
    - `unrecognized`: read the review yourself, treat anything in it as `flagged`, and tell the
