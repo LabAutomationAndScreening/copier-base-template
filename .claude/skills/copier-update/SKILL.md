@@ -45,8 +45,8 @@ $CU comment-report [repo] --report R     # once the PR is open, post the report 
 Every verb prints JSON. Do not re-derive by hand what a verb gives you, especially `.rej`
 contents: retyping is where truncation and whitespace damage creep in.
 
-In a GitHub Codespace, pass `--stored-gh-credentials` to `refs`, `new-questions`, `update`
-and `pr`. The injected `GITHUB_TOKEN` only reaches the codespace's own repo; the flag drops
+In a GitHub Codespace, pass `--stored-gh-credentials` to `refs`, `new-questions`, `update`,
+`pr` and `comment-report`. The injected `GITHUB_TOKEN` only reaches the codespace's own repo; the flag drops
 it (and `GH_TOKEN`) so git and gh fall back to the credentials `gh auth login` stored.
 
 ## Arguments
