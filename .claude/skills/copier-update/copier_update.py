@@ -653,14 +653,22 @@ def find_conflict_markers(project: Path) -> list[dict[str, Any]]:
     return hits
 
 
+# copier never writes a .rej in these, and they can be huge; a walk that only skipped them afterwards would still read them
+_REJ_WALK_SKIP = frozenset({".git", "node_modules", ".venv"})
+
+
+def _rej_paths(project: Path) -> list[Path]:
+    # a plain walk rather than git's file list: a project that gitignores *.rej must still have its conflicts found
+    found: list[Path] = []
+    for directory, subdirectories, files in project.walk():
+        subdirectories[:] = [d for d in subdirectories if d not in _REJ_WALK_SKIP]
+        found += [directory / name for name in files if name.endswith(".rej")]
+    return sorted(found)
+
+
 def list_rej_files(project: Path) -> list[dict[str, Any]]:
     rejs: list[dict[str, Any]] = []
-    for p in sorted(project.rglob("*.rej")):
-        parts = p.relative_to(project).parts
-        if ".git" in parts:
-            continue
-        if "node_modules" in parts:
-            continue
+    for p in _rej_paths(project):
         rel = p.relative_to(project).as_posix()
         rejs.append(
             {
