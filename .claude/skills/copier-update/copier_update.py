@@ -307,7 +307,24 @@ def read_answers(*, project: Path, answers_file: str | None) -> tuple[str, dict[
     data = {key: _scalar(value) for key, value in _top_level_values(path.read_text()).items()}
     if "_src_path" not in data:
         raise FailError(f"{path} has no _src_path")
+    if _is_relative_local_path(data["_src_path"]):
+        # copier reads a relative template path from the project; the mirror is cloned from elsewhere
+        data["_src_path"] = str((project / data["_src_path"]).resolve())
     return rel, data
+
+
+def _is_relative_local_path(src_path: str) -> bool:
+    for prefix in _SHORTHANDS:
+        if src_path.startswith(prefix):
+            return False
+    if "://" in src_path:
+        return False
+    if re.match(r"^[\w.-]+@[\w.-]+:", src_path) is not None:
+        # scp-style ssh, such as git@github.com:owner/repo.git
+        return False
+    if Path(src_path).is_absolute():
+        return False
+    return True
 
 
 def template_mirror(*, src_path: str, cache_dir: str | None, stored_gh_credentials: bool) -> Path:
