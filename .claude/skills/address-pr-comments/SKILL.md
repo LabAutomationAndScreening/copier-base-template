@@ -60,7 +60,7 @@ With `--resume` (e.g. `/address-pr-comments 42 --resume`), uncommitted changes a
 
 Classify each reply draft:
 - **Still has `[COMMIT LINK]`:** its commit never happened. Re-enter Phase 2 for that comment alone, checking `git log` and `git diff @{u}` for work already done.
-- **Finalized:** approved but not posted. With a matching unpushed commit it's waiting to be posted; without one it's an orphan, so ask.
+- **Finalized:** approved but not posted, as far as the file says: pr-comments' Post deletes it once posted, but keeps it when a post timed out, which may still have gone through. So read the thread with `--thread <id>` first: if one of your replies already has this draft's text, ask whether to discard the file. Otherwise, with a matching unpushed commit it's waiting to be posted; without one it's an orphan, so ask.
 - **Its comment is no longer unresolved:** an orphan (someone resolved it). Ask whether to discard it.
 
 Classify each uncommitted path as a **leftover**, the change a placeholder draft's comment was being given, or **unrelated**, anything else. `commit_for_comment.py` commits a path's whole content, so an unrelated edit in a path a leftover touches would go into that commit too: such a path counts as unrelated.
