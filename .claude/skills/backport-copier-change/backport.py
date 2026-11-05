@@ -1034,9 +1034,11 @@ def _summed_count(total: str | None, count: str) -> str:
 def _changes_since(*, checkout: Path, since: str, head: str) -> list[dict[str, str]]:
     """List each file the branch's own commits changed after `since`, with the lines they added and removed.
 
-    Merges and commits already on the default branch are left out, so merging the default branch in (update-branch)
-    is not counted as a change the reviewer hasn't seen. A file's counts are summed over the commits that touched it.
+    Commits already on the default branch are left out, so merging the default branch in (update-branch) is not
+    counted as a change the reviewer hasn't seen. What such a merge resolved by hand is counted, though: the lines of
+    its combined diff, which differ from every parent. A file's counts are summed over the commits that touched it.
     """
+    default = f"origin/{_default_branch(checkout)}"
     cmd = [
         "git",
         "log",
@@ -1045,7 +1047,7 @@ def _changes_since(*, checkout: Path, since: str, head: str) -> list[dict[str, s
         "--format=",
         f"{since}..{head}",
         "--not",
-        f"origin/{_default_branch(checkout)}",
+        default,
     ]
     res = _attempt(cmd=cmd, cwd=checkout)
     if res.returncode != 0:
@@ -1062,7 +1064,44 @@ def _changes_since(*, checkout: Path, since: str, head: str) -> list[dict[str, s
         lines_added, lines_removed, path = line.split("\t", 2)
         added[path] = _summed_count(added.get(path), lines_added)
         removed[path] = _summed_count(removed.get(path), lines_removed)
+    merges = _git("rev-list", "--merges", f"{since}..{head}", "--not", default, cwd=checkout).split()
+    for merge in merges:
+        for path, lines_added, lines_removed in _merge_resolution_counts(checkout=checkout, merge=merge):
+            added[path] = _summed_count(added.get(path), lines_added)
+            removed[path] = _summed_count(removed.get(path), lines_removed)
     return [{"file": path, "added": added[path], "removed": removed[path]} for path in added]
+
+
+def _merge_resolution_counts(*, checkout: Path, merge: str) -> list[tuple[str, str, str]]:
+    """Count, per file, the lines a merge's combined diff shows: what the merge changed from every one of its parents.
+
+    That is a conflict resolution (or an edit made in the merge itself); a file the merge took unchanged from one
+    parent doesn't appear. In a hunk, each line starts with one column per parent, and a `+` or `-` in any of them
+    marks it added or removed against that parent.
+    """
+    counts: dict[str, list[int]] = {}
+    path = ""
+    parents = 0
+    for line in _git("show", "--cc", "--format=", merge, cwd=checkout).splitlines():
+        if line.startswith("diff --cc "):
+            path = line.removeprefix("diff --cc ")
+            counts[path] = [0, 0]
+            # the file's own header lines (`--- a/...`, `+++ b/...`) come before its first hunk
+            parents = 0
+            continue
+        if line.startswith("@@"):
+            parents = len(line) - len(line.lstrip("@")) - 1
+            continue
+        if not path:
+            continue
+        if not parents:
+            continue
+        columns = line[:parents]
+        if "+" in columns:
+            counts[path][0] += 1
+        if "-" in columns:
+            counts[path][1] += 1
+    return [(name, str(added), str(removed)) for name, (added, removed) in counts.items()]
 
 
 def _quiet_on_head(*, reviewer: ModuleType, state: dict[str, Any], checkout: Path) -> dict[str, Any] | None:
