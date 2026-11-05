@@ -127,6 +127,25 @@
             },
             "required": ["needs_review"]
           }
+        },
+        {
+          "description": "Retained conflict markers must be flagged for review.",
+          "if": {
+            "properties": {
+              "conflict_markers_retained": {
+                "const": true
+              }
+            },
+            "required": ["conflict_markers_retained"]
+          },
+          "then": {
+            "properties": {
+              "needs_review": {
+                "const": true
+              }
+            },
+            "required": ["needs_review"]
+          }
         }
       ],
       "description": "How the conflicts in one file were resolved.",
