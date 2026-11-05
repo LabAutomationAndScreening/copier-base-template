@@ -560,11 +560,15 @@ def _catch_up_pull_points(parent: Path) -> list[dict[str, str]]:
 
 
 def _added_text(*, checkout: Path, sha: str) -> str:
-    """Return the paths a commit touches and the lines it adds, the part of its diff a push publishes anew."""
+    """Return the paths a commit touches and the lines it adds, the part of its diff a push publishes anew.
+
+    A merge commit's combined diff heads each file with `diff --cc <path>` instead, and for a binary file that header
+    is the only place its path appears.
+    """
     diff = _git("show", "--format=", "--no-color", "--no-ext-diff", "-M", "--unified=0", sha, cwd=checkout)
     added: list[str] = []
     for line in diff.splitlines():
-        if line.startswith(("diff --git ", "rename to ")):
+        if line.startswith(("diff --git ", "diff --cc ", "rename to ")):
             added.append(line)
             continue
         if line.startswith("+"):
