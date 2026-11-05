@@ -930,17 +930,34 @@ def _scalar_errors(*, value: object, field: dict[str, Any], path: str) -> list[s
         if not isinstance(value, bool):
             errors.append(f"{path}: must be true or false, not {value!r}")
     if kind == "string":
-        if not isinstance(value, str):
-            errors.append(f"{path}: must be a string, not {value!r}")
-        elif len(value) < field.get("minLength", 0):
-            errors.append(f"{path}: needs at least {field['minLength']} character(s), not {len(value)}")
-    # bool is an int in Python, but not an integer in the schema
+        errors += _string_errors(value=value, field=field, path=path)
     if kind == "integer":
-        if isinstance(value, bool):
-            errors.append(f"{path}: must be a whole number, not {value!r}")
-        elif not isinstance(value, int):
-            errors.append(f"{path}: must be a whole number, not {value!r}")
+        errors += _integer_errors(value=value, field=field, path=path)
     return errors
+
+
+def _string_errors(*, value: object, field: dict[str, Any], path: str) -> list[str]:
+    if not isinstance(value, str):
+        return [f"{path}: must be a string, not {value!r}"]
+    if len(value) < field.get("minLength", 0):
+        return [f"{path}: needs at least {field['minLength']} character(s), not {len(value)}"]
+    if "pattern" in field:
+        # JSON Schema patterns match anywhere unless anchored, as re.search does
+        if re.search(field["pattern"], value) is None:
+            return [f"{path}: {value!r} does not match the pattern {field['pattern']}"]
+    return []
+
+
+def _integer_errors(*, value: object, field: dict[str, Any], path: str) -> list[str]:
+    # bool is an int in Python, but not an integer in the schema
+    if isinstance(value, bool):
+        return [f"{path}: must be a whole number, not {value!r}"]
+    if not isinstance(value, int):
+        return [f"{path}: must be a whole number, not {value!r}"]
+    if "minimum" in field:
+        if value < field["minimum"]:
+            return [f"{path}: must be at least {field['minimum']}, not {value}"]
+    return []
 
 
 def _field_errors(*, value: object, field: dict[str, Any], path: str, defs: dict[str, Any]) -> list[str]:
