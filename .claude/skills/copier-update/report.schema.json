@@ -368,6 +368,23 @@
   ],
   "description": "A record of how conflicts were resolved during a `copier update` (or a plain git merge/rebase). One report covers a single update and contains one entry per conflicted file.",
   "properties": {
+    "commits": {
+      "description": "The commits this update made on top of project_commit, newest first: the update commit and any fix commits. `report` fills it in from git when the draft leaves it out.",
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "sha": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "required": ["sha", "subject"],
+        "type": "object"
+      },
+      "type": "array"
+    },
     "copier": {
       "$ref": "#/$defs/copierUpdate",
       "description": "Template identity and the version range this update spans. Required when operation is copier-update or copier-recopy."

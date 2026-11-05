@@ -294,7 +294,8 @@ Build the report from the draft to match `report.schema.json` (`schema_version: 
 `operation: "copier-update"`):
 
 - `project`: `git remote get-url origin`.
-- `project_commit`: `{sha, name}` of HEAD before the update commit.
+- `project_commit`: `{sha, name}` of HEAD before the update commit. `report` lists the commits after it as the
+  update's own (`commits`, shown on the PR comment), so run `report` before anything else is committed.
 - `copier`: `src_path`, `answers_file`, `from_version`/`to_version`, `copier_version`,
   `answers_changed` from the `update` output; `to_commit.name = TO_REF`; `conflict_mode: "rej"`.
 - `resolved_by`: the model you are.

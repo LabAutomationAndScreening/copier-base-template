@@ -32,7 +32,8 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
                                      confidence (unless --approved names it) or the message's
                                      first paragraph spans more than one line, stage everything
                                      but tmp/, refuse conflict artefacts, commit
-  report [project] DRAFT             validate the draft against report.schema.json, then
+  report [project] DRAFT             record the commits made since the draft's project_commit,
+                                     validate the draft against report.schema.json, then
                                      write the JSON report and a self-contained .html to tmp/
   pr [project] --title T --body-file F   push the branch and print the `gh pr create` command for
                                      the agent to run itself, so the permission settings decide it
@@ -912,6 +913,23 @@ def render_report_html(report: dict[str, Any]) -> str:
     return VIEWER_PATH.read_text().replace("__REPORT_JSON__", payload)
 
 
+def _commits_since(*, project: Path, report: dict[str, Any]) -> list[dict[str, str]]:
+    """Return the commits on HEAD after the report's project_commit, newest first.
+
+    `report` runs right after an update's own commits (the update commit, then any fix commits), so these are exactly
+    the commits that update made. A branch carrying several updates gets one report per update, so listing the whole
+    branch instead would repeat the same list under every report.
+    """
+    project_commit = report.get("project_commit")
+    if not isinstance(project_commit, dict):
+        return []
+    sha = project_commit.get("sha")
+    if not isinstance(sha, str):
+        return []
+    log = _git("log", "--format=%h%x00%s", f"{sha}..HEAD", cwd=project).strip()
+    return [dict(zip(("sha", "subject"), line.split("\0", 1), strict=True)) for line in log.splitlines()]
+
+
 def cmd_report(a: argparse.Namespace) -> dict[str, Any]:
     project = Path(a.project)
     report = json.loads(Path(a.draft).read_text())
@@ -921,6 +939,8 @@ def cmd_report(a: argparse.Namespace) -> dict[str, Any]:
     _ = report.setdefault("schema_version", "1.0.0")
     _ = report.setdefault("operation", "copier-update")
     _ = report.setdefault("resolved_at", _iso(now))
+    if "commits" not in report:
+        report["commits"] = _commits_since(project=project, report=report)
     errors = validate_report(report)
     if errors:
         raise FailError("report invalid, nothing written:\n" + "\n".join(errors))
@@ -1012,13 +1032,11 @@ def cmd_pr(a: argparse.Namespace) -> dict[str, Any]:
 def cmd_comment_report(a: argparse.Namespace) -> dict[str, Any]:
     project = Path(a.project)
     where = guard_not_default_branch(project)
-    base = a.base or where["default_branch"]
     branch = where["branch"]
-    log = _git("log", "--format=%h%x00%s", f"{a.remote}/{base}..HEAD", cwd=project).strip()
-    commits = [dict(zip(("sha", "subject"), line.split("\0", 1), strict=True)) for line in log.splitlines()]
+    report = json.loads(Path(a.report).read_text())
     comment = project / "tmp" / "pr-comment.md"
     comment.parent.mkdir(exist_ok=True)
-    _ = comment.write_text(report_markdown(report=json.loads(Path(a.report).read_text()), commits=commits))
+    _ = comment.write_text(report_markdown(report=report, commits=report.get("commits", [])))
     res = _run(
         # the PR lives where cmd_pr opened it: in --remote's repo, whatever gh would pick from this checkout
         cmd=[
@@ -1110,7 +1128,6 @@ def _parser() -> argparse.ArgumentParser:
     pr.add_argument("--ready", action="store_true", help="open it ready for review instead of as a draft")
     cm_report = verb("comment-report", cmd_comment_report, remote=True)
     cm_report.add_argument("--report", required=True, help="the report JSON from `report`")
-    cm_report.add_argument("--base", default=None)
     cm_report.add_argument("--remote", default="origin")
 
     cr = sub.add_parser("capture-rej")
