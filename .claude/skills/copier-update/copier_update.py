@@ -312,7 +312,8 @@ def read_answers(*, project: Path, answers_file: str | None) -> tuple[str, dict[
 
 def template_mirror(*, src_path: str, cache_dir: str | None, stored_gh_credentials: bool) -> Path:
     url = resolve_src_url(src_path)
-    cache_root = Path(cache_dir) if cache_dir else Path(tempfile.gettempdir()) / "copier-update-cache"
+    # the clone runs from the cache directory's parent, so a relative --cache-dir would be read from there
+    cache_root = Path(cache_dir).resolve() if cache_dir else Path(tempfile.gettempdir()) / "copier-update-cache"
     dest = cache_root / (hashlib.sha256(url.encode()).hexdigest()[:16] + ".git")
     if dest.is_dir():
         _ = _git("fetch", "--prune", "--tags", "--quiet", cwd=dest, stored_gh_credentials=stored_gh_credentials)
