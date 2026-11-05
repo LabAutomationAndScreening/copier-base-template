@@ -68,6 +68,18 @@ def _fetch(*, pr: int, args: list[str]) -> list[dict[str, Any]]:
     return json.loads(result.stdout)
 
 
+def _require_local_head(head: str) -> None:
+    # a verifier reads only local git objects, and the head may have been pushed from somewhere else
+    present = subprocess.run(  # noqa: S603 — git with every value a separate argument
+        ["git", "cat-file", "-e", f"{head}^{{commit}}"],  # noqa: S607 — git is expected on PATH
+        capture_output=True,
+        check=False,
+        timeout=GH_TIMEOUT_SECONDS,
+    )
+    if present.returncode != 0:
+        _fail(f"The PR head {head} is not in this checkout. Run `git fetch origin` there first, then run this again.")
+
+
 def _reply_to_judge(thread: dict[str, Any]) -> dict[str, Any] | None:
     """Return the latest reply that isn't a verdict: the one a verifier would judge."""
     for reply in reversed(thread["replies"]):
@@ -144,6 +156,7 @@ def main() -> None:
         head = gh_rest("api", f"repos/{owner}/{repo}/pulls/{args.pr}")["head"]["sha"]
     except subprocess.CalledProcessError as e:
         _fail(f"gh api error: {e.stderr}")
+    _require_local_head(head)
     if args.all_awaiting:
         threads = _fetch(pr=args.pr, args=["--needs-verification"])
     else:
