@@ -1268,18 +1268,17 @@ class _PrReviews:
         self.head_first_seen_at = 0.0
 
     def probe(self) -> dict[str, Any] | None:
-        # the PR's verdict once every reviewer has one on its current head, else None to keep waiting
+        # the PR's verdict once every reviewer has one on its current head, else None to keep waiting. Every verdict is
+        # worked out afresh: on the same head, a review asked for again can start, finish or add findings
         state = _pr_review_state(repo=self.repo, pr=self.pr, reviewers=self.reviewers)
         if state["head"] != self.head:
-            self.verdicts.clear()
             self.head = state["head"]
             self.head_first_seen_at = time.time()
         state["head_first_seen_at"] = self.head_first_seen_at
         self.latest.update(state["bodies"])
         self.comments = state["comments"]
+        self.verdicts = {}
         for reviewer in self.reviewers:
-            if reviewer.NAME in self.verdicts:
-                continue
             result = _reviewer_verdict(
                 reviewer=reviewer, state=state, repo=self.repo, pr=self.pr, checkout=self.checkout
             )
