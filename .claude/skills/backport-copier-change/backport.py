@@ -892,10 +892,16 @@ def cmd_ci(a: argparse.Namespace) -> dict[str, Any]:
     than guess which events will run, this takes every push and pull_request run that appears for the commit, and
     judges by all of them together.
     """
+    # gh filters runs by commit only on the full SHA
+    if re.fullmatch(r"[0-9a-f]{40}", a.sha) is None:
+        raise FailError(f"--sha must be a full 40-character commit SHA, such as push prints, not {a.sha!r}")
 
     def find_runs() -> list[int] | None:
-        runs = _gh_json("run", "list", "--repo", a.repo, "--limit", "50", "--json", "databaseId,headSha,event")
-        ids = [r["databaseId"] for r in runs if r["headSha"].startswith(a.sha) and r["event"] in CI_EVENTS]
+        # filtered by GitHub, so no run for the commit can scroll out of a page of the repo's newest runs
+        runs = _gh_json(
+            "run", "list", "--repo", a.repo, "--commit", a.sha, "--limit", "100", "--json", "databaseId,event"
+        )
+        ids = [r["databaseId"] for r in runs if r["event"] in CI_EVENTS]
         return ids or None
 
     run_ids = _wait(timeout=600, interval=15, what=f"a CI run for {a.sha}", probe=find_runs)
