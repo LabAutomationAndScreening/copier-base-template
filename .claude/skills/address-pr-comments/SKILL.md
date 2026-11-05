@@ -197,7 +197,7 @@ For each entry under `verifiers`, start an `Agent` with:
 
 It runs in the background, so carry on. An entry under `skipped` gets no verifier: for example, a thread with two verdicts is the user's call from then on. Mention it in the report. The verifier reads only git objects, so it's safe while you edit. On **accept** it resolves the thread, unless another person (not a bot) has replied in it; top-level comments can't be resolved. On **disagree** the thread stays open and comes back as `disputed`.
 
-A verifier that reports `post_verdict.py` refused because the PR head moved posted nothing, and its finding still awaits a verdict. Run `verifier_prompt.py --pr <pr_number> --comment-id <that root id> [--checkout <path>]` again, and start a new verifier from the prompt it prints, which names the new head.
+A verifier that reports `post_verdict.py` refused because the PR head moved posted nothing, and its finding still awaits a verdict. Fetch the new head into the PR's checkout first (`git fetch origin`, with `git -C <path>` in checkout mode), since the verifier reads only local git objects and the push may have come from elsewhere. Then run `verifier_prompt.py --pr <pr_number> --comment-id <that root id> [--checkout <path>]` again, and start a new verifier from the prompt it prints, which names the new head.
 
 ### Step 5: Report Completion
 
