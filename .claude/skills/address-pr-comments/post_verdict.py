@@ -160,20 +160,24 @@ def _resolve_posted_thread(*, owner: str, repo: str, pr: int, root_url: str) -> 
     try:
         thread_id = _thread_node_id(owner=owner, repo=repo, pr=pr, root_url=root_url)
         if thread_id is None:
-            _ = sys.stderr.write(f"Posted, but could not find the review thread for {root_url} to resolve.\n")
+            _ = sys.stderr.write(
+                f"Posted, but could not find the review thread for {root_url} to resolve; resolve it by hand.\n"
+            )
             return False
         return gh_graphql(RESOLVE_THREAD, {"threadId": thread_id})["resolveReviewThread"]["thread"]["isResolved"]
     except subprocess.CalledProcessError as e:
-        _ = sys.stderr.write(f"Posted, but could not resolve the thread: {e.stderr}\n")
+        _ = sys.stderr.write(f"Posted, but could not resolve the thread; resolve it by hand: {root_url}\n{e.stderr}\n")
     except subprocess.TimeoutExpired:
-        _ = sys.stderr.write("Posted, but resolving the thread timed out.\n")
+        _ = sys.stderr.write(
+            f"Posted, but resolving the thread timed out; check it, and resolve it by hand if needed: {root_url}\n"
+        )
     except RuntimeError as e:
-        _ = sys.stderr.write(f"Posted, but could not resolve the thread: {e}\n")
+        _ = sys.stderr.write(f"Posted, but could not resolve the thread; resolve it by hand: {root_url}\n{e}\n")
     return False
 
 
 OUTCOME_BY_RESOLUTION = {
-    "resolve": "**accepted**, so this thread is resolved.",
+    "resolve": "**accepted**; this thread is being resolved.",
     "leave_to_others": "**accepted**. Someone else has joined this thread, so resolving it is left to them.",
     "cannot_resolve": "**accepted**.",
     "keep_open": "**not settled**, so this thread stays open for another reply.",
