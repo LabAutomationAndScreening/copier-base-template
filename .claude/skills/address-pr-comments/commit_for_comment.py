@@ -101,10 +101,12 @@ def _commit(*, repo_root: Path, files: list[str], message: str) -> str:
         reset = run(["git", "reset", "-q", "--", *files], cwd=repo_root)
         message = f"Nothing committed: git commit did not finish within {COMMIT_TIMEOUT_SECONDS}s."
         if reset.returncode != 0:
-            # git killed mid-commit leaves .git/index.lock behind, which also stops the reset, so --files stay staged
+            # git killed mid-commit leaves its index.lock behind, which also stops the reset, so --files stay staged.
+            # --git-path finds it in a linked worktree too, where .git is a file
+            lock = (repo_root / _git_output("rev-parse", "--git-path", "index.lock", cwd=repo_root)).resolve()
             message += (
                 f"\n--files are still staged, since git reset failed:\n{reset.stderr.strip()}\n"
-                "If no git process is running, remove .git/index.lock, then unstage them before running this again."
+                f"If no git process is running, remove {lock}, then unstage them before running this again."
             )
         _fail(message)
     after = _git_output("rev-parse", "HEAD", cwd=repo_root)
