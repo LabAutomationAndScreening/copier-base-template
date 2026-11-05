@@ -5,7 +5,9 @@ A review with findings opens "Actionable comments posted: N" and may add "Follow
 sections; a review can carry only follow-ups or additional comments, with "Actionable comments
 posted: 0" or no actionable line at all. One with none says "No
 actionable comments were generated in the recent review.", and the summary comment says the
-same once it is refreshed for the latest commit. Each review's "Review info" names the
+same once it is refreshed for the latest commit. A review that found nothing in the code may
+instead carry only "Failed pre-merge checks:", one "- <name>:" line per PR-wide check that
+failed (such as docstring coverage); that is clean too. Each review's "Review info" names the
 commit it covered by its 7-character short SHA (`**Commit**: [abc1234]`), which is how a
 review of an older commit is told apart from one of the PR's head. Every review footer on
 the included plan ends "0 remain after this review", so that line alone does not mean the
@@ -27,6 +29,8 @@ _FOLLOW_UPS = re.compile(r"Follow-ups \((\d+)\)")
 _NITPICKS = re.compile(r"Nitpick comments \((\d+)\)")
 _OUTSIDE_DIFF = re.compile(r"Outside diff range comments \((\d+)\)")
 _ADDITIONAL = re.compile(r"Additional comments: (\d+)")
+_PRE_MERGE_SECTION = re.compile(r"^Failed pre-merge checks:\n(.*?)(?:\n\n|\Z)", re.MULTILINE | re.DOTALL)
+_PRE_MERGE_CHECK = re.compile(r"^- ([^:\n]+):", re.MULTILINE)
 _SKIPPED = re.compile(r"Review skipped", re.IGNORECASE)
 _ALLOWANCE = re.compile(r"rate limit exceeded", re.IGNORECASE)
 _HELD_BACK = re.compile(
@@ -51,16 +55,36 @@ def classify(*, reviews: list[str], comments: list[str], head: str) -> dict[str,
     }
     if any(counts.values()):
         return {"verdict": "flagged", **counts}
-    if _CLEAN in text:
-        return {"verdict": "clean", **counts}
-    if _ACTIONABLE.search(text):
-        return {"verdict": "clean", **counts}
+    clean = _clean_details(text=text, current_reviews=current_reviews)
+    if clean is not None:
+        return {"verdict": "clean", **counts, **clean}
     if _SKIPPED.search(text):
         return {"verdict": "skipped", **counts}
     if current_reviews:
         # a review of the head exists but says nothing this module recognizes; waiting would never end
         return {"verdict": "unrecognized", **counts}
     return None
+
+
+def _clean_details(*, text: str, current_reviews: list[str]) -> dict[str, Any] | None:
+    # None unless the text says the review found nothing; else what the clean verdict should add
+    if _CLEAN in text:
+        return {}
+    if _ACTIONABLE.search(text):
+        return {}
+    failed_checks = _failed_pre_merge_checks("\n".join(current_reviews))
+    if failed_checks:
+        # a review of the head that found nothing in the code still lists the PR-wide pre-merge checks that failed
+        return {"failed_pre_merge_checks": failed_checks}
+    return None
+
+
+def _failed_pre_merge_checks(text: str) -> list[str]:
+    # each failed check opens a "- <name>:" line in the section, its advice on the lines after it
+    names: set[str] = set()
+    for section in _PRE_MERGE_SECTION.findall(text):
+        names.update(_PRE_MERGE_CHECK.findall(section))
+    return sorted(names)
 
 
 def allowance_used_up(bodies: list[str]) -> bool:
