@@ -49,8 +49,10 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
                                     everything a flagged review found has since been fixed or
                                     answered, or head_not_reviewed when a reviewer stays quiet about
                                     a new head (with its own note under held_back when it says it is
-                                    out of allowance; while it says a review is running, this keeps
-                                    waiting). changed_since_last_review counts only the branch's own
+                                    out of allowance, and its check run on the head under check when
+                                    that finished without a review; while its check or its comments
+                                    say a review is running, this keeps waiting).
+                                    changed_since_last_review counts only the branch's own
                                     commits, not a merge of the default branch;
                                     a flagged reviewer's entry lists its open findings (id, type,
                                     path, line, url, body_text), read through the pr-comments skill
@@ -1017,7 +1019,31 @@ def _pr_review_state(*, repo: str, pr: str, reviewers: list[ModuleType]) -> dict
         "bodies": bodies,
         "comments": comments,
         "last_reviewed": last_reviewed,
+        "checks": _head_checks(repo=repo, head=view["headRefOid"], reviewers=reviewers),
     }
+
+
+def _head_checks(*, repo: str, head: str, reviewers: list[ModuleType]) -> dict[str, dict[str, str] | None]:
+    """Find each reviewer's newest check run on the head commit, or None for a reviewer that has none there.
+
+    A reviewer asked to review the same commit again starts another run, and the newest is its current state. The
+    check's own title and summary go to the agent as they are, so no wording of them is matched here.
+    """
+    runs = _gh_json("api", "--paginate", "--slurp", f"repos/{repo}/commits/{head}/check-runs")
+    checks: dict[str, dict[str, str] | None] = {r.NAME: None for r in reviewers}
+    for run in sorted((r for page in runs for r in page["check_runs"]), key=lambda r: r.get("started_at") or ""):
+        for reviewer in reviewers:
+            if run["name"] != reviewer.CHECK_NAME:
+                continue
+            output = run.get("output") or {}
+            checks[reviewer.NAME] = {
+                "status": run["status"],
+                "conclusion": run.get("conclusion") or "",
+                "completed_at": run.get("completed_at") or "",
+                "title": output.get("title") or "",
+                "summary": output.get("summary") or "",
+            }
+    return checks
 
 
 def _summed_count(total: str | None, count: str) -> str:
@@ -1132,6 +1158,37 @@ def _quiet_on_head(*, reviewer: ModuleType, state: dict[str, Any], checkout: Pat
     }
 
 
+def _unreviewed_by_check(
+    *, reviewer: ModuleType, check: dict[str, str], state: dict[str, Any], checkout: Path
+) -> dict[str, Any] | None:
+    """Give a verdict from a reviewer's finished check on the head when no review of the head gives one.
+
+    A successful check means a review ran, and its review body can trail the check by a few seconds, so that is
+    waited on; once the module's quiet period has passed with still no body, a person has to read the PR. Any other
+    conclusion (neutral, skipped, cancelled, failure) means the head went unreviewed, for a reason such as a rate
+    limit that the check's title and summary give in the reviewer's own words. That makes the verdict skipped for a
+    reviewer that never reviewed this PR, else head_not_reviewed.
+    """
+    if check["conclusion"] == "success":
+        completed = datetime.datetime.fromisoformat(check["completed_at"]).timestamp()
+        if time.time() - completed < reviewer.QUIET_AFTER_SECONDS:
+            return None
+        return {"verdict": "unrecognized", "check": check}
+    held_back = reviewer.held_back(state["comments"][reviewer.NAME])
+    last = state["last_reviewed"][reviewer.NAME]
+    if last is None:
+        return {"verdict": "skipped", "check": check, "held_back": held_back}
+    committed = datetime.datetime.fromisoformat(state["head_committed_at"]).timestamp()
+    return {
+        "verdict": "head_not_reviewed",
+        "last_reviewed": last,
+        "minutes_since_head_commit": int((time.time() - committed) // 60),
+        "check": check,
+        "held_back": held_back,
+        "changed_since_last_review": _changes_since(checkout=checkout, since=last, head=state["head"]),
+    }
+
+
 def enabled_reviewers(*, checkout: Path, names: list[str]) -> list[ModuleType]:
     if names:
         known = {r.NAME: r for r in REVIEWERS}
@@ -1218,9 +1275,15 @@ def cmd_ai_review(a: argparse.Namespace) -> dict[str, Any]:
 def _reviewer_verdict(
     *, reviewer: ModuleType, state: dict[str, Any], repo: str, pr: str, checkout: Path
 ) -> dict[str, Any] | None:
+    check = state["checks"][reviewer.NAME]
+    if check is not None and check["status"] != "completed":
+        # its check says a review of the head is running, even one asked for again on a head it already reviewed
+        return None
     bodies = state["bodies"][reviewer.NAME]
     result = reviewer.classify(reviews=bodies["reviews"], comments=bodies["comments"], head=state["head"])
-    if result is None:
+    if result is None and check is not None:
+        result = _unreviewed_by_check(reviewer=reviewer, check=check, state=state, checkout=checkout)
+    if result is None and check is None:
         result = _quiet_on_head(reviewer=reviewer, state=state, checkout=checkout)
     if result is None:
         return None

@@ -5,6 +5,10 @@ Each module defines:
   NAME          the name used on the command line and in output
   CONFIG_FILES  repo-relative paths; the agent counts as enabled when any of them exists
   LOGIN         a regex matching the agent's GitHub login
+  CHECK_NAME    the name of the check run the agent puts on each commit it reviews, or None if it puts none.
+                Its state on the PR's head comes first: in progress means a review is running, and a
+                finished check that didn't succeed means the head went unreviewed (its title and summary
+                say why). Without such a check on the head, the agent's comments are all there is to go by
   classify(*, reviews, comments, head) -> dict | None
                 the verdict on commit `head` from the agent's review bodies and comment bodies:
                 {"verdict": "clean" | "flagged" | "skipped" | "unrecognized", ...counts}, or

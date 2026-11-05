@@ -19,6 +19,7 @@ from typing import Any
 NAME = "coderabbit"
 CONFIG_FILES = (".coderabbit.yaml", ".coderabbit.yml")
 LOGIN = re.compile(r"^coderabbitai(\[bot\])?$", re.IGNORECASE)
+CHECK_NAME = "CodeRabbit"
 
 _CLEAN = "No actionable comments were generated"
 _ACTIONABLE = re.compile(r"Actionable comments posted: (\d+)")

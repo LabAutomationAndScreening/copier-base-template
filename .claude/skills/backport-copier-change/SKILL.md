@@ -292,8 +292,9 @@ For each repo:
      accept or resolve the finding; an unanswered thread stays flagged. Findings a reviewer
      left in its review's body come as `pulls/reviews` entries, one per review.
    - `head_not_reviewed`: a reviewer that reviewed an earlier commit has stayed quiet about the
-     latest one; `held_back` carries its own note when it says it is out of allowance (while it
-     says a review is running, `ai-review` keeps waiting instead). With every earlier finding fixed
+     latest one; `held_back` carries its own note when it says it is out of allowance, and `check`
+     its check run on the head when that finished without a review, its title and summary saying
+     why (while a review is running, `ai-review` keeps waiting instead). With every earlier finding fixed
      or settled, judge `changed_since_last_review`, which counts only the branch's own commits.
      A **minor** change passes: files a hook regenerated, formatting, comments or prose, a
      rename, or a fix that does what a reviewer's finding asked, whatever it touches, once the
