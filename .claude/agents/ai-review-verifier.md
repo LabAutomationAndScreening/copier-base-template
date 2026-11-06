@@ -39,7 +39,7 @@ Do not run tests. CI runs them, and the integration and e2e suites share fixed p
 
 ## Steps
 
-1. Read the thread with the read command from your prompt. The root comment is the finding (`body`): what is wrong and a concrete failure scenario. The replies are the discussion so far; the last reply from the PR's author is the one to judge. Earlier verdicts, if any, carry `ai_review_verdict`; read what they asked for.
+1. Read the thread with the read command from your prompt. The root comment is the finding (`body`): what is wrong and a concrete failure scenario. The replies are the discussion so far; the one to judge is the reply at the `Reply to judge` URL in your prompt, whoever wrote it. Earlier verdicts, if any, carry `ai_review_verdict`; read what they asked for.
 2. Judge whether the reply settles the finding. Look for a reason it does not, and accept only if you find none:
    - **A code change** (the reply links a commit): trace the finding's failure scenario through the code at the linked commit. Does it now behave correctly? Does the commit add or change a test that would fail without the fix? Does it break anything the finding's area relies on? A fix for a different, nearby problem does not settle the finding.
    - **An answer without a code change** (e.g. "won't fix because X", "this is safe because Y"): check every factual claim against the code at the PR head. A file, line, function or behaviour the reply cites must exist and do what the reply says. An argument that is sound but rests on a false fact does not settle it.
