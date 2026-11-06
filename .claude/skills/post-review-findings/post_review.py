@@ -68,6 +68,8 @@ SHORT_SHA_LENGTH = 7
 TABLE_SUMMARY_MAX_LENGTH = 120
 _FINDING_NUMBER_RE = re.compile(rf"{FINDING_ID_PREFIX}(\d+)")
 _JSON_BLOCK_RE = re.compile(r"```json\s*\n(.*?)\n```", re.DOTALL)
+# git abbreviates an object name to no fewer than 4 hex digits; SHA-256 names run to 64
+_COMMIT_SHA_RE = re.compile(r"[0-9a-fA-F]{4,64}")
 
 POSTED_UNDER_NOTE = "<sub>Posted under the account of the person who ran the review.</sub>"
 
@@ -277,6 +279,9 @@ def _git_output(*args: str) -> str:
 
 
 def _ensure_commit(sha: str) -> str:
+    # a value starting with "-" would reach git fetch as an option
+    if _COMMIT_SHA_RE.fullmatch(sha) is None:
+        raise InputError(f"{sha!r} is not a commit SHA")
     if _git("cat-file", "-e", f"{sha}^{{commit}}").returncode != 0:
         _ = _git_output("fetch", "--quiet", "origin", sha)
     return _git_output("rev-parse", f"{sha}^{{commit}}").strip()
