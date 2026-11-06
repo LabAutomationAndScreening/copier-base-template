@@ -1590,6 +1590,16 @@ def _require_remote_tip_merged(*, checkout: Path, branch: str, merged_head: str)
 
 
 def _require_downstream_off_branch(*, checkout: Path, branch: str, downstream: Path) -> str:
+    dirty = _dirty(downstream)
+    if dirty:
+        raise FailError(f"{downstream} has uncommitted changes; commit and push its re-pin first:\n" + "\n".join(dirty))
+    child_branch = _git("symbolic-ref", "--short", "HEAD", cwd=downstream).strip()
+    _ = _attempt(cmd=["git", "fetch", "--quiet", "origin", child_branch], cwd=downstream)
+    if not _has_ref(checkout=downstream, ref=f"origin/{child_branch}"):
+        raise FailError(f"{downstream}'s branch {child_branch} is not on origin; push its re-pin first")
+    unpushed = _git("log", "--oneline", f"origin/{child_branch}..HEAD", cwd=downstream).strip()
+    if unpushed:
+        raise FailError(f"{downstream} has commits not on origin/{child_branch}; push its re-pin first:\n{unpushed}")
     current = _answers_commit(downstream)
     if current is None:
         raise FailError(f"{downstream / ANSWERS} has no _commit")
