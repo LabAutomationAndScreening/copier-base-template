@@ -1195,7 +1195,7 @@ def _unreviewed_by_check(
     limit that the check's title and summary give in the reviewer's own words. That makes the verdict skipped for a
     reviewer that never reviewed this PR, else head_not_reviewed. While the reviewer's own comment says a review is
     running, though, that review's check is about to replace this one, so that is waited on too, for as long as the
-    module's quiet period after the comment says so.
+    module's quiet period after the comment says so; and likewise a review someone asked for after this check finished.
     """
     if check["conclusion"] == "success":
         completed = datetime.datetime.fromisoformat(check["completed_at"]).timestamp()
@@ -1208,6 +1208,12 @@ def _unreviewed_by_check(
     if reviewing_since is not None:
         if time.time() - reviewing_since.timestamp() < reviewer.QUIET_AFTER_SECONDS:
             return None
+    requested_at = state["review_requested_at"][reviewer.NAME]
+    if requested_at is not None:
+        requested = datetime.datetime.fromisoformat(requested_at).timestamp()
+        if requested > datetime.datetime.fromisoformat(check["completed_at"]).timestamp():
+            if time.time() - requested < reviewer.QUIET_AFTER_SECONDS:
+                return None
     held_back = reviewer.held_back(state["comments"][reviewer.NAME])
     last = state["last_reviewed"][reviewer.NAME]
     if last is None:
