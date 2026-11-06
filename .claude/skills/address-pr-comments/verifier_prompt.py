@@ -17,8 +17,9 @@ thread still awaits a verdict and would get a second verifier.
 
 Prints JSON:
   {"verifiers": [{"comment_id", "finding_id", "description", "prompt"}], "skipped": [{"comment_id", "reason"}]}
-A thread is skipped when it is not an AI review finding, has no reply awaiting a verdict, or has had
-MAX_VERDICT_ROUNDS verdicts, after which it is left to the user.
+A thread is skipped when it is not an AI review finding, has no reply awaiting a verdict, has had MAX_VERDICT_ROUNDS
+verdicts (after which it is left to the user), or its reply links a commit the checkout doesn't have; its reason then
+says how to fetch it. A PR head the checkout doesn't have stops the run, since every verifier reads that.
 """
 
 import argparse
@@ -68,8 +69,11 @@ def _fetch(*, pr: int, args: list[str]) -> list[dict[str, Any]]:
     return json.loads(result.stdout)
 
 
-def _require_local_commit(*, sha: str, what: str, checkout: Path | None) -> None:
-    # a verifier reads only local git objects, and the commit may have been pushed from somewhere else
+def _not_local(*, sha: str, what: str, checkout: Path | None) -> str | None:
+    """Return why a verifier couldn't read commit `sha` and how to fetch it, or None when the checkout has it.
+
+    A verifier reads only local git objects, and the commit may have been pushed from somewhere else.
+    """
     present = subprocess.run(  # noqa: S603 — git with every value a separate argument
         ["git", "cat-file", "-e", f"{sha}^{{commit}}"],  # noqa: S607 — git is expected on PATH
         capture_output=True,
@@ -77,7 +81,7 @@ def _require_local_commit(*, sha: str, what: str, checkout: Path | None) -> None
         timeout=GH_TIMEOUT_SECONDS,
     )
     if present.returncode == 0:
-        return
+        return None
     if checkout is None:
         fetch = "git fetch origin"
     else:
@@ -85,7 +89,7 @@ def _require_local_commit(*, sha: str, what: str, checkout: Path | None) -> None
         fetch = shlex.join(
             ["env", "-u", "GITHUB_TOKEN", "-u", "GH_TOKEN", "git", "-C", str(checkout), "fetch", "origin"]
         )
-    _fail(f"{what} ({sha}) is not in the PR's checkout. Run `{fetch}` first, then run this again.")
+    return f"{what} ({sha}) is not in the PR's checkout. Run `{fetch}` first, then run this again."
 
 
 def _reply_to_judge(thread: dict[str, Any]) -> dict[str, Any] | None:
@@ -125,9 +129,9 @@ def _verifier(*, repo: str, pr: int, thread: dict[str, Any], head: str, checkout
         return {"comment_id": thread["id"], "reason": "no reply to judge"}
     commits = _linked_commits(reply["body"], repo=repo)
     for commit in commits:
-        _require_local_commit(
-            sha=commit, what=f"The commit the reply on thread {thread['id']} links", checkout=checkout
-        )
+        missing = _not_local(sha=commit, what="The commit the reply links", checkout=checkout)
+        if missing is not None:
+            return {"comment_id": thread["id"], "reason": missing}
     lines = [
         f"PR: {pr}",
         f"Finding: {ai_review['finding_id']}, root comment {thread['id']} ({thread['type']})",
@@ -168,7 +172,9 @@ def main() -> None:
         head = gh_rest("api", f"repos/{owner}/{repo}/pulls/{args.pr}")["head"]["sha"]
     except subprocess.CalledProcessError as e:
         _fail(f"gh api error: {e.stderr}")
-    _require_local_commit(sha=head, what="The PR head", checkout=checkout)
+    missing_head = _not_local(sha=head, what="The PR head", checkout=checkout)
+    if missing_head is not None:
+        _fail(missing_head)
     if args.all_awaiting:
         threads = _fetch(pr=args.pr, args=["--needs-verification"])
     else:
