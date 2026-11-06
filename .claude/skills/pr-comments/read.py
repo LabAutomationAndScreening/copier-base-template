@@ -408,7 +408,7 @@ def _all_flat_issues(issues_raw: list[dict[str, Any]], current_user: str) -> lis
     return flat
 
 
-def _review_body_to_answer(review: dict[str, Any], current_user: str) -> bool:
+def _review_body_to_answer(*, review: dict[str, Any], current_user: str) -> bool:
     """Return whether a review's own body holds something to answer, apart from the review's inline threads.
 
     A person's review body says something whenever it isn't empty. A bot's mostly summarizes its inline comments,
@@ -434,7 +434,7 @@ def _all_review_bodies(
     replies = _marked_replies(issues_raw, current_user=current_user, parse_marker=parse_review_reply)
     entries: list[dict[str, Any]] = []
     for r in reviews_raw:
-        if not _review_body_to_answer(r, current_user):
+        if not _review_body_to_answer(review=r, current_user=current_user):
             continue
         entries.append(
             {
