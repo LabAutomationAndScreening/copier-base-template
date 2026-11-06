@@ -5,8 +5,9 @@
 """Post the ai-review-verifier agent's verdict on a reply to an AI review finding, and resolve the thread on accept.
 
 Usage:
-  post_verdict.py --pr <number> --comment-id <root id> --head <sha> --verdict accept|disagree --model <model id>
-                  [--effort <level>] [--dry-run] [--checkout <path>] < verdict.md
+  post_verdict.py --pr <number> --comment-id <root id> --reply-id <judged reply id> --head <sha>
+                  --verdict accept|disagree --model <model id> [--effort <level>] [--dry-run] [--checkout <path>]
+                  < verdict.md
 
 The verdict text is read from stdin. The posted comment opens with a line naming the verdict and the model (and
 effort level, when given) that reached it, and carries a hidden marker so read.py can tell the verdict
@@ -18,7 +19,9 @@ resolved on GitHub, so for those the verdict is only posted.
 
 Refuses to post when the comment is not an AI review finding, when its latest reply is not one from the current
 user awaiting a verdict (nothing to judge, already judged, or someone else has the last word), or when the thread
-already has MAX_VERDICT_ROUNDS verdicts, at which point the thread is left to the user. It also refuses when the PR's
+already has MAX_VERDICT_ROUNDS verdicts, at which point the thread is left to the user. It refuses when the reply
+awaiting a verdict is no longer --reply-id, the one this verdict judges: a newer reply posted while the verifier ran
+would otherwise read as judged by it. It also refuses when the PR's
 head is no longer --head, the commit the verdict was reached on: a later push may have changed what the reply relies
 on, so a new verifier judges the new head.
 
@@ -126,6 +129,19 @@ def _check_can_post(thread: dict[str, Any]) -> dict[str, Any]:
     return ai_review
 
 
+def _check_reply(*, thread: dict[str, Any], reply_id: int) -> None:
+    awaiting = None
+    for reply in reversed(thread["replies"]):
+        if reply["ai_review_verdict"] is None:
+            awaiting = reply["id"]
+            break
+    if awaiting != reply_id:
+        raise RefusedError(
+            f"the reply awaiting a verdict is now {awaiting}, not {reply_id}, the one this verdict judges; start a new "
+            "verifier to judge the newer reply"
+        )
+
+
 def _check_head(*, owner: str, repo: str, pr: int, head: str) -> None:
     current = gh_rest("api", f"repos/{owner}/{repo}/pulls/{pr}")["head"]["sha"]
     if current != head:
@@ -203,6 +219,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     _ = parser.add_argument("--pr", required=True, type=int)
     _ = parser.add_argument("--comment-id", required=True, type=int, help="the AI review finding's root comment ID")
+    _ = parser.add_argument("--reply-id", required=True, type=int, help="the ID of the reply the verdict judges")
     _ = parser.add_argument("--head", required=True, help="the PR head commit the verdict was reached on")
     _ = parser.add_argument("--verdict", required=True, choices=[VERDICT_ACCEPT, VERDICT_DISAGREE])
     _ = parser.add_argument("--model", required=True, help="the exact model ID of the agent that reached the verdict")
@@ -221,6 +238,7 @@ def main() -> None:
         current_user = gh_rest("api", "user")["login"]
         thread = _fetch_thread(pr=args.pr, comment_id=args.comment_id)
         ai_review = _check_can_post(thread)
+        _check_reply(thread=thread, reply_id=args.reply_id)
         _check_head(owner=owner, repo=repo, pr=args.pr, head=args.head)
         others = other_participants(thread=thread, current_user=current_user)
         resolution = _resolution(verdict=args.verdict, thread=thread, others=others)

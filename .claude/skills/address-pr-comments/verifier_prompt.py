@@ -144,7 +144,16 @@ def _verifier(*, repo: str, pr: int, thread: dict[str, Any], head: str, checkout
         lines.append(f"Checkout of the PR's repo: {checkout}")
     read_command = _command(READ_SCRIPT, str(pr), "--thread", str(thread["id"]), *checkout_args)
     post_command = _command(
-        POST_VERDICT_SCRIPT, "--pr", str(pr), "--comment-id", str(thread["id"]), "--head", head, *checkout_args
+        POST_VERDICT_SCRIPT,
+        "--pr",
+        str(pr),
+        "--comment-id",
+        str(thread["id"]),
+        "--reply-id",
+        str(reply["id"]),
+        "--head",
+        head,
+        *checkout_args,
     )
     lines += [f"Read the thread: {read_command}", f"Post the verdict: {post_command}"]
     return {
