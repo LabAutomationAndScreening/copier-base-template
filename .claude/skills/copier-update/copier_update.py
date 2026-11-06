@@ -29,7 +29,7 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
   lint [project]                     sync each uv project (so a dependency-sync hook has nothing
                                      to change), then run the all-files hook runner the way CI does
   commit [project] --draft DRAFT     refuse while any resolution in the draft is below high
-                                     confidence (unless --approved names it) or the message's
+                                     confidence or needs review (unless --approved names it) or the message's
                                      first paragraph spans more than one line, stage everything
                                      but tmp/, refuse conflict artefacts, commit
   report [project] DRAFT             record the commits made since the draft's project_commit,
@@ -787,20 +787,29 @@ def parse_hook_results(output: str) -> dict[str, list[str]]:
     return {"failed_hooks": failed, "modifying_hooks": modified, "pre_commit_errors": errors}
 
 
-def unconfident_resolutions(*, draft: dict[str, Any], approved: set[str]) -> list[dict[str, Any]]:
+def held_resolutions(*, draft: dict[str, Any], approved: set[str]) -> list[dict[str, Any]]:
+    """Return the resolutions the user has to decide on before the update is committed.
+
+    That is each one below high confidence, and each one flagged needs_review, such as a .rej left pending or a file
+    deferred: either way part of the update is undecided, and only the user can choose to commit it like that.
+    """
     held: list[dict[str, Any]] = []
     for resolution in draft.get("resolutions", []):
-        if resolution.get("confidence") == "high":
-            continue
         if resolution.get("filename") in approved:
             continue
-        held.append(
-            {
-                "filename": resolution.get("filename"),
-                "confidence": resolution.get("confidence"),
-                "reason": resolution.get("reason"),
-            }
-        )
+        if resolution.get("confidence") != "high":
+            held.append(
+                {
+                    "filename": resolution.get("filename"),
+                    "why": f"{resolution.get('confidence')} confidence",
+                    "reason": resolution.get("reason"),
+                }
+            )
+            continue
+        if resolution.get("needs_review") is True:
+            held.append(
+                {"filename": resolution.get("filename"), "why": "needs review", "reason": resolution.get("reason")}
+            )
     return held
 
 
@@ -842,18 +851,18 @@ def cmd_commit(a: argparse.Namespace) -> dict[str, Any]:
     _require_pre_commit_hook(project)
     require_one_line_subject(Path(a.message_file))
     draft = json.loads(Path(a.draft).read_text(encoding="utf-8"))
-    # the confidence gate reads `filename` and `confidence`; a draft with other keys would pass it unchecked
+    # the gate reads `filename`, `confidence` and `needs_review`; a draft with other keys would pass it unchecked
     errors = validate_report(draft)
     if errors:
         raise FailError(
             "the draft does not match report.schema.json, so its confidences can't be checked:\n" + "\n".join(errors)
         )
-    held = unconfident_resolutions(draft=draft, approved=set(a.approved))
+    held = held_resolutions(draft=draft, approved=set(a.approved))
     if held:
         raise FailError(
-            "resolutions below high confidence need the user's decision before committing "
+            "resolutions below high confidence or needing review need the user's decision before committing "
             "(rerun with --approved FILE once they have decided):\n"
-            + "\n".join(f"  {h['filename']} ({h['confidence']}): {h['reason']}" for h in held)
+            + "\n".join(f"  {h['filename']} ({h['why']}): {h['reason']}" for h in held)
         )
     # stage everything, then unstage tmp/: a ":!tmp" pathspec on a gitignored tmp/ makes
     # git exit 1 with addIgnoredFile advice
@@ -1245,7 +1254,11 @@ def _parser() -> argparse.ArgumentParser:
     cm = verb(name="commit", fn=cmd_commit)
     cm.add_argument("--draft", required=True, help="the resolution draft; its confidences gate the commit")
     cm.add_argument(
-        "--approved", action="append", default=[], metavar="FILE", help="a below-high resolution the user decided on"
+        "--approved",
+        action="append",
+        default=[],
+        metavar="FILE",
+        help="a below-high or needs-review resolution the user decided on",
     )
     cm.add_argument("--message-file", required=True, help="the full commit message")
     cm.add_argument(

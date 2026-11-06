@@ -83,8 +83,9 @@ Any decision not covered by an argument is asked interactively, unless `--headle
   scaffolding) the repo never deliberately diverged from.
 - **Anything below high confidence stops before the commit.** Record a `confidence` for
   every resolution. If any is `medium` or `low`, show the user both sides and your reasoning
-  with AskUserQuestion and wait. `commit` refuses while such a resolution exists, unless it is
-  passed with `--approved FILE` after the user decided.
+  with AskUserQuestion and wait. `commit` refuses while such a resolution exists, or one
+  flagged `needs_review` (a `.rej` left `pending`, a file deferred), unless it is passed with
+  `--approved FILE` after the user decided.
 - **`task prune-copier-rejects` runs before any triage.** It deletes `.rej` files whose
   target is unchanged in git (false positives, such as a hunk the repo already has).
 - **One update commit, then one commit per hand-made fix.** The update commit holds copier's
@@ -272,11 +273,11 @@ file naming its strategy, then a line naming any mechanical fixes. Then:
 $CU commit <repo> --draft <repo>/tmp/draft.json --message-file <repo>/tmp/commit-message.txt
 ```
 
-It refuses while any resolution is below high confidence (rerun with `--approved FILE` for
-each one the user decided), refuses a message whose first paragraph spans more than one line
-(git would join it into one long subject; put a blank line after the subject), stages
-everything except `tmp/`, and refuses staged `.rej`/`.orig` files, conflict markers and
-`node_modules` paths. If hooks still block the commit, rerun it with one `--skip <hook id>`
+It refuses while any resolution is below high confidence or flagged `needs_review` (rerun
+with `--approved FILE` for each one the user decided), refuses a message whose first
+paragraph spans more than one line (git would join it into one long subject; put a blank line
+after the subject), stages everything except `tmp/`, and refuses staged `.rej`/`.orig` files,
+conflict markers and `node_modules` paths. If hooks still block the commit, rerun it with one `--skip <hook id>`
 per hook `lint` still lists in `failed_hooks`.
 
 ### Step 6: Hand-made fixes, one commit each
