@@ -68,10 +68,10 @@ def _fetch(*, pr: int, args: list[str]) -> list[dict[str, Any]]:
     return json.loads(result.stdout)
 
 
-def _require_local_head(*, head: str, checkout: Path | None) -> None:
-    # a verifier reads only local git objects, and the head may have been pushed from somewhere else
+def _require_local_commit(*, sha: str, what: str, checkout: Path | None) -> None:
+    # a verifier reads only local git objects, and the commit may have been pushed from somewhere else
     present = subprocess.run(  # noqa: S603 — git with every value a separate argument
-        ["git", "cat-file", "-e", f"{head}^{{commit}}"],  # noqa: S607 — git is expected on PATH
+        ["git", "cat-file", "-e", f"{sha}^{{commit}}"],  # noqa: S607 — git is expected on PATH
         capture_output=True,
         check=False,
         timeout=GH_TIMEOUT_SECONDS,
@@ -85,7 +85,7 @@ def _require_local_head(*, head: str, checkout: Path | None) -> None:
         fetch = shlex.join(
             ["env", "-u", "GITHUB_TOKEN", "-u", "GH_TOKEN", "git", "-C", str(checkout), "fetch", "origin"]
         )
-    _fail(f"The PR head {head} is not in the PR's checkout. Run `{fetch}` first, then run this again.")
+    _fail(f"{what} ({sha}) is not in the PR's checkout. Run `{fetch}` first, then run this again.")
 
 
 def _reply_to_judge(thread: dict[str, Any]) -> dict[str, Any] | None:
@@ -124,6 +124,10 @@ def _verifier(*, repo: str, pr: int, thread: dict[str, Any], head: str, checkout
     if reply is None:
         return {"comment_id": thread["id"], "reason": "no reply to judge"}
     commits = _linked_commits(reply["body"], repo=repo)
+    for commit in commits:
+        _require_local_commit(
+            sha=commit, what=f"The commit the reply on thread {thread['id']} links", checkout=checkout
+        )
     lines = [
         f"PR: {pr}",
         f"Finding: {ai_review['finding_id']}, root comment {thread['id']} ({thread['type']})",
@@ -164,7 +168,7 @@ def main() -> None:
         head = gh_rest("api", f"repos/{owner}/{repo}/pulls/{args.pr}")["head"]["sha"]
     except subprocess.CalledProcessError as e:
         _fail(f"gh api error: {e.stderr}")
-    _require_local_head(head=head, checkout=checkout)
+    _require_local_commit(sha=head, what="The PR head", checkout=checkout)
     if args.all_awaiting:
         threads = _fetch(pr=args.pr, args=["--needs-verification"])
     else:
