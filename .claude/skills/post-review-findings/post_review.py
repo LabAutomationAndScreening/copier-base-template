@@ -314,7 +314,7 @@ def _commentable_lines(*, base: str, anchor: str) -> dict[str, set[int]]:
     # line whose content starts "++ ", not a file header
     old_left = 0
     new_left = 0
-    for diff_line in diff.splitlines():
+    for diff_line in diff.split("\n"):
         if old_left > 0 or new_left > 0:
             if diff_line.startswith("+"):
                 new_left -= 1
