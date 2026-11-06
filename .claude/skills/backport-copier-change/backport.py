@@ -1608,7 +1608,13 @@ def _require_downstream_off_branch(*, checkout: Path, branch: str, downstream: P
     if dirty:
         raise FailError(f"{downstream} has uncommitted changes; commit and push its re-pin first:\n" + "\n".join(dirty))
     child_branch = _git("symbolic-ref", "--short", "HEAD", cwd=downstream).strip()
-    _ = _attempt(cmd=["git", "fetch", "--quiet", "origin", child_branch], cwd=downstream)
+    # a failed fetch leaves an old origin/<branch>, which can still hold a re-pin the remote branch has since lost
+    fetch = _attempt(cmd=["git", "fetch", "--quiet", "origin", child_branch], cwd=downstream)
+    if fetch.returncode != 0:
+        raise FailError(
+            f"git fetch origin {child_branch} failed in {downstream}, so its pushed re-pin can't be checked; "
+            f"push its re-pin first:\n{fetch.stderr.strip()}"
+        )
     if not _has_ref(checkout=downstream, ref=f"origin/{child_branch}"):
         raise FailError(f"{downstream}'s branch {child_branch} is not on origin; push its re-pin first")
     unpushed = _git("log", "--oneline", f"origin/{child_branch}..HEAD", cwd=downstream).strip()
