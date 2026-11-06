@@ -38,6 +38,7 @@ _HELD_BACK = re.compile(
 )
 _REVIEWING = re.compile(r"review in progress|currently processing", re.IGNORECASE)
 _NEXT_REVIEW = re.compile(r"next included review available in (\d+) minutes", re.IGNORECASE)
+_REVIEW_REQUEST = re.compile(r"@coderabbitai\s+(?:full\s+)?review\b", re.IGNORECASE)
 # CodeRabbit can leave a small follow-up commit unreviewed without saying so; this long after the commit its silence
 # is a verdict in itself, and any note that it is held back goes to the agent with it
 QUIET_AFTER_SECONDS = 300
@@ -117,6 +118,11 @@ def still_reviewing(comments: list[str]) -> bool:
         if _REVIEWING.search(body) is not None:
             return True
     return False
+
+
+def asks_for_review(body: str) -> bool:
+    """Return whether a PR comment asks CodeRabbit for a review, as `@coderabbitai review` or `full review` do."""
+    return _REVIEW_REQUEST.search(body) is not None
 
 
 def reviewing_since(comments: list[dict[str, str]]) -> datetime.datetime | None:

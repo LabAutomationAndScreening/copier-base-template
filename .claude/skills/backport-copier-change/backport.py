@@ -1010,6 +1010,7 @@ def _pr_review_state(*, repo: str, pr: str, reviewers: list[ModuleType]) -> dict
     bodies: dict[str, dict[str, list[str]]] = {r.NAME: {"reviews": [], "comments": []} for r in reviewers}
     comments: dict[str, list[dict[str, str]]] = {r.NAME: [] for r in reviewers}
     last_reviewed: dict[str, str | None] = {r.NAME: None for r in reviewers}
+    review_requested_at: dict[str, str | None] = {r.NAME: None for r in reviewers}
     for item in sorted(view["reviews"], key=lambda i: i.get("submittedAt") or ""):
         for reviewer in reviewers:
             if not reviewer.LOGIN.search(item["author"]["login"]):
@@ -1024,6 +1025,8 @@ def _pr_review_state(*, repo: str, pr: str, reviewers: list[ModuleType]) -> dict
     for item in sorted((c for page in pages for c in page), key=lambda i: i["created_at"]):
         for reviewer in reviewers:
             if not reviewer.LOGIN.search(item["user"]["login"]):
+                if reviewer.asks_for_review(item["body"]):
+                    review_requested_at[reviewer.NAME] = item["created_at"]
                 continue
             bodies[reviewer.NAME]["comments"].append(item["body"])
             comments[reviewer.NAME].append({"body": item["body"], "edited_at": item["updated_at"]})
@@ -1033,6 +1036,7 @@ def _pr_review_state(*, repo: str, pr: str, reviewers: list[ModuleType]) -> dict
         "bodies": bodies,
         "comments": comments,
         "last_reviewed": last_reviewed,
+        "review_requested_at": review_requested_at,
         "checks": _head_checks(repo=repo, head=view["headRefOid"], reviewers=reviewers),
     }
 
@@ -1150,7 +1154,8 @@ def _quiet_on_head(*, reviewer: ModuleType, state: dict[str, Any], checkout: Pat
     """Give a verdict for a reviewer that reviewed this PR before but has stayed quiet about its latest commit.
 
     A reviewer can leave a small follow-up commit unreviewed without saying so, or say that it is out of allowance or
-    still reviewing. Once its module's quiet period has passed since that commit reached the PR, the verdict reports
+    still reviewing. Once its module's quiet period has passed since that commit reached the PR (or since the PR last
+    asked the reviewer for a review, if later), the verdict reports
     the silence, with the reviewer's own note under held_back when it left one, and the agent judges from the changes
     since the last reviewed commit whether to wait for the review, ask for one, or go on.
     """
@@ -1159,8 +1164,13 @@ def _quiet_on_head(*, reviewer: ModuleType, state: dict[str, Any], checkout: Pat
         return None
     committed = datetime.datetime.fromisoformat(state["head_committed_at"]).timestamp()
     # a commit can be made long before it is pushed (a round of review fixes goes up together), so its own date can
-    # make a reviewer that hasn't started yet look quiet; count from when this wait first saw it, if that is later
-    quiet = time.time() - max(committed, state["head_first_seen_at"])
+    # make a reviewer that hasn't started yet look quiet; count from when this wait first saw it, or from the newest
+    # request for a review, if either is later
+    started = max(committed, state["head_first_seen_at"])
+    requested_at = state["review_requested_at"][reviewer.NAME]
+    if requested_at is not None:
+        started = max(started, datetime.datetime.fromisoformat(requested_at).timestamp())
+    quiet = time.time() - started
     if quiet < reviewer.QUIET_AFTER_SECONDS:
         return None
     if reviewer.still_reviewing(state["bodies"][reviewer.NAME]["comments"]):

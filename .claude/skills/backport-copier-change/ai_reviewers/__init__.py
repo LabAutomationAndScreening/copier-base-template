@@ -17,6 +17,10 @@ Each module defines:
   QUIET_AFTER_SECONDS
                 how long after a PR's latest commit the agent's silence about it means it won't review
                 it (it reviewed an earlier commit, and judged the change too small)
+  asks_for_review(comment_body) -> bool
+                whether a PR comment by someone other than the agent asks it for a review; the
+                quiet period after the newest such request is waited out like the one after a commit,
+                since the agent replies to a request a few seconds after it is made
   still_reviewing(comment_bodies) -> bool
                 whether the agent says a review is running right now, so its silence about the
                 latest commit is waited on rather than reported
