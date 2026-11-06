@@ -422,7 +422,7 @@ def _review_body_to_answer(*, review: dict[str, Any], current_user: str) -> bool
         return False
     if not _author_is_bot(review):
         return True
-    if _REVIEW_BODY_FINDINGS_RE.search(review["body"]) is None:
+    if _REVIEW_BODY_FINDINGS_RE.search(strip_markup(review["body"])) is None:
         return False
     return True
 
