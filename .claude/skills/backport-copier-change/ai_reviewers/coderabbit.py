@@ -119,6 +119,14 @@ def still_reviewing(comments: list[str]) -> bool:
     return False
 
 
+def reviewing_since(comments: list[dict[str, str]]) -> datetime.datetime | None:
+    """Return when the comment that says a review is running was last edited, or None if no comment says so."""
+    for comment in sorted(comments, key=lambda c: c["edited_at"], reverse=True):
+        if _REVIEWING.search(comment["body"]) is not None:
+            return datetime.datetime.fromisoformat(comment["edited_at"])
+    return None
+
+
 def held_back(comments: list[dict[str, str]]) -> str | None:
     """Return CodeRabbit's newest note that it is out of allowance or still reviewing, or None without a current one.
 
