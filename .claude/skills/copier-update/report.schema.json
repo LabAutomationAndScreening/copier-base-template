@@ -362,7 +362,7 @@
           "type": "boolean"
         }
       },
-      "required": ["contents"],
+      "required": ["contents", "disposition"],
       "type": "object"
     }
   },

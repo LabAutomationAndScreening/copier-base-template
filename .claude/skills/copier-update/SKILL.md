@@ -219,7 +219,8 @@ ask. For each file in `rej_files`:
    `medium`: its `description` names each template change carried and each left out, and
    its `reason` says why each was left out.
 3. Apply the decision with Edit, run `$CU capture-rej <path> --root <repo>` **before**
-   deleting the `.rej`, then delete it. Append the captured object and the decision
+   deleting the `.rej`, then delete it. Append the captured object, with the `disposition`
+   that says what became of its hunks (`pending` while undecided), and the decision
    (strategy, reason, confidence) to `<repo>/tmp/draft.json`.
 
 Always add an answers-file entry (`is_answers_file: true`, `resolution_strategy:
