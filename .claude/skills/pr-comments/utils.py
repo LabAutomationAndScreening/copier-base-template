@@ -432,7 +432,8 @@ _REVIEW_FOOTER_RE = re.compile(
 )
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 _PICTURE_RE = re.compile(r"<picture>.*?</picture>", re.DOTALL)
-_HTML_TAG_RE = re.compile(r"</?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>\n]*)?/?>")
+# A backslash-escaped `<` (as in `Optional\<User>`) is literal text, not a tag; an escaped backslash before it isn't
+_HTML_TAG_RE = re.compile(r"(?<!(?<!\\)\\)</?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>\n]*)?/?>")
 _BLANK_LINES_RE = re.compile(r"\n{3,}")
 _BLANK_QUOTE_LINES_RE = re.compile(r"^(?:>[ \t]*\n){2,}", re.MULTILINE)
 
