@@ -12,8 +12,11 @@ newlines, `$(` and backticks, double-quoted ones included, and through the wrapp
 `exec` and `time`, a shell's `-c` (`-lc` too) and `eval`):
 
 - git commands that change a repo or its remote: push, commit, merge, rebase, reset, checkout, switch, restore,
-  cherry-pick, revert, tag, stash, clean, rm, mv, add, apply, am, worktree, update-ref, notes, gc; `branch` deleting or
-  renaming; `remote` other than listing; `config` setting or unsetting.
+  cherry-pick, revert, tag, stash, clean, rm, mv, add, apply, am, worktree, update-ref, notes, gc, pull, read-tree,
+  checkout-index, symbolic-ref, submodule, replace, filter-branch, init, clone, bisect, update-index, sparse-checkout,
+  prune, maintenance, lfs; `branch` deleting or renaming; `remote` other than listing; `config` setting or unsetting;
+  `reflog expire` and `reflog delete`; and git's own `-c` and `--config-env`, which can set an alias or pager that runs
+  any command. fetch stays allowed: it changes only remote-tracking refs, and the verifier may need fetched commits.
 - gh commands other than its reads: list, view, status, diff, checks and watch in any group, `gh search`, `gh help`,
   and `gh api` with GET and no fields or input. gh's write commands are open-ended, so this one list is of reads.
 - rm and rmdir, and redirecting output into a file (`>/dev/null` and `2>&1` are fine).
@@ -55,8 +58,24 @@ _BLOCKED_GIT = frozenset(
         "update-ref",
         "notes",
         "gc",
+        "pull",
+        "read-tree",
+        "checkout-index",
+        "symbolic-ref",
+        "submodule",
+        "replace",
+        "filter-branch",
+        "init",
+        "clone",
+        "bisect",
+        "update-index",
+        "sparse-checkout",
+        "prune",
+        "maintenance",
+        "lfs",
     }
 )
+_GIT_REFLOG_CHANGES = frozenset({"expire", "delete"})
 _GIT_BRANCH_CHANGES = frozenset({"-d", "-D", "-m", "-M", "--delete", "--move"})
 _GIT_REMOTE_READS = frozenset({"show", "get-url"})
 _GIT_CONFIG_CHANGES = frozenset(
@@ -64,7 +83,7 @@ _GIT_CONFIG_CHANGES = frozenset(
 )
 _GIT_CONFIG_SUBCOMMAND_CHANGES = frozenset({"set", "unset", "rename-section", "remove-section", "edit"})
 # git's own options before the subcommand that take the next word as their value
-_GIT_OPTIONS_WITH_VALUE = frozenset({"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"})
+_GIT_OPTIONS_WITH_VALUE = frozenset({"-C", "--git-dir", "--work-tree", "--namespace", "--exec-path"})
 # gh's verbs that only read, in any group; every other verb writes or might, so it is blocked
 _GH_READ_VERBS = frozenset({"list", "view", "status", "diff", "checks", "watch"})
 _GH_READ_GROUPS = frozenset({"search", "help"})
@@ -372,6 +391,10 @@ def _git_subcommand(args: list[str]) -> list[str]:
     index = 0
     while index < len(args):
         word = args[index]
+        if word == "-c":
+            raise BlockedError("`git -c` can set an alias or a pager that runs any command")
+        if word.startswith("--config-env"):
+            raise BlockedError("`git --config-env` can set an alias or a pager that runs any command")
         if word in _GIT_OPTIONS_WITH_VALUE:
             index += 2
             continue
@@ -400,6 +423,20 @@ def _check_git_config(rest: list[str]) -> None:
         raise BlockedError("`git config <key> <value>` sets a config value")
 
 
+def _check_git_remote(rest: list[str]) -> None:
+    positional = _positional(rest)
+    if positional:
+        if positional[0] not in _GIT_REMOTE_READS:
+            raise BlockedError(f"`git remote {positional[0]}` changes the repo's remotes")
+
+
+def _check_git_reflog(rest: list[str]) -> None:
+    positional = _positional(rest)
+    if positional:
+        if positional[0] in _GIT_REFLOG_CHANGES:
+            raise BlockedError(f"`git reflog {positional[0]}` deletes reflog entries")
+
+
 def _check_git(args: list[str]) -> None:
     subcommand = _git_subcommand(args)
     if not subcommand:
@@ -413,13 +450,13 @@ def _check_git(args: list[str]) -> None:
                 raise BlockedError(f"`git branch {word}` deletes or renames a branch")
         return
     if verb == "remote":
-        positional = _positional(rest)
-        if positional:
-            if positional[0] not in _GIT_REMOTE_READS:
-                raise BlockedError(f"`git remote {positional[0]}` changes the repo's remotes")
+        _check_git_remote(rest)
         return
     if verb == "config":
         _check_git_config(rest)
+        return
+    if verb == "reflog":
+        _check_git_reflog(rest)
 
 
 def _gh_api_method(*, word: str, following: str) -> str | None:
