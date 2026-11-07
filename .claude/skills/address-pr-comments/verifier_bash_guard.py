@@ -14,8 +14,8 @@ newlines, `$(` and backticks, double-quoted ones included, and through the wrapp
 - git commands that change a repo or its remote: push, commit, merge, rebase, reset, checkout, switch, restore,
   cherry-pick, revert, tag, stash, clean, rm, mv, add, apply, am, worktree, update-ref, notes, gc; `branch` deleting or
   renaming; `remote` other than listing; `config` setting or unsetting.
-- gh commands that write: pr and issue changes, release, repo, workflow and run changes, and `gh api` with a method
-  other than GET or with fields or input.
+- gh commands other than its reads: list, view, status, diff, checks and watch in any group, `gh search`, `gh help`,
+  and `gh api` with GET and no fields or input. gh's write commands are open-ended, so this one list is of reads.
 - rm and rmdir, and redirecting output into a file (`>/dev/null` and `2>&1` are fine).
 - a shell running a script file or stdin rather than `-c`, `source` and `.`, and `env -S`: the guard can't see what
   they run.
@@ -65,32 +65,10 @@ _GIT_CONFIG_CHANGES = frozenset(
 _GIT_CONFIG_SUBCOMMAND_CHANGES = frozenset({"set", "unset", "rename-section", "remove-section", "edit"})
 # git's own options before the subcommand that take the next word as their value
 _GIT_OPTIONS_WITH_VALUE = frozenset({"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"})
-_GH_PR_ISSUE_CHANGES = frozenset(
-    {
-        "merge",
-        "close",
-        "reopen",
-        "edit",
-        "comment",
-        "review",
-        "create",
-        "ready",
-        "delete",
-        "lock",
-        "unlock",
-        "pin",
-        "unpin",
-        "transfer",
-        "checkout",
-    }
-)
-# for these groups the reads are the short list, so everything else is a change
-_GH_GROUP_READS = {
-    "release": frozenset({"list", "view"}),
-    "repo": frozenset({"list", "view"}),
-    "workflow": frozenset({"list", "view"}),
-    "run": frozenset({"list", "view", "watch"}),
-}
+# gh's verbs that only read, in any group; every other verb writes or might, so it is blocked
+_GH_READ_VERBS = frozenset({"list", "view", "status", "diff", "checks", "watch"})
+_GH_READ_GROUPS = frozenset({"search", "help"})
+_GH_REPO_OPTIONS = frozenset({"-R", "--repo"})
 _GH_API_FIELD_FLAGS = ("-f", "-F", "--field", "--raw-field", "--input")
 _SEPARATORS = frozenset({";", "&&", "||", "|", "&", "(", ")", "|&"})
 _REDIRECTS = frozenset({">", ">>", ">|", "&>", "&>>", ">&"})
@@ -486,24 +464,36 @@ def _check_gh_api(rest: list[str]) -> None:
             raise BlockedError(f"`gh api {flag}` sends fields or input, which makes it a write")
 
 
+def _gh_words(args: list[str]) -> list[str]:
+    """Return gh's words that aren't options, past `-R`/`--repo` and its value, so the group and verb come first."""
+    words: list[str] = []
+    index = 0
+    while index < len(args):
+        word = args[index]
+        if word in _GH_REPO_OPTIONS:
+            index += 2
+            continue
+        if not word.startswith("-"):
+            words.append(word)
+        index += 1
+    return words
+
+
 def _check_gh(args: list[str]) -> None:
-    positional = [word for word in args if not word.startswith("-")]
-    if not positional:
-        return
-    group = positional[0]
-    verb = positional[1] if len(positional) > 1 else None
-    if group in ("pr", "issue"):
-        if verb in _GH_PR_ISSUE_CHANGES:
-            raise BlockedError(f"`gh {group} {verb}` changes the {group} on GitHub")
-        return
-    reads = _GH_GROUP_READS.get(group)
-    if reads is not None:
-        if verb is not None:
-            if verb not in reads:
-                raise BlockedError(f"`gh {group} {verb}` changes GitHub")
-        return
-    if group == "api":
+    words = _gh_words(args)
+    if words[:1] == ["api"]:
         _check_gh_api(args[args.index("api") + 1 :])
+        return
+    if not words[1:]:
+        # bare `gh`, `gh --version`, or a group alone, which prints its help
+        return
+    group, verb = words[0], words[1]
+    if group in _GH_READ_GROUPS:
+        return
+    if verb not in _GH_READ_VERBS:
+        raise BlockedError(
+            f"`gh {group} {verb}` isn't one of gh's read-only commands ({', '.join(sorted(_GH_READ_VERBS))})"
+        )
 
 
 def _check(argv: list[str]) -> None:
