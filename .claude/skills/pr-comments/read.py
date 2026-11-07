@@ -141,6 +141,7 @@ _BOT_LOGINS = frozenset({"coderabbitai[bot]", "copilot-pull-request-reviewer[bot
 _REVIEW_BODY_FINDINGS_RE = re.compile(
     r"Follow-ups \([1-9]\d*\)|Nitpick comments \([1-9]\d*\)"
     r"|Outside diff range comments \([1-9]\d*\)|Additional comments: [1-9]\d*"
+    r"|Duplicate comments \([1-9]\d*\)"
 )
 
 
