@@ -21,12 +21,10 @@ Each module defines:
                 whether a PR comment by someone other than the agent asks it for a review; the
                 quiet period after the newest such request is waited out like the one after a commit,
                 since the agent replies to a request a few seconds after it is made
-  still_reviewing(comment_bodies) -> bool
-                whether the agent says a review is running right now, so its silence about the
-                latest commit is waited on rather than reported
   reviewing_since(comments) -> datetime | None
                 when the comment saying a review is running was last edited, or None if none says so;
-                `comments` as for held_back
+                `comments` as for held_back. For the quiet period after that edit, the agent's silence
+                about the latest commit is waited on rather than reported
   held_back(comments) -> str | None
                 the agent's own note that it is out of allowance or still reviewing, with when its
                 next review is available if it says, as a time rather than a countdown; it goes into

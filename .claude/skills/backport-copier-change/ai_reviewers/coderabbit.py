@@ -112,14 +112,6 @@ def allowance_used_up(bodies: list[str]) -> bool:
     return _ALLOWANCE.search(bodies[-1]) is not None
 
 
-def still_reviewing(comments: list[str]) -> bool:
-    """Return whether CodeRabbit's summary comment, which it rewrites in place, says a review is running now."""
-    for body in comments:
-        if _REVIEWING.search(body) is not None:
-            return True
-    return False
-
-
 def asks_for_review(body: str) -> bool:
     """Return whether a PR comment asks CodeRabbit for a review, as `@coderabbitai review` or `full review` do."""
     return _REVIEW_REQUEST.search(body) is not None

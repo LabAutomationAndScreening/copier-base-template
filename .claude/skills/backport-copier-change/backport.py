@@ -1173,8 +1173,11 @@ def _quiet_on_head(*, reviewer: ModuleType, state: dict[str, Any], checkout: Pat
     quiet = time.time() - started
     if quiet < reviewer.QUIET_AFTER_SECONDS:
         return None
-    if reviewer.still_reviewing(state["bodies"][reviewer.NAME]["comments"]):
-        return None
+    # a note older than the quiet period is left over from a review that never replaced its comment
+    reviewing_since = reviewer.reviewing_since(state["comments"][reviewer.NAME])
+    if reviewing_since is not None:
+        if time.time() - reviewing_since.timestamp() < reviewer.QUIET_AFTER_SECONDS:
+            return None
     return {
         "verdict": "head_not_reviewed",
         "last_reviewed": last,
