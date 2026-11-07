@@ -8,7 +8,7 @@ The verifier reads a thread anyone with access to the PR can reply in, and the p
 as `git push` without asking, so text in the thread could talk it into one. Its instructions say to treat that text as
 data; this hook enforces the worst of it. It is a deny-list on purpose: a review agent needs commands nobody listed in
 advance, so everything not named here runs. Blocked, in any piece of a command (split on `;`, `&&`, `||`, `|`, `&`,
-newlines, `$(`, backticks, and through `env`, `xargs`, `sh -c` and `eval`):
+newlines, `$(` and backticks, double-quoted ones included, and through `env`, `xargs`, `sh -c` and `eval`):
 
 - git commands that change a repo or its remote: push, commit, merge, rebase, reset, checkout, switch, restore,
   cherry-pick, revert, tag, stash, clean, rm, mv, add, apply, am, worktree, update-ref, notes, gc; `branch` deleting or
@@ -187,10 +187,63 @@ def _heredoc_marker(*, command: str, index: int, pending: list[tuple[str, bool]]
     return marker.end()
 
 
-def _segments(command: str) -> list[list[str]]:
-    """Split a command into the argv of each simple command in it, checking its redirections on the way."""
+def _substitution_end(*, text: str, start: int) -> int:
+    """Return the index of the `)` that closes the `$(` whose contents begin at `start`."""
+    depth = 1
+    quote: str | None = None
+    index = start
+    while index < len(text):
+        char = text[index]
+        if char == "\\" and quote != "'":
+            index += 2
+            continue
+        if quote is None:
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+                if depth == 0:
+                    return index
+        quote = _quote_after(char=char, quote=quote)
+        index += 1
+    raise BlockedError("it has a `$(` that is never closed")
+
+
+def _substitutions(text: str) -> list[str]:
+    """Return the commands in each `$(…)` and backtick pair bash runs in `text`, double-quoted ones included.
+
+    shlex keeps a double-quoted word whole, so `echo "$(git push)"` would otherwise reach the checks as `echo` and one
+    argument. Single-quoted text is literal, as in bash.
+    """
+    found: list[str] = []
+    quote: str | None = None
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char == "\\" and quote != "'":
+            index += 2
+            continue
+        if quote != "'" and text.startswith("$(", index):
+            end = _substitution_end(text=text, start=index + 2)
+            found.append(text[index + 2 : end])
+            index = end + 1
+            continue
+        if quote != "'" and char == "`":
+            end = text.find("`", index + 1)
+            if end == -1:
+                raise BlockedError("it has a backtick that is never closed")
+            found.append(text[index + 1 : end])
+            index = end + 1
+            continue
+        quote = _quote_after(char=char, quote=quote)
+        index += 1
+    return found
+
+
+def _segments(text: str) -> list[list[str]]:
+    """Split a command, its heredoc bodies removed, into the argv of each simple command in it, checking redirections."""
     # newlines and backticks start a new command too, and shlex reads a newline as plain whitespace
-    text = _without_heredoc_bodies(command).replace("\n", " ; ").replace("`", " ; ")
+    text = text.replace("\n", " ; ").replace("`", " ; ")
     lexer = shlex.shlex(text, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     segments: list[list[str]] = [[]]
@@ -388,7 +441,10 @@ def _check(argv: list[str]) -> None:
 
 
 def _check_command(command: str) -> None:
-    for argv in _segments(command):
+    text = _without_heredoc_bodies(command)
+    for substituted in _substitutions(text):
+        _check_command(substituted)
+    for argv in _segments(text):
         _check(argv)
 
 
