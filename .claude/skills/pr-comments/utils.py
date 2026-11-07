@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 import re
@@ -6,30 +7,43 @@ import sys
 from collections.abc import Mapping
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 GH_TIMEOUT_SECONDS = 30
 
 # Findings from an AI code review are posted under the account of the person who ran the review, so their author is
 # the current user. This hidden marker is how read.py tells such a finding (still awaiting a response) apart from the
-# user's own replies (which mark a thread as addressed).
+# user's own replies (which mark a thread as addressed). A finding ID outside FINDING_ID_PATTERN would make a marker
+# this can't parse, so the finding would pass for one of the user's replies.
+FINDING_ID_PATTERN = r"[A-Za-z0-9_-]+"
+# render_finding_body writes it as the first line, so one quoted later, such as in a comment explaining the markers,
+# is not taken for a finding
 _AI_REVIEW_FINDING_RE = re.compile(
-    r"<!-- ai-review-finding id=(?P<id>[A-Za-z0-9_-]+)(?: related=(?P<related>[A-Za-z0-9_,-]+))? -->"
+    rf"\A\s*<!-- ai-review-finding id=(?P<id>{FINDING_ID_PATTERN})"
+    rf"(?: related=(?P<related>{FINDING_ID_PATTERN}(?:,{FINDING_ID_PATTERN})*))? -->"
 )
 
 # GitHub has no threading for top-level PR comments, so a reply to one is a new top-level comment carrying this hidden
-# marker, which lets read.py treat the original as addressed. post.py writes it.
-_ISSUE_COMMENT_REPLY_RE = re.compile(r"<!-- reply-to-issue-comment id=(?P<id>\d+) -->")
+# marker, which lets read.py treat the original as addressed. post.py writes it as the body's last line, and only a
+# marker there counts: one quoted earlier in a comment, such as a reply explaining the markers, answers nothing.
+_ISSUE_COMMENT_REPLY_RE = re.compile(r"<!-- reply-to-issue-comment id=(?P<id>\d+) -->\s*\Z")
+# A review's own body has no thread either, so a reply to it is a top-level comment ending in this marker, by the same
+# logic.
+_REVIEW_REPLY_RE = re.compile(r"<!-- reply-to-review id=(?P<id>\d+) -->\s*\Z")
 
 # An independent verifier posts its verdict on a reply to an AI review finding under the same account as the reply,
 # so this hidden marker is how read.py tells a verdict apart from the reply it judges: a disagreement reopens the
 # thread instead of counting as the user having addressed it.
+# render_verdict writes it as the first line, so one quoted later in a reply is not taken for a verdict
 _AI_REVIEW_VERDICT_RE = re.compile(
-    r"<!-- ai-review-verdict finding=(?P<finding>[A-Za-z0-9_-]+) verdict=(?P<verdict>accept|disagree) "
+    rf"\A\s*<!-- ai-review-verdict finding=(?P<finding>{FINDING_ID_PATTERN}) verdict=(?P<verdict>accept|disagree) "
     r"round=(?P<round>\d+) -->"
 )
 VERDICT_ACCEPT = "accept"
 VERDICT_DISAGREE = "disagree"
+# after this many verdicts on a thread, it is left to the user rather than verified again
+MAX_VERDICT_ROUNDS = 2
 
 _MODEL_ID_RE = re.compile(r"claude-(?P<family>[a-z]+)-(?P<major>\d+)(?:-(?P<minor>\d{1,2}))?(?:-\d{8})?")
 
@@ -110,6 +124,17 @@ def issue_comment_reply_marker(comment_id: int) -> str:
 
 def parse_issue_comment_reply(body: str) -> int | None:
     match = _ISSUE_COMMENT_REPLY_RE.search(body)
+    if match is None:
+        return None
+    return int(match.group("id"))
+
+
+def review_reply_marker(review_id: int) -> str:
+    return f"<!-- reply-to-review id={review_id} -->"
+
+
+def parse_review_reply(body: str) -> int | None:
+    match = _REVIEW_REPLY_RE.search(body)
     if match is None:
         return None
     return int(match.group("id"))
@@ -203,6 +228,8 @@ def run_cmd(
             cmd,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             check=True,
             timeout=timeout,
         )
@@ -322,14 +349,212 @@ def owner_and_repo(*, repo: str | None) -> tuple[str, str]:
     return match.group("owner"), match.group("repo")
 
 
+def add_repo_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add --repo and --checkout, the two ways a script is told which repo the PR belongs to.
+
+    They are mutually exclusive: --repo names the repo outright, while --checkout points at a clone of it and the
+    script then acts as if run from there (see `enter_checkout`). With neither, the origin remote of the current
+    directory decides.
+    """
+    repo_source = parser.add_mutually_exclusive_group()
+    _ = repo_source.add_argument(
+        "--repo", default=None, metavar="OWNER/NAME", help="the PR's repo (default: the origin remote's)"
+    )
+    _ = repo_source.add_argument(
+        "--checkout", type=Path, default=None, help="a checkout of the PR's repo, to act on as if run from there"
+    )
+
+
+def enter_checkout(checkout: Path | None) -> None:
+    """Make `checkout` the current directory, so git, gh and the origin remote all act on the repo checked out there.
+
+    A caller such as the backport-copier-change skill works on a PR in another repo, cloned under its scratchpad. The
+    scripts still run from the originating repo, since that clone may carry an older copy of them, or none. Child
+    processes inherit the new directory, so the scripts a script runs act on the checkout too.
+    """
+    if checkout is None:
+        return
+    if not checkout.is_dir():
+        _ = sys.stderr.write(f"--checkout {checkout} is not a directory\n")
+        sys.exit(1)
+    os.chdir(checkout)
+
+
 COMMIT_LINK_PLACEHOLDER = "[COMMIT LINK]"
 
 
 def pr_commit_link(*, owner: str, repo: str, pr: int, commit: str) -> str:
     """Return a markdown link to a commit as it appears in the PR.
 
-    GitHub redirects /pull/<pr>/changes/<commit> to the PR-scoped view of the commit, so a comment made against it
-    belongs to the PR, which a /commit/<commit> link does not give. The link has to be markdown: GitHub rewrites a
-    bare PR-scoped URL to the repo-wide commit view.
+    /pull/<pr>/commits/<commit> is the PR-scoped view of the commit, so a comment made against it belongs to the PR,
+    which a /commit/<commit> link does not give. The link has to be markdown: GitHub rewrites a bare PR-scoped URL to
+    the repo-wide commit view.
     """
-    return f"[{commit[:7]}](https://github.com/{owner}/{repo}/pull/{pr}/changes/{commit})"
+    return f"[{commit[:7]}](https://github.com/{owner}/{repo}/pull/{pr}/commits/{commit})"
+
+
+# Markdown code: a fenced block, opened by a line starting with 3+ backticks or tildes (a backtick fence's info string
+# holds no backtick) and closed by a line of at least as many of the same character (or running to the end, as GitHub
+# renders an unclosed fence), or an inline code span opened and closed by whole backtick runs of the same length,
+# within one paragraph (a blank line ends it, so a stray backtick can't pair with one in a later paragraph). A
+# backslash-escaped backtick is literal text and opens no span; one closes a span, since backslashes inside code are
+# literal too.
+_CODE_RE = re.compile(
+    r"^ {0,3}(?P<fence>(?P<fence_char>[`~])(?P=fence_char){2,})(?:(?<=`)[^`\n]*|(?<=~)[^\n]*)$"
+    r"(?:\n.*?^ {0,3}(?P=fence)(?P=fence_char)*[ \t]*$|.*\Z)"
+    r"|(?<![`\\])(?P<ticks>`+)(?!`)(?:(?!\n[ \t]*\n).)+?(?<!`)(?P=ticks)(?!`)",
+    re.DOTALL | re.MULTILINE,
+)
+# A reviewer's block of instructions written for AI agents: CodeRabbit wraps it in these markers, and its older
+# reviews put it in a <details> block whose summary says so. Each block opens at the start of a line (inside a
+# quote, after its `>`), which a marker quoted in a code span never does; a match starting at a quoted marker would
+# run on to the real block's end and take the finding's own text with it.
+_AI_AGENT_PROMPT_RE = re.compile(
+    r"^[ \t>]*<!-- ai-agent-prompt:start -->.*?<!-- ai-agent-prompt:end -->"
+    r"|^[ \t>]*<details>\s*<summary>(?:(?!</summary>).)*Prompt for AI Agents(?:(?!</summary>).)*</summary>.*?</details>",
+    re.DOTALL | re.MULTILINE,
+)
+# The opening of a block holding how CodeRabbit got to a finding, not what it found: the scripts it ran and their
+# output ("Analysis chain" in older reviews, "Supported by static analysis" in newer ones), or the linters' output
+# behind the finding ("Tools", after CodeRabbit's icon, so a person's own "Tools" block stays).
+_REVIEWER_EVIDENCE_OPEN_RE = re.compile(
+    r"^[ \t>]*<details>\s*<summary>(?:"
+    r"(?:(?!</summary>).)*(?:Analysis chain|Supported by static analysis)(?:(?!</summary>).)*"
+    r"|<picture>(?:(?!</summary>).)*</picture>\s*Tools\s*"
+    r")</summary>",
+    re.DOTALL | re.MULTILINE,
+)
+_DETAILS_TAG_RE = re.compile(r"<details>|</details>")
+# CodeRabbit ends a review body with machinery rather than findings: a fix-everything checkbox, a prompt covering
+# every comment, and its "Review info" (configuration, commits, files processed).
+_REVIEW_FOOTER_RE = re.compile(
+    r"<!-- autofix_checkbox_start -->|<details>\s*<summary>(?:(?!</summary>).)*Review info", re.DOTALL
+)
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+_PICTURE_RE = re.compile(r"<picture>.*?</picture>", re.DOTALL)
+# A backslash-escaped `<` (as in `Optional\<User>`) is literal text, not a tag; an escaped backslash before it isn't
+_HTML_TAG_RE = re.compile(r"(?<!(?<!\\)\\)</?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>\n]*)?/?>")
+_BLANK_LINES_RE = re.compile(r"\n{3,}")
+_BLANK_QUOTE_LINES_RE = re.compile(r"^(?:>[ \t]*\n){2,}", re.MULTILINE)
+
+
+def split_code(content: str) -> list[tuple[str, bool]]:
+    """Split Markdown into (text, is_code) pieces, in order.
+
+    Fenced blocks and inline code spans are code, as Markdown reads them; the text between them is prose. The pieces
+    join back into the content unchanged.
+    """
+    pieces: list[tuple[str, bool]] = []
+    end_of_previous = 0
+    for code in _CODE_RE.finditer(content):
+        pieces.append((content[end_of_previous : code.start()], False))
+        pieces.append((code.group(0), True))
+        end_of_previous = code.end()
+    pieces.append((content[end_of_previous:], False))
+    return pieces
+
+
+def count_commit_link_placeholders(content: str) -> int:
+    """Count the [COMMIT LINK] placeholders in a reply's prose.
+
+    One inside a code span or a fenced block is text about the placeholder, as in a reply explaining how replies link
+    their commits: it is not counted, and fill_commit_link_placeholders leaves it as written.
+    """
+    count = 0
+    for text, is_code in split_code(content):
+        if not is_code:
+            count += text.count(COMMIT_LINK_PLACEHOLDER)
+    return count
+
+
+def fill_commit_link_placeholders(content: str, *, link: str) -> str:
+    filled: list[str] = []
+    for text, is_code in split_code(content):
+        if is_code:
+            filled.append(text)
+        else:
+            filled.append(text.replace(COMMIT_LINK_PLACEHOLDER, link))
+    return "".join(filled)
+
+
+def _without_review_footer(body: str) -> str:
+    """Return the body up to its review footer, or all of it when it has none.
+
+    The footer is searched for in prose only: a finding that quotes the footer's markup in a code span or fenced block
+    is talking about it, and the text after the quote is still the finding's.
+    """
+    offset = 0
+    for text, is_code in split_code(body):
+        if not is_code:
+            footer = _REVIEW_FOOTER_RE.search(text)
+            if footer is not None:
+                return body[: offset + footer.start()]
+        offset += len(text)
+    return body
+
+
+def _inside_code(*, index: int, code_spans: list[tuple[int, int]]) -> bool:
+    for start, end in code_spans:
+        if start <= index < end:
+            return True
+    return False
+
+
+def _without_reviewer_evidence(body: str) -> str:
+    """Return the body without the blocks showing how the reviewer got to its finding.
+
+    A linters' block nests one <details> per linter, so each block runs to the </details> that closes its own opening
+    tag. Openings and tags inside code are text, such as a script that greps for `<details>` or a quoted example of
+    a block, so they don't count. A block that never closes is left as it is, since removing it would take the rest
+    of the body with it.
+    """
+    code_spans = [code.span() for code in _CODE_RE.finditer(body)]
+    kept: list[str] = []
+    position = 0
+    search_from = 0
+    while (opening := _REVIEWER_EVIDENCE_OPEN_RE.search(body, search_from)) is not None:
+        search_from = opening.end()
+        if _inside_code(index=opening.start(), code_spans=code_spans):
+            continue
+        depth = 0
+        end = None
+        for tag in _DETAILS_TAG_RE.finditer(body, opening.start()):
+            if _inside_code(index=tag.start(), code_spans=code_spans):
+                continue
+            if tag.group(0) == "<details>":
+                depth += 1
+                continue
+            depth -= 1
+            if depth == 0:
+                end = tag.end()
+                break
+        if end is None:
+            break
+        kept.append(body[position : opening.start()])
+        position = end
+        search_from = end
+    kept.append(body[position:])
+    return "".join(kept)
+
+
+def strip_markup(body: str) -> str:
+    """Return a comment body as readable text: its Markdown with the reviewer's machinery removed.
+
+    Removed whole, code included: everything from a review body's closing machinery on, the block of instructions a
+    reviewer writes for AI agents, and the blocks showing how it got to a finding (the scripts it ran, the linters'
+    output). Then, in prose only (code spans and fenced blocks stay as written): HTML comments (hidden markers and
+    fingerprints), decorative <picture> icons, and HTML tags (the text inside a <details> or <summary> stays). Runs of
+    blank lines left behind, quoted or not, collapse to one.
+    """
+    body = _without_reviewer_evidence(_AI_AGENT_PROMPT_RE.sub("", _without_review_footer(body)))
+    stripped: list[str] = []
+    for text, is_code in split_code(body):
+        if is_code:
+            stripped.append(text)
+            continue
+        prose = _HTML_COMMENT_RE.sub("", text)
+        prose = _PICTURE_RE.sub("", prose)
+        prose = _HTML_TAG_RE.sub("", prose)
+        prose = _BLANK_QUOTE_LINES_RE.sub(">\n", prose)
+        stripped.append(_BLANK_LINES_RE.sub("\n\n", prose))
+    return "".join(stripped).strip()

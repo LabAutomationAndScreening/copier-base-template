@@ -66,6 +66,11 @@ template_might_want_to_install_aws_ssm_port_forwarding_plugin:
     help: Is this template for something that might want the AWS SSM Port Forwarding plugin be installed?
     default: no
 
+template_might_want_to_use_helm:
+    type: bool
+    help: Is this template for something that might deploy a Helm chart from deployment/helm/?
+    default: no
+
 template_might_want_to_use_vcrpy:
     type: bool
     help: Is this template for something that might want to use VCRpy during unit testing?
@@ -106,8 +111,8 @@ _tasks:
             fi
         fi
   - command: |
-        for script in .claude/skills/address-pr-comments/check-footer.py .claude/skills/address-pr-comments/commit-link.py .claude/skills/address-pr-comments/fetch-pr-comments.py .claude/skills/address-pr-comments/post-reply.py .claude/skills/address-pr-comments/post-review-comment.py .claude/skills/address-pr-comments/verify-env.py; do
-            if [ -f "$script" ]; then
+        for script in .claude/helpers/*.py .claude/skills/*/*.py; do
+            if [ -f "$script" ] && head -n 1 "$script" | grep -q '^#!'; then
                 chmod +x "$script"
                 if git ls-files --error-unmatch "$script" > /dev/null 2>&1; then
                     git update-index --chmod=+x "$script"

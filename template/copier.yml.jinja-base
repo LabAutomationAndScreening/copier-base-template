@@ -51,6 +51,10 @@ node_version:
 install_aws_ssm_port_forwarding_plugin:
     type: bool
     help: Should the AWS SSM Port Forwarding Plugin be installed?
+    default: no{% endraw %}{% endif %}{% raw %}{% endraw %}{% if template_might_want_to_use_helm %}{% raw %}
+install_helm:
+    type: bool
+    help: Should a pinned Helm be installed, and the chart in deployment/helm/ linted with it?
     default: no{% endraw %}{% endif %}{% raw %}
 {% endraw %}{% if template_uses_python %}{% if template_might_want_to_use_vcrpy %}{% raw %}
 configure_vcrpy:
@@ -199,23 +203,14 @@ pnpm_minimum_release_age_exclude:
             fi
         fi
   - command: |
-        for script in .claude/skills/address-pr-comments/check-footer.py .claude/skills/address-pr-comments/commit-link.py .claude/skills/address-pr-comments/fetch-pr-comments.py .claude/skills/address-pr-comments/post-reply.py .claude/skills/address-pr-comments/post-review-comment.py .claude/skills/address-pr-comments/verify-env.py; do
-            if [ -f "$script" ]; then
+        for script in .claude/helpers/*.py .claude/skills/*/*.py; do
+            if [ -f "$script" ] && head -n 1 "$script" | grep -q '^#!'; then
                 chmod +x "$script"
                 if git ls-files --error-unmatch "$script" > /dev/null 2>&1; then
                     git update-index --chmod=+x "$script"
                 fi
             fi
-        done{% endraw %}{% if template_uses_python %}{% raw %}
-  - command: |
-        for script in .claude/skills/fix-mutants/check-results.py .claude/skills/fix-mutants/group-by-line.py .claude/skills/fix-mutants/list-survived.py .claude/skills/fix-mutants/run-mutmut.py .claude/skills/fix-mutants/show-mutant.py .claude/skills/fix-mutants/verify-mutant.py; do
-            if [ -f "$script" ]; then
-                chmod +x "$script"
-                if git ls-files --error-unmatch "$script" > /dev/null 2>&1; then
-                    git update-index --chmod=+x "$script"
-                fi
-            fi
-        done{% endraw %}{% endif %}{% raw %}{% endraw %}{% if template_uses_typescript %}{% raw %}
+        done{% endraw %}{% if template_uses_typescript %}{% raw %}
   - command: |
         export PNPM_PATTERNS='{{ pnpm_minimum_release_age_exclude }}'
         python3 '{{ _copier_conf.src_path }}/src/copier_tasks/ensure_pnpm_minimum_release_age_exclude.py' --patterns "$PNPM_PATTERNS"

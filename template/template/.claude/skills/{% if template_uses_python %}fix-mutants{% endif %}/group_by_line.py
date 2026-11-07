@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# ///
 """Return the next unresolved line group for a source file.
 
 Usage:
-  group-by-line.py <source_file> [--skip-line N ...]
+  group_by_line.py <source_file> [--skip-line N ...]
 
 Always returns the full briefing for the LOWEST-numbered line that still has
 actionable mutants (survived or no tests) and is not in --skip-line. Calling
 this script repeatedly without resolving anything returns the same group — the
-only way to advance is to kill the mutants (via verify-mutant.py, which updates
+only way to advance is to kill the mutants (via verify_mutant.py, which updates
 the meta) or mark the line skipped (via --skip-line).
 
 When the user chooses to skip a line (equivalent mutant etc.), pass it as
 --skip-line so the next call advances:
 
-  group-by-line.py src/backend_api/mdns.py --skip-line 42
+  group_by_line.py src/backend_api/mdns.py --skip-line 42
 
 Multiple --skip-line flags are accepted for lines skipped in prior iterations.
 
@@ -47,7 +50,7 @@ When all groups are resolved, only the JSON is emitted:
     "done": true
   }
 
-Reads cached mutants/*.meta — run run-mutmut.py first. Calls mutmut show and
+Reads cached mutants/*.meta — run run_mutmut.py first. Calls mutmut show and
 mutmut tests-for-mutant only for mutants on the returned line.
 """
 
@@ -67,7 +70,7 @@ from utils import run_mutmut
 def parse_args() -> tuple[str, set[int]]:
     argv = sys.argv[1:]
     if not argv:
-        _ = sys.stderr.write("Usage: group-by-line.py <source_file> [--skip-line N ...]\n")
+        _ = sys.stderr.write("Usage: group_by_line.py <source_file> [--skip-line N ...]\n")
         sys.exit(2)
 
     source_file = argv[0]

@@ -13,7 +13,7 @@
       // https://github.com/devcontainers/features/blob/main/src/git-lfs/README.md
       "autoPull": false
     },
-    "ghcr.io/devcontainers/features/aws-cli:1.1.4": {
+    "ghcr.io/devcontainers/features/aws-cli:1.2.0": {
       // https://github.com/devcontainers/features/blob/main/src/aws-cli/devcontainer-feature.json
       // view latest version https://raw.githubusercontent.com/aws/aws-cli/v2/CHANGELOG.rst
       "version": "2.36.49"
@@ -34,7 +34,7 @@
         "-AmazonWebServices.aws-toolkit-vscode", // the AWS CLI feature installs this automatically, but it's causing problems in VS Code
         // basic tooling
         // "eamodio.gitlens@15.5.1",
-        "coderabbit.coderabbit-vscode@0.25.0",
+        "coderabbit.coderabbit-vscode@0.26.1",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",
         "anthropic.claude-code@2.1.283",
@@ -77,5 +77,5 @@
   "initializeCommand": "sh .devcontainer/initialize-command.sh",
   "onCreateCommand": "sh .devcontainer/on-create-command.sh",
   "postStartCommand": "sh .devcontainer/post-start-command.sh"
-  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): e1bb5ec2 # spellchecker:disable-line
+  // Devcontainer context hash (do not manually edit this, it's managed by a pre-commit hook): 832b6425 # spellchecker:disable-line
 }

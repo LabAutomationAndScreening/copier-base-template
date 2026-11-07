@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Copier Update Report</title>
+    <style>
+      :root {
+        --bg: #fafafa;
+        --fg: #1a1a1a;
+        --muted: #666;
+        --card: #fff;
+        --line: #ddd;
+        --ok: #1a7f37;
+        --warn: #9a6700;
+        --bad: #cf222e;
+        --accent: #0969da;
+        --code: #f3f4f6;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0d1117;
+          --fg: #e6edf3;
+          --muted: #8b949e;
+          --card: #161b22;
+          --line: #30363d;
+          --ok: #3fb950;
+          --warn: #d29922;
+          --bad: #f85149;
+          --accent: #58a6ff;
+          --code: #0b0f14;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 24px 16px;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          14px/1.5 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Helvetica,
+          Arial,
+          sans-serif;
+      }
+      main {
+        max-width: 1040px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 16px;
+        margin: 28px 0 10px;
+      }
+      .sub {
+        color: var(--muted);
+        margin-bottom: 20px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 8px 24px;
+      }
+      .grid dt {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .grid dd {
+        margin: 0 0 8px;
+        word-break: break-all;
+      }
+      /* from / to as rows so version, branch and commit line up in columns */
+      .tablewrap {
+        overflow-x: auto;
+        margin: 8px 0 16px;
+      }
+      .range {
+        border-collapse: collapse;
+        width: 100%;
+        min-width: 420px;
+      }
+      .range th,
+      .range td {
+        text-align: left;
+        padding: 6px 14px 6px 0;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+        vertical-align: baseline;
+      }
+      .range td:last-child {
+        width: 100%;
+      } /* commit column soaks up the slack */
+      .range thead th {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .range tbody th {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12.5px;
+      }
+      code {
+        background: var(--code);
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
+      pre {
+        background: var(--code);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 10px 12px;
+        overflow-x: auto;
+        margin: 8px 0 0;
+        white-space: pre;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+      }
+      .card header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .card header .name {
+        font-weight: 600;
+        font-family: ui-monospace, Menlo, monospace;
+        word-break: break-all;
+      }
+      .badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 1px 8px;
+        border-radius: 999px;
+        border: 1px solid currentColor;
+      }
+      .ok {
+        color: var(--ok);
+      }
+      .warn {
+        color: var(--warn);
+      }
+      .bad {
+        color: var(--bad);
+      }
+      .info {
+        color: var(--accent);
+      }
+      .row {
+        margin: 6px 0;
+      }
+      .row b {
+        color: var(--muted);
+        font-weight: 500;
+      }
+      details summary {
+        cursor: pointer;
+        color: var(--accent);
+      }
+      .summary-box {
+        border-left: 3px solid var(--accent);
+        padding: 4px 12px;
+        margin: 8px 0 0;
+      }
+      .counts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 20px;
+        margin: 0 0 16px;
+      }
+      .counts span b {
+        font-size: 20px;
+        margin-right: 4px;
+      }
+      footer {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 32px;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="app"></main>
+    <script id="report" type="application/json">
+      __REPORT_JSON__
+    </script>
+    <script>
+      (function () {
+        const R = JSON.parse(document.getElementById("report").textContent);
+        const esc = (s) =>
+          String(s ?? "").replace(
+            /[&<>"']/g,
+            (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+          );
+        const badge = (text, cls) => `<span class="badge ${cls}">${esc(text)}</span>`;
+        const statusCls = (s) => ({ resolved: "ok", skipped: "info" })[s] || (s ? "warn" : "ok");
+        const confCls = (c) => ({ high: "ok", medium: "warn", low: "bad" })[c] || "info";
+        const row = (k, v) => (v == null || v === "" ? "" : `<div class="row"><b>${esc(k)}</b> ${v}</div>`);
+        const ref = (r) => (r ? esc([r.name, r.sha].filter(Boolean).join(" @ ")) : "");
+        const rangeRow = (label, version, commit) =>
+          `<tr><th>${esc(label)}</th><td><code>${esc(version || "?")}</code></td>` +
+          `<td>${commit?.name ? esc(commit.name) : "—"}</td>` +
+          `<td>${commit?.sha ? `<code>${esc(commit.sha)}</code>` : "—"}</td></tr>`;
+
+        const c = R.copier || {};
+        const res = R.resolutions || [];
+        // a reject still pending isn't resolved, whatever status the draft gave it
+        const effectiveStatus = (r) => {
+          if (r.rej_file?.disposition === "pending" && (!r.status || r.status === "resolved" || r.status === "skipped"))
+            return "partially_resolved";
+          return r.status || "resolved";
+        };
+        const review = res.filter((r) => r.needs_review);
+        const unresolved = res.filter((r) => effectiveStatus(r) !== "resolved" && effectiveStatus(r) !== "skipped");
+
+        let h = `<h1>Copier update report</h1>
+  <div class="sub">${esc(R.project || "")}${R.resolved_at ? " · " + esc(R.resolved_at) : ""}${R.resolved_by ? " · " + esc(R.resolved_by) : ""}</div>
+  <div class="counts">
+    <span><b>${res.length}</b>file${res.length === 1 ? "" : "s"}</span>
+    <span class="${review.length ? "warn" : "ok"}"><b>${review.length}</b>need review</span>
+    <span class="${unresolved.length ? "bad" : "ok"}"><b>${unresolved.length}</b>not fully resolved</span>
+  </div>
+  ${R.summary ? `<div class="summary-box">${esc(R.summary)}</div>` : ""}
+  <h2>Template</h2>
+  <div class="row"><b>Source</b> <code>${esc(c.src_path)}</code></div>
+  <div class="tablewrap"><table class="range">
+    <thead><tr><th></th><th>Version</th><th>Branch / ref</th><th>Commit</th></tr></thead>
+    <tbody>
+      ${rangeRow("From", c.from_version, c.from_commit)}
+      ${rangeRow("To", c.to_version, c.to_commit)}
+    </tbody>
+  </table></div>
+  <dl class="grid">
+    <dt>Answers file</dt><dd><code>${esc(c.answers_file || ".copier-answers.yml")}</code></dd>
+    <dt>Copier</dt><dd>${esc(c.copier_version || "?")} · conflict mode <code>${esc(c.conflict_mode || "rej")}</code></dd>
+    <dt>Project commit</dt><dd>${ref(R.project_commit) || "—"}</dd>
+    ${c.cli_flags?.length ? `<dt>Flags</dt><dd><code>${esc(c.cli_flags.join(" "))}</code></dd>` : ""}
+    ${c.answers_changed?.length ? `<dt>Answers changed</dt><dd>${c.answers_changed.map((a) => `<code>${esc(a)}</code>`).join(" ")}</dd>` : ""}
+  </dl>
+  <h2>Resolutions</h2>`;
+
+        for (const r of res) {
+          const rj = r.rej_file;
+          const v = r.verification;
+          h += `<article class="card">
+      <header>
+        <span class="name">${esc(r.filename)}</span>
+        ${badge(effectiveStatus(r), statusCls(effectiveStatus(r)))}
+        ${r.conflict_type ? badge(r.conflict_type, "info") : ""}
+        ${r.resolution_strategy ? badge(r.resolution_strategy, "info") : ""}
+        ${r.confidence ? badge(r.confidence + " confidence", confCls(r.confidence)) : ""}
+        ${r.needs_review ? badge("needs review", "warn") : ""}
+        ${r.is_answers_file ? badge("answers file", "info") : ""}
+        ${r.conflict_markers_retained ? badge("markers retained", "bad") : ""}
+      </header>
+      ${row("What", esc(r.description))}
+      ${row("Why", esc(r.reason))}
+      ${row("Renamed from", r.renamed_from && `<code>${esc(r.renamed_from)}</code>`)}
+      ${row("Template path", r.template_path && `<code>${esc(r.template_path)}</code>`)}
+      ${
+        r.hunks
+          ? row(
+              "Hunks",
+              esc(
+                Object.entries(r.hunks)
+                  .map(([k, n]) => `${k} ${n}`)
+                  .join(" · "),
+              ),
+            )
+          : ""
+      }
+      ${v ? row("Verification", `${badge(v.result || "not_run", { passed: "ok", failed: "bad" }[v.result] || "warn")} ${v.commands?.length ? v.commands.map((x) => `<code>${esc(x)}</code>`).join(" ") : ""} ${esc(v.notes)}`) : ""}
+      ${r.related_issues?.length ? row("Issues", r.related_issues.map(esc).join(", ")) : ""}
+      ${
+        rj
+          ? `<details><summary>.rej ${esc(rj.path || "")} — ${esc(String(rj.hunk_count ?? "?"))} hunk(s)${rj.disposition ? " · " + esc(rj.disposition) : ""}${rj.truncated ? " · TRUNCATED" : ""}</summary>
+        <pre>${esc(rj.encoding === "base64" ? "(base64) " + rj.contents : rj.contents)}</pre>
+        ${rj.sha256 ? `<div class="row"><b>sha256</b> <code>${esc(rj.sha256)}</code> · ${esc(rj.byte_size)} bytes</div>` : ""}
+      </details>`
+          : ""
+      }
+    </article>`;
+        }
+
+        h += `<footer>schema ${esc(R.schema_version || "1.0.0")} · operation ${esc(R.operation || "copier-update")}</footer>`;
+        document.getElementById("app").innerHTML = h;
+        document.title = `Copier update · ${c.from_version || "?"} → ${c.to_version || "?"}`;
+      })();
+    </script>
+  </body>
+</html>

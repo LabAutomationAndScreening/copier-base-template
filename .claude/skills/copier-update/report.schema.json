@@ -1,0 +1,467 @@
+{
+  "$defs": {
+    "copierUpdate": {
+      "additionalProperties": false,
+      "description": "Identifies the template and the version range being applied, i.e. the answers-file `_src_path` and the old/new `_commit`.",
+      "properties": {
+        "answers_changed": {
+          "description": "Answer keys whose values changed as part of this update, excluding `_commit`.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "answers_file": {
+          "default": ".copier-answers.yml",
+          "description": "Path to the answers file this update is driven by.",
+          "type": "string"
+        },
+        "cli_flags": {
+          "description": "Extra flags passed to copier, e.g. '--skip-answered', '--trust'.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "conflict_mode": {
+          "default": "rej",
+          "description": "Copier's --conflict setting: 'rej' writes .rej files, 'inline' writes conflict markers into the file.",
+          "enum": ["rej", "inline"],
+          "type": "string"
+        },
+        "copier_version": {
+          "description": "Version of the copier CLI that performed the update.",
+          "examples": ["9.4.1"],
+          "type": "string"
+        },
+        "from_commit": {
+          "$ref": "#/$defs/ref",
+          "description": "Template commit behind from_version, when the tag alone is not enough to reproduce the diff."
+        },
+        "from_version": {
+          "description": "Template version the project was previously generated or updated from (the old `_commit`), usually a git tag.",
+          "examples": ["v1.4.2", "v0.9.0-3-g8c1f2ab"],
+          "minLength": 1,
+          "type": "string"
+        },
+        "src_path": {
+          "description": "Template source as recorded in `_src_path`.",
+          "examples": [
+            "gh:LabAutomationAndScreening/copier-nuxt-python-intranet-app.git",
+            "https://github.com/LabAutomationAndScreening/copier-base-template.git"
+          ],
+          "minLength": 1,
+          "type": "string"
+        },
+        "to_commit": {
+          "$ref": "#/$defs/ref",
+          "description": "Template commit behind to_version."
+        },
+        "to_version": {
+          "description": "Template version being updated to (the new `_commit`).",
+          "examples": ["v1.5.0", "HEAD"],
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": ["src_path", "from_version", "to_version"],
+      "type": "object"
+    },
+    "fileResolution": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "description": "A rejected patch must carry the .rej contents.",
+          "if": {
+            "properties": {
+              "conflict_type": {
+                "const": "patch_reject"
+              }
+            },
+            "required": ["conflict_type"]
+          },
+          "then": {
+            "required": ["rej_file"]
+          }
+        },
+        {
+          "description": "Anything not fully resolved must be flagged for review.",
+          "if": {
+            "properties": {
+              "status": {
+                "enum": ["partially_resolved", "unresolved", "deferred"]
+              }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "needs_review": {
+                "const": true
+              }
+            },
+            "required": ["needs_review"]
+          }
+        },
+        {
+          "description": "A rejected hunk still pending must be flagged for review.",
+          "if": {
+            "properties": {
+              "rej_file": {
+                "properties": {
+                  "disposition": {
+                    "const": "pending"
+                  }
+                },
+                "required": ["disposition"]
+              }
+            },
+            "required": ["rej_file"]
+          },
+          "then": {
+            "properties": {
+              "needs_review": {
+                "const": true
+              }
+            },
+            "required": ["needs_review"]
+          }
+        },
+        {
+          "description": "Retained conflict markers must be flagged for review.",
+          "if": {
+            "properties": {
+              "conflict_markers_retained": {
+                "const": true
+              }
+            },
+            "required": ["conflict_markers_retained"]
+          },
+          "then": {
+            "properties": {
+              "needs_review": {
+                "const": true
+              }
+            },
+            "required": ["needs_review"]
+          }
+        }
+      ],
+      "description": "How the conflicts in one file were resolved.",
+      "properties": {
+        "confidence": {
+          "description": "How confident the resolver is that this resolution is correct.",
+          "enum": ["high", "medium", "low"],
+          "type": "string"
+        },
+        "conflict_markers_retained": {
+          "default": false,
+          "description": "True if conflict markers (<<<<<<<, =======, >>>>>>>) are still present in the working-tree file.",
+          "type": "boolean"
+        },
+        "conflict_type": {
+          "description": "Nature of the conflict as git reported it.",
+          "enum": [
+            "content",
+            "add/add",
+            "modify/delete",
+            "delete/modify",
+            "rename/rename",
+            "rename/delete",
+            "mode",
+            "submodule",
+            "binary",
+            "patch_reject",
+            "other"
+          ],
+          "type": "string"
+        },
+        "description": {
+          "description": "What was resolved: the conflicting change on each side and what the final content ended up being.",
+          "examples": [
+            "Both branches added a `timeout` argument to `run_protocol()`. Kept theirs (keyword-only, default 300s) and applied our docstring wording on top."
+          ],
+          "minLength": 1,
+          "type": "string"
+        },
+        "filename": {
+          "description": "Repository-relative path of the conflicted file, POSIX separators, no leading './'.",
+          "examples": ["src/labsync/plate_mapper.py", "helmfile.d/00-core.yaml"],
+          "minLength": 1,
+          "pattern": "^(?!/)(?!\\./).+$",
+          "type": "string"
+        },
+        "hunks": {
+          "additionalProperties": false,
+          "description": "Hunk-level counts for this file.",
+          "properties": {
+            "auto_merged": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "manually_resolved": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "rejected": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "total": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "is_answers_file": {
+          "default": false,
+          "description": "True for the Copier answers file itself (e.g. .copier-answers.yml), which conflicts on almost every update and is normally resolved by keeping the new _commit plus our answer values.",
+          "type": "boolean"
+        },
+        "needs_review": {
+          "default": false,
+          "description": "True if a human should verify this file before the result is merged or pushed.",
+          "type": "boolean"
+        },
+        "reason": {
+          "description": "Why this resolution was chosen over the alternatives — the decision rationale, not a restatement of the change.",
+          "examples": [
+            "Their signature is already consumed by two callers on main; ours was only used in the test added in this branch, so adopting theirs avoids a follow-up API break."
+          ],
+          "minLength": 1,
+          "type": "string"
+        },
+        "rej_file": {
+          "$ref": "#/$defs/rejFile",
+          "description": "The .rej artifact produced by `git apply`/`patch` for this file, captured verbatim."
+        },
+        "related_issues": {
+          "description": "Issue or ticket keys relevant to the decision, e.g. Jira keys.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "renamed_from": {
+          "description": "Previous path, when the conflict involved a rename or move.",
+          "type": "string"
+        },
+        "resolution_strategy": {
+          "description": "Which side(s) the resolved content came from.",
+          "enum": [
+            "ours",
+            "theirs",
+            "both",
+            "manual_merge",
+            "rewritten",
+            "deleted",
+            "kept_deleted",
+            "regenerated",
+            "unchanged"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "default": "resolved",
+          "description": "Outcome for this file.",
+          "enum": ["resolved", "partially_resolved", "unresolved", "deferred", "skipped"],
+          "type": "string"
+        },
+        "template_path": {
+          "description": "Path of the source file inside the Copier template that generated this file, including the .jinja suffix if present.",
+          "examples": ["{{module_name}}/main.py.jinja", "helmfile.d/00-core.yaml.jinja"],
+          "type": "string"
+        },
+        "verification": {
+          "additionalProperties": false,
+          "description": "Evidence that the resolution actually works.",
+          "properties": {
+            "commands": {
+              "description": "Commands run to verify the resolved file, e.g. 'pytest tests/test_plate_mapper.py'.",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "notes": {
+              "type": "string"
+            },
+            "result": {
+              "default": "not_run",
+              "enum": ["passed", "failed", "not_run"],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "required": ["filename", "description", "reason"],
+      "type": "object"
+    },
+    "ref": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Human-readable ref name, e.g. 'main' or 'feature/plate-mapper'.",
+          "type": "string"
+        },
+        "sha": {
+          "description": "Full or abbreviated commit SHA.",
+          "pattern": "^[0-9a-f]{7,40}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "rejFile": {
+      "additionalProperties": false,
+      "description": "A .rej reject file captured as-is. `contents` is the literal file text; do not reflow, re-indent, or strip trailing whitespace, since patch context depends on it.",
+      "properties": {
+        "byte_size": {
+          "description": "Size of the original .rej file in bytes, for round-trip checking.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "contents": {
+          "description": "Raw, byte-for-byte contents of the .rej file, newlines preserved.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "disposition": {
+          "description": "What was done about the rejected hunks.",
+          "enum": ["applied_manually", "obsolete_upstream_already_has_change", "intentionally_dropped", "pending"],
+          "type": "string"
+        },
+        "encoding": {
+          "default": "utf-8",
+          "description": "How `contents` is encoded. Use 'base64' for non-UTF-8 or binary rejects.",
+          "enum": ["utf-8", "base64"],
+          "type": "string"
+        },
+        "hunk_count": {
+          "description": "Number of rejected hunks in the file.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "path": {
+          "description": "Path of the .rej file on disk, typically '<filename>.rej'.",
+          "examples": ["src/labsync/plate_mapper.py.rej"],
+          "type": "string"
+        },
+        "sha256": {
+          "description": "SHA-256 of the original .rej file bytes.",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "truncated": {
+          "default": false,
+          "description": "True if `contents` holds only part of the .rej file.",
+          "type": "boolean"
+        }
+      },
+      "required": ["contents", "disposition"],
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/LabAutomationAndScreening/copier-base-template/blob/main/.claude/skills/copier-update/report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "description": "A Copier operation must record which template versions it spans.",
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": ["copier-update", "copier-recopy"]
+          }
+        },
+        "required": ["operation"]
+      },
+      "then": {
+        "required": ["copier"]
+      }
+    }
+  ],
+  "description": "A record of how conflicts were resolved during a `copier update` (or a plain git merge/rebase). One report covers a single update and contains one entry per conflicted file.",
+  "properties": {
+    "commits": {
+      "description": "The commits this update made on top of project_commit, newest first: the update commit and any fix commits. `report` fills it in from git when the draft leaves it out.",
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "sha": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "required": ["sha", "subject"],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "copier": {
+      "$ref": "#/$defs/copierUpdate",
+      "description": "Template identity and the version range this update spans. Required when operation is copier-update or copier-recopy."
+    },
+    "operation": {
+      "default": "copier-update",
+      "description": "The operation that produced the conflicts.",
+      "enum": [
+        "copier-update",
+        "copier-recopy",
+        "merge",
+        "rebase",
+        "cherry-pick",
+        "revert",
+        "stash-pop",
+        "am",
+        "apply",
+        "other"
+      ],
+      "type": "string"
+    },
+    "project": {
+      "description": "The project being updated (repo remote URL, or a name like 'example-org/example-project').",
+      "type": "string"
+    },
+    "project_commit": {
+      "$ref": "#/$defs/ref",
+      "description": "State of the project repo the update was applied on top of."
+    },
+    "resolutions": {
+      "description": "One entry per conflicted file.",
+      "items": {
+        "$ref": "#/$defs/fileResolution"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "resolved_at": {
+      "description": "When the resolution was completed (RFC 3339).",
+      "format": "date-time",
+      "type": "string"
+    },
+    "resolved_by": {
+      "description": "Who or what resolved the conflicts, e.g. 'a.developer@example.com' or 'claude-opus-5'.",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": "1.0.0",
+      "description": "Version of this report format.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "type": "string"
+    },
+    "summary": {
+      "description": "Optional one-paragraph overview of the whole operation.",
+      "type": "string"
+    }
+  },
+  "required": ["resolutions"],
+  "title": "Copier Update Conflict Resolution Report",
+  "type": "object"
+}

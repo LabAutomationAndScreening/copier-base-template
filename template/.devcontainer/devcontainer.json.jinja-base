@@ -13,7 +13,7 @@
       // https://github.com/devcontainers/features/blob/main/src/git-lfs/README.md
       "autoPull": false
     }{% endraw %}{% if is_child_of_copier_base_template is not defined %}{% raw %},
-    "ghcr.io/devcontainers/features/aws-cli:1.1.4": {
+    "ghcr.io/devcontainers/features/aws-cli:1.2.0": {
       // https://github.com/devcontainers/features/blob/main/src/aws-cli/devcontainer-feature.json
       // view latest version https://raw.githubusercontent.com/aws/aws-cli/v2/CHANGELOG.rst
       "version": "2.36.49"
@@ -40,7 +40,7 @@
         "-AmazonWebServices.aws-toolkit-vscode", // the AWS CLI feature installs this automatically, but it's causing problems in VS Code{% endraw %}{% endif %}{% raw %}
         // basic tooling
         // "eamodio.gitlens@15.5.1",
-        "coderabbit.coderabbit-vscode@0.25.0",
+        "coderabbit.coderabbit-vscode@0.26.1",
         "ms-vscode.live-server@0.5.2025051301",
         "MS-vsliveshare.vsliveshare@1.0.5905",{% endraw %}{% if install_claude_cli %}{% raw %}
         "anthropic.claude-code@2.1.283",{% endraw %}{% endif %}{% raw %}{% endraw %}{% if (is_child_of_copier_base_template is defined and is_child_of_copier_base_template is sameas(true)) or (is_child_of_copier_base_template is not defined and template_uses_python is defined and template_uses_python is sameas(true)) %}{% raw %}
