@@ -16,6 +16,8 @@ newlines, `$(`, backticks, and through `env`, `xargs`, `sh -c` and `eval`):
 - gh commands that write: pr and issue changes, release, repo, workflow and run changes, and `gh api` with a method
   other than GET or with fields or input.
 - rm and rmdir, and redirecting output into a file (`>/dev/null` and `2>&1` are fine).
+- a heredoc with an unquoted delimiter, or one that is never closed. A quoted heredoc's body (`<<'EOF'`) is data, such
+  as a verdict's text, and isn't checked.
 
 Its verdict goes up through the post command in its prompt (post_verdict.py), which none of this blocks. Exit code 2
 blocks the command and shows the agent the reason on stderr, so it can find a read-only way.
@@ -90,29 +92,99 @@ _GH_API_FIELD_FLAGS = ("-f", "-F", "--field", "--raw-field", "--input")
 _SEPARATORS = frozenset({";", "&&", "||", "|", "&", "(", ")", "|&"})
 _REDIRECTS = frozenset({">", ">>", ">|", "&>", "&>>", ">&"})
 _ENV_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
-_HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
+# group 1 is `-` for `<<-`, which strips leading tabs; group 2 or 3 a quoted delimiter, group 4 an unquoted one
+_HEREDOC = re.compile(r"<<(-?)[ \t]*(?:'([^'\n]+)'|\"([^\"\n]+)\"|([^\s;&|<>()'\"]+))")
 
 
 class BlockedError(Exception):
     pass
 
 
+def _quote_after(*, char: str, quote: str | None) -> str | None:
+    """Return the quote bash is inside (`'`, `"` or None) after reading `char` while inside `quote`."""
+    if quote == "'":
+        if char == "'":
+            return None
+        return quote
+    if char == '"':
+        if quote == '"':
+            return None
+        return '"'
+    if char == "'":
+        if quote is None:
+            return "'"
+    return quote
+
+
+def _skip_heredoc_bodies(*, command: str, start: int, pending: list[tuple[str, bool]]) -> int:
+    """Return the index just past the bodies of the heredocs `pending` names, which begin at `start`, in order."""
+    index = start
+    for delimiter, strip_tabs in pending:
+        while True:
+            if index >= len(command):
+                raise BlockedError(f"it has a heredoc whose closing line {delimiter!r} never comes")
+            end = command.find("\n", index)
+            if end == -1:
+                end = len(command)
+            line = command[index:end]
+            index = end + 1
+            if strip_tabs:
+                line = line.lstrip("\t")
+            if line == delimiter:
+                break
+    return index
+
+
 def _without_heredoc_bodies(command: str) -> str:
-    """Drop each heredoc's body (data fed to a command's stdin, such as a verdict's text) and its `<<'EOF'` marker."""
+    """Drop each heredoc's body (data fed to a command's stdin, such as a verdict's text) and its `<<'EOF'` marker.
+
+    Only a `<<` that bash reads as one counts: not inside quotes, after a backslash, or in a `<<<` here-string. Bash
+    expands `$(…)` in the body of a heredoc whose delimiter is unquoted, so that body isn't plain data and such a heredoc
+    is blocked, as is one whose closing line never comes.
+    """
     kept: list[str] = []
-    delimiter: str | None = None
-    for line in command.split("\n"):
-        if delimiter is not None:
-            if line.strip() == delimiter:
-                delimiter = None
+    pending: list[tuple[str, bool]] = []
+    quote: str | None = None
+    index = 0
+    while index < len(command):
+        char = command[index]
+        if char == "\\" and quote != "'":
+            kept.append(command[index : index + 2])
+            index += 2
             continue
-        marker = _HEREDOC.search(line)
-        if marker is None:
-            kept.append(line)
+        if quote is None and command.startswith("<<<", index):
+            kept.append("<<<")
+            index += 3
             continue
-        delimiter = marker.group(2)
-        kept.append(line[: marker.start()] + line[marker.end() :])
-    return "\n".join(kept)
+        if quote is None and command.startswith("<<", index):
+            index = _heredoc_marker(command=command, index=index, pending=pending)
+            continue
+        if char == "\n" and quote is None and pending:
+            kept.append(char)
+            index = _skip_heredoc_bodies(command=command, start=index + 1, pending=pending)
+            pending = []
+            continue
+        quote = _quote_after(char=char, quote=quote)
+        kept.append(char)
+        index += 1
+    if pending:
+        raise BlockedError(f"it has a heredoc whose closing line {pending[0][0]!r} never comes")
+    return "".join(kept)
+
+
+def _heredoc_marker(*, command: str, index: int, pending: list[tuple[str, bool]]) -> int:
+    """Record the heredoc whose `<<` starts at `index` in `pending`, and return the index just past its marker."""
+    marker = _HEREDOC.match(command, index)
+    if marker is None:
+        raise BlockedError("it has a `<<` with no heredoc delimiter after it")
+    if marker.group(4) is not None:
+        raise BlockedError(
+            f"its heredoc delimiter {marker.group(4)!r} is unquoted, so bash runs any `$(…)` in the body;"
+            f" quote it (<<'{marker.group(4)}')"
+        )
+    delimiter = marker.group(2) if marker.group(2) is not None else marker.group(3)
+    pending.append((delimiter, marker.group(1) == "-"))
+    return marker.end()
 
 
 def _segments(command: str) -> list[list[str]]:
