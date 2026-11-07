@@ -511,15 +511,26 @@ def _base_tag(commit: str) -> str:
     return UNTAGGED_SUFFIX.sub("", commit)
 
 
+# copier-update's release_tags keeps the same tags, the ones copier picks a no-ref update's target from
+_RELEASE_TAG = re.compile(r"^v?\d+(\.\d+)*$")
+
+
 def _latest_tag(repo: str) -> str:
+    """Return the newest release tag: the one a copier update with no ref goes to.
+
+    git's version sort puts `v1.2.0-rc1` ahead of `v1.2.0` and ranks `v` tags apart from unprefixed ones, while copier
+    skips prereleases and compares versions, so this keeps the release-shaped tags and orders them by their numbers.
+    """
     url = f"https://github.com/{repo}.git"
-    tags = [
-        line.split("\t", 1)[1].removeprefix("refs/tags/")
-        for line in _run(cmd=["git", "ls-remote", "--tags", "--refs", "--sort=-v:refname", url]).splitlines()
-    ]
+    tags: list[str] = []
+    for line in _run(cmd=["git", "ls-remote", "--tags", "--refs", url]).splitlines():
+        tag = line.split("\t", 1)[1].removeprefix("refs/tags/")
+        if _RELEASE_TAG.match(tag) is None:
+            continue
+        tags.append(tag)
     if not tags:
-        raise FailError(f"{url} has no tags")
-    return tags[0]
+        raise FailError(f"{url} has no release tags")
+    return max(tags, key=lambda tag: tuple(int(part) for part in tag.removeprefix("v").split(".")))
 
 
 def cmd_behind(a: argparse.Namespace) -> dict[str, Any]:
