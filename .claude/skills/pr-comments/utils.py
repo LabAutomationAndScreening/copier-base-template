@@ -414,11 +414,17 @@ _AI_AGENT_PROMPT_RE = re.compile(
     r"|^[ \t>]*<details>\s*<summary>(?:(?!</summary>).)*Prompt for AI Agents(?:(?!</summary>).)*</summary>.*?</details>",
     re.DOTALL | re.MULTILINE,
 )
-# The scripts CodeRabbit ran while checking a finding, and their output: how it got there, not what it found.
-_ANALYSIS_CHAIN_RE = re.compile(
-    r"^[ \t>]*<details>\s*<summary>(?:(?!</summary>).)*Analysis chain(?:(?!</summary>).)*</summary>.*?</details>",
+# The opening of a block holding how CodeRabbit got to a finding, not what it found: the scripts it ran and their
+# output ("Analysis chain" in older reviews, "Supported by static analysis" in newer ones), or the linters' output
+# behind the finding ("Tools", after CodeRabbit's icon, so a person's own "Tools" block stays).
+_REVIEWER_EVIDENCE_OPEN_RE = re.compile(
+    r"^[ \t>]*<details>\s*<summary>(?:"
+    r"(?:(?!</summary>).)*(?:Analysis chain|Supported by static analysis)(?:(?!</summary>).)*"
+    r"|<picture>(?:(?!</summary>).)*</picture>\s*Tools\s*"
+    r")</summary>",
     re.DOTALL | re.MULTILINE,
 )
+_DETAILS_TAG_RE = re.compile(r"<details>|</details>")
 # CodeRabbit ends a review body with machinery rather than findings: a fix-everything checkbox, a prompt covering
 # every comment, and its "Review info" (configuration, commits, files processed).
 _REVIEW_FOOTER_RE = re.compile(
@@ -486,16 +492,43 @@ def _without_review_footer(body: str) -> str:
     return body
 
 
+def _without_reviewer_evidence(body: str) -> str:
+    """Return the body without the blocks showing how the reviewer got to its finding.
+
+    A linters' block nests one <details> per linter, so each block runs to the </details> that closes its own opening
+    tag. A block that never closes is left as it is, since removing it would take the rest of the body with it.
+    """
+    kept: list[str] = []
+    position = 0
+    while (opening := _REVIEWER_EVIDENCE_OPEN_RE.search(body, position)) is not None:
+        depth = 0
+        end = None
+        for tag in _DETAILS_TAG_RE.finditer(body, opening.start()):
+            if tag.group(0) == "<details>":
+                depth += 1
+                continue
+            depth -= 1
+            if depth == 0:
+                end = tag.end()
+                break
+        if end is None:
+            break
+        kept.append(body[position : opening.start()])
+        position = end
+    kept.append(body[position:])
+    return "".join(kept)
+
+
 def strip_markup(body: str) -> str:
     """Return a comment body as readable text: its Markdown with the reviewer's machinery removed.
 
     Removed whole, code included: everything from a review body's closing machinery on, the block of instructions a
-    reviewer writes for AI agents, and the scripts it ran to check a finding. Then, in prose only (code spans and
-    fenced blocks stay as written): HTML comments (hidden markers and fingerprints), decorative <picture> icons, and
-    HTML tags (the text inside a <details> or <summary> stays). Runs of blank lines left behind, quoted or not,
-    collapse to one.
+    reviewer writes for AI agents, and the blocks showing how it got to a finding (the scripts it ran, the linters'
+    output). Then, in prose only (code spans and fenced blocks stay as written): HTML comments (hidden markers and
+    fingerprints), decorative <picture> icons, and HTML tags (the text inside a <details> or <summary> stays). Runs of
+    blank lines left behind, quoted or not, collapse to one.
     """
-    body = _ANALYSIS_CHAIN_RE.sub("", _AI_AGENT_PROMPT_RE.sub("", _without_review_footer(body)))
+    body = _without_reviewer_evidence(_AI_AGENT_PROMPT_RE.sub("", _without_review_footer(body)))
     stripped: list[str] = []
     for text, is_code in split_code(body):
         if is_code:
