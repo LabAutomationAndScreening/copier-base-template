@@ -493,18 +493,29 @@ def _without_review_footer(body: str) -> str:
     return body
 
 
+def _inside_code(*, index: int, code_spans: list[tuple[int, int]]) -> bool:
+    for start, end in code_spans:
+        if start <= index < end:
+            return True
+    return False
+
+
 def _without_reviewer_evidence(body: str) -> str:
     """Return the body without the blocks showing how the reviewer got to its finding.
 
     A linters' block nests one <details> per linter, so each block runs to the </details> that closes its own opening
-    tag. A block that never closes is left as it is, since removing it would take the rest of the body with it.
+    tag. Tags inside code are text, such as a script that greps for `<details>`, so they don't count. A block that
+    never closes is left as it is, since removing it would take the rest of the body with it.
     """
+    code_spans = [code.span() for code in _CODE_RE.finditer(body)]
     kept: list[str] = []
     position = 0
     while (opening := _REVIEWER_EVIDENCE_OPEN_RE.search(body, position)) is not None:
         depth = 0
         end = None
         for tag in _DETAILS_TAG_RE.finditer(body, opening.start()):
+            if _inside_code(index=tag.start(), code_spans=code_spans):
+                continue
             if tag.group(0) == "<details>":
                 depth += 1
                 continue
