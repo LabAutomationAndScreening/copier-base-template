@@ -1,13 +1,16 @@
-{% raw %}import argparse
-import os
+{% set pinned_helm = is_child_of_copier_base_template is not defined and install_helm is defined and install_helm is sameas(true) %}{% raw %}import argparse
+{% endraw %}{% if pinned_helm %}{% raw %}import hashlib
+{% endraw %}{% endif %}{% raw %}import os
 import platform
 import shutil
 import signal
 import subprocess
 import sys
-import tempfile
+{% endraw %}{% if pinned_helm %}{% raw %}import tarfile
+{% endraw %}{% endif %}{% raw %}import tempfile
 import time
-from pathlib import Path
+{% endraw %}{% if pinned_helm %}{% raw %}import zipfile
+{% endraw %}{% endif %}{% raw %}from pathlib import Path
 
 UV_VERSION = "{% endraw %}{{ uv_version }}{% raw %}"
 PNPM_VERSION = "{% endraw %}{{ pnpm_version }}{% raw %}"
@@ -19,7 +22,8 @@ IDENTIFY_VERSION = "{% endraw %}{{ identify_version }}{% raw %}"
 PREK_VERSION = "{% endraw %}{{ prek_version }}{% raw %}"
 TASK_VERSION = "{% endraw %}{{ task_version }}{% raw %}"
 BIOME_VERSION = "{% endraw %}{{ biome_version }}{% raw %}"
-DOWNLOAD_TIMEOUT_SECONDS = 90
+{% endraw %}{% if pinned_helm %}{% raw %}HELM_VERSION = "{% endraw %}{{ helm_version }}{% raw %}"
+{% endraw %}{% endif %}{% raw %}DOWNLOAD_TIMEOUT_SECONDS = 90
 # CI runners regularly see transient network failures (connection resets, DNS blips, registry 5xx), so every step that
 # touches the network is retried with exponential backoff before the job is failed.
 NETWORK_ATTEMPTS = 4
@@ -79,7 +83,13 @@ _ = parser.add_argument(
     default=False,
     help="Install pre-commit, identify, prek and Biome in CI. Outside CI, this script always installs them.",
 )
-_ = parser.add_argument(
+{% endraw %}{% if pinned_helm %}{% raw %}_ = parser.add_argument(
+    "--install-helm",
+    action="store_true",
+    default=False,
+    help="Install Helm in CI, for jobs that deploy a chart. --install-pre-commit-tooling installs it too, for the Helm hooks. Outside CI, this script always installs it.",
+)
+{% endraw %}{% endif %}{% raw %}_ = parser.add_argument(
     "--install-copier",
     action="store_true",
     default=False,
@@ -256,7 +266,67 @@ def install_biome(*, is_windows: bool) -> None:
             _ = github_path_file.write(f"{global_bin_dir}\n")
 
 
-def node_cmd(cmd: str, *, is_windows: bool) -> list[str]:
+{% endraw %}{% if pinned_helm %}{% raw %}def install_helm(*, is_windows: bool) -> None:
+    """Install the pinned Helm release into `LOCAL_BIN_DIR` from the official get.helm.sh archive.
+
+    The helmlint pre-commit hook and any job that deploys the chart run whichever Helm is on PATH, while both GitHub's
+    runner images and the devcontainer base image ship a Helm of their own that moves whenever the image does. The archive is checked against the sha256 Helm
+    publishes beside it before anything is extracted. `install_task` already appends `LOCAL_BIN_DIR` to `GITHUB_PATH`,
+    which later CI steps put in front of the runner's own Helm.
+    """
+    machine = platform.machine().lower()
+    if machine in ("x86_64", "amd64"):
+        arch = "amd64"
+    elif machine in ("aarch64", "arm64"):
+        arch = "arm64"
+    else:
+        raise RuntimeError(f"No Helm release is installed for the {machine} architecture")
+    if is_windows:
+        os_name = "windows"
+        archive_name = f"helm-{HELM_VERSION}-{os_name}-{arch}.zip"
+        helm_path = LOCAL_BIN_DIR / "helm.exe"
+    else:
+        os_name = platform.system().lower()
+        archive_name = f"helm-{HELM_VERSION}-{os_name}-{arch}.tar.gz"
+        helm_path = LOCAL_BIN_DIR / "helm"
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        archive_path = Path(tmp_dir) / archive_name
+        checksum_path = Path(tmp_dir) / f"{archive_name}.sha256sum"
+        for url, output_path in (
+            (f"https://get.helm.sh/{archive_name}", archive_path),
+            (f"https://get.helm.sh/{archive_name}.sha256sum", checksum_path),
+        ):
+            run_with_retries(
+                ["curl", *CURL_DOWNLOAD_ARGS, "--output", str(output_path), url],
+                description=f"Downloading {output_path.name}",
+            )
+        expected_digest = checksum_path.read_text(encoding="utf-8").split()[0]
+        actual_digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+        if actual_digest != expected_digest:
+            raise RuntimeError(
+                f"{archive_name} has sha256 {actual_digest}, but get.helm.sh published {expected_digest}"
+            )
+        member_name = f"{os_name}-{arch}/{helm_path.name}"
+        LOCAL_BIN_DIR.mkdir(parents=True, exist_ok=True)
+        if is_windows:
+            with zipfile.ZipFile(archive_path) as archive:
+                _ = helm_path.write_bytes(archive.read(member_name))
+        else:
+            with tarfile.open(archive_path) as archive:
+                member = archive.extractfile(member_name)
+                if member is None:
+                    raise RuntimeError(f"{archive_name} has no {member_name} file")
+                _ = helm_path.write_bytes(member.read())
+            helm_path.chmod(0o755)
+    _ = subprocess.run([str(helm_path), "version", "--short"], check=True)  # noqa: S603 # this is all our own input
+    # Outside CI the hooks find Helm through the shell's PATH. The devcontainer base image puts LOCAL_BIN_DIR ahead of
+    # its own Helm, but if that ever changes the image's Helm would win without any error, so that case fails here
+    on_path = shutil.which("helm")
+    if "CI" not in os.environ and (on_path is None or Path(on_path).resolve() != helm_path.resolve()):
+        raise RuntimeError(f"helm on PATH is {on_path}, not the pinned {helm_path}; put {LOCAL_BIN_DIR} first on PATH")
+
+
+{% endraw %}{% endif %}{% raw %}def node_cmd(cmd: str, *, is_windows: bool) -> list[str]:
     if is_windows:
         return pwsh_cmd(cmd)
     return [cmd]
@@ -441,7 +511,9 @@ def main():
             )
     if install_pre_commit_tooling:
         install_biome(is_windows=is_windows)
-    if not args.no_node:
+{% endraw %}{% if pinned_helm %}{% raw %}    if install_pre_commit_tooling or should_install(requested=args.install_helm):
+        install_helm(is_windows=is_windows)
+{% endraw %}{% endif %}{% raw %}    if not args.no_node:
         install_pnpm(is_windows=is_windows)
     # Task is installed outside the --no-node branch because CI always passes --no-node (pnpm/setup handles pnpm there), and every job still needs the task runner
     install_task(uv_path=uv_path, uv_env=uv_env, is_windows=is_windows)

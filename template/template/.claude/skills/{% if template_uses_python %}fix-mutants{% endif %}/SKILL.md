@@ -29,7 +29,7 @@ gap is worth closing and writing the right assertion.
   levels downward.
 
 > **Invoke every script by its path directly** (e.g.
-> `{ABSOLUTE_PATH_TO_REPOSITORY_ROOT}/.claude/skills/fix-mutants/list-survived.py`). They are executable,
+> `{ABSOLUTE_PATH_TO_REPOSITORY_ROOT}/.claude/skills/fix-mutants/list_survived.py`). They are executable,
 > stdlib-only, and have shebangs. Do **not** prefix with `uv run python`.
 > The scripts call `uv run mutmut` internally.
 
@@ -45,7 +45,7 @@ The scripts emit `source_file` values relative to the subfolder containing
 `pyproject.toml`, and every script also emits that subfolder as an absolute
 `backend_root` field. Construct displayed paths as
 `<backend_root>/<source_file>:<line>`. Exception: the briefing block rendered
-by `group-by-line.py` already contains absolute paths — paste it as-is; this
+by `group_by_line.py` already contains absolute paths — paste it as-is; this
 construction rule is for paths you compose yourself (e.g. a test file you
 edited).
 
@@ -54,7 +54,7 @@ edited).
 ### Step 0: Decide how to start
 
 ```bash
-.claude/skills/fix-mutants/check-results.py
+.claude/skills/fix-mutants/check_results.py
 ```
 
 This runs `mutmut results` and reports whether a prior run exists.
@@ -78,10 +78,10 @@ Then proceed to Step 1 (if running mutmut) or Step 2 (if using existing results)
 
 ```bash
 # clean:
-.claude/skills/fix-mutants/run-mutmut.py --clean
+.claude/skills/fix-mutants/run_mutmut.py --clean
 
 # cached:
-.claude/skills/fix-mutants/run-mutmut.py
+.claude/skills/fix-mutants/run_mutmut.py
 ```
 
 Output is a JSON status breakdown:
@@ -98,7 +98,7 @@ report a clean bill of health and stop.
 ### Step 2: Enumerate the gaps
 
 ```bash
-.claude/skills/fix-mutants/list-survived.py
+.claude/skills/fix-mutants/list_survived.py
 ```
 
 Returns actionable mutants (`survived` + `no tests`) grouped by source file.
@@ -119,14 +119,14 @@ The **unit of work is a line group**: all surviving mutants that share the same
 `source_file` and `line`. A single strengthened assertion usually kills every
 mutant on that line at once, so treat them together.
 
-The loop is driven by calling `group-by-line.py` repeatedly. Each call returns
+The loop is driven by calling `group_by_line.py` repeatedly. Each call returns
 the **next unresolved group** based on live meta state — calling it again
 without resolving the current group just returns the same group. Accumulate
 `--skip-line N` flags for any lines the user has chosen to skip.
 
 ```bash
 # First call (and after each kill):
-.claude/skills/fix-mutants/group-by-line.py <source_file> [--skip-line N ...]
+.claude/skills/fix-mutants/group_by_line.py <source_file> [--skip-line N ...]
 ```
 
 When a group remains, the script's stdout has two parts:
@@ -144,7 +144,7 @@ When `done: true` is returned (JSON only, no briefing), all groups for this
 file are resolved.
 
 > **STRICT ORDER per group — do not deviate:**
-> 1. Run `group-by-line.py`.
+> 1. Run `group_by_line.py`.
 > 2. **Paste the briefing block** into a normal text message.
 > 3. Read the source and tests; form a view.
 > 4. Emit `My plan: ...` as a normal text message.
@@ -213,19 +213,19 @@ The five steps in detail:
 
 6. **Verify every mutant in the group is dead:**
    ```bash
-   .claude/skills/fix-mutants/verify-mutant.py <mutant_name>
+   .claude/skills/fix-mutants/verify_mutant.py <mutant_name>
    ```
    Run for each mutant in the group. Exit 0 = killed. If any survive, the
    assertion doesn't distinguish all variants — return to step 5. Do not call
-   `group-by-line.py` again until all are killed (or the user agrees to skip).
+   `group_by_line.py` again until all are killed (or the user agrees to skip).
 
-7. **Advance:** call `group-by-line.py` again (killed mutants are gone from meta;
+7. **Advance:** call `group_by_line.py` again (killed mutants are gone from meta;
    add `--skip-line <line>` if the user chose to skip this group). Process the
    next group returned, or stop if `done: true`.
 
 ### Step 4: Re-baseline and report
 
-After a batch, optionally re-run `run-mutmut.py` (no `--clean` is fine) to
+After a batch, optionally re-run `run_mutmut.py` (no `--clean` is fine) to
 confirm the actionable count dropped and no new mutants appeared from edited
 tests. Report:
 
@@ -239,10 +239,10 @@ tests. Report:
 - Treat each surviving mutant as a precise, executable description of a missing
   assertion.
 - Paste the script-rendered briefing block verbatim the moment
-  `group-by-line.py` returns — before any analysis or file reading, and well
+  `group_by_line.py` returns — before any analysis or file reading, and well
   before the AskUserQuestion. The question options alone are not enough
   context to decide.
-- Verify every fix with `verify-mutant.py` before claiming the gap is closed.
+- Verify every fix with `verify_mutant.py` before claiming the gap is closed.
 - Identify equivalent mutants honestly rather than contorting a test to kill an
   un-killable mutation.
 - Make one logical test change per mutant so a failed verify points at one edit.
@@ -260,10 +260,10 @@ tests. Report:
 
 ## Checklist
 
-- [ ] `check-results.py` → ask user: clean / cached / use existing
-- [ ] `run-mutmut.py [--clean]` → baseline status breakdown (skip if using existing)
-- [ ] `list-survived.py` → actionable mutants by file; confirm scope with user (AskUserQuestion, required)
-- [ ] Per file: `group-by-line.py <source_file>` → paste script-rendered briefing block verbatim as a text message (no tool calls in between) → read source + tests → present plan → approve (AskUserQuestion, required)
+- [ ] `check_results.py` → ask user: clean / cached / use existing
+- [ ] `run_mutmut.py [--clean]` → baseline status breakdown (skip if using existing)
+- [ ] `list_survived.py` → actionable mutants by file; confirm scope with user (AskUserQuestion, required)
+- [ ] Per file: `group_by_line.py <source_file>` → paste script-rendered briefing block verbatim as a text message (no tool calls in between) → read source + tests → present plan → approve (AskUserQuestion, required)
 - [ ] Strengthen the test; confirm it passes on real code
-- [ ] `verify-mutant.py <name>` for every mutant in group → all killed (exit 0) before advancing
+- [ ] `verify_mutant.py <name>` for every mutant in group → all killed (exit 0) before advancing
 - [ ] Re-baseline; report killed / skipped-equivalent / remaining

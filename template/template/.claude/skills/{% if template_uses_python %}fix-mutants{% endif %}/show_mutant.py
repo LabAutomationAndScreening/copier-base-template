@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# ///
 """Produce a structured, self-contained briefing for one mutant.
 
 Usage:
-  show-mutant.py <mutant_name>
+  show_mutant.py <mutant_name>
 
 Outputs JSON to stdout — everything needed to understand and kill the mutant:
   {
@@ -18,7 +21,7 @@ The diff comes from `mutmut show` (original vs. this mutant). tests_for_mutant
 lists the tests that currently execute the mutated line — the place to add or
 strengthen an assertion so the mutant is detected.
 
-Reads cached state — run run-mutmut.py first.
+Reads cached state — run run_mutmut.py first.
 """
 
 import sys
@@ -36,7 +39,7 @@ EXPECTED_ARG_COUNT = 2
 
 def main() -> None:
     if len(sys.argv) != EXPECTED_ARG_COUNT:
-        _ = sys.stderr.write("Usage: show-mutant.py <mutant_name>\n")
+        _ = sys.stderr.write("Usage: show_mutant.py <mutant_name>\n")
         sys.exit(2)
 
     key = sys.argv[1]
@@ -44,7 +47,7 @@ def main() -> None:
 
     record = next((r for r in iter_mutant_records(backend_root) if r["key"] == key), None)
     if record is None:
-        _ = sys.stderr.write(f"Mutant {key!r} not found in mutants/*.meta. Did you run run-mutmut.py?\n")
+        _ = sys.stderr.write(f"Mutant {key!r} not found in mutants/*.meta. Did you run run_mutmut.py?\n")
         sys.exit(1)
 
     show = run_mutmut(["show", key], backend_root, timeout=120)

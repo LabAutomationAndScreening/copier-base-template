@@ -13,6 +13,7 @@ repo_org_name_for_copyright: Initech Corporation
 template_uses_typescript: true
 template_uses_vuejs: true
 template_might_want_to_install_aws_ssm_port_forwarding_plugin: false
+template_might_want_to_use_helm: false
 template_might_want_to_use_vcrpy: true
 template_might_want_to_use_python_asyncio: false
 template_publishes_releases: false

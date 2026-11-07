@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# ///
 """Check whether mutmut has any existing results.
 
 Usage:
-  check-results.py
+  check_results.py
 
 Runs `mutmut results` and checks whether it produced any output. Empty stdout
 means mutmut has never been run (or the mutants/ directory was wiped).

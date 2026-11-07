@@ -11,6 +11,7 @@ repo_org_name_for_copyright: The Greatest Org
 template_uses_typescript: false
 template_uses_vuejs: false
 template_might_want_to_install_aws_ssm_port_forwarding_plugin: true
+template_might_want_to_use_helm: true
 template_might_want_to_use_vcrpy: false
 template_might_want_to_use_python_asyncio: true
 template_publishes_releases: true

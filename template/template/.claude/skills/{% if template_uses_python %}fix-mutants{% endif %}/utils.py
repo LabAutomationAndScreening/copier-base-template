@@ -165,7 +165,7 @@ def mutants_dir(backend_root: Path) -> Path:
     mutants = backend_root / "mutants"
     if not mutants.is_dir():
         _ = sys.stderr.write(
-            f"No mutants/ directory under {backend_root}. Run the mutation suite first (run-mutmut.py).\n"
+            f"No mutants/ directory under {backend_root}. Run the mutation suite first (run_mutmut.py).\n"
         )
         sys.exit(1)
     return mutants

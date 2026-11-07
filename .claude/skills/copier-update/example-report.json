@@ -1,0 +1,174 @@
+{
+  "copier": {
+    "answers_changed": ["python_version"],
+    "answers_file": ".copier-answers.yml",
+    "cli_flags": [
+      "--vcs-ref",
+      "feature/uv-0.8",
+      "--conflict",
+      "rej",
+      "--defaults",
+      "--skip-answered",
+      "--answers-file",
+      ".copier-answers.yml",
+      "--data",
+      "python_version=3.13",
+      "--trust"
+    ],
+    "conflict_mode": "rej",
+    "copier_version": "9.17.0",
+    "from_commit": {
+      "name": "v1.4.2",
+      "sha": "a91b0c4"
+    },
+    "from_version": "v1.4.2",
+    "src_path": "gh:example-org/example-template",
+    "to_commit": {
+      "name": "feature/uv-0.8",
+      "sha": "3e7d1c0"
+    },
+    "to_version": "v1.4.2-9-g3e7d1c0"
+  },
+  "operation": "copier-update",
+  "project": "git@github.com:example-org/example-project.git",
+  "project_commit": {
+    "name": "main",
+    "sha": "8c1f2ab"
+  },
+  "resolutions": [
+    {
+      "confidence": "high",
+      "description": "Copier rewrote the file: _commit advanced to v1.4.2-9-g3e7d1c0 and the new python_version answer (3.13) was added. All prior answers unchanged.",
+      "filename": ".copier-answers.yml",
+      "is_answers_file": true,
+      "reason": "Copier owns this file; the only decision was the python_version value, chosen by the user from the template's choices.",
+      "resolution_strategy": "regenerated",
+      "status": "resolved"
+    },
+    {
+      "confidence": "high",
+      "conflict_type": "patch_reject",
+      "description": "Template bumped astral-sh/setup-uv from v5 to v6 and added `enable-cache: true`; the project had pinned v5 to a full sha in the same hunk. Took the template's v6 step and re-pinned it to the v6 sha.",
+      "filename": ".github/workflows/ci.yaml",
+      "hunks": {
+        "auto_merged": 2,
+        "manually_resolved": 1,
+        "rejected": 1,
+        "total": 3
+      },
+      "reason": "The pin was a zizmor requirement, not a version choice. The template's v6 step is what every other project on this branch runs, so carrying it (with the sha pin re-applied) keeps CI uniform.",
+      "rej_file": {
+        "byte_size": 263,
+        "contents": "--- .github/workflows/ci.yaml\n+++ .github/workflows/ci.yaml\n@@ -18,3 +18,5 @@\n       - uses: actions/checkout@v4\n-      - uses: astral-sh/setup-uv@v5\n+      - uses: astral-sh/setup-uv@v6\n+        with:\n+          enable-cache: true\n       - run: uv sync --frozen\n",
+        "disposition": "applied_manually",
+        "encoding": "utf-8",
+        "hunk_count": 1,
+        "path": ".github/workflows/ci.yaml.rej",
+        "sha256": "1a95fc761e7d6e1be2832abd7f159e6b6e2d1da28ad80a71e9ba318aaa4d0e10",
+        "truncated": false
+      },
+      "resolution_strategy": "theirs",
+      "status": "resolved",
+      "template_path": ".github/workflows/ci.yaml.jinja",
+      "verification": {
+        "commands": ["pre-commit run --all-files"],
+        "notes": "zizmor accepted the re-pinned sha.",
+        "result": "passed"
+      }
+    },
+    {
+      "confidence": "medium",
+      "conflict_type": "patch_reject",
+      "description": "Template collapsed the two `RUN apt-get` layers into one; the project's version of that block also installs libusb and the Tecan Fluent SDK. Kept the project's block unchanged.",
+      "filename": "Dockerfile",
+      "hunks": {
+        "auto_merged": 0,
+        "manually_resolved": 0,
+        "rejected": 1,
+        "total": 1
+      },
+      "needs_review": true,
+      "reason": "The template hunk would have dropped the SDK install. Merging the layer collapse on top is cosmetic and not worth a hand-edit to a block the project deliberately owns.",
+      "rej_file": {
+        "byte_size": 236,
+        "contents": "--- Dockerfile\n+++ Dockerfile\n@@ -4,2 +4,2 @@\n-RUN apt-get update\n-RUN apt-get install -y --no-install-recommends git curl\n+RUN apt-get update && apt-get install -y --no-install-recommends git curl \\\n+    && rm -rf /var/lib/apt/lists/*\n",
+        "disposition": "intentionally_dropped",
+        "encoding": "utf-8",
+        "hunk_count": 1,
+        "path": "Dockerfile.rej",
+        "sha256": "e67ba743cb74d0e6253ac6fb59c340437c3554c73a65f89d7e36d817fb7f2c41",
+        "truncated": false
+      },
+      "resolution_strategy": "ours",
+      "status": "resolved",
+      "template_path": "Dockerfile.jinja",
+      "verification": {
+        "commands": ["docker build -t tecan-fluent:test ."],
+        "notes": "Docker not available in the sandbox; build should be checked on CI.",
+        "result": "not_run"
+      }
+    },
+    {
+      "confidence": "high",
+      "conflict_type": "patch_reject",
+      "description": "Template raised requires-python to >=3.13 and replaced the `[tool.ruff]` block with a `[tool.ruff.lint]` section; the project had added `select = [\"ALL\"]` plus four per-file ignores in the old block. Rewrote the block in the new shape carrying the project's rules across.",
+      "filename": "pyproject.toml",
+      "hunks": {
+        "auto_merged": 2,
+        "manually_resolved": 2,
+        "rejected": 2,
+        "total": 4
+      },
+      "reason": "Both sides are wanted: the template's structure is what ruff 0.6 expects, and the project's ignores are load-bearing (they silence the generated Tecan protobuf module). Neither side alone builds.",
+      "rej_file": {
+        "byte_size": 259,
+        "contents": "--- pyproject.toml\n+++ pyproject.toml\n@@ -7,1 +7,1 @@\n-requires-python = \">=3.12\"\n+requires-python = \">=3.13\"\n@@ -40,3 +40,5 @@\n-[tool.ruff]\n-line-length = 120\n-select = [\"E\", \"F\"]\n+[tool.ruff]\n+line-length = 120\n+\n+[tool.ruff.lint]\n+select = [\"E\", \"F\", \"I\"]\n",
+        "disposition": "applied_manually",
+        "encoding": "utf-8",
+        "hunk_count": 2,
+        "path": "pyproject.toml.rej",
+        "sha256": "ebb204db1e75c453745a0c24f6e67dc51a2b0e2af61a5fe05e9853dfa7a74b07",
+        "truncated": false
+      },
+      "resolution_strategy": "manual_merge",
+      "status": "resolved",
+      "template_path": "pyproject.toml.jinja",
+      "verification": {
+        "commands": ["uv run ruff check .", "uv run pytest -q"],
+        "result": "passed"
+      }
+    },
+    {
+      "confidence": "low",
+      "conflict_type": "patch_reject",
+      "description": "Template now exports `__version__` via importlib.metadata; the project exports it from a generated _version.py written by hatch-vcs. Left the project's version untouched.",
+      "filename": "src/driver_tecan_fluent/__init__.py",
+      "hunks": {
+        "auto_merged": 0,
+        "manually_resolved": 0,
+        "rejected": 1,
+        "total": 1
+      },
+      "needs_review": true,
+      "reason": "Switching the version source changes the wheel's metadata path and needs the release workflow looked at together. Out of scope for a template bump — flagged for the owner.",
+      "rej_file": {
+        "byte_size": 219,
+        "contents": "--- src/driver_tecan_fluent/__init__.py\n+++ src/driver_tecan_fluent/__init__.py\n@@ -1,1 +1,3 @@\n-from ._version import __version__\n+from importlib.metadata import version\n+\n+__version__ = version(\"driver-tecan-fluent\")\n",
+        "disposition": "pending",
+        "encoding": "utf-8",
+        "hunk_count": 1,
+        "path": "src/driver_tecan_fluent/__init__.py.rej",
+        "sha256": "7c73f43ac19ea32d6a659d31d2a80b479224a0c6b454ee4e603764a210cda360",
+        "truncated": false
+      },
+      "related_issues": ["LAB-1432"],
+      "resolution_strategy": "unchanged",
+      "status": "deferred",
+      "template_path": "src/{{ module_name }}/__init__.py.jinja"
+    }
+  ],
+  "resolved_at": "2026-09-13T18:42:07Z",
+  "resolved_by": "claude-opus-5",
+  "schema_version": "1.0.0",
+  "summary": "Updated from v1.4.2 to feature/uv-0.8 (9 commits). Four files rejected hunks: the CI workflow took the template side, the Dockerfile kept ours because it carries the Tecan SDK install the template knows nothing about, pyproject.toml was merged by hand to carry the project's ruff rules into the new layout, and the __version__ change in src/driver_tecan_fluent/__init__.py is deferred for owner review (LAB-1432). Update landed as 5f0e2d1; lint fallout fixed in 9b7c3aa (ruff format) and c2d4e61 (yamllint indentation)."
+}
