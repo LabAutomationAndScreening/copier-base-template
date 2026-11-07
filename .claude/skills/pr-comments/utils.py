@@ -504,13 +504,18 @@ def _without_reviewer_evidence(body: str) -> str:
     """Return the body without the blocks showing how the reviewer got to its finding.
 
     A linters' block nests one <details> per linter, so each block runs to the </details> that closes its own opening
-    tag. Tags inside code are text, such as a script that greps for `<details>`, so they don't count. A block that
-    never closes is left as it is, since removing it would take the rest of the body with it.
+    tag. Openings and tags inside code are text, such as a script that greps for `<details>` or a quoted example of
+    a block, so they don't count. A block that never closes is left as it is, since removing it would take the rest
+    of the body with it.
     """
     code_spans = [code.span() for code in _CODE_RE.finditer(body)]
     kept: list[str] = []
     position = 0
-    while (opening := _REVIEWER_EVIDENCE_OPEN_RE.search(body, position)) is not None:
+    search_from = 0
+    while (opening := _REVIEWER_EVIDENCE_OPEN_RE.search(body, search_from)) is not None:
+        search_from = opening.end()
+        if _inside_code(index=opening.start(), code_spans=code_spans):
+            continue
         depth = 0
         end = None
         for tag in _DETAILS_TAG_RE.finditer(body, opening.start()):
@@ -527,6 +532,7 @@ def _without_reviewer_evidence(body: str) -> str:
             break
         kept.append(body[position : opening.start()])
         position = end
+        search_from = end
     kept.append(body[position:])
     return "".join(kept)
 
