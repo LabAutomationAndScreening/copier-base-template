@@ -8,7 +8,8 @@ The verifier reads a thread anyone with access to the PR can reply in, and the p
 as `git push` without asking, so text in the thread could talk it into one. Its instructions say to treat that text as
 data; this hook enforces the worst of it. It is a deny-list on purpose: a review agent needs commands nobody listed in
 advance, so everything not named here runs. Blocked, in any piece of a command (split on `;`, `&&`, `||`, `|`, `&`,
-newlines, `$(` and backticks, double-quoted ones included, and through `env`, `xargs`, `sh -c` and `eval`):
+newlines, `$(` and backticks, double-quoted ones included, and through the wrappers `env`, `xargs`, `timeout`, `sudo`, `nice`, `nohup`, `command`,
+`exec` and `time`, a shell's `-c` (`-lc` too) and `eval`):
 
 - git commands that change a repo or its remote: push, commit, merge, rebase, reset, checkout, switch, restore,
   cherry-pick, revert, tag, stash, clean, rm, mv, add, apply, am, worktree, update-ref, notes, gc; `branch` deleting or
@@ -16,6 +17,8 @@ newlines, `$(` and backticks, double-quoted ones included, and through `env`, `x
 - gh commands that write: pr and issue changes, release, repo, workflow and run changes, and `gh api` with a method
   other than GET or with fields or input.
 - rm and rmdir, and redirecting output into a file (`>/dev/null` and `2>&1` are fine).
+- a shell running a script file or stdin rather than `-c`, `source` and `.`, and `env -S`: the guard can't see what
+  they run.
 - a heredoc with an unquoted delimiter, or one that is never closed. A quoted heredoc's body (`<<'EOF'`) is data, such
   as a verdict's text, and isn't checked.
 
@@ -91,6 +94,58 @@ _GH_GROUP_READS = {
 _GH_API_FIELD_FLAGS = ("-f", "-F", "--field", "--raw-field", "--input")
 _SEPARATORS = frozenset({";", "&&", "||", "|", "&", "(", ")", "|&"})
 _REDIRECTS = frozenset({">", ">>", ">|", "&>", "&>>", ">&"})
+# wrappers that run the rest of their words as a command, each with its options that take the next word as their value
+_WRAPPER_OPTIONS_WITH_VALUE = {
+    "env": frozenset({"-u", "--unset", "-C", "--chdir"}),
+    "command": frozenset(),
+    "nohup": frozenset(),
+    "exec": frozenset({"-a"}),
+    "time": frozenset({"-f", "--format", "-o", "--output"}),
+    "nice": frozenset({"-n", "--adjustment"}),
+    "timeout": frozenset({"-s", "--signal", "-k", "--kill-after"}),
+    "xargs": frozenset(
+        {
+            "-n",
+            "--max-args",
+            "-I",
+            "-L",
+            "--max-lines",
+            "-P",
+            "--max-procs",
+            "-d",
+            "--delimiter",
+            "-s",
+            "--max-chars",
+            "-E",
+            "-a",
+            "--arg-file",
+        }
+    ),
+    "sudo": frozenset(
+        {
+            "-u",
+            "--user",
+            "-g",
+            "--group",
+            "-C",
+            "--close-from",
+            "-D",
+            "--chdir",
+            "-h",
+            "--host",
+            "-p",
+            "--prompt",
+            "-r",
+            "--role",
+            "-t",
+            "--type",
+            "-U",
+            "--other-user",
+        }
+    ),
+}
+_SHELLS = frozenset({"sh", "bash", "zsh", "dash", "ksh"})
+_SHELL_OPTIONS_WITH_VALUE = frozenset({"-o", "+o", "-O", "+O"})
 _ENV_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 # group 1 is `-` for `<<-`, which strips leading tabs; group 2 or 3 a quoted delimiter, group 4 an unquoted one
 _HEREDOC = re.compile(r"<<(-?)[ \t]*(?:'([^'\n]+)'|\"([^\"\n]+)\"|([^\s;&|<>()'\"]+))")
@@ -274,29 +329,64 @@ def _segments(text: str) -> list[list[str]]:
     return [segment for segment in segments if segment]
 
 
+def _past_options(args: list[str], *, wrapper: str) -> list[str]:
+    """Return a wrapper's arguments past its own options, skipping the value of each option that takes one."""
+    with_value = _WRAPPER_OPTIONS_WITH_VALUE[wrapper]
+    index = 0
+    while index < len(args):
+        word = args[index]
+        if word == "--":
+            return args[index + 1 :]
+        if not word.startswith("-"):
+            break
+        if wrapper == "env":
+            if word.startswith(("-S", "--split-string")):
+                raise BlockedError("`env -S` splits a string into a command the guard can't check")
+        if word in with_value:
+            index += 2
+            continue
+        index += 1
+    return args[index:]
+
+
 def _unwrapped(argv: list[str]) -> list[str]:
-    """Return the command a wrapper such as `env NAME=value`, `xargs` or `nohup` runs."""
+    """Return the command a wrapper such as `env NAME=value`, `xargs -n 1`, `timeout 5` or `sudo -u x` runs."""
     while argv:
         word = argv[0]
         if _ENV_ASSIGNMENT.match(word) is not None:
             argv = argv[1:]
             continue
-        if word == "env":
+        wrapper = word.rsplit("/", 1)[-1]
+        if wrapper not in _WRAPPER_OPTIONS_WITH_VALUE:
+            return argv
+        argv = _past_options(argv[1:], wrapper=wrapper)
+        if wrapper == "timeout":
+            # the duration comes before the command
             argv = argv[1:]
-            while argv and argv[0].startswith("-"):
-                # `env -u NAME` takes the name as its own word
-                if argv[0] == "-u":
-                    argv = argv[2:]
-                    continue
-                argv = argv[1:]
-            continue
-        if word in ("command", "nohup", "time", "xargs", "exec"):
-            argv = argv[1:]
-            while argv and argv[0].startswith("-"):
-                argv = argv[1:]
-            continue
-        return argv
     return argv
+
+
+def _shell_script(args: list[str]) -> str | None:
+    """Return the script a shell's `-c` runs (`-c`, `-lc`, `-ec`, …), or None when it runs a script file or stdin."""
+    runs_string = False
+    index = 0
+    while index < len(args):
+        word = args[index]
+        if word in _SHELL_OPTIONS_WITH_VALUE:
+            index += 2
+            continue
+        if word.startswith("--"):
+            index += 1
+            continue
+        if len(word) > 1 and word[0] in "-+":
+            if "c" in word[1:]:
+                runs_string = True
+            index += 1
+            continue
+        if runs_string:
+            return word
+        return None
+    return None
 
 
 def _git_subcommand(args: list[str]) -> list[str]:
@@ -422,12 +512,14 @@ def _check(argv: list[str]) -> None:
         return
     program = argv[0].rsplit("/", 1)[-1]
     args = argv[1:]
-    if program in ("sh", "bash", "zsh"):
-        if "-c" in args:
-            script_index = args.index("-c") + 1
-            if script_index < len(args):
-                _check_command(args[script_index])
+    if program in _SHELLS:
+        script = _shell_script(args)
+        if script is None:
+            raise BlockedError(f"`{program}` without -c runs a script file or stdin the guard can't check")
+        _check_command(script)
         return
+    if program in ("source", "."):
+        raise BlockedError(f"`{program}` runs a script file the guard can't check")
     if program == "eval":
         _check_command(" ".join(args))
         return
