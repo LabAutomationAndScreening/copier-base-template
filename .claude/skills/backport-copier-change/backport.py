@@ -453,20 +453,27 @@ def _install_claude_packages(checkout: Path) -> bool:
     return True
 
 
+def _add_worktree(*, source: Path, path: Path, branch: str, default: str) -> None:
+    if path.exists():
+        raise FailError(f"{path} already exists; reuse it or pick another --path")
+    if _has_ref(checkout=source, ref=f"refs/heads/{branch}"):
+        # resuming: the branch outlives a worktree whose directory went with an earlier session's scratchpad
+        _ = _git("worktree", "prune", cwd=source)
+        _ = _git("worktree", "add", str(path), branch, cwd=source)
+    elif _has_ref(checkout=source, ref=f"refs/remotes/origin/{branch}"):
+        # resuming in a fresh clone of the originating repo, such as a new devcontainer: the branch is only on origin
+        _ = _git("worktree", "add", "--track", "-b", branch, str(path), f"origin/{branch}", cwd=source)
+    else:
+        _ = _git("worktree", "add", "-b", branch, str(path), f"origin/{default}", cwd=source)
+
+
 def cmd_checkout(a: argparse.Namespace) -> dict[str, Any]:
     if a.worktree_of is not None:
         source = Path(a.worktree_of)
         path = Path(a.path)
         _ = _git("fetch", "--quiet", "origin", cwd=source)
         default = _default_branch(source)
-        if path.exists():
-            raise FailError(f"{path} already exists; reuse it or pick another --path")
-        if _has_ref(checkout=source, ref=f"refs/heads/{a.branch}"):
-            # resuming: the branch outlives a worktree whose directory went with an earlier session's scratchpad
-            _ = _git("worktree", "prune", cwd=source)
-            _ = _git("worktree", "add", str(path), a.branch, cwd=source)
-        else:
-            _ = _git("worktree", "add", "-b", a.branch, str(path), f"origin/{default}", cwd=source)
+        _add_worktree(source=source, path=path, branch=a.branch, default=default)
     else:
         path = Path(a.path)
         if path.exists():
