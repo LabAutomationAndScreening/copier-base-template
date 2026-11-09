@@ -37,19 +37,28 @@ BEFORE=$(git rev-parse HEAD)
 PARENT_FILES=$(mktemp)                        # outside the worktree, so the list can't clobber or join a commit
 gh pr diff <parent-pr> --name-only > "$PARENT_FILES"
 git fetch origin main
-git merge origin/main
+git merge --no-commit origin/main
 ```
 
 Conflicts are expected in files the parent touched where this layer edited the parent's lines: completed
 interim forms, moved code. The squash commit shares no ancestry with the dependent, so git sees two different
 changes to the same lines. The dependent's side is right, because it already holds the parent's final content.
+The same goes for lines git merges without a conflict: where this layer set a line back to its value from
+before the parent, the dependent matches the merge base there, so git quietly takes the squash's value.
 
-When every conflicted file (`git diff --name-only --diff-filter=U`) is listed in `$PARENT_FILES`, and
-`git log --oneline $(git merge-base "$BEFORE" origin/main)..origin/main -- $(cat "$PARENT_FILES")` shows only
-the parent's squash commit, take the shortcut: `git merge --abort && git merge -X ours origin/main`. Otherwise
-resolve by hand: the dependent's side for the parent-versus-dependent hunks, `main`'s side for anything else.
-Resolving picks between versions that already exist; the moment a hunk would need new code, stop and take it
-to the user as new work, which goes through the TDD flow named in the skill's principles.
+When `git log --oneline $(git merge-base "$BEFORE" origin/main)..origin/main -- $(cat "$PARENT_FILES")` shows
+only the parent's squash commit, take the shortcut: put back the dependent's version of every parent file the
+merge changed, which settles both kinds at once.
+
+```bash
+git diff -z --name-only "$BEFORE" -- $(cat "$PARENT_FILES") | xargs -0 -r git restore --source="$BEFORE" --staged --worktree --
+```
+
+Resolve any conflict left in other files by hand, then `git commit --no-edit`. Otherwise resolve by hand: the
+dependent's side for the parent-versus-dependent hunks, `main`'s side for anything else, and in each parent file
+put back any line of this layer's that the merge replaced without a conflict (`git diff "$BEFORE" -- <file>`
+shows them). Resolving picks between versions that already exist; the moment a hunk would need new code, stop
+and take it to the user as new work, which goes through the TDD flow named in the skill's principles.
 
 A conflict on an **independent sibling** is different: it is this layer against a layer it was never built on,
 and neither side alone is right. The big branch holds both, so resolve each hunk to the big branch's text,
@@ -102,11 +111,14 @@ Update the epic's status line too.
 
 - **The same interim spots conflict at every level.** Squash commits carry no ancestry, so each merge of `main`
   into a dependent re-raises them. Expected, not a sign of a bad carve.
-- **`-X ours` silently drops `main`'s unrelated changes inside conflicting hunks.** The condition in step 3 and
-  the checks in step 4 are what make it safe; skip neither.
-- **GitHub's "Update branch" button is this merge without `-X ours`.** It fails on the expected conflicts, and
-  when it succeeds the verification still has to run locally.
+- **The shortcut's restore silently drops anything else `main` changed in the parent's files.** The condition in
+  step 3 and the checks in step 4 are what make it safe; skip neither.
+- **A clean merge is not a correct one.** Where this layer set a parent's line back, git takes the squash's value
+  without a conflict. The shortcut puts it back; a hand resolution has to look for it.
+- **GitHub's "Update branch" button is this merge without the shortcut.** It fails on the expected conflicts,
+  and when it succeeds it may have taken the squash's value on such lines, so the verification still has to run
+  locally.
 - **Never rebase or force-push to clean up the duplicated commits.** The duplicated view disappears on its own
   once the merge lands, and the rewrite would break every commit link in the review.
-- **A dependent that lags its parent's tip** turns review fixes into conflicts that `-X ours` resolves the
+- **A dependent that lags its parent's tip** turns review fixes into conflicts that the shortcut resolves the
   wrong way. Step 2 exists for that.
