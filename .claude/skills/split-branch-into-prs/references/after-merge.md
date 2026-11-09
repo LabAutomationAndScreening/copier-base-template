@@ -100,8 +100,10 @@ convenient keeps them merged up for their own turn, and step 2 catches any that 
 
 Treat it as a dependent: the ancestry check, the merge, the shortcut under the same condition, the
 verification, a plain push. When the big PR is kept as the final layer, GitHub retargeted it to `main` if its
-base was the merged branch. After the merge, retarget it to the next top of the unmerged chain with
-`gh pr edit <big-pr> --base <top-layer-branch>`, keeping it a draft while its base is a layer branch. Once every
+base was the merged branch. After the merge, when the unmerged layers form one chain, retarget it to the top of
+that chain with `gh pr edit <big-pr> --base <top-layer-branch>`, keeping it a draft while its base is a layer
+branch; with several independent layers still open, leave its base on `main`, as in
+`.claude/skills/split-branch-into-prs/references/build-layer.md`. Once every
 other layer has merged, its base is `main`, its diff is the final layer, and it leaves draft when the user says
 so.
 
