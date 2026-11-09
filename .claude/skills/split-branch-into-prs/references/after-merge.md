@@ -34,7 +34,8 @@ squash holds.
 ```bash
 git switch <dependent-branch>
 BEFORE=$(git rev-parse HEAD)
-gh pr diff <parent-pr> --name-only > parent-files.txt
+PARENT_FILES=$(mktemp)                        # outside the worktree, so the list can't clobber or join a commit
+gh pr diff <parent-pr> --name-only > "$PARENT_FILES"
 git fetch origin main
 git merge origin/main
 ```
@@ -43,8 +44,8 @@ Conflicts are expected in files the parent touched where this layer edited the p
 interim forms, moved code. The squash commit shares no ancestry with the dependent, so git sees two different
 changes to the same lines. The dependent's side is right, because it already holds the parent's final content.
 
-When every conflicted file (`git diff --name-only --diff-filter=U`) is in `parent-files.txt`, and
-`git log --oneline $(git merge-base "$BEFORE" origin/main)..origin/main -- $(cat parent-files.txt)` shows only
+When every conflicted file (`git diff --name-only --diff-filter=U`) is listed in `$PARENT_FILES`, and
+`git log --oneline $(git merge-base "$BEFORE" origin/main)..origin/main -- $(cat "$PARENT_FILES")` shows only
 the parent's squash commit, take the shortcut: `git merge --abort && git merge -X ours origin/main`. Otherwise
 resolve by hand: the dependent's side for the parent-versus-dependent hunks, `main`'s side for anything else.
 Resolving picks between versions that already exist; the moment a hunk would need new code, stop and take it
@@ -57,9 +58,10 @@ then check that `git diff <big-branch> -- <file>` shows only changes belonging t
 ## 4. Verify
 
 ```bash
-git diff "$BEFORE" HEAD -- $(cat parent-files.txt)    # empty after the shortcut; after a hand resolution, only main's unrelated changes
+git diff "$BEFORE" HEAD -- $(cat "$PARENT_FILES")     # empty after the shortcut; after a hand resolution, only main's unrelated changes
 git diff "$BEFORE" HEAD --stat                        # anything else is what other PRs changed on main; usually nothing
 git diff origin/main...HEAD --stat                    # the PR's diff as GitHub will show it: this layer's files only
+rm "$PARENT_FILES"
 ```
 
 The PR's diff should match `git diff "$PARENT_TIP" "$BEFORE"` hunk for hunk, apart from context changed by
