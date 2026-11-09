@@ -61,8 +61,10 @@ shows them). Resolving picks between versions that already exist; the moment a h
 and take it to the user as new work, which goes through the TDD flow named in the skill's principles.
 
 A conflict on an **independent sibling** is different: it is this layer against a layer it was never built on,
-and neither side alone is right. The big branch holds both, so resolve each hunk to the big branch's text,
-then check that `git diff <big-branch> -- <file>` shows only changes belonging to layers not yet merged.
+and neither side alone is right. Resolve each hunk to `main`'s side plus this layer's own change. The big
+branch shows how the two combine, but do not copy its hunk: it may also hold a change of a third layer not
+yet merged. Then check that `git diff <big-branch> -- <file>` shows nothing but the changes of the other layers
+not yet merged, each one missing here.
 
 ## 4. Verify
 
