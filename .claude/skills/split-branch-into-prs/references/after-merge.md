@@ -55,7 +55,8 @@ git diff -z --name-only "$BEFORE" -- $(cat "$PARENT_FILES") | xargs -0 -r git re
 ```
 
 Resolve any conflict left in other files by hand, then `git commit --no-edit`. Otherwise resolve by hand: the
-dependent's side for the parent-versus-dependent hunks, `main`'s side for anything else, and in each parent file
+dependent's side for the parent-versus-dependent hunks, both changes where another PR on `main` met this layer's
+change (taking `main`'s side alone would drop this layer's), and in each parent file
 put back any line of this layer's that the merge replaced without a conflict (`git diff "$BEFORE" -- <file>`
 shows them). Resolving picks between versions that already exist; the moment a hunk would need new code, stop
 and take it to the user as new work, which goes through the TDD flow named in the skill's principles.
