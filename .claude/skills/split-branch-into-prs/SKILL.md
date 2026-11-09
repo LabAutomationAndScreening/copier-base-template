@@ -73,6 +73,9 @@ one, is not that go-ahead.
 
 ## Step 1: Survey the branch and the repository
 
+Every phase uses `<big-branch>` as a local branch. When it is not one yet (a PR you have not checked out),
+create it first with `git fetch origin <big-branch>:<big-branch>`.
+
 ```bash
 git fetch origin main
 git rev-parse <big-branch>                      # the tip this plan is made from; it goes into the epic
