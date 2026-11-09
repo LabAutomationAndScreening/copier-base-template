@@ -121,8 +121,10 @@ Resolve the second merge by hand, never with `-X ours`. A conflict at an interim
 version. A conflict anywhere else is a change only the layer has, such as a regeneration or lint fix on a line
 the big branch also changed: `-X ours` would drop it without a trace, and the merge would record the layer as
 an ancestor, so no later merge could bring it back. Each change only the layer has, conflicted or not, shows in
-the diff: either the carve is wrong, so fix the layer, or the change is wanted, so keep it and record it as a
-deviation on the layer's child. Push the big branch with a plain push; this is part of pushing the layer.
+the diff. An interim form that merged without a conflict, such as a stub where the big branch still has the
+base's text, shows there too: like a conflicted one, it takes the big branch's version, so put `$BEFORE`'s lines
+back before committing anything else. For every other change, either the carve is wrong, so fix the layer, or
+the change is wanted, so keep it and record it as a deviation on the layer's child. Push the big branch with a plain push; this is part of pushing the layer.
 
 When the big PR is kept as the final layer and the unmerged layers form one chain, retarget it to the top of
 that chain with `gh pr edit <big-pr> --base <top-layer-branch>` and mark it a draft while its base is a layer
