@@ -25,6 +25,11 @@ git switch -c <layer-branch> origin/main              # independent layer
 git switch -c <layer-branch> origin/<parent-branch>   # stacked layer, from the parent's current tip
 ```
 
+A stacked layer whose parents have all merged by the time it is built is built as an independent one: from
+`origin/main`, with `main` as its PR's base and the independent wording in its PR body. Its parents' squashes
+are already in `main`, and their branches are gone, or survive only as stale `origin/<parent-branch>` refs,
+since `git fetch` without `--prune` keeps them.
+
 Use the name the plan recorded. A name nested under the big branch's (`<big-branch>/<slug>`) cannot exist
 while `<big-branch>` does, so plans use `<big-branch>--<slug>` or a plain slug.
 
