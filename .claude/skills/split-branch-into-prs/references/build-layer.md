@@ -113,13 +113,15 @@ big branch, so it needs the same go-ahead as any other commit.
 git switch <big-branch>
 git merge origin/main           # first, so that the layer's merge below adds nothing but ancestry; resolve any conflict by hand
 BEFORE=$(git rev-parse HEAD)
-git merge <layer-branch>        # conflicts only at the interim forms, where the big branch's version wins
-git diff "$BEFORE" HEAD         # must be empty: the big branch's tree is unchanged
+git merge <layer-branch>        # resolve any conflict by hand, as below
+git diff "$BEFORE" HEAD         # empty unless the layer holds something the big branch does not
 ```
 
-`git merge -X ours <layer-branch>` is acceptable for the second merge, because the layer was carved from this
-very tree and carries no review changes yet. If the diff is not empty, the layer holds something the big branch
-does not: either the carve is wrong, so fix the layer, or the change is wanted, so keep it and record it as a
+Resolve the second merge by hand, never with `-X ours`. A conflict at an interim form takes the big branch's
+version. A conflict anywhere else is a change only the layer has, such as a regeneration or lint fix on a line
+the big branch also changed: `-X ours` would drop it without a trace, and the merge would record the layer as
+an ancestor, so no later merge could bring it back. Each change only the layer has, conflicted or not, shows in
+the diff: either the carve is wrong, so fix the layer, or the change is wanted, so keep it and record it as a
 deviation on the layer's child. Push the big branch with a plain push; this is part of pushing the layer.
 
 When the big PR is kept as the final layer and the unmerged layers form one chain, retarget it to the top of
