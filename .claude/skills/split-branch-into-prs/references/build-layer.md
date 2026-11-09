@@ -40,6 +40,9 @@ while `<big-branch>` does, so plans use `<big-branch>--<slug>` or a plain slug.
   never moves any.
 - Write the interim forms the plan names, and leave the comments that name the layer completing them.
 - Run the layer's regeneration steps, and read the generated diff for rewrites of unrelated files.
+- Mark the files the layer adds with `git add --intent-to-add <paths>`. `git restore` writes only the working
+  tree, so a file the base lacks is otherwise untracked and missing from the diff below; `git status --short`
+  should then list no `??` file that belongs in the layer.
 - Then `git diff <base-of-this-layer>` (`origin/main` or the parent branch) and account for every hunk. A hunk
   that belongs to another layer rode in with a whole-file restore: a sibling's unmerged change has to be
   trimmed out, while a change the big branch picked up from an already merged or parent layer's review is
