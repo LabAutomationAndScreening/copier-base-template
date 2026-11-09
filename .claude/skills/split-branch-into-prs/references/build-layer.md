@@ -11,7 +11,11 @@ talking points. An independent layer is buildable from the start, and `bd ready`
 buildable as soon as its parent's notes record a pushed branch and an open PR, because the child is cut from
 the parent's tip and reviewed against it; `bd ready` lists it only once the parent closes, which is after the
 parent merges, so do not wait for that. A layer with several parents waits until at most one of them is
-unmerged, then stacks on that one.
+unmerged, then stacks on that one, once it holds what the others brought to `main`:
+`git merge-base --is-ancestor origin/main origin/<parent-branch>`. A parent built beside them fails that check
+until it is brought up to date the way
+`.claude/skills/split-branch-into-prs/references/after-merge.md` does for an independent sibling, which is a
+merge, its checks and a plain push on that layer, so it needs the same go-ahead as any of its commits.
 
 ## 2. Create the branch
 
