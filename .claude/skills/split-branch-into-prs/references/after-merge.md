@@ -79,6 +79,11 @@ The PR's diff should match `git diff "$PARENT_TIP" "$BEFORE"` hunk for hunk, apa
 unrelated commits on `main`. Nothing of this layer's own content may have moved, and nothing of the parent's
 may remain. Then rerun the layer's checks, since `main` may have changed around it.
 
+An **independent sibling** never held `$PARENT_TIP`, so its baseline is its own old base instead:
+`OLD_BASE=$(git merge-base "$BEFORE" origin/main)`, still the base from before this merge, since `$BEFORE`
+predates it. Its PR's diff should match `git diff "$OLD_BASE" "$BEFORE"` hunk for hunk, and the first check
+above shows the merged layer's changes to the parent's files there, not nothing.
+
 ## 5. Push and update the PR
 
 `git push`, plainly. The Files Changed tab is correct now; the Commits tab keeps listing the parent's commits,
