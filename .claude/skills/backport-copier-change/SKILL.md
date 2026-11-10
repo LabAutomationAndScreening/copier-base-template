@@ -164,6 +164,8 @@ Before asking, give:
   later);
 - the chain from the layer down, with each repo's visibility;
 - one branch name for every repo, describing the change;
+- that the release pass pauses each child PR's AI reviewer (for CodeRabbit, a
+  `@coderabbitai pause` comment) just before pushing its re-pin (Step 7.2);
 - for each downstream repo, whether `$BP behind --repo <repo>` says it needs a catch-up first.
 
 Then ask, in one AskUserQuestion call: the layer (the proposed one and its reasoning first,
