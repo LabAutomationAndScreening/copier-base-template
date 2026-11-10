@@ -358,7 +358,13 @@ top, one level at a time:
    the tag. Pass `--merge-only` for a repo with no tag-on-merge workflow (often a project).
 2. **Re-pin its children** as soon as a repo's tag lands: note the child's HEAD, copier-update
    with no `--ref`, then `net-diff --base <the noted sha>`. `only_commit_changed` must be true;
-   if not, stop and show the user what else changed. Then `push`, `ci`.
+   if not, stop and show the user what else changed. Then pause the child PR's AI reviewer,
+   since a re-pin that moves only `_commit` gives it nothing to review (for CodeRabbit, a
+   `@coderabbitai pause` comment, posted with pr-comments' Post). The plan approved in Step 2
+   covers these pause comments. Pause each PR just before its own push rather than the whole
+   level up front, so a plan change mid-stream leaves no paused PR to resume. Then `push`,
+   `ci`. The pre-merge check's `ai-review` then reports `head_not_reviewed`, which a
+   `_commit`-only change passes as minor.
 3. **Delete a template's branch** once every child of it is re-pinned and pushed:
    `$BP delete-branch --repo <template> --branch <branch> --checkout <its checkout> --chain <chain.json> --downstream <child checkout> --downstream <next child's checkout>`,
    one `--downstream` per child.
