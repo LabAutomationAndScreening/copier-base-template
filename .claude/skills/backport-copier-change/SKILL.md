@@ -362,7 +362,9 @@ top, one level at a time:
    with no `--ref`, then `net-diff --base <the noted sha>`. `only_commit_changed` must be true;
    if not, stop and show the user what else changed. Then pause the child PR's AI reviewer,
    since a re-pin that moves only `_commit` gives it nothing to review (for CodeRabbit, a
-   `@coderabbitai pause` comment, posted with pr-comments' Post). The plan approved in Step 2
+   `@coderabbitai pause` comment, posted with pr-comments' Post, then a wait for its "Reviews
+   paused." reply, which `read.py <pr> --all --include-bot-comments` lists, since a push that
+   reaches it first is still reviewed). The plan approved in Step 2
    covers these pause comments. Pause each PR just before its own push rather than the whole
    level up front, so a plan change mid-stream leaves no paused PR to resume. Then `push`,
    `ci`. The pre-merge check's `ai-review` then reports `head_not_reviewed`, which a
