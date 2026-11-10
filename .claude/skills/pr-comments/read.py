@@ -9,6 +9,7 @@ Usage:
   read.py <pr_number> --needs-verification [--repo OWNER/NAME]   AI review findings with a reply awaiting a verdict
   read.py <pr_number> --thread <comment id> [--repo OWNER/NAME]  one thread or top-level comment, whatever its state
   read.py <pr_number> --all [--repo OWNER/NAME]                  resolved and addressed threads and comments too
+  read.py <pr_number> --all --include-bot-comments               AI reviewers' top-level comments too (or with --thread)
 
 Without --repo, the PR belongs to the current directory's origin remote. In place of --repo, --checkout PATH reads as
 if run from that checkout of another repo: the PR belongs to its origin remote, and `current_line` is worked out at its
@@ -67,7 +68,7 @@ bot's that has such a section; a bot's other review bodies only summarize its in
 
 Filtered out of the default output:
   - Resolved threads
-  - Bot summary/walkthrough comments
+  - AI reviewers' (CodeRabbit, Copilot) top-level comments: summaries, walkthroughs, chat replies
   - Threads whose most recent comment is by the current user (already addressed), unless that comment is an AI
     review finding or a verdict disputing the reply to one
   - Top-level PR comments authored by the current user, unless they are an AI review finding
@@ -76,8 +77,11 @@ Filtered out of the default output:
   - Review bodies the current user has replied to (via post.py, likewise)
 
 `--all` brings back resolved and addressed threads and top-level comments, each with the `resolved` and `open` flags
-that say where it stands, so the caller can tell three resolved threads from none at all. Bot summary comments and
-the current user's own top-level comments stay out: a reply the user posted appears under the comment it answers.
+that say where it stands, so the caller can tell three resolved threads from none at all. AI reviewers' top-level
+comments and the current user's own top-level comments stay out: a reply the user posted appears under the comment it
+answers. `--include-bot-comments` lists AI reviewers' top-level comments as well, with `--all` or `--thread`, so a
+caller can confirm that a reviewer acted on a command (CodeRabbit's "Reviews paused.", say). They are never `open`:
+there is nothing to answer.
 """
 
 import argparse
@@ -369,8 +373,10 @@ def _marked_replies(
     return replies
 
 
-def _all_flat_issues(issues_raw: list[dict[str, Any]], current_user: str) -> list[dict[str, Any]]:
-    """Project top-level PR comments, leaving out bot summaries and the current user's own comments.
+def _all_flat_issues(
+    issues_raw: list[dict[str, Any]], current_user: str, *, include_bot_comments: bool
+) -> list[dict[str, Any]]:
+    """Project top-level PR comments, leaving out the current user's own and, unless asked for, AI reviewers'.
 
     The current user's AI review findings are kept: they are posted under that account but still await a response.
     Their replies and verdicts are attached to the comment they answer instead.
@@ -379,7 +385,8 @@ def _all_flat_issues(issues_raw: list[dict[str, Any]], current_user: str) -> lis
     flat: list[dict[str, Any]] = []
     for c in issues_raw:
         if is_bot_pr_body_comment(c):
-            continue
+            if not include_bot_comments:
+                continue
         ai_review = parse_ai_review_finding(c["body"])
         if _login_from_comment(c) == current_user and ai_review is None:
             continue
@@ -502,7 +509,9 @@ def _with_ai_review(
     return projected
 
 
-def fetch(*, owner: str, repo: str, pr_number: int, current_user: str) -> list[dict[str, Any]]:
+def fetch(
+    *, owner: str, repo: str, pr_number: int, current_user: str, include_bot_comments: bool
+) -> list[dict[str, Any]]:
     """Return every thread and top-level comment on the PR, each marked with whether it is actionable (`open`)."""
     # GitHub exposes two separate comment APIs for pull requests:
     #
@@ -527,10 +536,12 @@ def fetch(*, owner: str, repo: str, pr_number: int, current_user: str) -> list[d
 
     everything = (
         _all_pulls_threads(pulls_raw, resolved_urls)
-        + _all_flat_issues(issues_raw, current_user)
+        + _all_flat_issues(issues_raw, current_user, include_bot_comments=include_bot_comments)
         + _all_review_bodies(reviews_raw=reviews_raw, issues_raw=issues_raw, current_user=current_user)
     )
     open_ids = {e["id"] for e in everything if not e["resolved"] and not _addressed_by_current_user(e, current_user)}
+    # an AI reviewer's top-level comment is a summary or an acknowledgement, with nothing to answer
+    open_ids -= {c["id"] for c in issues_raw if is_bot_pr_body_comment(c)}
     combined = _with_ai_review(
         everything,
         open_ids=open_ids,
@@ -574,6 +585,11 @@ def main() -> None:
         action="store_true",
         help="list resolved and addressed threads and comments too, with their flags",
     )
+    _ = parser.add_argument(
+        "--include-bot-comments",
+        action="store_true",
+        help="with --all or --thread, also list AI reviewers' top-level comments (summaries, chat replies); never open",
+    )
     add_repo_arguments(parser)
     args = parser.parse_args()
     enter_checkout(args.checkout)
@@ -590,7 +606,13 @@ def main() -> None:
     try:
         current_user = fetch_current_user_login()
         comments = select(
-            fetch(owner=owner, repo=repo, pr_number=pr_number, current_user=current_user),
+            fetch(
+                owner=owner,
+                repo=repo,
+                pr_number=pr_number,
+                current_user=current_user,
+                include_bot_comments=args.include_bot_comments,
+            ),
             all_entries=args.all,
             needs_verification=args.needs_verification,
             thread_id=args.thread,
