@@ -1,7 +1,7 @@
 ---
 name: pr-comments
-description: Reads a GitHub PR's review threads and top-level comments as JSON, and posts a reply in a thread or a new top-level comment with the AI attribution footer, on this repo or any other the stored gh login reaches. The scripts other skills and agents use for PR comments.
-when_to_use: /pr-comments, "what's open on PR N", "read the review threads on PR N", "what did the reviewer say", "reply on that thread", "answer the reviewer", or any skill or agent that needs a PR's comments or has to reply to one, in this repo or another.
+description: Reads a GitHub PR's review threads and top-level comments as JSON, and posts a reply in a thread, a new review thread on a line of the PR's diff, or a new top-level comment with the AI attribution footer, on this repo or any other the stored gh login reaches. The scripts other skills and agents use for PR comments.
+when_to_use: /pr-comments, "what's open on PR N", "read the review threads on PR N", "what did the reviewer say", "reply on that thread", "answer the reviewer", "comment on that line of the PR", or any skill or agent that needs a PR's comments or has to reply to one or leave a note on its code, in this repo or another.
 user-invocable: true
 allowed-tools: Bash(.claude/skills/pr-comments/read.py *), Read, Write, AskUserQuestion
 argument-hint: "<pr number> [--repo OWNER/NAME]"
@@ -84,12 +84,21 @@ itself, one decision per comment.
 ```bash
 .claude/skills/pr-comments/post.py --pr <n> --comment-id <id> --comment-type <pulls/comments|issues/comments|pulls/reviews> --body-file <file> [--repo OWNER/NAME] [--commit <full sha>]
 .claude/skills/pr-comments/post.py --pr <n> --body-file <file> [--repo OWNER/NAME] [--commit <full sha>]   # a new top-level comment
+.claude/skills/pr-comments/post.py --pr <n> --path <file> [--line <line>] --body-file <file> [--checkout <path>] [--commit <full sha>]   # a new review thread
 ```
 
 Replies in the inline thread or, since GitHub has no threads for top-level comments or review
 bodies, posts a new top-level comment marked as answering `--comment-id`. Without `--comment-id` and
 `--comment-type`, it posts a new top-level comment that answers nothing, such as asking a reviewer
-for a review. It appends the AI attribution footer
+for a review. With `--path`, it starts a new review thread on that file instead: on `--line` as the
+file is at the PR's head, or on the whole file without `--line`. GitHub takes a line comment only
+inside the PR's diff hunks (changed lines and the 3 lines of context around them), so a line outside
+them, or a file the PR doesn't change, is refused before anything is posted. Checking that reads the
+diff from git, so `--path` runs from a checkout of the PR's repo (the current directory, or
+`--checkout`), never with `--repo`. Use it for a note a reviewer should see beside the code, such as
+pointing out code that a later PR completes; an AI review finding goes through the
+post-review-findings skill instead, whose marker makes `/address-pr-comments` wait for a reply to it.
+It appends the AI attribution footer
 to the file when that isn't already its last line (never write the footer yourself), prints
 `Posted: <url>` followed by the body as it was posted (links filled, footer included), so what
 went out can be checked there rather than by reading the thread back, and deletes the file, so a

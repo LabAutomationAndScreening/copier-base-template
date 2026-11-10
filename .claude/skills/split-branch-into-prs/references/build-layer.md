@@ -94,13 +94,12 @@ for CodeRabbit with a `@coderabbitai review` comment, or tell the user none will
 
 ## 8. Point out the interim spots
 
-Post one review with the `COMMENT` event and one inline comment per spot. Use the repository's comment-posting
-skill when it has one (`post-review-findings` posts a review of inline comments; `pr-comments` posts replies and
-top-level comments), so the attribution conventions hold. Without one:
-
-- set `commit_id` to the PR's head SHA, and give each comment `path`, `line` and `side: RIGHT`;
-- post with `gh api --method POST repos/<owner>/<repo>/pulls/<n>/reviews --input review.json`;
-- confirm the anchoring with `gh api repos/<owner>/<repo>/pulls/<n>/comments`.
+Start one review thread per spot with the **pr-comments** skill's Post, so the attribution conventions hold:
+`post.py --pr <n> --path <file> --line <line> --body-file <file>`, one body file per spot. Draft them all, then get
+every draft approved in one question that shows each one's text, path and line. `post.py` anchors each thread to the
+PR's head and refuses a line outside the diff's hunks; give a spot that can't take a line comment a file-level
+thread (no `--line`). Not through post-review-findings: its marker turns each note into an AI review finding, which
+`/address-pr-comments` then waits for a reply to and has verified.
 
 ## 9. Fold the layer back into the big branch
 

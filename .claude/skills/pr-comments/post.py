@@ -19,7 +19,16 @@ Usage:
   # the same way:
   post.py --pr <number> --comment-id <review id> --comment-type pulls/reviews --body-file <path> [--repo OWNER/NAME]
 
---comment-id and --comment-type go together: both to answer a comment, neither for a new top-level comment.
+  # Start a new review thread on a line of the PR's diff, or with no --line on the whole file:
+  post.py --pr <number> --path <file> [--line <line>] --body-file <path> [--checkout PATH]
+
+--comment-id and --comment-type go together: both to answer a comment, neither for a new comment.
+
+A new thread sits on the PR's head commit, and --line is a line of the file as it is there, on the new side of the
+diff. GitHub only takes a line comment inside the PR's diff hunks (the changed lines and the 3 lines of context around
+them), so a line outside them, or a path the PR doesn't change, is refused before anything is posted. Checking that
+reads the diff from git, so a new thread is started from a checkout of the PR's repo (the current directory, or
+--checkout), never with --repo.
 
 Every form takes --commit <full sha>, which fills each [COMMIT LINK] in the body file with a markdown link to that
 commit as it appears in the PR, the form GitHub associates with the PR. A commit that isn't one of the PR's pushed
@@ -49,13 +58,16 @@ import json
 import re
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils import COMMIT_LINK_PLACEHOLDER
 from utils import GH_TIMEOUT_SECONDS
 from utils import add_repo_arguments
+from utils import commentable_lines
 from utils import count_commit_link_placeholders
+from utils import ensure_commit
 from utils import enter_checkout
 from utils import fill_commit_link_placeholders
 from utils import gh_rest
@@ -167,11 +179,14 @@ def _write_body_file(body_file: Path, content: str) -> None:
         sys.exit(1)
 
 
-def _post(*, endpoint: str, body: str, body_file: Path) -> None:
+def _post(
+    *, endpoint: str, body: str, body_file: Path, fields: dict[str, str] | None = None, line: int | None = None
+) -> None:
     """POST the reply with gh api, print its URL and the body as posted, then delete the body file it came from.
 
     body is the body file's content plus the reply marker, which is never written to the file, so a failed post can be
-    retried without markers piling up. The body is printed after the URL because the file is gone once
+    retried without markers piling up. fields are the other string fields the endpoint takes (where a new thread sits),
+    and line its line number, sent as a number rather than a string. The body is printed after the URL because the file is gone once
     the post succeeds, and what went out (the filled links, the footer) is what the user approved only if the fill
     behaved; printing it makes that visible without a read of the thread.
 
@@ -180,10 +195,15 @@ def _post(*, endpoint: str, body: str, body_file: Path) -> None:
     posted and the body file is still deleted (otherwise a retry would post a duplicate). A failure to delete the body
     file only warns.
     """
+    args = ["gh", "api", endpoint, "--method", "POST", "--raw-field", f"body={body}"]
+    if fields is not None:
+        for name, value in fields.items():
+            args += ["--raw-field", f"{name}={value}"]
+    if line is not None:
+        # --field sends a number as a number; GitHub rejects a line given as a string
+        args += ["--field", f"line={line}"]
     try:
-        result = gh_run(
-            ["gh", "api", endpoint, "--method", "POST", "--raw-field", f"body={body}"], timeout=GH_TIMEOUT_SECONDS
-        )
+        result = gh_run(args, timeout=GH_TIMEOUT_SECONDS)
     except subprocess.CalledProcessError as e:
         _ = sys.stderr.write(f"gh api error: {e.stderr}\n")
         sys.exit(1)
@@ -208,7 +228,42 @@ def _post(*, endpoint: str, body: str, body_file: Path) -> None:
         _ = sys.stderr.write(f"Warning: post succeeded but could not delete body file {body_file}: {e}\n")
 
 
-def main() -> None:
+def _new_thread_fields(*, owner: str, repo: str, pr: int, path: str, line: int | None) -> dict[str, str]:
+    """Return where a new review thread sits: the PR's head commit, the path, and for a file-level one its subject type.
+
+    Exits with status 1, posting nothing, when the PR's commits can't be read, when the PR doesn't change the path, or
+    when the line is outside the PR's diff hunks at its head, since GitHub would refuse the comment there.
+    """
+    try:
+        pull_request = gh_rest("api", f"repos/{owner}/{repo}/pulls/{pr}")
+    except subprocess.CalledProcessError as e:
+        _ = sys.stderr.write(f"Cannot read PR #{pr}: {e.stderr}\n")
+        sys.exit(1)
+    try:
+        head = ensure_commit(pull_request["head"]["sha"])
+        base = ensure_commit(pull_request["base"]["sha"])
+        commentable = commentable_lines(base=base, anchor=head)
+    except RuntimeError as e:
+        _ = sys.stderr.write(f"Cannot read PR #{pr}'s diff from this checkout: {e}\n")
+        sys.exit(1)
+    if path not in commentable:
+        _ = sys.stderr.write(
+            f"{path} is not part of PR #{pr}'s diff, so no review thread can start on it; post a top-level comment"
+            " instead (leave out --path).\n"
+        )
+        sys.exit(1)
+    if line is None:
+        return {"commit_id": head, "path": path, "subject_type": "file"}
+    if line not in commentable[path]:
+        _ = sys.stderr.write(
+            f"{path}:{line} at PR #{pr}'s head {head[:7]} is outside the PR's diff hunks, so GitHub won't take a comment"
+            " there; pick a line within 3 lines of a change, or leave out --line to comment on the whole file.\n"
+        )
+        sys.exit(1)
+    return {"commit_id": head, "path": path, "side": "RIGHT"}
+
+
+def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     _ = parser.add_argument("--comment-id", default=None, type=int, help="the comment this answers")
     _ = parser.add_argument(
@@ -216,6 +271,15 @@ def main() -> None:
         default=None,
         choices=["pulls/comments", "issues/comments", "pulls/reviews"],
         help="the answered comment's type",
+    )
+    _ = parser.add_argument(
+        "--path", default=None, help="start a new review thread on this file, one the PR changes, instead of replying"
+    )
+    _ = parser.add_argument(
+        "--line",
+        default=None,
+        type=int,
+        help="with --path: the line, at the PR's head, the new thread sits on; without it the thread is on the file",
     )
     _ = parser.add_argument("--body-file", required=True, type=Path)
     _ = parser.add_argument("--pr", type=int, required=True, help="PR number")
@@ -229,36 +293,88 @@ def main() -> None:
     args = parser.parse_args()
     if (args.comment_id is None) != (args.comment_type is None):
         parser.error("--comment-id and --comment-type go together: both to answer a comment, neither for a new one")
+    if args.line is not None:
+        if args.path is None:
+            parser.error("--line needs --path: it is a line of the file the new thread starts on")
+    if args.path is not None:
+        if args.comment_id is not None:
+            parser.error("--path starts a new thread, so it can't also answer --comment-id")
+        if args.repo is not None:
+            parser.error(
+                "--path checks the line against the PR's diff in git, so run it from a checkout (or --checkout)"
+            )
+    return args
+
+
+@dataclass(frozen=True)
+class _Destination:
+    endpoint: str
+    # a marker after the body, saying which comment a new top-level comment answers
+    body_suffix: str
+    # where a new review thread sits, for a comment that starts one
+    thread_fields: dict[str, str] | None
+
+
+def _destination(*, args: argparse.Namespace, owner: str, repo: str) -> _Destination:
+    if args.path is not None:
+        return _Destination(
+            endpoint=f"repos/{owner}/{repo}/pulls/{args.pr}/comments",
+            body_suffix="",
+            thread_fields=_new_thread_fields(owner=owner, repo=repo, pr=args.pr, path=args.path, line=args.line),
+        )
+    if args.comment_type is None:
+        return _Destination(
+            endpoint=f"repos/{owner}/{repo}/issues/{args.pr}/comments", body_suffix="", thread_fields=None
+        )
+    if args.comment_type == "pulls/comments":
+        # Reply directly into the inline review comment thread.
+        return _Destination(
+            endpoint=f"repos/{owner}/{repo}/pulls/{args.pr}/comments/{args.comment_id}/replies",
+            body_suffix="",
+            thread_fields=None,
+        )
+    if args.comment_type == "pulls/reviews":
+        # A review's own body has no thread either, so the answer is a new top-level comment, marked likewise.
+        return _Destination(
+            endpoint=f"repos/{owner}/{repo}/issues/{args.pr}/comments",
+            body_suffix=f"\n{review_reply_marker(args.comment_id)}\n",
+            thread_fields=None,
+        )
+    # GitHub has no "reply" concept for issue comments — post a new top-level comment, marked so that
+    # read.py knows which comment it answers.
+    return _Destination(
+        endpoint=f"repos/{owner}/{repo}/issues/{args.pr}/comments",
+        body_suffix=f"\n{issue_comment_reply_marker(args.comment_id)}\n",
+        thread_fields=None,
+    )
+
+
+def main() -> None:
+    args = _parse_args()
     body_file = args.body_file.resolve()
     enter_checkout(args.checkout)
 
     owner, repo = owner_and_repo(repo=args.repo)
     link = _commit_link(args.commit, owner=owner, repo=repo, pr=args.pr)
     content = _with_reply_footer(_with_commit_link(_read_body_file(body_file), body_file=body_file, link=link))
-
-    if args.comment_type is None:
-        endpoint = f"repos/{owner}/{repo}/issues/{args.pr}/comments"
-        body_suffix = ""
-    elif args.comment_type == "pulls/comments":
-        # Reply directly into the inline review comment thread.
-        endpoint = f"repos/{owner}/{repo}/pulls/{args.pr}/comments/{args.comment_id}/replies"
-        body_suffix = ""
-    elif args.comment_type == "pulls/reviews":
-        # A review's own body has no thread either, so the answer is a new top-level comment, marked likewise.
-        endpoint = f"repos/{owner}/{repo}/issues/{args.pr}/comments"
-        body_suffix = f"\n{review_reply_marker(args.comment_id)}\n"
-    else:
-        # GitHub has no "reply" concept for issue comments — post a new top-level comment, marked so that
-        # read.py knows which comment it answers.
-        endpoint = f"repos/{owner}/{repo}/issues/{args.pr}/comments"
-        body_suffix = f"\n{issue_comment_reply_marker(args.comment_id)}\n"
+    destination = _destination(args=args, owner=owner, repo=repo)
 
     if args.check:
-        _ = sys.stdout.write(f"Would post to {endpoint}:\n{content}{body_suffix}")
+        where = destination.endpoint
+        if destination.thread_fields is not None:
+            location = args.path if args.line is None else f"{args.path}:{args.line}"
+            where = f"{where}, as a new thread on {location} at {destination.thread_fields['commit_id'][:7]}"
+        _ = sys.stdout.write(f"Would post to {where}:\n{content}{destination.body_suffix}")
         return
     # the file keeps the filled link and the footer, so a failed post can be retried with the same arguments
     _write_body_file(body_file, content)
-    _post(endpoint=endpoint, body=content + body_suffix, body_file=body_file)
+    _post(
+        endpoint=destination.endpoint,
+        body=content + destination.body_suffix,
+        body_file=body_file,
+        fields=destination.thread_fields,
+        line=args.line,
+    )
 
 
 if __name__ == "__main__":
