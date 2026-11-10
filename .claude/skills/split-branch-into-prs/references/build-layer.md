@@ -114,7 +114,7 @@ git switch <big-branch>
 git merge origin/main           # first, so that the layer's merge below adds nothing but ancestry; resolve any conflict by hand
 BEFORE=$(git rev-parse HEAD)
 git merge --no-ff --no-commit <layer-branch>   # stops before committing even when clean; resolve any conflict by hand, as below
-git diff "$BEFORE"              # the merge as it will be committed: empty unless the layer holds something the big branch does not
+git diff "$BEFORE"              # the merge in the working tree: empty unless the layer holds something the big branch does not
 ```
 
 Resolve the second merge by hand, never with `-X ours`. A conflict at an interim form takes the big branch's
@@ -124,9 +124,11 @@ an ancestor, so no later merge could bring it back. Each change only the layer h
 the diff. An interim form that merged without a conflict, such as a stub where the big branch still has the
 base's text, shows there too: like a conflicted one, it takes the big branch's version, so put `$BEFORE`'s lines
 back. For every other change, either the carve is wrong, so fix the layer, or the change is wanted, so keep it
-and record it as a deviation on the layer's child. Once `git diff "$BEFORE"` shows only the kept changes, commit
-the merge with `git commit --no-edit`: the restored lines are part of the merge commit, so the push carries them.
-Push the big branch with a plain push; this is part of pushing the layer.
+and record it as a deviation on the layer's child. Stage every resolved or restored file with `git add`: the commit
+takes the index, not the working tree, so a restore left unstaged would commit the interim form while
+`git diff "$BEFORE"` looks right. Once `git diff --cached "$BEFORE"` shows only the kept changes and `git diff`
+shows nothing left unstaged, commit the merge with `git commit --no-edit`. Push the big branch with a plain push;
+this is part of pushing the layer.
 
 When the big PR is kept as the final layer and the unmerged layers form one chain, retarget it to the top of
 that chain with `gh pr edit <big-pr> --base <top-layer-branch>` and mark it a draft while its base is a layer
