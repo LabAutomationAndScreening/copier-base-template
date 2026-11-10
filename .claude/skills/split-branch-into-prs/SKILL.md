@@ -3,7 +3,7 @@ name: split-branch-into-prs
 description: Plans how to split one large feature branch into small PRs that each land on main on their own, stacked on another layer only where the code cannot build or pass its tests without it, records the plan as a beads epic, and then guides building each layer and bringing the rest up to date after each merge. Use this whenever a branch or PR has grown too big to review in one piece, a reviewer balks at a PR's size, or the user wants to land work in pieces or talks about stacked PRs, even when they never say "split".
 when_to_use: /split-branch-into-prs, "break this branch up", "split this PR", "this PR is too big", "carve a PR off this branch", "land this in pieces", "stacked PRs", a reviewer asking for smaller PRs, or a later session that builds one layer of a planned split or restacks after a layer merged.
 user-invocable: true
-allowed-tools: Bash(git fetch *), Bash(git merge-base *), Bash(git diff *), Bash(git log *), Bash(git show *), Bash(git rev-parse *), Bash(git status *), Bash(git switch *), Bash(git restore *), Bash(gh pr list *), Bash(gh pr view *), Bash(gh pr diff *), Bash(gh pr checks *), Bash(gh repo view *), Bash(bd *), Read, Write, Edit, Grep, Glob, AskUserQuestion
+allowed-tools: Bash(git fetch *), Bash(git merge-base *), Bash(git merge-tree *), Bash(git diff *), Bash(git log *), Bash(git show *), Bash(git rev-parse *), Bash(git status *), Bash(git switch *), Bash(git restore *), Bash(gh pr list *), Bash(gh pr view *), Bash(gh pr diff *), Bash(gh pr checks *), Bash(gh repo view *), Bash(bd *), Read, Write, Edit, Grep, Glob, AskUserQuestion
 argument-hint: "<big-branch> [--base <branch>]"
 ---
 
@@ -80,8 +80,9 @@ create it first with `git fetch origin <big-branch>:<big-branch>`.
 git fetch origin main
 git rev-parse <big-branch>                      # the tip this plan is made from; it goes into the epic
 git merge-base origin/main <big-branch>
-git diff --stat origin/main...<big-branch>
-git diff --name-status origin/main...<big-branch>
+MERGED=$(git merge-tree --write-tree origin/main <big-branch> | head -1)   # main with the branch merged in, committed nowhere
+git diff --stat origin/main "$MERGED"
+git diff --name-status origin/main "$MERGED"
 git log --reverse --format='%h %s' origin/main..<big-branch>
 gh pr list --head <big-branch> --state all      # an existing PR the split will shrink or replace?
 gh pr checks <existing-pr>                      # is the branch's final state green?
@@ -119,8 +120,11 @@ Then read:
   version of something: `git show <sha>:<path>`. A shape that was once committed and coherent is the best
   interim form to reuse.
 - **Commits already landed.** A commit in the log may already be in `main` by content, squashed through an
-  earlier PR. `git merge-base --is-ancestor <sha> origin/main` tells whether the commit itself is; the
-  three-dot diff tells what remains. Plan from the diff, and use the log only as the map.
+  earlier PR. `git merge-base --is-ancestor <sha> origin/main` tells whether the commit itself is. The
+  three-dot diff (`origin/main...<big-branch>`) would still show that commit's change, because it starts at the
+  merge base, from before the squash; the diff against `$MERGED` leaves out whatever `main` already holds, so it
+  is what remains. `git merge-tree` exits 1 when `main` and the branch conflict, and still writes the tree,
+  with conflict markers in the files that conflict. Plan from that diff, and use the log only as the map.
 
 ## Step 2: List the constraints that shape the slicing
 
