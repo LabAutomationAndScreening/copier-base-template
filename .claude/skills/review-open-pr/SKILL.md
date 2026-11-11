@@ -159,7 +159,8 @@ Write `<brief>` with facts only, each with its source (a bead ID, a commit, a pa
 
 `/code-review` reads the session's working directory, uncommitted changes included. So the review runs in the
 worktree from Step 1, which nothing else touches while it runs: enter it with EnterWorktree, passing its `path`.
-While the session is in the worktree, Claude Code refuses
+If the worktree can't be entered, stop rather than review from anywhere else. While the session is in the
+worktree, Claude Code refuses
 git commands aimed at another checkout, so leave it (ExitWorktree, `keep`) as soon as the review reports, before
 Step 4.
 
