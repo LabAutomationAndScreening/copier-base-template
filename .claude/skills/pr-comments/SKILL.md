@@ -18,7 +18,8 @@ repo's PR needs a stored login: if `gh auth status` shows none, ask the user to 
 `--repo OWNER/NAME` names the PR's repo; without it, the current directory's `origin` remote.
 In place of `--repo`, `--checkout <path>` runs as if from that clone of another repo: the PR
 belongs to its `origin` remote, and `read.py` works out `current_line` at its HEAD. A file path
-you pass still resolves against the directory you run in.
+you pass still resolves against the directory you run in, except `post.py --path`, which names a file
+in the PR's repo, relative to its root.
 
 ## Read
 
@@ -90,7 +91,8 @@ itself, one decision per comment.
 Replies in the inline thread or, since GitHub has no threads for top-level comments or review
 bodies, posts a new top-level comment marked as answering `--comment-id`. Without `--comment-id` and
 `--comment-type`, it posts a new top-level comment that answers nothing, such as asking a reviewer
-for a review. With `--path`, it starts a new review thread on that file instead: on `--line` as the
+for a review. With `--path`, a path relative to the root of the PR's repo (as GitHub lists the
+PR's files, wherever you run from), it starts a new review thread on that file instead: on `--line` as the
 file is at the PR's head, or on the whole file without `--line`. GitHub takes a line comment only
 inside the PR's diff hunks (changed lines and the 3 lines of context around them), so a line outside
 them, or a file the PR doesn't change, is refused before anything is posted. Checking that reads the

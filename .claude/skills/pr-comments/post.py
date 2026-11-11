@@ -38,7 +38,8 @@ as written.
 
 Without --repo, the PR belongs to the current directory's origin remote. In place of --repo, --checkout PATH posts as
 if run from that checkout of another repo, whose origin remote the PR belongs to; --body-file still resolves against
-the directory this runs in, as every path argument of these scripts does. gh prefers the login `gh auth login` stored,
+the directory this runs in, as every path argument of these scripts does except --path, which is relative to the root
+of the PR's repo. gh prefers the login `gh auth login` stored,
 which reaches every repo the user can, over a codespace's repo-scoped GITHUB_TOKEN; with no stored login it uses the
 environment's GH_TOKEN or GITHUB_TOKEN.
 
@@ -281,7 +282,10 @@ def _parse_args() -> argparse.Namespace:
         help="the answered comment's type",
     )
     _ = parser.add_argument(
-        "--path", default=None, help="start a new review thread on this file, one the PR changes, instead of replying"
+        "--path",
+        default=None,
+        help="start a new review thread on this file, one the PR changes, given relative to the root of the PR's repo,"
+        " instead of replying",
     )
     _ = parser.add_argument(
         "--line",
