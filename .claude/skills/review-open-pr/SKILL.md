@@ -39,7 +39,7 @@ collects every finding the reviewer had, and posts them all on the PR as one rev
 - **PR**: the remaining argument, else the PR for the current branch.
 
 ```bash
-gh pr view [<pr>] --json number,title,url,state,isDraft,body,baseRefName,headRefName,headRefOid,isCrossRepository,author
+gh pr view [<pr>] --json number,title,url,state,isDraft,body,baseRefName,baseRefOid,headRefName,headRefOid,isCrossRepository,author
 git fetch origin <baseRefName> pull/<number>/head
 ```
 
@@ -53,8 +53,8 @@ Entering the review's worktree (Step 3) loads the PR's own CLAUDE.md, AGENTS.md 
 session, and `/code-review` may run its code. When `isCrossRepository` is true (a PR from a fork), ask whether
 the user trusts the PR's author, and stop unless they do.
 
-The **reviewed commit** is `headRefOid`, and the **reviewed base** is `git rev-parse origin/<baseRefName>` after
-the fetch. Record both now: `/post-review-findings` needs the commit, and either may move while the review runs.
+The **reviewed commit** is `headRefOid`, and the **reviewed base** is `baseRefOid`. Record both now:
+`/post-review-findings` needs the commit, and either may move while the review runs.
 The review reads a worktree pinned to the reviewed commit (Step 3), so the user's checkout can be on any branch,
 with any changes.
 
@@ -132,7 +132,7 @@ Write `<brief>` with facts only, each with its source (a bead ID, a commit, a pa
 3. **Split context** (only for a layer): the big branch at its SHA; this layer's interim forms and spots;
    each upcoming layer and what it adds to the files this PR touches; how later code calls this PR's code.
 4. **How to use this brief**:
-   - Review the diff against `origin/<baseRefName>`, as it would land.
+   - Review the diff against the reviewed base, as it would land.
    - Don't report an interim form the plan names as a bug unless it is unsafe as merged on its own.
    - Do report what will break or misbehave once the upcoming layers land on top of this code, such as data
      this layer writes that a later layer's model can't read, or inputs later callers pass that this code
