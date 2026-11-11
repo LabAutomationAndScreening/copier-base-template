@@ -110,6 +110,12 @@ another repo's files from its checkout (Step 3) or a shallow clone in your scrat
 - **Never work on a default branch, and leave the originating repo's checkout alone:** read it,
   but don't edit or commit there, apart from Step 8's `update-branch`. Its part of the change
   happens in the Step 3 worktree.
+- **Symlinks.** These templates link most of `template/` and `template/template/` back to the
+  repo's own root copies, and copier renders each link as a regular file downstream. Before
+  editing, adding or comparing a file, check whether it or its parent is a link (`ls -l`,
+  `find <path> -type l`) and where it points: edit the target, add a new file as a link
+  matching its siblings, and remember one source can render to several downstream paths,
+  including a file a child keeps as its own copy.
 
 ## Resuming
 
@@ -150,7 +156,7 @@ consumers *all* need the change:
 - **A file no template manages yet:** the highest layer all of whose consumers need it.
 
 In the layer's repo the file may sit under `template/`, carry a `.jinja` suffix, or be a
-symlink to the repo's own copy: edit the real file.
+symlink to the repo's own copy (see Rules: Symlinks).
 
 ### Step 2: Confirm the plan
 
