@@ -61,15 +61,16 @@ notes, which name a parent PR, a split series or interim spots.
 ### Existing review threads
 
 Load the **pr-comments** skill (Skill tool) and follow its Read section, with `--all` so resolved and
-answered threads count too:
+answered threads count too, and `--include-bot-comments` so AI reviewers' top-level comments do as well:
 
 ```bash
-.claude/skills/pr-comments/read.py <pr> --all
+.claude/skills/pr-comments/read.py <pr> --all --include-bot-comments
 ```
 
 From it, note:
 - **Settled**: decisions made in replies, and findings that were answered, verified or resolved. The review
-  shouldn't raise these again.
+  shouldn't raise these again. An AI reviewer's top-level comment can settle one too, by accepting or refuting
+  an answer; its summaries and walkthroughs are not findings.
 - **Already raised**: open threads, from people or from AI reviewers such as CodeRabbit. A new finding that
   only repeats one adds nothing.
 - **Earlier AI review findings**: their `ai_review.finding_id` and `status`. `/post-review-findings` numbers
