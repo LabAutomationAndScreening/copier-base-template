@@ -39,12 +39,15 @@ collects every finding the reviewer had, and posts them all on the PR as one rev
 
 ```bash
 gh pr view [<pr>] --json number,title,url,state,isDraft,body,baseRefName,headRefName,headRefOid,author
-git fetch origin <baseRefName> <headRefName>
+git fetch origin <baseRefName> pull/<number>/head
 ```
 
+`pull/<number>/head` is the PR's head as GitHub keeps it on the base repo, so it is there even for a PR from a
+fork, whose branch `origin` doesn't have.
+
 Stop if the PR is not `OPEN`. `/code-review` reads the local checkout, so `git rev-parse HEAD` must equal
-`headRefOid`. If it doesn't, ask the user whether to switch to `<headRefName>` at `origin/<headRefName>`
-(only when `git status --porcelain` is empty) or stop. The **reviewed commit** is `headRefOid`. Record it now:
+`headRefOid`. If it doesn't, ask the user whether to switch to the PR's head by its SHA
+(`git switch --detach <headRefOid>`, only when `git status --porcelain` is empty) or stop. The **reviewed commit** is `headRefOid`. Record it now:
 `/post-review-findings` needs it, and the branch may move while the review runs.
 
 ## Step 2: Gather the context
