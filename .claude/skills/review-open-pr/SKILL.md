@@ -53,8 +53,8 @@ Entering the review's worktree (Step 3) loads the PR's own CLAUDE.md, AGENTS.md 
 session, and `/code-review` may run its code. When `isCrossRepository` is true (a PR from a fork), ask whether
 the user trusts the PR's author, and stop unless they do.
 
-The **reviewed commit** is `headRefOid`. Record it now: `/post-review-findings` needs it, and the branch may
-move while the review runs. The review reads a worktree pinned to it (Step 3), so the user's checkout can be on
+The **reviewed commit** is `headRefOid`, and the **reviewed base** is `git rev-parse origin/<baseRefName>` after
+the fetch. Record both now: `/post-review-findings` needs the commit, and either may move while the review runs. The review reads a worktree pinned to it (Step 3), so the user's checkout can be on
 any branch, with any changes.
 
 ## Step 2: Gather the context
@@ -211,7 +211,8 @@ is the agent's transcript. If the review instead reports its findings inline, wr
   and another about a later layer that depends on it. List the reviewer's refuted items under "checked and
   ruled out" in `summary`.
 - **Step 6**: the approval question also gives the number of set-aside findings added and the brief's
-  absolute path.
+  absolute path. If its `pr_base` isn't the reviewed base, say so and list the base's new commits
+  (`git log --oneline <reviewed base>..<pr_base>`), so the user can judge whether to review again first.
 
 The approval in its Step 6 is still the only thing that lets anything be posted.
 
