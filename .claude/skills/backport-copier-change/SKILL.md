@@ -116,7 +116,8 @@ another repo's files from its checkout (Step 3) or a shallow clone in your scrat
   (`ls -ld` on each path component) and where it points: edit the target (or, when only the linked copy
   should change, replace a file link with a regular file, or a directory link with a real
   directory holding the same entries, as an override the plan names), add a
-  new file as a link matching its siblings, and remember one source can render to several
+  new file as a link matching its siblings (or, under a linked directory, once in its target,
+  since both paths are then the same place), and remember one source can render to several
   downstream paths, including a file a child keeps as its own copy.
 
 ## Resuming
