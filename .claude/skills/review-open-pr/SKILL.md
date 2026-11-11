@@ -39,7 +39,7 @@ collects every finding the reviewer had, and posts them all on the PR as one rev
 - **PR**: the remaining argument, else the PR for the current branch.
 
 ```bash
-gh pr view [<pr>] --json number,title,url,state,isDraft,body,baseRefName,headRefName,headRefOid,author
+gh pr view [<pr>] --json number,title,url,state,isDraft,body,baseRefName,headRefName,headRefOid,isCrossRepository,author
 git fetch origin <baseRefName> pull/<number>/head
 ```
 
@@ -48,6 +48,10 @@ fork, whose branch `origin` doesn't have.
 
 Stop if the PR is not `OPEN`, or if `url` isn't a PR of the repo `origin` points to (`git remote get-url
 origin`): the fetch above and the pr-comments and post-review-findings scripts all work on `origin`.
+
+Entering the review's worktree (Step 3) loads the PR's own CLAUDE.md, AGENTS.md and `.claude/` skills into the
+session, and `/code-review` may run its code. When `isCrossRepository` is true (a PR from a fork), ask whether
+the user trusts the PR's author, and stop unless they do.
 
 The **reviewed commit** is `headRefOid`. Record it now: `/post-review-findings` needs it, and the branch may
 move while the review runs. The review reads a worktree pinned to it (Step 3), so the user's checkout can be on
