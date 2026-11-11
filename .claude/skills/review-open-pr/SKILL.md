@@ -99,7 +99,8 @@ From the beads, when they exist:
   later layer completes) and **interim spots**; its notes, especially **deviations**, meaning review fixes made
   on this layer that must be merged back into the big branch.
 - **Upcoming layers**: every other child that isn't closed: its title, the files it takes or carves, the
-  interim forms it completes, and whether it is stacked on this layer (`bd dep tree <child> --direction up`).
+  interim forms it completes, and whether it builds on this layer, directly or through another layer (the
+  split plan records stacking as bd dependencies).
 
 From the big branch itself, after `git fetch origin <big-branch>`. Without beads, this is the only source, with
 the big PR's description:
