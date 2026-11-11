@@ -4,7 +4,7 @@ description: Reviews an open PR with the built-in /code-review, reporting every 
 when_to_use: /review-open-pr, "review this PR and post the findings", "review PR N with all findings", "run the full AI review on the open PR".
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Bash(gh pr view *), Bash(gh pr list *), Bash(git fetch *), Bash(git rev-parse *), Bash(git status *), Bash(git log *), Bash(git diff *), Bash(git show *), Bash(git grep *), Bash(git merge-base *), Bash(git ls-remote *), Bash(git branch *), Bash(bd list *), Bash(bd show *), Bash(bd dep *), Bash(.claude/skills/pr-comments/read.py *), Bash(.claude/skills/post-review-findings/post_review.py *), Read, Write, Edit, AskUserQuestion, Skill, SendMessage
+allowed-tools: Bash(gh pr view *), Bash(gh pr list *), Bash(git fetch *), Bash(git rev-parse *), Bash(git status *), Bash(git log *), Bash(git diff *), Bash(git show *), Bash(git grep *), Bash(git merge-base *), Bash(git ls-remote *), Bash(git remote get-url *), Bash(git branch *), Bash(bd list *), Bash(bd show *), Bash(bd dep *), Bash(.claude/skills/pr-comments/read.py *), Bash(.claude/skills/post-review-findings/post_review.py *), Read, Write, Edit, AskUserQuestion, Skill, SendMessage
 argument-hint: "[low|medium|high|xhigh|max] [<pr number>]"
 ---
 
@@ -45,8 +45,10 @@ git fetch origin <baseRefName> pull/<number>/head
 `pull/<number>/head` is the PR's head as GitHub keeps it on the base repo, so it is there even for a PR from a
 fork, whose branch `origin` doesn't have.
 
-Stop if the PR is not `OPEN`. `/code-review` reads the local checkout, uncommitted changes included, so the
-checkout must be clean and at the PR's head. If `git status --porcelain` shows anything, stop and ask the user
+Stop if the PR is not `OPEN`, or if `url` isn't a PR of the repo `origin` points to (`git remote get-url
+origin`): the fetch above and the pr-comments and post-review-findings scripts all work on `origin`.
+
+`/code-review` reads the local checkout, uncommitted changes included, so the checkout must be clean and at the PR's head. If `git status --porcelain` shows anything, stop and ask the user
 to commit or stash it. If `git rev-parse HEAD` isn't `headRefOid`, ask whether to switch to the PR's head by
 its SHA (`git switch --detach <headRefOid>`) or stop. The **reviewed commit** is `headRefOid`. Record it now:
 `/post-review-findings` needs it, and the branch may move while the review runs.
