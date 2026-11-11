@@ -114,7 +114,8 @@ another repo's files from its checkout (Step 3) or a shallow clone in your scrat
   repo's own root copies, and copier renders each link as a regular file downstream. Before
   editing, adding or comparing a file, check whether it or any directory above it is a link
   (`ls -ld` on each path component) and where it points: edit the target (or, when only the linked copy
-  should change, replace that link with a regular file, as an override the plan names), add a
+  should change, replace a file link with a regular file, or a directory link with a real
+  directory holding the same entries, as an override the plan names), add a
   new file as a link matching its siblings, and remember one source can render to several
   downstream paths, including a file a child keeps as its own copy.
 
