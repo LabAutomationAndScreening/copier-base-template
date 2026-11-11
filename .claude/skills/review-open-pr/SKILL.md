@@ -85,8 +85,9 @@ answered threads count too, `--include-bot-comments` so AI reviewers' top-level 
 
 From it, note:
 - **Settled**: decisions made in replies, and findings that were answered, verified or resolved. The review
-  shouldn't raise these again. An AI reviewer's top-level comment can settle one too, by accepting or refuting
-  an answer; its summaries and walkthroughs are not findings.
+  shouldn't raise these again, unless the reviewed commit brings a fixed problem back. An AI reviewer's
+  top-level comment can settle one too, by accepting or refuting an answer; its summaries and walkthroughs are
+  not findings.
 - **Already raised**: open threads, from people or from AI reviewers such as CodeRabbit. A new finding that
   only repeats one adds nothing.
 - **Earlier AI review findings**: their `ai_review.finding_id` and `status`. `/post-review-findings` numbers
