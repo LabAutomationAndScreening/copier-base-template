@@ -54,8 +54,9 @@ session, and `/code-review` may run its code. When `isCrossRepository` is true (
 the user trusts the PR's author, and stop unless they do.
 
 The **reviewed commit** is `headRefOid`, and the **reviewed base** is `git rev-parse origin/<baseRefName>` after
-the fetch. Record both now: `/post-review-findings` needs the commit, and either may move while the review runs. The review reads a worktree pinned to it (Step 3), so the user's checkout can be on
-any branch, with any changes.
+the fetch. Record both now: `/post-review-findings` needs the commit, and either may move while the review runs.
+The review reads a worktree pinned to the reviewed commit (Step 3), so the user's checkout can be on any branch,
+with any changes.
 
 ## Step 2: Gather the context
 
