@@ -314,6 +314,94 @@ def map_line_between(*, path: str, line: int, from_commit: str, to_commit: str) 
     return map_line(hunks=parse_hunks(diff), line=line)
 
 
+def git(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(  # noqa: S603 — git is the only executable, and every value is passed as a separate argument
+        ["git", "-c", "core.quotepath=false", *args],  # noqa: S607 — git is expected on PATH
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+        timeout=GH_TIMEOUT_SECONDS,
+    )
+
+
+def git_output(*args: str) -> str:
+    result = git(*args)
+    if result.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)} failed: {result.stderr.strip()}")
+    return result.stdout
+
+
+# git abbreviates an object name to no fewer than 4 hex digits; SHA-256 names run to 64
+_COMMIT_SHA_RE = re.compile(r"[0-9a-fA-F]{4,64}")
+
+
+class NotACommitError(ValueError):
+    def __init__(self, *, sha: str) -> None:
+        super().__init__(f"{sha!r} is not a commit SHA")
+
+
+def ensure_commit(sha: str) -> str:
+    """Return the full SHA of a commit, fetching it from origin when it isn't available locally.
+
+    Raises NotACommitError for a value that isn't shaped like a SHA, before it can reach git fetch as an option, and
+    RuntimeError when git can't fetch or resolve it.
+    """
+    if _COMMIT_SHA_RE.fullmatch(sha) is None:
+        raise NotACommitError(sha=sha)
+    if git("cat-file", "-e", f"{sha}^{{commit}}").returncode != 0:
+        _ = git_output("fetch", "--quiet", "origin", sha)
+    return git_output("rev-parse", f"{sha}^{{commit}}").strip()
+
+
+def commentable_lines(*, base: str, anchor: str) -> dict[str, set[int]]:
+    """Return, for each file in the PR's diff at the anchor commit, the new-side lines GitHub lets a comment sit on.
+
+    That is every line inside a hunk, context included, using the 3 lines of context GitHub's own diff shows. Rename
+    detection is on, as it is on GitHub, so a renamed file is listed under its new path. A file the PR changes is
+    listed even when no line of it can take a comment (a deleted file, say), since a file-level comment still can.
+    """
+    merge_base = git_output("merge-base", base, anchor).strip()
+    commentable: dict[str, set[int]] = {
+        path: set() for path in git_output("diff", "--name-only", "-M", merge_base, anchor).splitlines() if path
+    }
+    # the prefixes are pinned, so a user's diff.noprefix or diff.mnemonicPrefix can't change the headers parsed below
+    diff = git_output(
+        "diff", "--no-color", "--no-ext-diff", "--src-prefix=a/", "--dst-prefix=b/", "-M", "-U3", merge_base, anchor
+    )
+    current_path: str | None = None
+    # lines of the current hunk still to come on each side: until both run out, a line starting "+++ " is an added
+    # line whose content starts "++ ", not a file header
+    old_left = 0
+    new_left = 0
+    for diff_line in diff.split("\n"):
+        if old_left > 0 or new_left > 0:
+            if diff_line.startswith("+"):
+                new_left -= 1
+            elif diff_line.startswith("-"):
+                old_left -= 1
+            elif not diff_line.startswith("\\"):  # "\ No newline at end of file" belongs to neither side
+                old_left -= 1
+                new_left -= 1
+            continue
+        if diff_line.startswith("+++ "):
+            # git ends the header with a tab when the path has a space in it
+            target = diff_line[len("+++ ") :].removesuffix("\t")
+            current_path = target[len("b/") :] if target.startswith("b/") else None
+            continue
+        match = HUNK_HEADER_RE.match(diff_line)
+        if match is None:
+            continue
+        old_left = 1 if match.group(2) is None else int(match.group(2))
+        new_start = int(match.group(3))
+        new_count = 1 if match.group(4) is None else int(match.group(4))
+        new_left = new_count
+        if current_path is None:
+            continue
+        commentable.setdefault(current_path, set()).update(range(new_start, new_start + new_count))
+    return commentable
+
+
 def owner_repo_from_remote() -> tuple[str, str]:
     try:
         result = run_cmd(

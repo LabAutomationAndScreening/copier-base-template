@@ -54,11 +54,14 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent.parent / "pr-comments"))
 from utils import FINDING_ID_PATTERN
 from utils import GH_TIMEOUT_SECONDS
-from utils import HUNK_HEADER_RE
+from utils import NotACommitError
 from utils import ai_review_finding_marker
+from utils import commentable_lines
 from utils import describe_model
+from utils import ensure_commit
 from utils import gh_graphql
 from utils import gh_rest
+from utils import git
 from utils import map_line_between
 from utils import owner_repo_from_remote
 from utils import parse_ai_review_finding
@@ -68,8 +71,6 @@ SHORT_SHA_LENGTH = 7
 TABLE_SUMMARY_MAX_LENGTH = 120
 _FINDING_NUMBER_RE = re.compile(rf"{FINDING_ID_PREFIX}(\d+)")
 _JSON_BLOCK_RE = re.compile(r"```json\s*\n(.*?)\n```", re.DOTALL)
-# git abbreviates an object name to no fewer than 4 hex digits; SHA-256 names run to 64
-_COMMIT_SHA_RE = re.compile(r"[0-9a-fA-F]{4,64}")
 
 POSTED_UNDER_NOTE = "<sub>Posted under the account of the person who ran the review.</sub>"
 
@@ -260,86 +261,12 @@ def _fail(message: str) -> None:
     sys.exit(1)
 
 
-def _git(*args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(  # noqa: S603 — git is the only executable, and every value is passed as a separate argument
-        ["git", "-c", "core.quotepath=false", *args],  # noqa: S607 — git is expected on PATH
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        check=False,
-        timeout=GH_TIMEOUT_SECONDS,
-    )
-
-
-def _git_output(*args: str) -> str:
-    result = _git(*args)
-    if result.returncode != 0:
-        _fail(f"git {' '.join(args)} failed: {result.stderr.strip()}")
-    return result.stdout
-
-
-def _ensure_commit(sha: str) -> str:
-    # a value starting with "-" would reach git fetch as an option
-    if _COMMIT_SHA_RE.fullmatch(sha) is None:
-        raise InputError(f"{sha!r} is not a commit SHA")
-    if _git("cat-file", "-e", f"{sha}^{{commit}}").returncode != 0:
-        _ = _git_output("fetch", "--quiet", "origin", sha)
-    return _git_output("rev-parse", f"{sha}^{{commit}}").strip()
-
-
 def _is_ancestor(*, ancestor: str, descendant: str) -> bool:
-    return _git("merge-base", "--is-ancestor", ancestor, descendant).returncode == 0
+    return git("merge-base", "--is-ancestor", ancestor, descendant).returncode == 0
 
 
 def _file_exists_at(*, commit: str, path: str) -> bool:
-    return _git("cat-file", "-e", f"{commit}:{path}").returncode == 0
-
-
-def _commentable_lines(*, base: str, anchor: str) -> dict[str, set[int]]:
-    """Return, for each file in the PR's diff at the anchor commit, the new-side lines GitHub lets a comment sit on.
-
-    That is every line inside a hunk, context included, using the 3 lines of context GitHub's own diff shows. Rename
-    detection is on, as it is on GitHub, so a renamed file is listed under its new path.
-    """
-    merge_base = _git_output("merge-base", base, anchor).strip()
-    commentable: dict[str, set[int]] = {
-        path: set() for path in _git_output("diff", "--name-only", "-M", merge_base, anchor).splitlines() if path
-    }
-    # the prefixes are pinned, so a user's diff.noprefix or diff.mnemonicPrefix can't change the headers parsed below
-    diff = _git_output(
-        "diff", "--no-color", "--no-ext-diff", "--src-prefix=a/", "--dst-prefix=b/", "-M", "-U3", merge_base, anchor
-    )
-    current_path: str | None = None
-    # lines of the current hunk still to come on each side: until both run out, a line starting "+++ " is an added
-    # line whose content starts "++ ", not a file header
-    old_left = 0
-    new_left = 0
-    for diff_line in diff.split("\n"):
-        if old_left > 0 or new_left > 0:
-            if diff_line.startswith("+"):
-                new_left -= 1
-            elif diff_line.startswith("-"):
-                old_left -= 1
-            elif not diff_line.startswith("\\"):  # "\ No newline at end of file" belongs to neither side
-                old_left -= 1
-                new_left -= 1
-            continue
-        if diff_line.startswith("+++ "):
-            # git ends the header with a tab when the path has a space in it
-            target = diff_line[len("+++ ") :].removesuffix("\t")
-            current_path = target[len("b/") :] if target.startswith("b/") else None
-            continue
-        match = HUNK_HEADER_RE.match(diff_line)
-        if match is None:
-            continue
-        old_left = 1 if match.group(2) is None else int(match.group(2))
-        new_start = int(match.group(3))
-        new_count = 1 if match.group(4) is None else int(match.group(4))
-        new_left = new_count
-        if current_path is None:
-            continue
-        commentable.setdefault(current_path, set()).update(range(new_start, new_start + new_count))
-    return commentable
+    return git("cat-file", "-e", f"{commit}:{path}").returncode == 0
 
 
 def _require_str(*, raw: dict[str, Any], key: str, context: str) -> str:
@@ -590,14 +517,14 @@ def build_plan(findings_file: FindingsFile) -> Plan:
         r["id"] for r in pull_request["reviews"]["nodes"] if (r.get("author") or {}).get("login") == viewer
     ]
 
-    head = _ensure_commit(pull_request["headRefOid"])
-    base = _ensure_commit(pull_request["baseRefOid"])
-    reviewed = _ensure_commit(findings_file.reviewed_commit)
+    head = ensure_commit(pull_request["headRefOid"])
+    base = ensure_commit(pull_request["baseRefOid"])
+    reviewed = ensure_commit(findings_file.reviewed_commit)
     reviewed_in_pr = _is_ancestor(ancestor=reviewed, descendant=head) and not _is_ancestor(
         ancestor=reviewed, descendant=base
     )
     anchor = reviewed if reviewed_in_pr else head
-    commentable = _commentable_lines(base=base, anchor=anchor)
+    commentable = commentable_lines(base=base, anchor=anchor)
 
     planned = [
         _plan_finding(finding=finding, reviewed=reviewed, anchor=anchor, head=head, commentable=commentable)
@@ -641,7 +568,7 @@ def _plan_finding(
             finding=finding, placement=placement, line_at_anchor=None, changed_since_review=False, attention=None
         )
 
-    source = _ensure_commit(finding.line_commit) if finding.line_commit is not None else reviewed
+    source = ensure_commit(finding.line_commit) if finding.line_commit is not None else reviewed
     line_at_anchor = map_line_between(path=finding.file, line=finding.line, from_commit=source, to_commit=anchor)
     if line_at_anchor is None:
         return PlannedFinding(
@@ -958,7 +885,7 @@ def cmd_import(args: argparse.Namespace) -> None:
     ]
     findings_file = FindingsFile(
         pr=args.pr,
-        reviewed_commit=_ensure_commit(args.commit),
+        reviewed_commit=ensure_commit(args.commit),
         reviewer=reviewer,
         summary="",
         findings=findings,
@@ -1098,6 +1025,8 @@ def main() -> None:
     try:
         args.handler(args)
     except InputError as e:
+        _fail(f"Invalid input: {e}")
+    except NotACommitError as e:
         _fail(f"Invalid input: {e}")
     except json.JSONDecodeError as e:
         _fail(f"Invalid JSON: {e}")
