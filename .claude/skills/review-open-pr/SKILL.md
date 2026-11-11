@@ -190,8 +190,8 @@ is the agent's transcript. If the review instead reports its findings inline, wr
 
    Wait for its reply. When the review ran inline, there is no agent to resume: take whatever the inline
    report says it set aside or ruled out.
-3. **Remove the worktree:** `git worktree remove <work_dir>/tree`. Remove it too whenever the skill stops
-   after Step 3 created it.
+3. **Remove the worktree** at `<work_dir>/tree`. It is disposable: discard anything the review left in it.
+   Remove it too whenever the skill stops after Step 3 created it.
 
 ## Step 5: Post everything
 
