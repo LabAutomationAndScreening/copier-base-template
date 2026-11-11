@@ -239,12 +239,20 @@ def _new_thread_fields(*, owner: str, repo: str, pr: int, path: str, line: int |
     except subprocess.CalledProcessError as e:
         _ = sys.stderr.write(f"Cannot read PR #{pr}: {e.stderr}\n")
         sys.exit(1)
+    except subprocess.TimeoutExpired:
+        _ = sys.stderr.write(f"Reading PR #{pr} timed out after {GH_TIMEOUT_SECONDS}s; nothing was posted.\n")
+        sys.exit(1)
     try:
         head = ensure_commit(pull_request["head"]["sha"])
         base = ensure_commit(pull_request["base"]["sha"])
         commentable = commentable_lines(base=base, anchor=head)
     except RuntimeError as e:
         _ = sys.stderr.write(f"Cannot read PR #{pr}'s diff from this checkout: {e}\n")
+        sys.exit(1)
+    except subprocess.TimeoutExpired:
+        _ = sys.stderr.write(
+            f"Reading PR #{pr}'s diff from this checkout timed out after {GH_TIMEOUT_SECONDS}s; nothing was posted.\n"
+        )
         sys.exit(1)
     if path not in commentable:
         _ = sys.stderr.write(
