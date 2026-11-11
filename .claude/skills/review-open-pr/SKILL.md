@@ -109,10 +109,11 @@ the big PR's description:
   extend it, such as new fields, new callers, or a body that replaces an interim form.
 - `git grep -n <symbol> origin/<big-branch>` for the main functions and classes this PR adds: how the later
   code calls them, and with which inputs.
-- **Pending merge-backs**: for each deviation the notes list, and for each of this PR's own commits
-  (`git log origin/<baseRefName>..<headRefOid>`), check whether its change already reached the big branch
-  (`git diff <commit>~ <commit>` against the same lines on `origin/<big-branch>`). Keep these for the report in
-  Step 6, and leave them out of the brief: folding a layer's fixes back into the big branch is a step of the
+- **Pending merge-backs**: whether this layer has been folded back into the big branch yet (step 9 of
+  `/split-branch-into-prs`' build-layer reference; once it has, this PR's head is an ancestor of the big branch),
+  and if not, which of its changes and recorded deviations the big branch still lacks. Leave out the interim
+  forms the plan names: the fold keeps the big branch's version of those on purpose. Keep these for the report
+  in Step 6, and leave them out of the brief: folding a layer's fixes back into the big branch is a step of the
   `/split-branch-into-prs` workflow, not something this PR's code can fix.
 
 ### Write the brief
