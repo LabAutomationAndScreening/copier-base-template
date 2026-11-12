@@ -139,7 +139,8 @@ Write out as response text:
 - the PR number, `anchor_commit`, `pr_head` and `pr_base`;
 - a table of each finding's ID, placement and location;
 - the findings that look already fixed, with your evidence;
-- the relations you added that the report did not state.
+- the relations you added that the report did not state;
+- the full text of `<preview_file>`, verbatim: the review body and every comment exactly as they will be posted.
 
 Then ask with AskUserQuestion: "Post this review on PR <pr> (summary above)?"
 
