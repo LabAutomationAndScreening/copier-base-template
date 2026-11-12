@@ -102,7 +102,7 @@
       "Bash(*gh pr comment*)",
       "Bash(*gh pr create*)",
       "Bash(*gh pr edit*)"
-      // pr-comments' post.py is not under ask: the skill asks the user with the reply's text in the question, and that answer is the approval
+      // pr-comments' post.py is not under ask: the skill shows the user the reply's text before asking, and that answer is the approval
     ],
     "deny": [
       // Exceptions to generally allowed AI tooling

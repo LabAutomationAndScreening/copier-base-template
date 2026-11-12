@@ -77,8 +77,10 @@ Whenever the user is to judge or act on a comment, show it rather than describe 
   and why.
 
 Leave none of it out, whatever brevity guidance is in effect: a count, a table row or a
-paraphrase is not a comment. When asking the user what to do, put all of it in the question
-itself, one decision per comment.
+paraphrase is not a comment. When asking the user what to do, write all of it as visible
+response text directly before the AskUserQuestion call, not in your thinking, a tool call's
+description or a tool's output, none of which the user reliably sees. Keep the `question` field to
+a short line naming the comment, since the dialog cuts off a long one. One decision per comment.
 
 ## Post
 
@@ -117,7 +119,7 @@ itself, put it in a code span: `[COMMIT LINK]` inside backticks or a fenced bloc
 stays as written.
 
 A reply goes out under the user's account, so the user approves its text before it goes. Draft
-it without the footer, then ask with the draft itself in the question (never only a path),
+it without the footer, show the draft itself as visible response text (never only a path), then ask
 "Post now or edit first?":
 
 - **Post now**: write it to a file under `tmp/` and run the script on its own, never chained with

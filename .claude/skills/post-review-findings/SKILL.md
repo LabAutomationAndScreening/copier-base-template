@@ -21,7 +21,7 @@ The findings are posted under the user's account, since that is the only identit
 - Run every script by its path (it has a shebang). Do not prefix it with `uv run python` or any other interpreter.
 - Show every file path to the user as an absolute path, so it can be Ctrl+clicked in VS Code.
 - `<repo_root>` is the output of `git rev-parse --show-toplevel`. Work files go in `<repo_root>/tmp/` (gitignored): `<findings_file>` is `<repo_root>/tmp/review-findings-pr<pr>.json`, and `<preview_file>` is `<repo_root>/tmp/review-preview-pr<pr>.md`. If `<findings_file>` already exists from an earlier run, ask before overwriting it.
-- Each AskUserQuestion's `question` field carries everything needed to answer it. Context written before the call may never reach the user.
+- Everything needed to answer an AskUserQuestion goes in visible response text directly before the call, not in your thinking, a tool call's description or a tool's output, none of which the user reliably sees. The dialog cuts off a long `question` field, so that field stays one or two lines naming the decision and pointing at the text above.
 - Nothing is posted until the user has approved the preview in [Step 6](#step-6-get-approval). Posting is outward-facing and notifies the PR's participants.
 
 ## Step 1: Identify the PR and the reviewed commit
@@ -134,12 +134,15 @@ For each finding with `changed_since_review: true`, check whether the current co
 
 ## Step 6: Get approval
 
-Tell the user the absolute path of `<preview_file>`. Then ask with AskUserQuestion. The `question` field holds:
+Write out as response text:
+- the absolute path of `<preview_file>`;
 - the PR number, `anchor_commit`, `pr_head` and `pr_base`;
 - a table of each finding's ID, placement and location;
 - the findings that look already fixed, with your evidence;
 - the relations you added that the report did not state;
-- then: "Post this review?"
+- the full text of `<preview_file>`, verbatim: the review body and every comment exactly as they will be posted.
+
+Then ask with AskUserQuestion: "Post this review on PR <pr> (summary above)?"
 
 Options:
 - **Post**: go to Step 7.
