@@ -217,8 +217,10 @@ ask. For each file in `rej_files`:
    `git show HEAD:<target>` the repo's whole pre-update file. Work out, hunk by hunk, what
    the repo had changed and what the template now has (`git log -p -- <target>` shows
    whether the repo's divergence was deliberate).
-2. Decide: restore the repo's edit (`ours`: re-apply the hunk's `+` lines by hand onto the
-   new template text), let the template's new text stand (`theirs`: change nothing in the
+2. Decide: restore the repo's edit (`ours`: redo the whole hunk by hand against the target's
+   current text, removing the target's version of what its `-` lines removed and adding its
+   `+` lines; a hunk can hold only removals, and the template may have reworded the lines a
+   `-` line names), let the template's new text stand (`theirs`: change nothing in the
    target), or combine them (`manual_merge`), and give the decision a confidence. `high`
    means you would not expect a reviewer to question it. Anything else is `medium` or
    `low`, and goes to the user now: show both sides verbatim with ours / theirs / merge
