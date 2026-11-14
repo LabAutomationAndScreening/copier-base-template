@@ -574,6 +574,47 @@ def update_command(
     return cmd
 
 
+_COPIER_TRUE_WORDS = frozenset({"y", "yes", "t", "true", "on"})
+_COPIER_FALSE_WORDS = frozenset({"n", "no", "f", "false", "off", "~", "null", "none"})
+
+
+def _copier_bool(value: str) -> bool:
+    """Convert a `--data` string to the bool copier saves for a boolean question.
+
+    Mirrors copier's `_tools.cast_to_bool`: a number is false only when it is zero, then the YAML boolean and null
+    words decide, and any other non-blank text is true.
+    """
+    try:
+        number = float(value)
+    except ValueError:
+        pass
+    else:
+        if number == 0:
+            return False
+        return True
+    lower = value.strip().lower()
+    if not lower:
+        return False
+    if lower in _COPIER_TRUE_WORDS:
+        return True
+    if lower in _COPIER_FALSE_WORDS:
+        return False
+    return True
+
+
+def _answer_reached(*, saved: str | None, given: str) -> bool:
+    # copier writes a boolean answer as `true` or `false` whatever form `--data` gave it in, such as `True` or `yes`
+    if saved == given:
+        return True
+    if saved == "true":
+        return _copier_bool(given)
+    if saved == "false":
+        if _copier_bool(given):
+            return False
+        return True
+    return False
+
+
 def cmd_update(a: argparse.Namespace) -> dict[str, Any]:
     project = Path(a.project)
     where = guard_not_default_branch(project)
@@ -609,9 +650,7 @@ def cmd_update(a: argparse.Namespace) -> dict[str, Any]:
     cmd = update_command(project=project, task_name=task_name, task_vars=task_vars, data=data, data_file=a.data_file)
     res = _run(cmd=cmd, cwd=project, stored_gh_credentials=a.stored_gh_credentials)
     _, new_answers = read_answers(project=project, answers_file=answers_file)
-    # TODO: consider comparing by parsed value: copier saves `--data enabled=True` (or `yes`) as `true`, which this
-    # text comparison reports as dropped, so for now a boolean has to be passed the way copier writes it
-    dropped = [k for k, v in data.items() if str(new_answers.get(k)) != v]
+    dropped = [k for k, v in data.items() if not _answer_reached(saved=new_answers.get(k), given=v)]
     if res.returncode == 0 and dropped:
         raise FailError(f"copier ran but these --data answers did not reach {answers_file}: {', '.join(dropped)}")
     changed = [
