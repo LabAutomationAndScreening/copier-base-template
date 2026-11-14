@@ -82,6 +82,7 @@ coverage-report-pytest
 .coverage.*
 coverage.xml
 codecov.SHA256SUM*
+/codecov
 
 # test profiling
 prof/
