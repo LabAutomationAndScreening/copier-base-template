@@ -15,12 +15,15 @@ Bring a copier-generated repo up to a newer version of its template without losi
 repo-side changes, and leave an auditable trail: one report per update listing every
 conflicted file, what was decided, how confident the decision is, and why.
 
-Copier re-renders the template at the old and new versions, diffs them, and applies that
-diff onto the repo with `git apply --reject`. Hunks that apply cleanly land silently;
-hunks that collide with repo-side edits are written to `<file>.rej` and the repo's version
-of that region is kept. So after the update the working tree already reflects "repo
-wins". The job is to decide, per rejected hunk, whether the template change should be
-carried in by hand.
+Copier renders the new template version straight into the repo, then re-applies the repo's
+own edits on top: it diffs a fresh render of the old template version against the repo's
+committed state, and applies that diff with `git apply --reject`. Repo edits that apply
+cleanly land silently. A repo edit that collides with what the template changed is written
+to `<file>.rej`, and the file keeps the **new template's** text in that region. So after the
+update the working tree reflects "template wins" wherever there is a `.rej`, and every hunk
+in a `.rej` is a repo-side edit that is currently lost. The job is to decide, per rejected
+hunk, whether to restore that repo edit by hand (the default) or let the template's new
+text stand.
 
 ## Helper
 
@@ -78,9 +81,10 @@ Any decision not covered by an argument is asked interactively, unless `--headle
   an existing answer, rerun the update with `--data`.
 - **Every new template question gets a decision before copier runs**, with a confidence,
   the same way a `.rej` resolution does (Step 2). Accepting the default is a decision too.
-- **The repo side wins by default.** Carry a rejected template hunk in only when it is
-  clearly template-owned boilerplate (CI, lint config, tooling versions, generated
-  scaffolding) the repo never deliberately diverged from.
+- **The repo side wins by default.** A `.rej` hunk is a repo edit copier could not
+  re-apply, so the default is to restore it by hand. Let the template's new text stand
+  instead only when the region is clearly template-owned boilerplate (CI, lint config,
+  tooling versions, generated scaffolding) the repo never deliberately diverged from.
 - **Anything below high confidence stops before the commit.** Record a `confidence` for
   every resolution. If any is `medium` or `low`, show the user both sides and your reasoning
   with AskUserQuestion and wait. `commit` refuses while such a resolution exists, or one
@@ -207,18 +211,23 @@ Read `prune_output`: it names each false positive it deleted. A non-empty
 `conflict_markers` list cannot come from this update (it runs in rej mode), so stop and
 ask. For each file in `rej_files`:
 
-1. Read the `.rej` and the target. Work out, hunk by hunk, what the template changed and
-   what the repo has there (`git log -p -- <target>` shows whether the divergence was
-   deliberate). A common case: copier wrote the template's new block over the repo's own
-   lines next to it, and the `.rej` is it refusing to add them back. Check `git diff HEAD`
-   for the target's removed lines, and restore the repo's lines beside the template's.
-2. Decide: keep the repo's version (`ours`), hand-apply the template hunk (`theirs` /
-   `manual_merge`), and give the decision a confidence. `high` means you would not expect
-   a reviewer to question it. Anything else is `medium` or `low`, and goes to the user now:
-   show both sides verbatim with ours / theirs / merge options. A `manual_merge` that leaves
-   out any template change, even one to a block the repo keeps as its own copy, is at most
-   `medium`: its `description` names each template change carried and each left out, and
-   its `reason` says why each was left out.
+1. Read the `.rej` and the target. Each hunk diffs the old template's text (`-` lines)
+   against the repo's own text (`+` lines); the target now holds the new template's text
+   there. `git diff HEAD -- <target>` shows what the update replaced, and
+   `git show HEAD:<target>` the repo's whole pre-update file. Work out, hunk by hunk, what
+   the repo had changed and what the template now has (`git log -p -- <target>` shows
+   whether the repo's divergence was deliberate).
+2. Decide: restore the repo's edit (`ours`: redo the whole hunk by hand against the target's
+   current text, removing the target's version of what its `-` lines removed and adding its
+   `+` lines; a hunk can hold only removals, and the template may have reworded the lines a
+   `-` line names), let the template's new text stand (`theirs`: change nothing in the
+   target), or combine them (`manual_merge`), and give the decision a confidence. `high`
+   means you would not expect a reviewer to question it. Anything else is `medium` or
+   `low`, and goes to the user now: show both sides verbatim with ours / theirs / merge
+   options. A `manual_merge` that leaves out any template change, even one to a block the
+   repo keeps as its own copy, is at most `medium`: its `description` names each template
+   change carried and each left out, and its `reason` says why each was left out. Deleting
+   a `.rej` without restoring its hunks is `theirs`, never `ours`.
 3. Apply the decision with Edit, run `$CU capture-rej <path> --root <repo>` **before**
    deleting the `.rej`, then delete it. Append the captured object, with the `disposition`
    that says what became of its hunks (`pending` while undecided), and the decision

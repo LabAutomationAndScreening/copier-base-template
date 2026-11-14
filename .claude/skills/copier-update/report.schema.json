@@ -331,7 +331,7 @@
           "type": "string"
         },
         "disposition": {
-          "description": "What was done about the rejected hunks.",
+          "description": "What was done about the rejected hunks, each a repo-side edit copier could not re-apply onto the new template's text: applied_manually = the repo edit was restored by hand (in full or merged), obsolete_upstream_already_has_change = the new template already contains it, intentionally_dropped = the template's new text stands and the repo edit is gone, pending = undecided.",
           "enum": ["applied_manually", "obsolete_upstream_already_has_change", "intentionally_dropped", "pending"],
           "type": "string"
         },
