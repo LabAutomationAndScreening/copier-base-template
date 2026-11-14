@@ -38,8 +38,9 @@ python_ci_versions:
 ssh_port_number:
     type: int
     help: What port should the devcontainer bind SSH to?
-    # Stay below every OS's ephemeral port range (Linux 32768+, Windows/macOS 49152+): Windows Hyper-V/winnat reserves blocks of ports inside its ephemeral range and re-picks them at each boot, so no fixed set of ports in that range stays bindable
-    default: "{{ range(16000, 27000) | random }}"
+    # 10000-29999 sits below every OS's ephemeral range (Linux 32768+, Windows/macOS 49152+). Windows Hyper-V/winnat reserves port blocks only inside its ephemeral range, re-picked each boot, so a fixed carve-out of the reserved blocks doesn't work
+    # Gaps skip common local dev services: 11211 memcached, 15672 RabbitMQ management UI, 27017-27019 MongoDB
+    default: "{{ ((range(10000, 11211) | list) + (range(11212, 15672) | list) + (range(15673, 27017) | list) + (range(27020, 30000) | list)) | random }}"
 template_uses_python:
     type: bool
     help: Is this a template that will use Python within it?
