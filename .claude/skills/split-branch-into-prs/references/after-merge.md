@@ -35,7 +35,9 @@ squash holds.
 git switch <dependent-branch>
 BEFORE=$(git rev-parse HEAD)
 PARENT_FILES=$(mktemp)                        # outside the worktree, so the list can't clobber or join a commit
-gh pr diff <parent-pr> --name-only | tr '\n' '\0' > "$PARENT_FILES"   # NUL-separated, so a path with spaces stays one argument
+# every path the parent touched, plus a renamed file's old path (--name-only lists only the new one);
+# NUL-separated, so a path with spaces stays one argument
+{ gh pr diff <parent-pr> --name-only; gh pr diff <parent-pr> | sed -n 's/^rename from //p'; } | tr '\n' '\0' > "$PARENT_FILES"
 git fetch origin main
 git merge --no-commit origin/main
 ```
@@ -48,7 +50,10 @@ before the parent, the dependent matches the merge base there, so git quietly ta
 
 When `xargs -0 -r git log --oneline "$(git merge-base "$BEFORE" origin/main)..origin/main" -- < "$PARENT_FILES"` shows
 only the parent's squash commit, take the shortcut: put back the dependent's version of every parent file the
-merge changed, which settles both kinds at once.
+merge changed, which settles both kinds at once. The list holds a renamed file's old path as well as its new one,
+so a commit on `main` that changed the file before the parent renamed it still shows here and rules the shortcut
+out. Only a dependent takes the shortcut: an independent sibling never held the parent's changes, so putting back
+its version of a parent file would undo them. Resolve a sibling as described below instead.
 
 ```bash
 xargs -0 -r git diff -z --name-only "$BEFORE" -- < "$PARENT_FILES" | xargs -0 -r git restore --source="$BEFORE" --staged --worktree --
