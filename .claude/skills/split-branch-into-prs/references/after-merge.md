@@ -35,7 +35,7 @@ squash holds.
 git switch <dependent-branch>
 BEFORE=$(git rev-parse HEAD)
 PARENT_FILES=$(mktemp)                        # outside the worktree, so the list can't clobber or join a commit
-gh pr diff <parent-pr> --name-only > "$PARENT_FILES"
+gh pr diff <parent-pr> --name-only | tr '\n' '\0' > "$PARENT_FILES"   # NUL-separated, so a path with spaces stays one argument
 git fetch origin main
 git merge --no-commit origin/main
 ```
@@ -46,15 +46,15 @@ changes to the same lines. The dependent's side is right, because it already hol
 The same goes for lines git merges without a conflict: where this layer set a line back to its value from
 before the parent, the dependent matches the merge base there, so git quietly takes the squash's value.
 
-When `git log --oneline $(git merge-base "$BEFORE" origin/main)..origin/main -- $(cat "$PARENT_FILES")` shows
+When `xargs -0 -r git log --oneline "$(git merge-base "$BEFORE" origin/main)..origin/main" -- < "$PARENT_FILES"` shows
 only the parent's squash commit, take the shortcut: put back the dependent's version of every parent file the
 merge changed, which settles both kinds at once.
 
 ```bash
-git diff -z --name-only "$BEFORE" -- $(cat "$PARENT_FILES") | xargs -0 -r git restore --source="$BEFORE" --staged --worktree --
+xargs -0 -r git diff -z --name-only "$BEFORE" -- < "$PARENT_FILES" | xargs -0 -r git restore --source="$BEFORE" --staged --worktree --
 ```
 
-Resolve any conflict left in other files by hand, then `git commit --no-edit`. Otherwise resolve by hand: the
+Resolve any conflict left in other files by hand. Otherwise resolve by hand: the
 dependent's side for the parent-versus-dependent hunks, both changes where another PR on `main` met this layer's
 change (taking `main`'s side alone would drop this layer's), and in each parent file
 put back any line of this layer's that the merge replaced without a conflict (`git diff "$BEFORE" -- <file>`
@@ -67,10 +67,14 @@ branch shows how the two combine, but do not copy its hunk: it may also hold a c
 yet merged. Then check that `git diff <big-branch> -- <file>` shows nothing but the changes of the other layers
 not yet merged, each one missing here.
 
+However the merge was resolved, show the user what it changed (`git diff --staged --stat`, and each hunk
+resolved by hand) and run `git commit --no-edit` only once they say to commit: the approved plan is not that
+go-ahead.
+
 ## 4. Verify
 
 ```bash
-git diff "$BEFORE" HEAD -- $(cat "$PARENT_FILES")     # empty after the shortcut; after a hand resolution, only main's unrelated changes
+xargs -0 -r git diff "$BEFORE" HEAD -- < "$PARENT_FILES"     # empty after the shortcut; after a hand resolution, only main's unrelated changes
 git diff "$BEFORE" HEAD --stat                        # anything else is what other PRs changed on main; usually nothing
 git diff origin/main...HEAD --stat                    # the PR's diff as GitHub will show it: this layer's files only
 rm "$PARENT_FILES"
@@ -87,7 +91,7 @@ above shows the merged layer's changes to the parent's files there, not nothing.
 
 ## 5. Push and update the PR
 
-`git push`, plainly. The Files Changed tab is correct now; the Commits tab keeps listing the parent's commits,
+Once the user says to push, `git push`, plainly. The Files Changed tab is correct now; the Commits tab keeps listing the parent's commits,
 which the squash left unreachable from `main`, and that is cosmetic. If the PR was a draft only because it was
 stacked and the user says so, `gh pr ready <n>`. Trigger the AI reviewer when it needs that.
 

@@ -219,7 +219,8 @@ ask. For each file in `rej_files`:
    whether the repo's divergence was deliberate).
 2. Decide: restore the repo's edit (`ours`: redo the whole hunk by hand against the target's
    current text, removing the target's version of what its `-` lines removed and adding its
-   `+` lines; a hunk can hold only removals, and the template may have reworded the lines a
+   `+` lines, except a `+` line the target already holds, which the template may have
+   adopted; a hunk can hold only removals, and the template may have reworded the lines a
    `-` line names), let the template's new text stand (`theirs`: change nothing in the
    target), or combine them (`manual_merge`), and give the decision a confidence. `high`
    means you would not expect a reviewer to question it. Anything else is `medium` or
@@ -232,6 +233,18 @@ ask. For each file in `rej_files`:
    deleting the `.rej`, then delete it. Append the captured object, with the `disposition`
    that says what became of its hunks (`pending` while undecided), and the decision
    (strategy, reason, confidence) to `<repo>/tmp/draft.json`.
+
+Then check the files the update deleted, which no `.rej` reports: copier removes every file
+the old template had and the new one doesn't, whether or not the repo had edited it.
+`git diff HEAD --diff-filter=D --name-only` lists them, and `git log --oneline -- <file>`
+shows whether any commit besides template updates touched each one. A file the repo never
+edited stays deleted, with no draft entry. For a file the repo did edit, decide as for a
+`.rej` and record it in the draft with `conflict_type: "delete/modify"`: let the deletion
+stand (`deleted`, and the repo's edits go with it), or restore the repo's file with
+`git restore --source=HEAD --staged --worktree -- <file>` (`kept_deleted`) when the repo
+still needs it. When the template renamed the file (a new file from the template replaces
+it), carry the repo's edits into the new file instead (`manual_merge`, with
+`renamed_from`).
 
 Always add an answers-file entry (`is_answers_file: true`, `resolution_strategy:
 "regenerated"`), so the draft is never empty on a clean update. Its `reason` lists each new
