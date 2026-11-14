@@ -35,9 +35,10 @@ squash holds.
 git switch <dependent-branch>
 BEFORE=$(git rev-parse HEAD)
 PARENT_FILES=$(mktemp)                        # outside the worktree, so the list can't clobber or join a commit
-# every path the parent touched, plus a renamed file's old path (--name-only lists only the new one);
-# NUL-separated, so a path with spaces stays one argument
-{ gh pr diff <parent-pr> --name-only; gh pr diff <parent-pr> | sed -n 's/^rename from //p'; } | tr '\n' '\0' > "$PARENT_FILES"
+# every path the parent touched, plus a renamed file's old path (--name-only lists only the new one), NUL-separated so
+# a path with spaces stays one argument. Each gh call is captured first, because a pipe would hide its failure and
+# leave the list short; if this line fails, stop and rerun it before going on.
+NAMES=$(gh pr diff <parent-pr> --name-only) && PATCH=$(gh pr diff <parent-pr>) && { printf '%s\n' "$NAMES"; printf '%s\n' "$PATCH" | sed -n 's/^rename from //p'; } | tr '\n' '\0' > "$PARENT_FILES"
 git fetch origin main
 git merge --no-commit origin/main
 ```
