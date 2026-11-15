@@ -236,7 +236,8 @@ ask. For each file in `rej_files`:
 
 Then check the files the update deleted, which no `.rej` reports: copier removes every file
 the old template had and the new one doesn't, whether or not the repo had edited it.
-`git diff HEAD --diff-filter=D --name-only` lists them, and `git log --oneline -- <file>`
+`git diff HEAD --no-renames --diff-filter=D --name-only` lists them (without `--no-renames`, a deleted file
+copier replaced with a similar one shows as a rename and drops out), and `git log --oneline -- <file>`
 shows whether any commit besides template updates touched each one. A file the repo never
 edited stays deleted, with no draft entry. For a file the repo did edit, decide as for a
 `.rej` and record it in the draft with `conflict_type: "delete/modify"`: let the deletion
