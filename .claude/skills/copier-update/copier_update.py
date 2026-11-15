@@ -602,13 +602,17 @@ def _copier_bool(value: str) -> bool:
     return True
 
 
-def _answer_reached(*, saved: str | None, given: str) -> bool:
-    # copier writes a boolean answer as `true` or `false` whatever form `--data` gave it in, such as `True` or `yes`
-    if saved == given:
+def _answer_reached(*, saved_raw: str | None, given: str) -> bool:
+    # copier writes a boolean answer as a bare `true` or `false` whatever form `--data` gave it in, such as `True` or
+    # `yes`. A string answer that reads "true" is saved quoted, as `'true'`, so only the raw, unparsed text tells a
+    # boolean from a string, and a string must match exactly
+    if saved_raw is None:
+        return False
+    if _scalar(saved_raw) == given:
         return True
-    if saved == "true":
+    if saved_raw == "true":
         return _copier_bool(given)
-    if saved == "false":
+    if saved_raw == "false":
         if _copier_bool(given):
             return False
         return True
@@ -650,7 +654,8 @@ def cmd_update(a: argparse.Namespace) -> dict[str, Any]:
     cmd = update_command(project=project, task_name=task_name, task_vars=task_vars, data=data, data_file=a.data_file)
     res = _run(cmd=cmd, cwd=project, stored_gh_credentials=a.stored_gh_credentials)
     _, new_answers = read_answers(project=project, answers_file=answers_file)
-    dropped = [k for k, v in data.items() if not _answer_reached(saved=new_answers.get(k), given=v)]
+    saved_raw = _top_level_values((project / answers_file).read_text(encoding="utf-8"))
+    dropped = [k for k, v in data.items() if not _answer_reached(saved_raw=saved_raw.get(k), given=v)]
     if res.returncode == 0 and dropped:
         raise FailError(f"copier ran but these --data answers did not reach {answers_file}: {', '.join(dropped)}")
     changed = [
