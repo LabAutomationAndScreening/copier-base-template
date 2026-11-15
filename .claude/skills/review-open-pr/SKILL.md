@@ -165,7 +165,7 @@ and the session stays in the user's checkout, where Steps 4 and 5 run this repo'
 Invoke the **code-review** skill (Skill tool) with these args:
 
 ```text
-[<level>] --max-findings all <pr> — the code under review is checked out at <absolute path of the worktree>, at <reviewed commit>. Run every git command as `git -C <absolute path of the worktree>`, run every test or other command with that path as its working directory, read files only by absolute paths under it, never by relative ones, and give every agent you start this same rule. Before reviewing, read the context brief at <absolute path of brief>: the PR description, the existing review threads and, if this PR is a layer of a split branch, its plan and what the upcoming layers add. It is context, not findings.
+[<level>] --max-findings all <pr> — the code under review is checked out at <absolute path of the worktree>, at <reviewed commit>. Run every git command as `git -C <absolute path of the worktree>`, run every test or other command with that path as its working directory, read the code under review only by absolute paths under it, never by relative ones, and give every agent you start this same rule. Before reviewing, read the context brief at <absolute path of brief>: the PR description, the existing review threads and, if this PR is a layer of a split branch, its plan and what the upcoming layers add. It is context, not findings.
 ```
 
 `--max-findings all` stays in effect for later `/code-review` runs too, as `/code-review` documents.
