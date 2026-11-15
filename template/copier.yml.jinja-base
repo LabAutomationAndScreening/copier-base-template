@@ -29,8 +29,9 @@ is_open_source:
 ssh_port_number:
     type: int
     help: What port should the devcontainer bind SSH to?
-    # Pick a random port, but ensure it's not in the excluded port range on Windows (powershell: `netsh int ipv4 show excludedportrange protocol=tcp`)
-    default: "{{ ( (range(49152, 49752)   | list) + (range(49852, 50000)   | list) + (range(50060, 50160)   | list) + (range(50160, 50260)   | list) + (range(50260, 50360)   | list) + (range(50914, 51014)   | list) + (range(51114, 51214)   | list) + (range(51214, 51314)   | list) + (range(51314, 51414)   | list) + (range(51623, 51723)   | list) + (range(51723, 51823)   | list) + (range(65269, 65369)   | list) + (range(65369, 65469)   | list) ) | random }}"
+    # 10000-29999 sits below every OS's ephemeral range (Linux 32768+, Windows/macOS 49152+). Windows Hyper-V/winnat reserves port blocks only inside its ephemeral range, re-picked each boot, so a fixed carve-out of the reserved blocks doesn't work
+    # Gaps skip common local dev services: 11211 memcached, 15672 RabbitMQ management UI, 27017-27019 MongoDB
+    default: "{{ ((range(10000, 11211) | list) + (range(11212, 15672) | list) + (range(15673, 27017) | list) + (range(27020, 30000) | list)) | random }}"
 
 pull_from_ecr:
     type: bool

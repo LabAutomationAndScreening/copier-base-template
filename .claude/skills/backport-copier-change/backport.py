@@ -1701,10 +1701,16 @@ def _default_to_switch_to(checkout: Path) -> str:
     return default
 
 
-def _require_branch_pushed(*, checkout: Path, branch: str) -> None:
-    if not _has_ref(checkout=checkout, ref=f"refs/remotes/origin/{branch}"):
-        return
-    unpushed = _git("log", "--oneline", f"origin/{branch}..{branch}", cwd=checkout).strip()
+def _require_branch_pushed(*, checkout: Path, branch: str, merged_head: str) -> None:
+    # compare against the merged head, which the caller confirmed is the remote tip: a missing or stale origin/<branch>
+    # says nothing about which local commits are published
+    fetch = _attempt(cmd=["git", "fetch", "--quiet", "origin", branch], cwd=checkout)
+    if fetch.returncode != 0:
+        raise FailError(
+            f"git fetch origin {branch} failed in {checkout}, so its local commits can't be checked against the merged"
+            f" head; nothing was deleted:\n{fetch.stderr.strip()}"
+        )
+    unpushed = _git("log", "--oneline", f"{merged_head}..{branch}", cwd=checkout).strip()
     if unpushed:
         raise FailError(
             f"{branch} in {checkout} has commits not on origin, which deleting it would drop; nothing was deleted:\n"
@@ -1716,7 +1722,7 @@ def _delete_branch(*, checkout: Path, branch: str, merged_head: str) -> bool:
     has_local = _has_ref(checkout=checkout, ref=f"refs/heads/{branch}")
     switch_to = None
     if has_local:
-        _require_branch_pushed(checkout=checkout, branch=branch)
+        _require_branch_pushed(checkout=checkout, branch=branch, merged_head=merged_head)
         if _git("symbolic-ref", "--short", "HEAD", cwd=checkout).strip() == branch:
             switch_to = _default_to_switch_to(checkout)
     # the lease refuses the delete if a push moved the branch after _require_remote_tip_merged looked
