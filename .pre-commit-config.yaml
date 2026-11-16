@@ -179,6 +179,11 @@ repos:
         entry: found copier update rejection files; review them and remove them
         language: fail
         files: "\\.rej$"
+      - id: no-nested-conftest
+        name: no conftest.py below a test suite's top folder
+        entry: found a conftest.py nested below tests/<suite>/. Nested conftest files make it harder to tell where a test's fixtures come from and what autouse behavior runs around it; put shared fixtures in the suite's own tests/<suite>/conftest.py, or in the test module or class that uses them
+        language: fail
+        files: "(^|/)tests/[^/]+/.+/conftest\\.py$"
 
   # Safety/Security Issues
   - repo: https://github.com/pre-commit/pre-commit-hooks
