@@ -12,7 +12,8 @@ project-excludes = [
 # without this explicit "project-includes" and "search-path", pyrefly struggles to understand the tests folder
 project-includes = [
                     "../src",
-                    "../tests"
+                    "../tests",
+                    "../.config/taskfiles/scripts"
                   ]
 search-path = [".."]
 disable-project-excludes-heuristics = true # with this being enabled by default, pyrefly thinks the src is excluded because it's an editable local install

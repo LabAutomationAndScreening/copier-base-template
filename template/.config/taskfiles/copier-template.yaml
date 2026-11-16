@@ -27,4 +27,4 @@ tasks:
   prune-copier-rejects:
     desc: Delete .rej files whose target file is unchanged, failing if any real conflict is left to resolve
     cmds:
-      - ./scripts/delete_false_positive_rej.py
+      - python3 ./.config/taskfiles/scripts/delete_false_positive_rej.py

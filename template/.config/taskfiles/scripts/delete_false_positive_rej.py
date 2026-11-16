@@ -21,7 +21,7 @@ def _status_paths(*, repo_root: Path) -> list[str]:
         cwd=repo_root,
         text=True,
     )
-    return [entry[3:] for entry in output.split("\0") if entry]
+    return [entry[3:] for entry in output.split("\0") if entry != ""]
 
 
 if __name__ == "__main__":
@@ -52,7 +52,7 @@ if __name__ == "__main__":
             cwd=repo_root,
             text=True,
         ).strip()
-        if not status:
+        if status == "":
             (repo_root / rej).unlink()
             deleted.append(rej)
 
@@ -65,7 +65,7 @@ if __name__ == "__main__":
         print(  # noqa: T201 # we want the script to print to console for easy viewing
             f"  {f}"
         )
-    if remaining:
+    if len(remaining) > 0:
         print(  # noqa: T201 # we want the script to print to console for easy viewing
             "Remaining .rej conflicts:"
         )
@@ -79,4 +79,4 @@ if __name__ == "__main__":
             "No .rej conflicts remaining."
         )
 
-    sys.exit(1 if remaining else 0)
+    sys.exit(1 if len(remaining) > 0 else 0)
