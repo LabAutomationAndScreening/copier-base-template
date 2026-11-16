@@ -18,13 +18,17 @@ Usage:
       misses nothing written in between; an event in that same second may be printed twice.
 
 Each line is `<stamp> <source> <kind>: <text>`, the stamp in UTC to the second (`2026-11-16T21:33:48Z`), with
-newlines collapsed and text cut to a few hundred characters, so it can feed the Monitor tool directly. Lines that
-are not transcript events carry the time they were printed: `FOLLOWING` when the follower starts, so there is
-always a last stamp to resume from, and `TRANSCRIPT MOVED`, `NEW AGENT` and `IDLE`.
+newlines collapsed and text cut to a few hundred characters, so it can feed the Monitor tool directly. Each poll's
+lines are printed in stamp order, so no line still to come is older than the last one printed. `FOLLOWING`,
+printed when the follower starts, carries the point it resumes from: the --since stamp, the first record's time
+with --from-start, or else the moment it took the transcripts' current ends. So the last line printed always
+carries a stamp that is safe to resume from, even when the follower was killed before it printed anything else.
+`TRANSCRIPT MOVED`, `NEW AGENT` and `IDLE` carry the time they were printed.
 
 The session is looked up by ID under every project folder on each poll, because a session that enters a worktree
-starts writing its transcript under a different project folder; `TRANSCRIPT MOVED` reports that. `IDLE` reports a transcript with no new event for
---idle-minutes, which is either a question waiting on the user or a session that has died.
+starts writing its transcript under a different project folder; `TRANSCRIPT MOVED` reports that. `IDLE` reports a
+transcript with no new event for --idle-minutes, which is either a question waiting on the user or a session that
+has died.
 """
 
 import argparse
@@ -224,11 +228,8 @@ def _poll(*, follower: _Follower) -> list[str]:
     if main_path is None:
         return events
     if follower.main is None:
-        lines_read = 0
-        if _starts_at_end(follower=follower):
-            lines_read = len(_complete_lines(path=main_path))
-        follower.main = _FollowedFile(path=main_path, source="main", lines_read=lines_read)
-    elif follower.main.path != main_path:
+        return events
+    if follower.main.path != main_path:
         events.append(f"{_now_stamp()} TRANSCRIPT MOVED: {follower.main.path} -> {main_path}")
         follower.main = _FollowedFile(path=main_path, source="main", lines_read=0)
     events.extend(_read_new_events(followed=follower.main, since=follower.since))
@@ -266,18 +267,55 @@ def _seed_existing_subagents(*, follower: _Follower) -> None:
         )
 
 
-def follow(*, follower: _Follower, interval: float, idle_minutes: float) -> None:
-    if _find_main_transcript(session_id=follower.session_id) is None:
-        _ = sys.stderr.write(f"No transcript named {follower.session_id}.jsonl under {PROJECTS_ROOT}\n")
-        sys.exit(1)
-    _emit(f"{_now_stamp()} FOLLOWING {follower.session_id}")
+def _earliest_record_time(*, path: Path) -> datetime:
+    for raw in _complete_lines(path=path):
+        try:
+            record = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(record, dict):
+            continue
+        record_time = _record_time(record)
+        if record_time is not None:
+            return record_time
+    return datetime.now(UTC)
+
+
+def _start(*, follower: _Follower, main_path: Path) -> datetime:
+    """Take the follower's starting positions, and return the moment it resumes from.
+
+    The positions are taken before the moment is read from the clock, so a follower started again from the
+    returned stamp misses nothing written in between.
+    """
+    lines_read = 0
+    if _starts_at_end(follower=follower):
+        lines_read = len(_complete_lines(path=main_path))
+    follower.main = _FollowedFile(path=main_path, source="main", lines_read=lines_read)
     if follower.include_subagents and not follower.from_start:
         _seed_existing_subagents(follower=follower)
+    if follower.since is not None:
+        return follower.since
+    if follower.from_start:
+        return _earliest_record_time(path=main_path)
+    return datetime.now(UTC)
+
+
+def _line_stamp(line: str) -> str:
+    return line.split(" ", 1)[0]
+
+
+def follow(*, follower: _Follower, interval: float, idle_minutes: float) -> None:
+    main_path = _find_main_transcript(session_id=follower.session_id)
+    if main_path is None:
+        _ = sys.stderr.write(f"No transcript named {follower.session_id}.jsonl under {PROJECTS_ROOT}\n")
+        sys.exit(1)
+    resumes_from = _start(follower=follower, main_path=main_path)
+    _emit(f"{_stamp(resumes_from)} FOLLOWING {follower.session_id}")
     last_event_at = time.monotonic()
     idle_reported = False
     while True:
         events = _poll(follower=follower)
-        for event in events:
+        for event in sorted(events, key=_line_stamp):
             _emit(event)
         if events:
             last_event_at = time.monotonic()

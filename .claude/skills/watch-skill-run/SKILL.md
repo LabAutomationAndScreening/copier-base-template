@@ -94,10 +94,11 @@ each expiry for as long as the run lasts, with `--since <stamp>` in place of `--
 one on the last line the expired Monitor printed: a fresh follower otherwise starts at the transcript's current
 end and silently skips whatever the session wrote while no Monitor ran. Every line starts with a UTC stamp
 (`2026-11-16T21:33:48Z`), then one event: `TEXT`, `TOOL <name>`, `ANSWER` (the user's answer to a question),
-`TOOL ERROR`, `USER`, plus `FOLLOWING` (the follower started), `TRANSCRIPT MOVED` (the session entered a
-worktree) and `IDLE` (no event for 10 minutes: a question waiting on the user, a long background step, or a
-dead session; check which). After a re-arm, a line from the same second as the last one may repeat. Read the
-full record from the transcript when a line is cut short.
+`TOOL ERROR`, `USER`, plus `FOLLOWING` (the follower started; its stamp is the point it resumed from, so the
+last line is safe to re-arm from even when the Monitor expired before printing anything else), `TRANSCRIPT
+MOVED` (the session entered a worktree) and `IDLE` (no event for 10 minutes: a question waiting on the user, a
+long background step, or a dead session; check which). After a re-arm, a line from the same second as the last
+one may repeat. Read the full record from the transcript when a line is cut short.
 
 Leave `--subagents` off the Monitor: a review's finder and verifier agents produce far more events than a
 Monitor allows. When the session starts or hears back from an agent, audit the agents' transcripts in one
