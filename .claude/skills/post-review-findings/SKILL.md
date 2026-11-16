@@ -20,8 +20,8 @@ The findings are posted under the user's account, since that is the only identit
 
 - Run every script by its path (it has a shebang). Do not prefix it with `uv run python` or any other interpreter.
 - Show every file path to the user as an absolute path, so it can be Ctrl+clicked in VS Code.
-- `<repo_root>` is the output of `git rev-parse --show-toplevel`. Work files go in `<repo_root>/tmp/` (gitignored): `<findings_file>` is `<repo_root>/tmp/review-findings-pr<pr>.json`, and `<preview_file>` is `<repo_root>/tmp/review-preview-pr<pr>.md`. If `<findings_file>` already exists from an earlier run, ask before overwriting it.
-- Everything needed to answer an AskUserQuestion goes in two places: a file written with a tool call first (`/tmp/review-pr<pr>-<topic>.md`), and visible response text directly before the call, not in your thinking, a tool call's description or a tool's output, none of which the user reliably sees. The file is the part that can't fail silently: text meant as a message can end up in your thinking instead, where the user sees only a one-line summary of it. The dialog cuts off a long `question` field, so that field stays one or two lines naming the decision and giving the file's absolute path. Leave the options' `preview` fields empty: a dialog with previews hides every option's description.
+- `<repo_root>` is the output of `git rev-parse --show-toplevel`. Work files go in `<repo_root>/tmp/` (gitignored): `<findings_file>` is `<repo_root>/tmp/review-findings-pr<pr>.json`, `<preview_file>` is `<repo_root>/tmp/review-preview-pr<pr>.md`, and `<approval_file>` is `<repo_root>/tmp/review-approval-pr<pr>.md`. If `<findings_file>` already exists from an earlier run, ask before overwriting it.
+- Everything needed to answer an AskUserQuestion goes in two places: a file written with a tool call first (`<approval_file>` for Step 6's approval, else `<repo_root>/tmp/review-pr<pr>-<topic>.md`), and visible response text directly before the call, not in your thinking, a tool call's description or a tool's output, none of which the user reliably sees. The file is the part that can't fail silently: text meant as a message can end up in your thinking instead, where the user sees only a one-line summary of it. The dialog cuts off a long `question` field, so that field stays one or two lines naming the decision and giving the file's absolute path. Leave the options' `preview` fields empty: a dialog with previews hides every option's description.
 - Nothing is posted until the user has approved the preview in [Step 6](#step-6-get-approval). Posting is outward-facing and notifies the PR's participants.
 
 ## Step 1: Identify the PR and the reviewed commit
@@ -134,7 +134,7 @@ For each finding with `changed_since_review: true`, check whether the current co
 
 ## Step 6: Get approval
 
-Write the following to `/tmp/review-pr<pr>-approval.md`, then the same as response text:
+Write the following to `<approval_file>`, then the same as response text:
 - the absolute path of `<preview_file>`;
 - the PR number, `anchor_commit`, `pr_head` and `pr_base`;
 - a table of each finding's ID, placement and location;
@@ -142,7 +142,7 @@ Write the following to `/tmp/review-pr<pr>-approval.md`, then the same as respon
 - the relations you added that the report did not state;
 - the full text of `<preview_file>`, verbatim: the review body and every comment exactly as they will be posted.
 
-Then ask with AskUserQuestion: "Post this review on PR <pr>? (above and in /tmp/review-pr<pr>-approval.md)"
+Then ask with AskUserQuestion: "Post this review on PR <pr>? (above and in <approval_file>)"
 
 Options:
 - **Post**: go to Step 7.
