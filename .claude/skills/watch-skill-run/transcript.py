@@ -8,16 +8,22 @@ Usage:
   transcript.py sessions [--hours N]
       One line per session transcript written in the last N hours (default 6), newest first:
       session ID, last write (UTC), working directory, and the first slash command it ran with its args.
-  transcript.py follow <session id> [--subagents] [--from-start] [--interval SECONDS] [--idle-minutes N]
+  transcript.py follow <session id> [--subagents] [--from-start | --since STAMP] [--interval SECONDS] [--idle-minutes N]
       Runs until killed. Prints one line per new event in that session's transcript: assistant text, tool
       calls, the user's answers to questions, tool errors and the user's own messages. With --subagents, also
       every agent the session starts (forks, finders, verifiers), each line prefixed with the agent's name.
       Starts at the transcripts' current ends, or with --from-start replays everything already written first.
+      With --since, first replays every event stamped at or after STAMP (a stamp as printed, such as
+      2026-11-16T21:33:48Z), so a follower started again with the stamp of the last line its predecessor printed
+      misses nothing written in between; an event in that same second may be printed twice.
 
-Each line is `HH:MM:SS <source> <kind>: <text>`, with newlines collapsed and text cut to a few hundred
-characters, so it can feed the Monitor tool directly. The session is looked up by ID under every project
-folder on each poll, because a session that enters a worktree starts writing its transcript under a different
-project folder; `TRANSCRIPT MOVED` reports that. `IDLE` reports a transcript with no new event for
+Each line is `<stamp> <source> <kind>: <text>`, the stamp in UTC to the second (`2026-11-16T21:33:48Z`), with
+newlines collapsed and text cut to a few hundred characters, so it can feed the Monitor tool directly. Lines that
+are not transcript events carry the time they were printed: `FOLLOWING` when the follower starts, so there is
+always a last stamp to resume from, and `TRANSCRIPT MOVED`, `NEW AGENT` and `IDLE`.
+
+The session is looked up by ID under every project folder on each poll, because a session that enters a worktree
+starts writing its transcript under a different project folder; `TRANSCRIPT MOVED` reports that. `IDLE` reports a transcript with no new event for
 --idle-minutes, which is either a question waiting on the user or a session that has died.
 """
 
@@ -34,6 +40,7 @@ from typing import Any
 
 PROJECTS_ROOT = Path.home() / ".claude" / "projects"
 TEXT_LIMIT = 400
+STAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 @dataclass
@@ -48,8 +55,27 @@ class _Follower:
     session_id: str
     include_subagents: bool
     from_start: bool
+    since: datetime | None
     main: _FollowedFile | None = None
     subagents: dict[Path, _FollowedFile] = field(default_factory=dict)
+
+
+def _stamp(moment: datetime) -> str:
+    return moment.astimezone(UTC).strftime(STAMP_FORMAT)
+
+
+def _now_stamp() -> str:
+    return _stamp(datetime.now(UTC))
+
+
+def _record_time(record: dict[str, Any]) -> datetime | None:
+    raw = record.get("timestamp")
+    if not isinstance(raw, str):
+        return None
+    try:
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        return None
 
 
 def _one_line(text: str) -> str:
@@ -126,7 +152,11 @@ def _event_lines(*, record: dict[str, Any], source: str) -> list[str]:
         from_assistant = False
     else:
         return []
-    stamp = str(record.get("timestamp", ""))[11:19]
+    record_time = _record_time(record)
+    if record_time is None:
+        stamp = "-"
+    else:
+        stamp = _stamp(record_time)
     lines: list[str] = []
     for block in _content_blocks(record):
         event = _block_event(block=block, from_assistant=from_assistant)
@@ -140,7 +170,16 @@ def _emit(line: str) -> None:
     _ = sys.stdout.flush()
 
 
-def _read_new_events(*, followed: _FollowedFile) -> list[str]:
+def _is_before(*, record: dict[str, Any], since: datetime | None) -> bool:
+    if since is None:
+        return False
+    record_time = _record_time(record)
+    if record_time is None:
+        return False
+    return record_time < since
+
+
+def _read_new_events(*, followed: _FollowedFile, since: datetime | None) -> list[str]:
     lines = _complete_lines(path=followed.path)
     events: list[str] = []
     for raw in lines[followed.lines_read :]:
@@ -148,8 +187,11 @@ def _read_new_events(*, followed: _FollowedFile) -> list[str]:
             record = json.loads(raw)
         except json.JSONDecodeError:
             continue
-        if isinstance(record, dict):
-            events.extend(_event_lines(record=record, source=followed.source))
+        if not isinstance(record, dict):
+            continue
+        if _is_before(record=record, since=since):
+            continue
+        events.extend(_event_lines(record=record, source=followed.source))
     followed.lines_read = len(lines)
     return events
 
@@ -181,13 +223,13 @@ def _poll(*, follower: _Follower) -> list[str]:
         return events
     if follower.main is None:
         lines_read = 0
-        if not follower.from_start:
+        if _starts_at_end(follower=follower):
             lines_read = len(_complete_lines(path=main_path))
         follower.main = _FollowedFile(path=main_path, source="main", lines_read=lines_read)
     elif follower.main.path != main_path:
-        events.append(f"TRANSCRIPT MOVED: {follower.main.path} -> {main_path}")
+        events.append(f"{_now_stamp()} TRANSCRIPT MOVED: {follower.main.path} -> {main_path}")
         follower.main = _FollowedFile(path=main_path, source="main", lines_read=0)
-    events.extend(_read_new_events(followed=follower.main))
+    events.extend(_read_new_events(followed=follower.main, since=follower.since))
     if not follower.include_subagents:
         return events
     for transcript in _subagent_transcripts(session_id=follower.session_id):
@@ -195,9 +237,15 @@ def _poll(*, follower: _Follower) -> list[str]:
         if followed is None:
             followed = _FollowedFile(path=transcript, source=_subagent_source(transcript=transcript), lines_read=0)
             follower.subagents[transcript] = followed
-            events.append(f"NEW AGENT {followed.source}: {transcript}")
-        events.extend(_read_new_events(followed=followed))
+            events.append(f"{_now_stamp()} NEW AGENT {followed.source}: {transcript}")
+        events.extend(_read_new_events(followed=followed, since=follower.since))
     return events
+
+
+def _starts_at_end(*, follower: _Follower) -> bool:
+    if follower.from_start:
+        return False
+    return follower.since is None
 
 
 def _subagent_transcripts(*, session_id: str) -> list[Path]:
@@ -206,19 +254,22 @@ def _subagent_transcripts(*, session_id: str) -> list[Path]:
 
 def _seed_existing_subagents(*, follower: _Follower) -> None:
     for transcript in _subagent_transcripts(session_id=follower.session_id):
+        lines_read = 0
+        if _starts_at_end(follower=follower):
+            lines_read = len(_complete_lines(path=transcript))
         follower.subagents[transcript] = _FollowedFile(
             path=transcript,
             source=_subagent_source(transcript=transcript),
-            lines_read=len(_complete_lines(path=transcript)),
+            lines_read=lines_read,
         )
 
 
-def follow(*, session_id: str, include_subagents: bool, from_start: bool, interval: float, idle_minutes: float) -> None:
-    follower = _Follower(session_id=session_id, include_subagents=include_subagents, from_start=from_start)
-    if _find_main_transcript(session_id=session_id) is None:
-        _ = sys.stderr.write(f"No transcript named {session_id}.jsonl under {PROJECTS_ROOT}\n")
+def follow(*, follower: _Follower, interval: float, idle_minutes: float) -> None:
+    if _find_main_transcript(session_id=follower.session_id) is None:
+        _ = sys.stderr.write(f"No transcript named {follower.session_id}.jsonl under {PROJECTS_ROOT}\n")
         sys.exit(1)
-    if include_subagents and not from_start:
+    _emit(f"{_now_stamp()} FOLLOWING {follower.session_id}")
+    if follower.include_subagents and not follower.from_start:
         _seed_existing_subagents(follower=follower)
     last_event_at = time.monotonic()
     idle_reported = False
@@ -232,7 +283,7 @@ def follow(*, session_id: str, include_subagents: bool, from_start: bool, interv
         elif not idle_reported:
             idle_seconds = time.monotonic() - last_event_at
             if idle_seconds >= idle_minutes * 60:
-                _emit(f"IDLE: no new event for {idle_minutes:g} min")
+                _emit(f"{_now_stamp()} IDLE: no new event for {idle_minutes:g} min")
                 idle_reported = True
         time.sleep(interval)
 
@@ -284,6 +335,16 @@ def sessions(*, hours: float) -> None:
         _emit(f"{path.stem}\t{written}\t{_working_directory(path=path)}\t{_first_command(path=path)}")
 
 
+def _since_stamp(value: str) -> datetime:
+    try:
+        moment = datetime.fromisoformat(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(f"not a stamp like 2026-11-16T21:33:48Z: {value!r}") from error
+    if moment.tzinfo is None:
+        raise argparse.ArgumentTypeError(f"stamp has no time zone (end it with Z for UTC): {value!r}")
+    return moment
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -292,7 +353,9 @@ def main() -> None:
     follow_parser = commands.add_parser("follow")
     _ = follow_parser.add_argument("session_id")
     _ = follow_parser.add_argument("--subagents", action="store_true")
-    _ = follow_parser.add_argument("--from-start", action="store_true")
+    start = follow_parser.add_mutually_exclusive_group()
+    _ = start.add_argument("--from-start", action="store_true")
+    _ = start.add_argument("--since", type=_since_stamp)
     _ = follow_parser.add_argument("--interval", type=float, default=2)
     _ = follow_parser.add_argument("--idle-minutes", type=float, default=10)
     args = parser.parse_args()
@@ -300,9 +363,12 @@ def main() -> None:
         sessions(hours=args.hours)
         return
     follow(
-        session_id=args.session_id,
-        include_subagents=args.subagents,
-        from_start=args.from_start,
+        follower=_Follower(
+            session_id=args.session_id,
+            include_subagents=args.subagents,
+            from_start=args.from_start,
+            since=args.since,
+        ),
         interval=args.interval,
         idle_minutes=args.idle_minutes,
     )
