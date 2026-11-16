@@ -1344,6 +1344,13 @@ class _PrReviews:
             return {"verdict": "long_hold", "head": self.head, "reviewers": self.verdicts, "holds": holds}
         if len(self.verdicts) < len(self.reviewers):
             return None
+        if self.head in self.noted_holds:
+            # the user already knows about this head's hold, so wait it out rather than stopping on the unreviewed
+            # verdict it leaves; a finding makes _held_until None and still stops the wait
+            until = _held_until(reviews=self, verdicts=self.verdicts)
+            if until is not None:
+                if until > datetime.datetime.now(datetime.UTC):
+                    return None
         return {"verdict": _overall_verdict(self.verdicts), "head": self.head, "reviewers": self.verdicts}
 
     def _long_holds(self) -> dict[str, dict[str, Any]]:
