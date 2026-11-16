@@ -48,9 +48,13 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
                                     GitHub's reason, and any run that failed before creating a job
   ai-review --repo R --pr N         wait for every AI reviewer the repo configures (one module
                                     per reviewer in ai_reviewers/) to give its verdict on the
-                                    PR's latest commit: clean, flagged or skipped, settled when
+                                    PR's latest commit: clean, flagged or skipped, ignored when the
+                                    PR's description tells it to skip the PR, settled when
                                     everything a flagged review found has since been fixed or
-                                    answered, or head_not_reviewed when a reviewer stays quiet about
+                                    answered, long_hold as soon as a reviewer's own note puts its
+                                    next review more than LONG_HOLD away (unless the head is given
+                                    as --noted-hold, which waits it out instead), or
+                                    head_not_reviewed when a reviewer stays quiet about
                                     a new head (with its own note under held_back when it says it is
                                     out of allowance, and its check run on the head under check when
                                     that finished without a review; while its check or its comments
@@ -59,12 +63,13 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
                                     commits, not a merge of the default branch;
                                     a flagged reviewer's entry lists its open findings (id, type,
                                     path, line, url, body_text), read through the pr-comments skill
-  review-watch --chain F --branch B --checkouts DIR [--settled SHA ...]
+  review-watch --chain F --branch B --checkouts DIR [--settled SHA ...] [--noted-hold SHA ...]
                                     ai-review across every chain PR at once (each found by branch B,
                                     its checkout at DIR/<name>): wait while a review is running or
                                     a reviewer's next review is due at a known time, and stop as soon
-                                    as any PR needs the agent (outcome needs_action) or every PR is
-                                    clean, settled or at a --settled head (all_quiet), printing each
+                                    as any PR needs the agent (outcome needs_action, a long_hold
+                                    included) or every PR is clean, settled, ignored or at a
+                                    --settled head (all_quiet), printing each
                                     PR's state: waiting, quiet, held (with until) or needs_action
   status --chain F --branch B       a snapshot of every chain PR, waiting on nothing: its head, CI
                                     checks passed, pending and failed, each AI reviewer's check, and
@@ -1021,7 +1026,7 @@ def _pr_review_state(*, repo: str, pr: str, reviewers: list[ModuleType]) -> dict
     Review and comment bodies are kept apart, oldest first: a review of the head is a verdict even in wording a
     reviewer module does not know, while a comment (a walkthrough, a summary) may still be waiting to be refreshed.
     """
-    view = _gh_json("pr", "view", pr, "--repo", repo, "--json", "headRefOid,reviews,commits")
+    view = _gh_json("pr", "view", pr, "--repo", repo, "--json", "headRefOid,reviews,commits,body")
     # gh pr view leaves out when a comment was last edited, and a note in a comment the reviewer rewrites in place
     # (such as when its next review is available) counts from that edit, not from now
     pages = _gh_json("api", "--paginate", "--slurp", f"repos/{repo}/issues/{pr}/comments")
@@ -1050,6 +1055,7 @@ def _pr_review_state(*, repo: str, pr: str, reviewers: list[ModuleType]) -> dict
             comments[reviewer.NAME].append({"body": item["body"], "edited_at": item["updated_at"]})
     return {
         "head": view["headRefOid"],
+        "pr_body": view["body"],
         "head_committed_at": view["commits"][-1]["committedDate"],
         "bodies": bodies,
         "comments": comments,
@@ -1302,11 +1308,14 @@ class _PrReviews:
     A verdict holds only for the head it was reached on, so a push mid-wait sends every reviewer back to classify.
     """
 
-    def __init__(self, *, repo: str, pr: str, checkout: Path, reviewers: list[ModuleType]) -> None:
+    def __init__(
+        self, *, repo: str, pr: str, checkout: Path, reviewers: list[ModuleType], noted_holds: set[str]
+    ) -> None:
         self.repo = repo
         self.pr = pr
         self.checkout = checkout
         self.reviewers = reviewers
+        self.noted_holds = noted_holds
         self.verdicts: dict[str, dict[str, Any]] = {}
         self.latest: dict[str, dict[str, list[str]]] = {}
         self.comments: dict[str, list[dict[str, str]]] = {}
@@ -1330,16 +1339,59 @@ class _PrReviews:
             )
             if result is not None:
                 self.verdicts[reviewer.NAME] = result
+        holds = self._long_holds()
+        if holds:
+            return {"verdict": "long_hold", "head": self.head, "reviewers": self.verdicts, "holds": holds}
         if len(self.verdicts) < len(self.reviewers):
             return None
+        if self.head in self.noted_holds:
+            # the user already knows about this head's hold, so wait it out rather than stopping on the unreviewed
+            # verdict it leaves; a finding makes _held_until None and still stops the wait
+            until = _held_until(reviews=self, verdicts=self.verdicts)
+            if until is not None:
+                if until > datetime.datetime.now(datetime.UTC):
+                    return None
         return {"verdict": _overall_verdict(self.verdicts), "head": self.head, "reviewers": self.verdicts}
+
+    def _long_holds(self) -> dict[str, dict[str, Any]]:
+        """Find each reviewer whose own note puts its next review on the head more than LONG_HOLD away.
+
+        A hold that long is worth the user knowing about while it lasts, since they may waive the review rather than
+        wait; a shorter one is waited out without a word. It is reported once per head: the agent passes the head back
+        as noted, and the wait carries on. A finding or an unreadable review comes first, so a hold never stands in
+        front of one.
+        """
+        holds: dict[str, dict[str, Any]] = {}
+        if self.head in self.noted_holds:
+            return holds
+        for result in self.verdicts.values():
+            if result["verdict"] in _NEEDS_AGENT_VERDICTS:
+                return holds
+        now = datetime.datetime.now(datetime.UTC)
+        for reviewer in self.reviewers:
+            if reviewer.NAME in self.verdicts:
+                if self.verdicts[reviewer.NAME]["verdict"] not in _UNREVIEWED_VERDICTS:
+                    continue
+            available_at = reviewer.allowance_returns_at(self.comments[reviewer.NAME])
+            if available_at is None:
+                continue
+            if available_at - now <= LONG_HOLD:
+                continue
+            holds[reviewer.NAME] = {
+                "held_back": reviewer.held_back(self.comments[reviewer.NAME]),
+                "available_at": available_at.isoformat(),
+                "minutes_left": int((available_at - now).total_seconds() // 60),
+            }
+        return holds
 
 
 def cmd_ai_review(a: argparse.Namespace) -> dict[str, Any]:
     reviewers = enabled_reviewers(checkout=Path(a.checkout), names=a.reviewer)
     if not reviewers:
         return {"verdict": "none_configured", "reviewers": {}}
-    reviews = _PrReviews(repo=a.repo, pr=a.pr, checkout=Path(a.checkout), reviewers=reviewers)
+    reviews = _PrReviews(
+        repo=a.repo, pr=a.pr, checkout=Path(a.checkout), reviewers=reviewers, noted_holds=set(a.noted_hold)
+    )
     try:
         return _wait(timeout=a.timeout, interval=60, what=f"every AI reviewer on PR {a.pr}", probe=reviews.probe)
     except FailError as e:
@@ -1361,8 +1413,10 @@ def _chain_prs(*, chain: dict[str, Any], branch: str) -> list[tuple[str, str | N
     return found
 
 
-_QUIET_VERDICTS = frozenset({"clean", "settled"})
+_QUIET_VERDICTS = frozenset({"clean", "settled", "ignored"})
 _UNREVIEWED_VERDICTS = frozenset({"head_not_reviewed", "skipped"})
+_NEEDS_AGENT_VERDICTS = frozenset({"flagged", "unrecognized"})
+LONG_HOLD = datetime.timedelta(minutes=10)
 
 
 def _watched_pr(*, reviews: _PrReviews, result: dict[str, Any] | None, settled: set[str]) -> dict[str, Any]:
@@ -1383,6 +1437,8 @@ def _watched_pr(*, reviews: _PrReviews, result: dict[str, Any] | None, settled: 
     entry["result"] = result
     if result["verdict"] in _QUIET_VERDICTS:
         return {**entry, "state": "quiet"}
+    if result["verdict"] == "long_hold":
+        return {**entry, "state": "needs_action"}
     until = _held_until(reviews=reviews, verdicts=result["reviewers"])
     if until is None:
         return {**entry, "state": "needs_action"}
@@ -1390,7 +1446,8 @@ def _watched_pr(*, reviews: _PrReviews, result: dict[str, Any] | None, settled: 
 
 
 def _held_until(*, reviews: _PrReviews, verdicts: dict[str, dict[str, Any]]) -> datetime.datetime | None:
-    # the soonest time a held-back reviewer's next review is due, or None when any reviewer needs the agent now
+    # the soonest time a held-back reviewer's next review is due, or None when no reviewer is held back or any reviewer
+    # needs the agent now
     times: list[datetime.datetime] = []
     for reviewer in reviews.reviewers:
         verdict = verdicts[reviewer.NAME]["verdict"]
@@ -1402,6 +1459,8 @@ def _held_until(*, reviews: _PrReviews, verdicts: dict[str, dict[str, Any]]) -> 
         if available_at is None:
             return None
         times.append(available_at)
+    if not times:
+        return None
     return min(times)
 
 
@@ -1419,7 +1478,9 @@ def _chain_reviews(*, a: argparse.Namespace) -> tuple[list[_PrReviews], list[str
             raise FailError(f"no checkout of {repo} at {checkout}; check it out there first (Step 3)")
         reviewers = enabled_reviewers(checkout=checkout, names=a.reviewer)
         if reviewers:
-            watched.append(_PrReviews(repo=repo, pr=pr, checkout=checkout, reviewers=reviewers))
+            watched.append(
+                _PrReviews(repo=repo, pr=pr, checkout=checkout, reviewers=reviewers, noted_holds=set(a.noted_hold))
+            )
     return watched, no_pr
 
 
@@ -1508,6 +1569,8 @@ def cmd_status(a: argparse.Namespace) -> dict[str, Any]:
 def _reviewer_verdict(
     *, reviewer: ModuleType, state: dict[str, Any], repo: str, pr: str, checkout: Path
 ) -> dict[str, Any] | None:
+    if reviewer.ignored(state["pr_body"]):
+        return {"verdict": "ignored"}
     check = state["checks"][reviewer.NAME]
     if check is not None and check["status"] != "completed":
         # its check says a review of the head is running, even one asked for again on a head it already reviewed
@@ -1547,7 +1610,7 @@ def _review_timeout(
 def _overall_verdict(verdicts: dict[str, dict[str, Any]]) -> str:
     # the most serious verdict wins: a finding, then a review nobody could read, then a skipped review
     found = {result["verdict"] for result in verdicts.values()}
-    for verdict in ("flagged", "unrecognized", "skipped", "head_not_reviewed", "settled"):
+    for verdict in ("flagged", "unrecognized", "skipped", "head_not_reviewed", "settled", "ignored"):
         if verdict in found:
             return verdict
     return "clean"
@@ -2019,6 +2082,10 @@ def _add_github_verbs(add: AddVerb) -> None:
             sp.add_argument(
                 "--reviewer", action="append", default=[], help="only these reviewers (default: every configured one)"
             )
+            sp.add_argument("--noted-hold", action="append", default=[], metavar="SHA", help=_NOTED_HOLD_HELP)
+
+
+_NOTED_HOLD_HELP = "a head whose long_hold the user has already been told about; its hold is then waited out"
 
 
 def _add_chain_review_verbs(add: AddVerb) -> None:
@@ -2029,6 +2096,7 @@ def _add_chain_review_verbs(add: AddVerb) -> None:
     rw.add_argument(
         "--settled", action="append", default=[], metavar="SHA", help="a head the agent already settled or waived"
     )
+    rw.add_argument("--noted-hold", action="append", default=[], metavar="SHA", help=_NOTED_HOLD_HELP)
     rw.add_argument(
         "--reviewer", action="append", default=[], help="only these reviewers (default: every configured one)"
     )

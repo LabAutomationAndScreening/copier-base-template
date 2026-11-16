@@ -21,6 +21,9 @@ Each module defines:
                 whether a PR comment by someone other than the agent asks it for a review; the
                 quiet period after the newest such request is waited out like the one after a commit,
                 since the agent replies to a request a few seconds after it is made
+  ignored(pr_body) -> bool
+                whether the PR's description tells the agent to skip the PR; it then leaves no review,
+                comment or check at all, so its silence is the verdict rather than something to wait out
   reviewing_since(comments) -> datetime | None
                 when the comment saying a review is running was last edited, or None if none says so;
                 `comments` as for held_back. For the quiet period after that edit, the agent's silence
