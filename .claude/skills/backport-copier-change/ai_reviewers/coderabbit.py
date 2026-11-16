@@ -10,7 +10,10 @@ same once it is refreshed for the latest commit. A review that found nothing in 
 instead carry only "Failed pre-merge checks:", one "- <name>:" line per PR-wide check that
 failed (such as docstring coverage); that is clean too. Each review's "Review info" names the
 commit it covered by its 7-character short SHA (`**Commit**: [abc1234]`), which is how a
-review of an older commit is told apart from one of the PR's head. Every review footer on
+review of an older commit is told apart from one of the PR's head. While reviews are paused,
+the summary comment opens with a "Reviews paused" note naming the PR's head as "Latest commit,
+not reviewed: <sha>" and keeps the older review's "No actionable comments" line below it, so
+that note's mention of the head is not taken as a review of it. Every review footer on
 the included plan ends "0 remain after this review", so that line alone does not mean the
 allowance is used up.
 """
@@ -42,6 +45,7 @@ _REVIEWING = re.compile(r"review in progress|currently processing", re.IGNORECAS
 _NEXT_REVIEW = re.compile(r"next included review available in (\d+) minutes", re.IGNORECASE)
 _REVIEW_REQUEST = re.compile(r"@coderabbitai\s+(?:full\s+)?review\b", re.IGNORECASE)
 _IGNORE = re.compile(r"@coderabbitai\s+ignore\b", re.IGNORECASE)
+_NOT_REVIEWED = re.compile(r"Latest commit, not reviewed: [0-9a-f]+", re.IGNORECASE)
 # CodeRabbit can leave a small follow-up commit unreviewed without saying so; this long after the commit its silence
 # is a verdict in itself, and any note that it is held back goes to the agent with it
 QUIET_AFTER_SECONDS = 300
@@ -49,7 +53,7 @@ QUIET_AFTER_SECONDS = 300
 
 def classify(*, reviews: list[str], comments: list[str], head: str) -> dict[str, Any] | None:
     current_reviews = [b for b in reviews if head[:7] in b]
-    text = "\n".join([*current_reviews, *(b for b in comments if head[:7] in b)])
+    text = "\n".join([*current_reviews, *(b for b in comments if _covers(comment=b, head=head))])
     counts = {
         "actionable": sum(int(n) for n in _ACTIONABLE.findall(text)),
         "follow_ups": sum(int(n) for n in _FOLLOW_UPS.findall(text)),
@@ -73,6 +77,13 @@ def classify(*, reviews: list[str], comments: list[str], head: str) -> dict[str,
         # a review of the head exists but says nothing this module recognizes; waiting would never end
         return {"verdict": "unrecognized", **counts}
     return None
+
+
+def _covers(*, comment: str, head: str) -> bool:
+    # whether the comment speaks to a review of the head; a paused note names the head only to say it went unreviewed
+    if head[:7] in _NOT_REVIEWED.sub("", comment):
+        return True
+    return False
 
 
 def _recognized(body: str) -> bool:
