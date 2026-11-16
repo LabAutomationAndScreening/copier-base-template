@@ -77,10 +77,18 @@ Whenever the user is to judge or act on a comment, show it rather than describe 
   and why.
 
 Leave none of it out, whatever brevity guidance is in effect: a count, a table row or a
-paraphrase is not a comment. When asking the user what to do, write all of it as visible
-response text directly before the AskUserQuestion call, not in your thinking, a tool call's
-description or a tool's output, none of which the user reliably sees. Keep the `question` field to
-a short line naming the comment, since the dialog cuts off a long one. One decision per comment.
+paraphrase is not a comment. When asking the user what to do, put all of it in two places:
+
+1. A file, written with a tool call first: `/tmp/pr<n>-comment-<comment id>.md`. Text meant as a
+   message can end up in your thinking instead, where the user sees only a one-line summary of it and nothing tells you so; a file
+   written with a tool call can't go missing that way.
+2. Visible response text directly before the AskUserQuestion call, not in your thinking, a tool
+   call's description or a tool's output, none of which the user reliably sees.
+
+The `question` field stays one line, since the dialog cuts off a long one: it names the comment
+and gives the file's absolute path, e.g. `F8 (comment 16; full text above and in
+/tmp/pr57-comment-4584983630.md): what should we do?`. Leave the options' `preview` fields empty:
+a dialog with previews hides every option's description. One decision per comment.
 
 ## Post
 
@@ -119,14 +127,14 @@ itself, put it in a code span: `[COMMIT LINK]` inside backticks or a fenced bloc
 stays as written.
 
 A reply goes out under the user's account, so the user approves its text before it goes. Draft
-it without the footer, show the draft itself as visible response text (never only a path), then ask
-"Post now or edit first?":
+it without the footer and write it to a file under `tmp/` first, for the same reason a comment
+goes in a file (see Showing a comment). Then show the draft itself as visible response text (never
+only a path), and ask "Post now or edit first? (draft above and in <the file's absolute path>)":
 
-- **Post now**: write it to a file under `tmp/` and run the script on its own, never chained with
-  another command.
-- **Edit first**: write it to that file, give the user its absolute path, and wait until they're
-  done. Then read it back and ask again, with its current text and your opinion of it, "Ready to
-  post, or edit again?", until they say post.
+- **Post now**: run the script on its own, never chained with another command.
+- **Edit first**: wait until the user is done editing that file. Then read it back and ask again,
+  with its current text and your opinion of it, "Ready to post, or edit again? (<the file's
+  absolute path>)", until they say post.
 
 Once approved, never write to the file again: post it as it is on disk, with `--commit` filling
 `[COMMIT LINK]` as the only change.

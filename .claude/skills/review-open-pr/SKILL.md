@@ -24,8 +24,9 @@ collects every finding the reviewer had, and posts them all on the PR as one rev
   `<repo_root>/tmp/review-open-pr/pr<pr>/` (`tmp/` is gitignored); creating the worktree in Step 1 creates it. It holds:
   - `<brief>`: `<work_dir>/context-brief.md`;
   - `<work_dir>/code-review-findings.json`: the findings array, when the review reports it inline;
-  - `<work_dir>/review-findings.json` and `<work_dir>/review-preview.md`: `/post-review-findings`'
-    `<findings_file>` and `<preview_file>`, which this skill puts here in place of that skill's own paths;
+  - `<work_dir>/review-findings.json`, `<work_dir>/review-preview.md` and `<work_dir>/review-approval.md`:
+    `/post-review-findings`' `<findings_file>`, `<preview_file>` and `<approval_file>`, which this skill puts here
+    in place of that skill's own paths;
   - `<work_dir>/tree`: the worktree pinned to the reviewed commit, created in Step 1, reviewed in Step 3 and
     removed in Step 4.
 - Show every file path to the user as an absolute path.
@@ -201,7 +202,7 @@ is the agent's transcript. If the review instead reports its findings inline, wr
 `/post-review-findings` can't be started with the Skill tool (it is user-invoked only), so Read
 `.claude/skills/post-review-findings/SKILL.md` and follow its Steps 1 to 8 in place, with these changes:
 
-- **Conventions**: `<findings_file>` and `<preview_file>` are the paths in `<work_dir>` listed above. Its rule
+- **Conventions**: `<findings_file>`, `<preview_file>` and `<approval_file>` are the paths in `<work_dir>` listed above. Its rule
   to ask before overwriting an existing `<findings_file>` still applies.
 - **Step 1**: the PR and the reviewed commit come from Step 1 here.
 - **Step 3**: add every set-aside candidate from Step 4 as a finding, without asking whether to: the point of
