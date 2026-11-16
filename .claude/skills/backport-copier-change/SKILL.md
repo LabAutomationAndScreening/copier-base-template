@@ -329,8 +329,9 @@ For each repo:
      "None" first in every question, so each question has the two to four options
      AskUserQuestion takes.
      Write the clean review's PR and the repos asked about to the file first (Rules: Approval).
-     Record each answer in that repo's bd notes. A repo answered yes gets the line in its draft
-     PR's reviewer notes with the reason (Step 6.1), and its `ai-review` then reports `ignored`.
+     Record each answer and the head it was given on in that repo's bd notes. A repo answered yes
+     gets the line in its draft PR's reviewer notes with the reason (Step 6.1), and its `ai-review`
+     then reports `ignored`. If that repo's head changes before its PR opens, ask again.
    - `ignored`: the PR's description tells the reviewer to skip it (for CodeRabbit,
      `@coderabbitai ignore`), so it never will; on to the next PR.
    - `long_hold`: a reviewer's own note puts its next review on this head more than 10 minutes
