@@ -325,7 +325,8 @@ For each repo:
      to skip them (for CodeRabbit, `@coderabbitai ignore` in the description), since a review
      that turns up nothing spends one of its few reviews an hour. Ask about every such repo not
      already decided, each one yes or no, in a single AskUserQuestion call: one multi-select
-     question per four repos, each repo an option, with "None" first in the first question.
+     question per three repos, each repo an option, with "None" first in every question, so
+     each question has the two to four options AskUserQuestion takes.
      Write the clean review's PR and the repos asked about to the file first (Rules: Approval).
      Record each answer in that repo's bd notes. A repo answered yes gets the line in its draft
      PR's reviewer notes with the reason (Step 6.1), and its `ai-review` then reports `ignored`.
