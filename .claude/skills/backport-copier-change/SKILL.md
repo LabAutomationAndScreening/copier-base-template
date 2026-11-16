@@ -75,12 +75,15 @@ another repo's files from its checkout (Step 3) or a shallow clone in your scrat
 
 - **Approval.** The plan approved in Step 2 covers every commit and push it names. Anything it
   doesn't name (a follow-up tidy-up, a fix in another layer) is proposed with its evidence and
-  waits for a yes. The evidence (a commit's diff and message, a reply's text) goes in visible
-  response text directly before the AskUserQuestion call, not in your thinking, a tool call's
-  description or a tool's output: the user does not see tool output and cannot tie together
-  things scattered across the terminal, so evidence a tool printed is written out again there.
-  The dialog cuts off a long `question` field, so that field stays one or two lines naming the
-  decision and pointing at the text above. Each finding gets its own question, with its fix's
+  waits for a yes. The evidence (a commit's diff and message, a reply's text) goes in two places:
+  a file written with a tool call first (`/tmp/backport-<branch>-<topic>.md`), and visible response text directly before the AskUserQuestion call, not in your
+  thinking, a tool call's description or a tool's output: the user does not see tool output and
+  cannot tie together things scattered across the terminal, so evidence a tool printed is written
+  out again there. The file is the part that can't fail silently: text meant as a message can end
+  up in your thinking instead, where the user sees only a one-line summary of it. The dialog cuts
+  off a long `question` field, so that field stays one or two lines naming the decision and giving
+  the file's absolute path. Leave the options' `preview` fields empty: a dialog with previews
+  hides every option's description. Each finding gets its own question, with its fix's
   diff and its reply written out together before it. A round's fixes are pushed once, after the
   last of them is approved, so CI runs once. A question from the user gets an answer, not an
   action. A waiver (skip a CI
