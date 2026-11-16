@@ -120,6 +120,8 @@ def _tool_result_event(*, block: dict[str, Any]) -> str | None:
         return f"ANSWER: {_one_line(text)}"
     if "questions have been answered" in text:
         return f"ANSWER: {_one_line(text)}"
+    if "User has answered your questions:" in text:  # reported in anthropics/claude-code#29733
+        return f"ANSWER: {_one_line(text)}"
     return None
 
 
