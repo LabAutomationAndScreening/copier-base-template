@@ -23,7 +23,9 @@ lines are printed in stamp order, so no line still to come is older than the las
 printed when the follower starts, carries the point it resumes from: the --since stamp, the first record's time
 with --from-start, or else the moment it took the transcripts' current ends. So the last line printed always
 carries a stamp that is safe to resume from, even when the follower was killed before it printed anything else.
-`TRANSCRIPT MOVED`, `NEW AGENT` and `IDLE` carry the time they were printed.
+`TRANSCRIPT MOVED`, `NEW AGENT` and `IDLE` carry the stamp of the last line printed before them, for the same
+reason (a record can reach the transcript a moment after a poll, stamped in an earlier second than the clock
+shows), and the time they were printed in their text: `(at <stamp>)`.
 
 The session is looked up by ID under every project folder on each poll, because a session that enters a worktree
 starts writing its transcript under a different project folder; `TRANSCRIPT MOVED` reports that. `IDLE` reports a
@@ -60,6 +62,7 @@ class _Follower:
     include_subagents: bool
     from_start: bool
     since: datetime | None
+    checkpoint: str = "-"
     main: _FollowedFile | None = None
     subagents: dict[Path, _FollowedFile] = field(default_factory=dict)
 
@@ -230,7 +233,9 @@ def _poll(*, follower: _Follower) -> list[str]:
     if follower.main is None:
         return events
     if follower.main.path != main_path:
-        events.append(f"{_now_stamp()} TRANSCRIPT MOVED: {follower.main.path} -> {main_path}")
+        events.append(
+            f"{follower.checkpoint} TRANSCRIPT MOVED: {follower.main.path} -> {main_path} (at {_now_stamp()})"
+        )
         follower.main = _FollowedFile(path=main_path, source="main", lines_read=0)
     events.extend(_read_new_events(followed=follower.main, since=follower.since))
     if not follower.include_subagents:
@@ -240,7 +245,7 @@ def _poll(*, follower: _Follower) -> list[str]:
         if followed is None:
             followed = _FollowedFile(path=transcript, source=_subagent_source(transcript=transcript), lines_read=0)
             follower.subagents[transcript] = followed
-            events.append(f"{_now_stamp()} NEW AGENT {followed.source}: {transcript}")
+            events.append(f"{follower.checkpoint} NEW AGENT {followed.source}: {transcript} (at {_now_stamp()})")
         events.extend(_read_new_events(followed=followed, since=follower.since))
     return events
 
@@ -309,21 +314,24 @@ def follow(*, follower: _Follower, interval: float, idle_minutes: float) -> None
     if main_path is None:
         _ = sys.stderr.write(f"No transcript named {follower.session_id}.jsonl under {PROJECTS_ROOT}\n")
         sys.exit(1)
-    resumes_from = _start(follower=follower, main_path=main_path)
-    _emit(f"{_stamp(resumes_from)} FOLLOWING {follower.session_id}")
+    follower.checkpoint = _stamp(_start(follower=follower, main_path=main_path))
+    _emit(f"{follower.checkpoint} FOLLOWING {follower.session_id}")
     last_event_at = time.monotonic()
     idle_reported = False
     while True:
         events = _poll(follower=follower)
         for event in sorted(events, key=_line_stamp):
             _emit(event)
+            stamp = _line_stamp(event)
+            if stamp != "-":
+                follower.checkpoint = stamp
         if events:
             last_event_at = time.monotonic()
             idle_reported = False
         elif not idle_reported:
             idle_seconds = time.monotonic() - last_event_at
             if idle_seconds >= idle_minutes * 60:
-                _emit(f"{_now_stamp()} IDLE: no new event for {idle_minutes:g} min")
+                _emit(f"{follower.checkpoint} IDLE: no new event for {idle_minutes:g} min (at {_now_stamp()})")
                 idle_reported = True
         time.sleep(interval)
 
