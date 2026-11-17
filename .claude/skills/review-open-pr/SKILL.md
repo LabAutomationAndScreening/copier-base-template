@@ -265,6 +265,8 @@ tell the user. If the review instead reports its findings inline, write that arr
 - **Conventions**: `<findings_file>`, `<preview_file>` and `<approval_file>` are the paths in `<work_dir>` listed above. Its rule
   to ask before overwriting an existing `<findings_file>` still applies.
 - **Step 1**: the PR and the reviewed commit come from Step 1 here.
+- **Step 2**: skip it. Step 4.1 already imported the findings into `<findings_file>`, and importing again would
+  replace the set-aside findings and any edits since.
 - **Step 3**: add every set-aside candidate in `<work_dir>/reviewer-reply.md` to `<findings_file>` as a
   finding, before asking anything and without asking whether to: the point of this skill is all the findings.
   Start each one's `summary` with "Unverified; the reviewer set this aside as <its reason>." and give it its
