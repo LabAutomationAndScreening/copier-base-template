@@ -121,7 +121,7 @@ It prints the plan as JSON and writes `<preview_file>`: the review body and ever
 - `attention`: a problem that blocks posting.
 
 At the top level, the plan gives:
-- **`anchor_commit`** and **`reviewed_commit_in_pr`**: if the reviewed commit is still in the PR, the review is pinned to it and no line is recomputed. If the branch was rewritten, the review is anchored to the PR head and each line is mapped forward. A line inside changed code cannot be mapped and gets an `attention`.
+- **`anchor_commit`** and **`reviewed_commit_in_pr`**: the review is always anchored to the PR head, and each line is mapped forward from the reviewed commit, because GitHub places a review thread's line on the head's diff whatever commit the review was created on. `reviewed_commit_in_pr` is false when the branch was rewritten since the review. A line inside code changed since the review cannot be mapped and gets an `attention`.
 - **`visibility`**: if `PUBLIC`, check every finding for names of, links to or quotes from private repositories and anonymize them (see AGENTS.md).
 - **`blocking_problems`**: everything that must be fixed before `post` will run.
 

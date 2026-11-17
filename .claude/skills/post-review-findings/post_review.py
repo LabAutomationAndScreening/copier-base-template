@@ -523,7 +523,10 @@ def build_plan(findings_file: FindingsFile) -> Plan:
     reviewed_in_pr = _is_ancestor(ancestor=reviewed, descendant=head) and not _is_ancestor(
         ancestor=reviewed, descendant=base
     )
-    anchor = reviewed if reviewed_in_pr else head
+    # Always the head, even when the reviewed commit is still in the PR: addPullRequestReviewThread places `line` on
+    # the PR head's diff whatever commit the review was created on, so a line numbered for an older commit would land
+    # on different code, or be refused (`thread: null`) when it falls outside the head's hunks.
+    anchor = head
     commentable = commentable_lines(base=base, anchor=anchor)
 
     planned = [
