@@ -844,7 +844,13 @@ def _link_related(*, body: str, urls: dict[str, str]) -> str:
         return body
     for finding_id, url in urls.items():
         link = f"- [{finding_id}]({url}): "
-        related = re.sub(rf"^- {re.escape(finding_id)}: ", lambda _, link=link: link, related, flags=re.MULTILINE)
+        # an existing link is replaced too: a post that failed after relinking leaves links to comments it deleted
+        related = re.sub(
+            rf"^- (?:\[{re.escape(finding_id)}\]\([^)]*\)|{re.escape(finding_id)}): ",
+            lambda _, link=link: link,
+            related,
+            flags=re.MULTILINE,
+        )
     return head + marker + related
 
 
