@@ -4,6 +4,12 @@ set -ex
 script_dir="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 repo_root="$(CDPATH='' cd -- "$script_dir/.." && pwd)"
 git config --global --add safe.directory "$repo_root"
+# The codespace's own git credential helper answers only while GITHUB_TOKEN is set, and that token reaches only this
+# repository, so the scripts that push to another repository run git without it. This adds gh as the helper git asks
+# next, which answers with the login `gh auth login` stored. Without it git asks VS Code's askpass, which never
+# answers once a session's VSCODE_GIT_IPC_HANDLE names an extension host whose window has gone, so the push hangs.
+# --replace-all leaves a single entry however often the container starts.
+git config --global --replace-all credential.https://github.com.helper '!gh auth git-credential'
 
 # bd >=1.0 warns on every command unless .beads is owner-only, and on-create's group-writable chmod over .claude
 # undoes what bd init sets. Runs before the bd calls below so their output is clean too.
