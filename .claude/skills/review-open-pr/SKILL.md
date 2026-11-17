@@ -172,7 +172,9 @@ the big PR's description:
 Write `<brief>` with facts only, each with its source (a bead ID, a commit, a path, a comment URL):
 
 1. **PR**: number, title, URL, base, head, reviewed commit; the description verbatim.
-2. **Review state**: settled decisions, threads already raised, earlier AI finding IDs and their status.
+2. **Review state**: settled decisions, threads already raised, earlier AI finding IDs and their status. For
+   a point settled by a fix in this PR, name the fixing commit and say the fix is in the code under review;
+   never tell the reviewer to skip the topic.
 3. **Split context** (only for a layer): the big branch at its SHA; this layer's interim forms and spots;
    each upcoming layer and what it adds to the files this PR touches; how later code calls this PR's code.
 4. **How to use this brief**:
@@ -183,7 +185,10 @@ Write `<brief>` with facts only, each with its source (a bead ID, a commit, a pa
      mishandles. Name the layer.
    - Report only what a change to this PR's code would fix. A step of the split workflow that hasn't
      happened yet, such as folding this layer's review fixes back into the big branch, isn't a finding.
-   - Don't raise what is settled or already raised again.
+   - Don't raise what is settled or already raised again. That covers the point itself, not the code that
+     settled it: a fix made in the commits under review is part of the diff, so review it like any other
+     change, and report it if it is incomplete, wrong or brings the problem back. Pass this on with the
+     settled list to every agent you start.
    - A `TODO` in the code records a deliberate decision to defer that work. Don't report a finding whose fix
      is what a `TODO` defers, unless you strongly disagree with the reason the `TODO` gives, or leaving it
      undone would be catastrophic even for an MVP (data loss or corruption, a security hole, an outage). When
@@ -200,7 +205,7 @@ and the session stays in the user's checkout, where Steps 4 and 5 run this repo'
 Invoke the **code-review** skill (Skill tool) with these args:
 
 ```text
-[<level>] --max-findings all <pr> — the code under review is checked out at <absolute path of the worktree>, at <reviewed commit>. Run every git command as `git -C <absolute path of the worktree>`, run every test or other command with that path as its working directory, read the code under review only by absolute paths under it, never by relative ones, and give every agent you start this same rule. Tell every finder agent to return every candidate it finds, with no per-finder cap on how many. Before reviewing, read the context brief at <absolute path of brief>: the PR description, the existing review threads and, if this PR is a layer of a split branch, its plan and what the upcoming layers add. It is context, not findings.
+[<level>] --max-findings all <pr> — the code under review is checked out at <absolute path of the worktree>, at <reviewed commit>. Run every git command as `git -C <absolute path of the worktree>`, run every test or other command with that path as its working directory, read the code under review only by absolute paths under it, never by relative ones, and give every agent you start this same rule. Tell every finder agent to return every candidate it finds, with no per-finder cap on how many. Wherever you list what you didn't report, keep what you found wrong apart from what is real but left out because the brief settles it or a `TODO` defers it, and tell your verifiers to do the same. Before reviewing, read the context brief at <absolute path of brief>: the PR description, the existing review threads and, if this PR is a layer of a split branch, its plan and what the upcoming layers add. It is context, not findings.
 ```
 
 `--max-findings all` stays in effect for later `/code-review` runs too, as `/code-review` documents.
@@ -228,12 +233,15 @@ message. Either way, the notification's `<task-id>` is the agent's ID: record it
    hand-back came `from`), which restores its whole context:
 
    > Report every candidate finding you set aside on judgment (low value, speculative, not reproduced) or
-   > folded into another finding, for the review of PR #<pr> at <reviewed commit>. Leave out candidates you
-   > dropped because a `TODO` defers them. For each one, give the file,
-   > the line at that commit, a summary and a failure scenario, and say why you set it aside. Then list in one
-   > line each what you checked and refuted, with why. Leave out what you already reported. If there is
-   > nothing, say so instead of padding the list. Write prose and lists, with no ```json block. Don't change
-   > files or post anything.
+   > folded into another finding, for the review of PR #<pr> at <reviewed commit>. For each one, give the file,
+   > the line at that commit, a summary and a failure scenario, and say why you set it aside. Then give two
+   > more lists, one line per item, and put each item in only one of them:
+   > - **Known, not raised**: real, but left out because the context brief settles it, names it as an
+   >   accepted interim form, or a `TODO` defers it. Give the thread URL, the decision or the quoted `TODO`.
+   > - **Refuted**: what you checked and found wrong, or already guarded elsewhere, with why.
+   >
+   > Leave out what you already reported. If a list has nothing, say so instead of padding it. Write prose and
+   > lists, with no ```json block. Don't change files or post anything.
 
    Wait for its reply. As soon as it arrives, before anything else, write it verbatim to
    `<work_dir>/reviewer-reply.md` and set `stage` to `reply-saved`: until then it exists only in this
@@ -259,8 +267,10 @@ message. Either way, the notification's `<task-id>` is the agent's ID: record it
   `TODO` at the reviewed commit already defers (search the finding's file with `git grep -n TODO <reviewed
   commit> -- <file>`) and that doesn't make the "Overrides TODO" case from the brief, quoting the `TODO`.
 - **Step 4**: also relate findings through the split context, for example one finding about this layer's code
-  and another about a later layer that depends on it. List the refuted items in
-  `<work_dir>/reviewer-reply.md` under "checked and ruled out" in `summary`.
+  and another about a later layer that depends on it. In `summary`, list the reply's "Known, not raised"
+  items under "known, not raised here" and its "Refuted" items under "checked and ruled out". Sort anything
+  the review's own report lists as not included the same way, by its reason, whatever heading the report
+  gives it: a real problem that a `TODO` defers is not ruled out.
 - **Step 6**: the approval question also gives the number of set-aside findings added and the brief's
   absolute path. If its `pr_base` isn't the reviewed base, say so and list the base's new commits
   (`git log --oneline <reviewed base>..<pr_base>`), so the user can judge whether to review again first.

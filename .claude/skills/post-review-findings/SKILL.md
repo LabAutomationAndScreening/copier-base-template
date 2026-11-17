@@ -100,7 +100,10 @@ Record each relation in the `related` list of **both** findings, with a `note` w
 Set `summary` (the review body, markdown) to:
 - a short suggested order for working through them, root causes first;
 - the groups of related findings;
-- anything the report checked and ruled out, in one line each, so nobody re-raises it.
+- under "Known, not raised here", anything real that was left out because it is settled (including what Step 3 dropped as settled since the review), an accepted interim form, or deferred by a `TODO`, in one line each with the thread URL, decision or quoted `TODO`;
+- under "Checked and ruled out", anything the report checked and found wrong or already guarded, in one line each, so nobody re-raises it.
+
+Keep the two apart even when the report lists them together (e.g. a "refuted" list that includes TODO-deferred items): a reader takes "ruled out" to mean "not a bug", which a deferred defect is not.
 
 Do not put findings themselves in `summary`. Every finding must be its own comment so it can be replied to and resolved.
 
