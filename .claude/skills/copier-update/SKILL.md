@@ -49,6 +49,11 @@ $CU comment-report [repo] --report R     # once the PR is open, post the report 
 Every verb prints JSON. Do not re-derive by hand what a verb gives you, especially `.rej`
 contents: retyping is where truncation and whitespace damage creep in.
 
+Files only you read and pass to a verb (the draft, a secret answers file, the commit message and
+the PR body) go in `<work>`, which is `copier-update-<repo name>/` in your scratchpad: they are
+done with once this update is, and `/backport-copier-change` runs this skill for several repos in
+one session. The report and `copier-update-aborted.json` stay in `<repo>/tmp/`.
+
 In a GitHub Codespace, pass `--stored-gh-credentials` to `refs`, `new-questions`, `update`,
 `deleted-files`, `pr` and `comment-report`. The injected `GITHUB_TOKEN` only reaches the codespace's own repo; the flag drops
 it (and `GH_TOKEN`) so git and gh fall back to the credentials `gh auth login` stored.
@@ -167,7 +172,7 @@ $CU new-questions <repo> --ref "$TO_REF"
 
 Always run this, even for a ref you expect to be a small change. For each entry in `new`,
 decide the answer for this repo and record the decision and a confidence in
-`<repo>/tmp/draft.json`. Each entry carries `has_default` and the question's `spec`, its
+`<work>/draft.json`. Each entry carries `has_default` and the question's `spec`, its
 settings as written in copier.yml (`type`, `help`, `default`, `choices`, `when`, `secret`):
 
 - **Has a default:** read `help`, `when` and the default, which may be a Jinja expression
@@ -183,7 +188,7 @@ settings as written in copier.yml (`type`, `help`, `default`, `choices`, `when`,
 
 Every answer that is not the default becomes a `--data name=value` flag. A question with no
 default and no `--data` answer makes `update` refuse to run. For `secret: true` questions,
-write the value to a `--data-file` under `<repo>/tmp/` instead, and delete it afterwards. If
+write the value to a `--data-file` at an absolute path in `<work>` instead, and delete it afterwards. If
 `removed` is non-empty, tell the user: copier drops those answers.
 
 ### Step 3: Run the update
@@ -233,7 +238,7 @@ ask. For each file in `rej_files`:
 3. Apply the decision with Edit, run `$CU capture-rej <path> --root <repo>` **before**
    deleting the `.rej`, then delete it. Append the captured object, with the `disposition`
    that says what became of its hunks (`pending` while undecided), and the decision
-   (strategy, reason, confidence) to `<repo>/tmp/draft.json`.
+   (strategy, reason, confidence) to `<work>/draft.json`.
 
 Then check the files the update deleted, which no `.rej` reports: copier removes every file
 the old template had and the new one doesn't, whether or not the repo had edited it.
@@ -291,12 +296,12 @@ yet). Hooks that rewrite files (`modifying_hooks`: formatters, lock files, the d
 hash) are the mechanical fixes. Rerun until only `failed_hooks` that need a hand-made fix
 remain, or none.
 
-Write the commit message to `<repo>/tmp/commit-message.txt`, in the repo's commit style.
+Write the commit message to `<work>/commit-message.txt`, in the repo's commit style.
 The subject names the template and version range, and the body has one line per resolved
 file naming its strategy, then a line naming any mechanical fixes. Then:
 
 ```bash
-$CU commit <repo> --draft <repo>/tmp/draft.json --message-file <repo>/tmp/commit-message.txt
+$CU commit <repo> --draft <work>/draft.json --message-file <work>/commit-message.txt
 ```
 
 It refuses while any resolution is below high confidence or flagged `needs_review` (rerun
@@ -333,7 +338,7 @@ Build the report from the draft to match `report.schema.json` (`schema_version: 
   or `not_run`). `reason` is the why, not a restatement of the change.
 
 ```bash
-$CU report <repo> <repo>/tmp/draft.json
+$CU report <repo> <work>/draft.json
 ```
 
 On a misnamed or missing field, or a value that isn't one of its allowed ones, nothing is
@@ -344,11 +349,11 @@ paths, so ask first.
 ### Step 8: Hand off
 
 With `--pr`: fill the repo's PR template (`.github/pull_request_template.md`) into
-`<repo>/tmp/pr-body.md`. Every section is answered for this update, never left as the bare
+`<work>/pr-body.md`. Every section is answered for this update, never left as the bare
 template. Then:
 
 ```bash
-$CU pr <repo> --title "<title in the repo's PR title style>" --body-file <repo>/tmp/pr-body.md
+$CU pr <repo> --title "<title in the repo's PR title style>" --body-file <work>/pr-body.md
 ```
 
 It pushes the branch and prints the `gh pr create --draft …` `command`: run it. Once the PR is

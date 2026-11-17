@@ -77,7 +77,7 @@ another repo's files from its checkout (Step 3) or a shallow clone in your scrat
 - **Approval.** The plan approved in Step 2 covers every commit and push it names. Anything it
   doesn't name (a follow-up tidy-up, a fix in another layer) is proposed with its evidence and
   waits for a yes. The evidence (a commit's diff and message, a reply's text) goes in two places:
-  a file written with a tool call first (`/tmp/backport-<branch>-<topic>.md`), and visible response text directly before the AskUserQuestion call, not in your
+  a file written with a tool call first (`/tmp/<repo name>-<branch>-backport-<topic>.md`, `<repo name>` being the originating repo's), and visible response text directly before the AskUserQuestion call, not in your
   thinking, a tool call's description or a tool's output: the user does not see tool output and
   cannot tie together things scattered across the terminal, so evidence a tool printed is written
   out again there. The file is the part that can't fail silently: text meant as a message can end

@@ -134,7 +134,7 @@ itself, put it in a code span: `[COMMIT LINK]` inside backticks or a fenced bloc
 stays as written.
 
 A reply goes out under the user's account, so the user approves its text before it goes. Draft
-it without the footer and write it to a file under `tmp/` first, for the same reason a comment
+it without the footer and write it to a file under the repo's own `tmp/` first, for the same reason a comment
 goes in a file (see Showing a comment). Then show the draft itself as visible response text (never
 only a path), and ask "Post now or edit first? (draft above and in <the file's absolute path>)":
 
