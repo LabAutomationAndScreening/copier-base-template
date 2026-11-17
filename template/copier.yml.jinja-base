@@ -197,13 +197,6 @@ pnpm_minimum_release_age_exclude:
   # so a plain `git add` would not capture it. It is guarded on the file being tracked, since on an initial `copier copy`
   # into a fresh repo the file is not in the index yet (the chmod alone covers that case).
   - command: |
-        if [ -f scripts/delete_false_positive_rej.py ]; then
-            chmod +x scripts/delete_false_positive_rej.py
-            if git ls-files --error-unmatch scripts/delete_false_positive_rej.py > /dev/null 2>&1; then
-                git update-index --chmod=+x scripts/delete_false_positive_rej.py
-            fi
-        fi
-  - command: |
         for script in .claude/helpers/*.py .claude/skills/*/*.py; do
             if [ -f "$script" ] && head -n 1 "$script" | grep -q '^#!'; then
                 chmod +x "$script"
