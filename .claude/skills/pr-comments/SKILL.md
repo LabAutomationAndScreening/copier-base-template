@@ -30,6 +30,7 @@ in the PR's repo, relative to its root.
 .claude/skills/pr-comments/read.py <pr> --needs-verification [--repo OWNER/NAME]   # AI review findings whose reply awaits a verdict
 .claude/skills/pr-comments/read.py <pr> --all [--repo OWNER/NAME]                  # every thread, resolved ones included
 .claude/skills/pr-comments/read.py <pr> --all --include-bot-comments [--repo OWNER/NAME]   # AI reviewers' top-level comments too
+.claude/skills/pr-comments/read.py <pr> --settled-by-reaction [--repo OWNER/NAME]  # unresolved threads a bot settled with a reaction
 ```
 
 A JSON array, oldest first, one entry per inline review thread, top-level comment or review body
@@ -55,6 +56,11 @@ with something to answer:
 - `ai_review`: null, or `{finding_id, related, status, verdict_rounds}` for a finding from an AI
   code review (see Markers).
 - `replies`, oldest first: `{id, url, author, author_is_bot, body, body_text, created_at, ai_review_verdict}`.
+- `settled_by_reaction`: null, or `{reply_id, reactor, content, created_at}` on an unresolved inline thread a bot
+  reviewer opened, when the current user's reply is its last comment and the reviewer reacted to that reply in a way
+  that means no answer is coming. For now that's only CodeRabbit's 🚀 (`rocket`). Its 👀 (`eyes`) doesn't count: it
+  means an answer is still on the way, and that answer can disagree. CodeRabbit resolves only threads it sees fixed, so
+  such a thread stays open with nothing in it waiting on anyone; `--settled-by-reaction` lists them.
 
 Left out of the default output: resolved threads, AI reviewers' (CodeRabbit, Copilot) top-level
 comments (summaries, walkthroughs, chat replies), and whatever the current user answered last (a
@@ -139,6 +145,28 @@ only a path), and ask "Post now or edit first? (draft above and in <the file's a
 
 Once approved, never write to the file again: post it as it is on disk, with `--commit` filling
 `[COMMIT LINK]` as the only change.
+
+## Resolve
+
+```bash
+.claude/skills/pr-comments/resolve.py <pr> --thread <root comment id> --last-comment <comment id> [--repo OWNER/NAME | --checkout <path>]
+```
+
+Resolves one inline review thread (GitHub can't resolve a top-level comment or a review body) and prints
+`Resolved: <url>`, or `Already resolved: <url>` without changing anything. Resolving collapses the thread for every
+reviewer, so the user approves each one first: show the thread as Showing a comment says, with what settled it, and
+ask. Run the script on its own, never chained with another command.
+
+`--last-comment` is the ID of the thread's newest comment as it stood when the user approved (the root's ID when it has
+no replies). If the thread's newest comment is any other, the script resolves nothing and exits 1 naming both
+(`Not resolved: the newest comment in <root url> is <url>, not the approved <url>`): read the thread again
+(`read.py --thread`), since a comment posted since needs an answer before the thread can be resolved. A comment that
+lands in the moment between that check and the resolve is caught from GitHub's answer to the resolve: the script
+reopens the thread and exits 1 the same way, or, if reopening fails, says so, and the thread is reopened by hand.
+A gh error or timeout from the script leaves the outcome unknown: run it again with the same arguments. An already
+resolved thread is then reported as `Already resolved` only while its newest comment is still the approved one;
+otherwise the script exits 1 naming both and leaves the thread resolved (someone else may have resolved it), so read
+the new comment and reopen the thread if it needs an answer.
 
 ## Markers
 

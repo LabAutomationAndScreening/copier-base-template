@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Callable
 from collections.abc import Mapping
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -215,6 +216,119 @@ def gh_graphql(query: str, variables: Mapping[str, str | int | bool]) -> Any:  #
     if errors := data.get("errors"):
         raise RuntimeError(f"GraphQL errors: {errors}")
     return data["data"]
+
+
+_REVIEW_THREADS_QUERY = """
+query($owner: String!, $repo: String!, $number: Int!, $after: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100, after: $after) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          id
+          isResolved
+          root: comments(first: 1) {
+            nodes {
+              url
+            }
+          }
+          latest: comments(last: 1) {
+            nodes {
+              url
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+
+@dataclass(frozen=True)
+class ReviewThread:
+    """A PR's review thread as GraphQL describes it.
+
+    `root_url` is how it is matched to a REST comment: GraphQL's databaseId doesn't equal the REST pulls/comments id,
+    which is the one the replies endpoint takes. `last_url` is the thread's newest comment, the root itself when
+    nobody has replied.
+    """
+
+    graphql_id: str
+    is_resolved: bool
+    root_url: str
+    last_url: str
+
+
+def review_threads(*, owner: str, repo: str, pr_number: int) -> list[ReviewThread]:
+    """Return every review thread on the PR that still has its root comment."""
+    threads: list[ReviewThread] = []
+    after: str | None = None
+    while True:
+        variables: dict[str, str | int] = {"owner": owner, "repo": repo, "number": pr_number}
+        if after is not None:
+            variables["after"] = after
+        page = gh_graphql(_REVIEW_THREADS_QUERY, variables)["repository"]["pullRequest"]["reviewThreads"]
+        for node in page["nodes"]:
+            roots = node["root"]["nodes"]
+            if not roots:
+                continue
+            threads.append(
+                ReviewThread(
+                    graphql_id=node["id"],
+                    is_resolved=node["isResolved"],
+                    root_url=roots[0]["url"],
+                    last_url=node["latest"]["nodes"][0]["url"],
+                )
+            )
+        if not page["pageInfo"]["hasNextPage"]:
+            return threads
+        after = page["pageInfo"]["endCursor"]
+
+
+@dataclass(frozen=True)
+class PrArguments:
+    args: argparse.Namespace
+    owner: str
+    repo: str
+    pr_number: int
+
+
+def parse_pr_arguments(parser: argparse.ArgumentParser) -> PrArguments:
+    """Parse the command line of a script whose first argument is a PR number, with --repo or --checkout.
+
+    Adds those two options to `parser`, enters the checkout if one is given, and exits with an error naming a PR
+    number that isn't one (given with or without a leading #).
+    """
+    add_repo_arguments(parser)
+    args = parser.parse_args()
+    enter_checkout(args.checkout)
+    stripped = args.pr_number.strip().lstrip("#")
+    try:
+        pr_number = int(stripped)
+    except ValueError:
+        _ = sys.stderr.write(f"Invalid PR number: {stripped}\n")
+        sys.exit(1)
+    owner, repo = owner_and_repo(repo=args.repo)
+    return PrArguments(args=args, owner=owner, repo=repo, pr_number=pr_number)
+
+
+def print_or_exit_on_gh_error(produce_output: Callable[[], str]) -> None:
+    """Print what `produce_output` returns, or exit with the gh, timeout or GraphQL error that stopped it."""
+    try:
+        _ = sys.stdout.write(produce_output() + "\n")
+    except subprocess.CalledProcessError as e:
+        _ = sys.stderr.write(f"gh api error: {e.stderr}\n")
+        sys.exit(1)
+    except subprocess.TimeoutExpired:
+        _ = sys.stderr.write(f"gh api timed out after {GH_TIMEOUT_SECONDS}s\n")
+        sys.exit(1)
+    except RuntimeError as e:
+        _ = sys.stderr.write(f"{e}\n")
+        sys.exit(1)
 
 
 def run_cmd(

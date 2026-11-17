@@ -82,6 +82,12 @@ Read the actionable threads as pr-comments' Read says, then run:
 .claude/skills/address-pr-comments/verifier_prompt.py --pr <pr_number> --all-awaiting [--checkout <path>]
 ```
 
+Then list the threads a bot reviewer settled with a reaction instead of a reply. The actionable output leaves them out, because your reply is their last comment:
+
+```bash
+.claude/skills/pr-comments/read.py <pr_number> --settled-by-reaction [--checkout <path>]
+```
+
 The threads come with resolved threads and bot summaries already removed. Each entry has:
 - `id`: the root comment ID, which every reply uses. Thread grouping is done for you.
 - `type`: `"pulls/comments"` (inline), `"issues/comments"` (top-level) or `"pulls/reviews"` (a review's own body, often holding several findings with no thread of their own). A reply to either of the last two is a new top-level comment, which pr-comments' Post marks as answering this one; one reply answers every finding in a review body.
@@ -95,11 +101,13 @@ The threads come with resolved threads and bot summaries already removed. Each e
 
 `verifier_prompt.py --all-awaiting` covers findings that already have a reply but no verdict, e.g. from a run that stopped. Start a verifier for each entry now ([Step 4b](#step-4b-verify-replies-to-ai-review-findings)) and mention them in the triage. Use `--all-awaiting` only here: later in the run, a verifier still working hasn't posted yet, so its thread would get a second one.
 
-If there are no comments, say so, and stop once any verifiers started here have reported ([Step 5](#step-5-report-completion)).
+If there are no comments, say so. With threads settled by a reaction, go on to [Step 2b](#step-2b-triage--read-every-comment-before-deciding-on-any) for them alone; otherwise stop once any verifiers started here have reported ([Step 5](#step-5-report-completion)).
 
 ### Step 2b: Triage — read every comment before deciding on any
 
-CodeRabbit resolves only threads it sees fixed, so a thread where it accepted a decline or a deferral stays open. When a CodeRabbit thread's last reply is CodeRabbit accepting an earlier answer and asking nothing new, it's settled: it gets no Phase 1 decision and no reply, and the report lists it with that reply as the evidence. A closing offer to open a follow-up issue is not something new. Set these threads aside before anything else, however many comments there are; when none is left, say so and go to the report ([Step 5](#step-5-report-completion)).
+CodeRabbit resolves only threads it sees fixed, so a thread where it accepted a decline or a deferral stays open. When a CodeRabbit thread's last reply is CodeRabbit accepting an earlier answer and asking nothing new, it's settled: it gets no Phase 1 decision and no reply, and the report lists it with that reply as the evidence. A closing offer to open a follow-up issue is not something new. A thread from `--settled-by-reaction` is settled the same way, with CodeRabbit's 🚀 on your reply as the evidence: it took the answer without writing one. Set these threads aside before anything else, however many comments there are.
+
+Settled threads stay open on GitHub. When there are any, write each one, with its URL and the reply or reaction that settled it, to `/tmp/pr<pr_number>-settled.md` and show them, then ask with AskUserQuestion "Resolve the settled threads? (above and in <that file>)". Options: **Resolve all**, **Pick which** (then ask about each in turn), **Leave them open**. Resolve each one chosen with pr-comments' Resolve, passing the comment that settled it as `--last-comment`: your reply for a 🚀 thread (`settled_by_reaction.reply_id`), CodeRabbit's accepting reply otherwise. A thread Resolve refuses because its newest comment changed is no longer settled: read it again and triage it with the other comments. When no other comment is left, say so and go to the report ([Step 5](#step-5-report-completion)).
 
 Comments interact: one fix can settle another comment, make it moot, change what its fix should be, or conflict with it. Read them all, with the code they point at, and work out those relationships, starting from each `ai_review.related`. For a comment with `line_changed: true`, compare the code it was made on (`git show <original_commit_id>:<path>`, around `original_line`) with today's: if a change already addresses it, it's a candidate for "Reply only" with that commit. Treat a disputed finding's objection as part of the comment.
 
@@ -206,7 +214,8 @@ First collect every verifier's result. If some are still running, say so and rep
 - comments set aside for the template layer, each with its ID, path, owning template and agreed change;
 - replies posted;
 - verdicts: resolved, accepted but left to another participant, disputed (with URLs), or skipped at the cap;
-- comments skipped or left open, including settled CodeRabbit threads (with the reply that settled each).
+- comments skipped or left open;
+- settled CodeRabbit threads, each with the reply or reaction that settled it and whether it was resolved.
 
 If any reply was disputed, ask whether to go through the disputed threads now, listing each finding and the objection in one line. On yes, re-run [Step 2](#step-2-fetch-pr-comments), since they're back in its output, and continue from Step 2b.
 
