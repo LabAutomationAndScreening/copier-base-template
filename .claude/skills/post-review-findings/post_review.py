@@ -839,9 +839,12 @@ def _link_related(*, body: str, urls: dict[str, str]) -> str:
     The links take the form render_finding_body gives them, so the edited comment reads as if it had been rendered
     with those URLs known.
     """
-    head, marker, related = body.partition(RELATED_HEADING)
+    # render_finding_body puts the generated list last, after a summary and failure scenario that may quote the
+    # heading themselves, and ends it with a blank line before the footer; only that block is edited
+    head, marker, after_heading = body.rpartition(f"\n{RELATED_HEADING}\n")
     if not marker:
         return body
+    related, blank_line, footer = after_heading.partition("\n\n")
     for finding_id, url in urls.items():
         link = f"- [{finding_id}]({url}): "
         # an existing link is replaced too: a post that failed after relinking leaves links to comments it deleted
@@ -851,7 +854,7 @@ def _link_related(*, body: str, urls: dict[str, str]) -> str:
             related,
             flags=re.MULTILINE,
         )
-    return head + marker + related
+    return head + marker + related + blank_line + footer
 
 
 def _settle_failed_post(*, review_id: str | None, posted: dict[str, PostedComment]) -> str | None:
