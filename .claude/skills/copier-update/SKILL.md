@@ -188,7 +188,7 @@ settings as written in copier.yml (`type`, `help`, `default`, `choices`, `when`,
 
 Every answer that is not the default becomes a `--data name=value` flag. A question with no
 default and no `--data` answer makes `update` refuse to run. For `secret: true` questions,
-write the value to a `--data-file` in `<work>` instead, and delete it afterwards. If
+write the value to a `--data-file` at an absolute path in `<work>` instead, and delete it afterwards. If
 `removed` is non-empty, tell the user: copier drops those answers.
 
 ### Step 3: Run the update
