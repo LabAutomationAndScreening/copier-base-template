@@ -85,7 +85,9 @@ CHECKS_FAILED while the duplicate passes.
 gh calls prefer the login `gh auth login` stored over GITHUB_TOKEN/GH_TOKEN, because the GITHUB_TOKEN a codespace
 injects reaches only the codespace's own repository. The environment's token is used only when the stored login can't
 read the PR or the commit's runs (none stored, or one without access to the repo), and that choice is made once per run, so a later call's
-normal non-zero exit, such as `gh pr checks` reporting pending checks, never switches credentials.
+normal non-zero exit, such as `gh pr checks` reporting pending checks, never switches credentials. Any other failure of
+the stored login's first call, such as a timeout or a 5xx, is a failed poll like any other: falling back to a token that
+can't see another repo would turn that blip into GH_NOT_FOUND.
 """
 
 import argparse
@@ -130,13 +132,21 @@ class GhNotFoundError(GhCallFailedError):
     pass
 
 
+class GhAuthRequiredError(GhCallFailedError):
+    pass
+
+
 # what gh prints when the PR, repo or commit asked for doesn't exist or the credentials can't see it: GraphQL lookups
 # (pr view/checks) and the REST calls (run list, api) word it differently
 _NOT_FOUND_MARKERS = ("Could not resolve to a", "no pull requests found", "HTTP 404")
+# `gh help exit-codes`: no credentials at all, neither a stored login nor a token in the environment
+_GH_AUTH_REQUIRED_EXIT_CODE = 4
 
 
-def _gh_failure(*, stderr: str) -> GhCallFailedError:
-    message = stderr.strip()
+def _gh_failure(*, completed: subprocess.CompletedProcess[str]) -> GhCallFailedError:
+    message = completed.stderr.strip()
+    if completed.returncode == _GH_AUTH_REQUIRED_EXIT_CODE:
+        return GhAuthRequiredError(message)
     for marker in _NOT_FOUND_MARKERS:
         if marker in message:
             return GhNotFoundError(message)
@@ -338,7 +348,7 @@ def _pr_view(*, pr: str, repo: str | None, env: dict[str, str], deadline: float)
         deadline=deadline,
     )
     if completed.returncode != 0:
-        raise _gh_failure(stderr=completed.stderr)
+        raise _gh_failure(completed=completed)
     command = "gh pr view"
     error = _unexpected_output(command=command, stdout=completed.stdout)
     parsed = _parse_json(command=command, stdout=completed.stdout)
@@ -363,7 +373,10 @@ def _select_gh_env[T](*, probe: Callable[[dict[str, str]], T]) -> tuple[dict[str
     stored_login_env = _env_without_tokens()
     try:
         probed = probe(stored_login_env)
-    except GhCallFailedError:
+    except GhNotFoundError:
+        if not _tokens_in_env():
+            raise
+    except GhAuthRequiredError:
         if not _tokens_in_env():
             raise
     else:
@@ -397,7 +410,7 @@ def _checks(*, pr: str, repo: str | None, env: dict[str, str], deadline: float, 
             return []
         if "no required checks reported" in completed.stderr:
             return []
-        raise _gh_failure(stderr=completed.stderr)
+        raise _gh_failure(completed=completed)
     command = "gh pr checks"
     error = _unexpected_output(command=command, stdout=completed.stdout)
     return [
@@ -595,7 +608,7 @@ def _compare_status(*, base: str, head: str, repo: str | None, env: dict[str, st
         deadline=deadline,
     )
     if completed.returncode != 0:
-        raise _gh_failure(stderr=completed.stderr)
+        raise _gh_failure(completed=completed)
     return completed.stdout.strip()
 
 
@@ -762,7 +775,7 @@ def _merge_queue_detail(*, pr_state: _PrState, env: dict[str, str], deadline: fl
         deadline=deadline,
     )
     if completed.returncode != 0:
-        raise _gh_failure(stderr=completed.stderr)
+        raise _gh_failure(completed=completed)
     detail = completed.stdout.strip()
     if detail == "":
         return None
@@ -781,7 +794,7 @@ def _status_creator(*, sha: str, context: str, repo: str | None, env: dict[str, 
         deadline=deadline,
     )
     if completed.returncode != 0:
-        raise _gh_failure(stderr=completed.stderr)
+        raise _gh_failure(completed=completed)
     return completed.stdout.strip()
 
 
@@ -855,7 +868,7 @@ def _resolve_commit(*, sha: str, repo: str | None, env: dict[str, str], deadline
     if completed.returncode != 0:
         if "No commit found" in completed.stderr:
             raise UnknownCommitError(sha=sha)
-        raise _gh_failure(stderr=completed.stderr)
+        raise _gh_failure(completed=completed)
     full_sha = completed.stdout.strip()
     if len(full_sha) != FULL_SHA_LENGTH:
         raise _unexpected_output(command="gh api repos/.../commits", stdout=completed.stdout)
@@ -877,7 +890,7 @@ def _runs(*, commit_sha: str, repo: str | None, env: dict[str, str], deadline: f
         deadline=deadline,
     )
     if completed.returncode != 0:
-        raise _gh_failure(stderr=completed.stderr)
+        raise _gh_failure(completed=completed)
     command = "gh run list"
     error = _unexpected_output(command=command, stdout=completed.stdout)
     return [
@@ -903,7 +916,7 @@ def _open_prs_headed_at(*, commit_sha: str, repo: str | None, env: dict[str, str
         deadline=deadline,
     )
     if completed.returncode != 0:
-        raise _gh_failure(stderr=completed.stderr)
+        raise _gh_failure(completed=completed)
     command = "gh api repos/.../commits/.../pulls"
     error = _unexpected_output(command=command, stdout=completed.stdout)
     parsed = _parse_json(command=command, stdout=completed.stdout)
@@ -941,7 +954,7 @@ def _jobs(*, run_id: int, repo: str | None, env: dict[str, str], deadline: float
         deadline=deadline,
     )
     if completed.returncode != 0:
-        raise _gh_failure(stderr=completed.stderr)
+        raise _gh_failure(completed=completed)
     command = "gh run view"
     error = _unexpected_output(command=command, stdout=completed.stdout)
     return [
