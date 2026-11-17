@@ -34,13 +34,13 @@ The findings are posted under the user's account, since that is the only identit
 Find the findings, in this order of preference:
 
 1. **`--from <path>`** if the user passed one: a file holding the `/code-review` JSON array, or a `/code-review` agent transcript.
-2. **The `/code-review` task notification in this conversation.** When `/code-review` runs in the background, its completion notification names an `<output-file>`. That is the agent's transcript, and its final message holds the findings array in a ```json block. Pass that path as `--from`, so the findings are copied byte for byte instead of retyped.
+2. **The `/code-review` task notification in this conversation.** When `/code-review` runs in the background, its completion notification names the agent in `<task-id>`. Its report, holding the findings array in a ```json block, is in the agent's transcript, whether it arrived in the notification's `<result>` or as a `[Subagent hand-back]` message. Pass `--agent <task-id>` in place of `--from`, so the findings are copied byte for byte instead of retyped. While the review is still running, `post_review.py review-agent` prints the same ID (`{"review_agent": <id>}`), for a caller that has to record it before the notification arrives.
 3. **The findings array shown in this conversation**, when there is no transcript (e.g. the review ran inline). Write the array exactly as reported, unedited, to `<repo_root>/tmp/code-review-findings-pr<pr>.json` and pass that.
 
 If none of these exists (e.g. the conversation was compacted and the array is gone), ask the user for a file. Never rebuild findings from a summary.
 
 ```bash
-.claude/skills/post-review-findings/post_review.py import --from <path> --pr <pr> --commit <reviewed sha> --out <findings_file> [--model <model id>] [--effort <level>]
+.claude/skills/post-review-findings/post_review.py import (--from <path> | --agent <task-id>) --pr <pr> --commit <reviewed sha> --out <findings_file> [--model <model id>] [--effort <level>]
 ```
 
 Every posted comment opens with a line naming the model and effort level that ran the review, e.g. `🤖 AI code review finding by Claude Opus 5.5 (claude-opus-5-5) at max effort, reviewing 4fa7227`, so a reader knows from the first line that it came from an AI. A transcript records the model and effort, and `import` reads them. A bare array records neither, so pass `--model` with the model ID, and `--effort` if known. A `/code-review` run in this session, forked or inline, ran on this session's model, so that is your own model ID and effort level. Otherwise ask the user. Never guess.
@@ -100,7 +100,10 @@ Record each relation in the `related` list of **both** findings, with a `note` w
 Set `summary` (the review body, markdown) to:
 - a short suggested order for working through them, root causes first;
 - the groups of related findings;
-- anything the report checked and ruled out, in one line each, so nobody re-raises it.
+- under "Known, not raised here", anything real that was left out because it is settled (including what Step 3 dropped as settled since the review), an accepted interim form, or deferred by a `TODO`, in one line each with the thread URL, decision or quoted `TODO`;
+- under "Checked and ruled out", anything the report checked and found wrong or already guarded, in one line each, so nobody re-raises it.
+
+Keep the two apart even when the report lists them together (e.g. a "refuted" list that includes TODO-deferred items): a reader takes "ruled out" to mean "not a bug", which a deferred defect is not.
 
 Do not put findings themselves in `summary`. Every finding must be its own comment so it can be replied to and resolved.
 
@@ -117,16 +120,17 @@ It prints the plan as JSON and writes `<preview_file>`: the review body and ever
   - `file`: a file-level comment, because the file is in the PR but the line is outside its diff hunks.
   - `pr_comment`: a top-level PR comment, because the file is not in the PR at all.
 - `line_at_anchor`: the line the comment will sit on.
-- `changed_since_review`: the code at that line changed after the reviewed commit, so GitHub will show the comment as outdated. The finding may already be fixed.
+- `changed_since_review`: a whole-file finding (`line: null`) whose file changed after the reviewed commit, or a finding whose file was deleted since. The finding may already be fixed. A line finding is never flagged: its line either maps forward unchanged or gets an `attention`.
 - `attention`: a problem that blocks posting.
 
 At the top level, the plan gives:
-- **`anchor_commit`** and **`reviewed_commit_in_pr`**: if the reviewed commit is still in the PR, the review is pinned to it and no line is recomputed. If the branch was rewritten, the review is anchored to the PR head and each line is mapped forward. A line inside changed code cannot be mapped and gets an `attention`.
+- **`anchor_commit`** and **`reviewed_commit_in_pr`**: the review is always anchored to the PR head, and each line is mapped forward from the reviewed commit, because GitHub places a review thread's line on the head's diff whatever commit the review was created on. `reviewed_commit_in_pr` is false when the branch was rewritten since the review. A line inside code changed since the review cannot be mapped and gets an `attention`.
 - **`visibility`**: if `PUBLIC`, check every finding for names of, links to or quotes from private repositories and anonymize them (see AGENTS.md).
 - **`blocking_problems`**: everything that must be fixed before `post` will run.
 
 Resolve every `blocking_problems` entry by editing `<findings_file>`, then re-run `plan`:
 - **An unmappable line**: find the code at `anchor_commit`. Set `line` to it and `line_commit` to `anchor_commit`, or drop the finding if it no longer applies.
+- **A file deleted since the review**: drop the finding if it no longer applies, or, if the code moved to another file, set `file`, `line` and `line_commit` to where it is at `anchor_commit`.
 - **An existing pending review**: the user must submit or discard it in the GitHub UI. GitHub allows one pending review per person per PR.
 - **A finding ID collision**: renumber.
 
