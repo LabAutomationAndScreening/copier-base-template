@@ -49,7 +49,7 @@ row that applies, instead of starting over. Tell the user which stage you found 
 | What `<work_dir>` holds | Resume at |
 |---|---|
 | `review-findings.json` with `posted` | The earlier run finished. This is a new review: start again. |
-| `stage` is `reply-saved`, or `reviewer-reply.md` exists (the session can end between writing it and updating `stage`) | Step 4.3, then Step 5, with `reviewer-reply.md` as the reviewer's answer. If the findings file already has findings starting "Unverified;", the set-aside candidates are in it: don't add them again. |
+| `stage` is `reply-saved`, or `reviewer-reply.md` exists (the session can end between writing it and updating `stage`) | Step 4.3, then Step 5, with `reviewer-reply.md` as the reviewer's answer. The earlier session may have added some of its set-aside candidates before it ended, so check each one: add it unless a finding starting "Unverified;" already has its file and line. |
 | `stage` is `imported` | The reviewer can't be resumed from a new session, so its set-aside candidates and refuted checks are lost. Ask the user whether to continue without them (Step 4.3, then Step 5) or to start again. |
 | `stage` is `reviewing` | The review ended with its session. If `import --agent <review_agent>` finds a report, it is complete: import it (Step 4.1), then treat it like `imported`. If not, start again. |
 | anything earlier, or no `run.json` | Start again. |
