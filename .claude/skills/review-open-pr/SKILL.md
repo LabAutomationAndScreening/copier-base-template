@@ -217,7 +217,9 @@ If the review runs in the background, its ID is needed before it finishes: a ses
 only import the finished report by that ID (see [Resuming](#resuming-an-interrupted-run)), and the Skill tool's
 result names the agent only as `code-review`. So right away run
 `.claude/skills/post-review-findings/post_review.py review-agent`, record the ID it prints as `review_agent` and
-set `stage` to `reviewing` in `run.json`, then end your turn and wait for its task notification. Don't poll,
+set `stage` to `reviewing` in `run.json`, then end your turn and wait for its task notification. If
+`review-agent` fails, leave `review_agent` null, set `stage` to `reviewing` anyway, and tell the user the run
+can't be resumed until the notification arrives; then wait the same way. Don't poll,
 and don't review the code yourself in the meantime. The report arrives in one of two ways, and either can
 happen: in the notification's `<result>`, or as a message from the agent marked `[Subagent hand-back]`, with
 the notification's `<result>` saying only that the report was delivered as a message. Either way, the
