@@ -49,7 +49,8 @@ row that applies, instead of starting over. Tell the user which stage you found 
 | What `<work_dir>` holds | Resume at |
 |---|---|
 | `review-findings.json` with `posted` | The earlier run finished. This is a new review: start again. |
-| `stage` is `reply-saved`, or `reviewer-reply.md` exists (the session can end between writing it and updating `stage`) | Step 4.3, then Step 5, with `reviewer-reply.md` as the reviewer's answer. The earlier session may have added some of its set-aside candidates before it ended, so check each one: add it unless a finding starting "Unverified;" already has its file and line. |
+| `stage` is `set-aside-added` | Step 4.3, then Step 5, with every set-aside candidate already in the findings file: don't add any again, so a finding the user dropped stays dropped. |
+| `stage` is `reply-saved`, or `reviewer-reply.md` exists (the session can end between writing it and updating `stage`) | Step 4.3, then Step 5, with `reviewer-reply.md` as the reviewer's answer. The earlier session may have added some of its set-aside candidates before it ended, so check each one: add it unless a finding starting "Unverified;" already has its file, line and summary (two candidates can share a line). |
 | `stage` is `imported` | The reviewer can't be resumed from a new session, so its set-aside candidates and refuted checks are lost. Ask the user whether to continue without them (Step 4.3, then Step 5) or to start again. |
 | `stage` is `reviewing` | The review ended with its session. If `import --agent <review_agent>` finds a report, it is complete: import it (Step 4.1), then treat it like `imported`. If not, start again. |
 | anything earlier, or no `run.json` | Start again. |
@@ -267,7 +268,8 @@ tell the user. If the review instead reports its findings inline, write that arr
 - **Step 3**: add every set-aside candidate in `<work_dir>/reviewer-reply.md` to `<findings_file>` as a
   finding, before asking anything and without asking whether to: the point of this skill is all the findings.
   Start each one's `summary` with "Unverified; the reviewer set this aside as <its reason>." and give it its
-  exact line at the reviewed commit. Still ask the "settled since the review"
+  exact line at the reviewed commit. Once every one is in, set `stage` to `set-aside-added` in `run.json`,
+  before asking anything: from then on a resume must not add them again. Still ask the "settled since the review"
   question. Offer as candidates to drop any finding that repeats a decision or an open thread from the brief's
   review state, with the thread's URL as evidence. Also offer as candidates to drop any finding whose fix a
   `TODO` at the reviewed commit already defers (search the finding's file with `git grep -n TODO <reviewed
