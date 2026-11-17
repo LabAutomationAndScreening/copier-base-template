@@ -17,8 +17,11 @@ Choose each file's location by who reads it, and for how long:
   posts, a findings file, a report): `<repo_root>/tmp/`, which is gitignored. It survives the session, a `/clear`
   and a container rebuild.
 - **Only the user reads it, while a question is open** (the context written for an AskUserQuestion):
-  `/tmp/<short name>`, with the PR number, branch or repo in the name so sessions working on different things don't
-  overwrite each other. The question gives the file's path, and a scratchpad path is too long to read there.
+  `/tmp/<short name>`. The question gives the file's path, and a scratchpad path is too long to read there. Every
+  session in the container shares `/tmp`, so the name says what keeps it apart from other sessions: usually the
+  repo's name (the NAME in OWNER/NAME) and the PR number or branch, since a PR number alone repeats across repos.
+  An ID unique on its own, such as a GitHub comment ID, is enough by itself. The name also says which question the
+  file is for, so questions asked together in one AskUserQuestion keep their own files.
 - **Only the agent reads it, within this session** (a draft, commit message or PR body passed to a script as an
   argument, a secret answers file, saved command output): the session's scratchpad. It is private and unique to the
   session, so parallel sessions can't collide; within one session, still name it by whatever the skill can run for
