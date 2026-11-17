@@ -67,7 +67,8 @@ replies in that checkout. These Rules hold inside its run too.
 For your own git and gh commands against another repo, drop the injected tokens as the helper
 does (`env -u GITHUB_TOKEN -u GH_TOKEN ...`), and use `git -C <path>` rather than `cd`. If
 `gh auth status` shows no stored login, ask the user to run
-`env -u GITHUB_TOKEN -u GH_TOKEN gh auth login --hostname github.com --git-protocol https --web`.
+`env -u GITHUB_TOKEN -u GH_TOKEN gh auth login --hostname github.com --git-protocol https --web --scopes workflow`
+(without the `workflow` scope GitHub refuses a push that changes a file under `.github/workflows/`).
 Read a PR's threads and comments, in any repo, through the **pr-comments** skill's Read, and
 another repo's files from its checkout (Step 3) or a shallow clone in your scratchpad.
 

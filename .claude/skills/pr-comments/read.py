@@ -8,6 +8,7 @@ Usage:
   read.py <pr_number> [--repo OWNER/NAME]                        actionable threads (the default)
   read.py <pr_number> --needs-verification [--repo OWNER/NAME]   AI review findings with a reply awaiting a verdict
   read.py <pr_number> --thread <comment id> [--repo OWNER/NAME]  one thread or top-level comment, whatever its state
+  read.py <pr_number> --settled-by-reaction [--repo OWNER/NAME]  unresolved threads a bot settled with a reaction
   read.py <pr_number> --all [--repo OWNER/NAME]                  resolved and addressed threads and comments too
   read.py <pr_number> --all --include-bot-comments               AI reviewers' top-level comments too (or with --thread)
 
@@ -43,7 +44,8 @@ Outputs JSON array of comment threads to stdout. Each entry:
       "status": "open" | "awaiting_verification" | "accepted" | "disputed",
       "verdict_rounds": <number of verdicts posted so far>
     },
-    "replies": [{"id", "url", "author", "author_is_bot", "body", "body_text", "created_at", "ai_review_verdict"}, ...]
+    "replies": [{"id", "url", "author", "author_is_bot", "body", "body_text", "created_at", "ai_review_verdict"}, ...],
+    "settled_by_reaction": null | {"reply_id", "reactor", "content", "created_at"}
   }
 
 When a comment is outdated, `line` falls back to `original_line`, which is a line number in original_commit_id, not in
@@ -76,6 +78,12 @@ Filtered out of the default output:
     reply is a verdict disputing it
   - Review bodies the current user has replied to (via post.py, likewise)
 
+`settled_by_reaction` is set on an unresolved inline thread opened by a bot reviewer when the current user's reply is
+its last comment and the reviewer has reacted to that reply with a reaction that means no answer is coming (CodeRabbit's
+rocket; its eyes means an answer is still on the way). Such a thread is addressed, so it is not in the default output,
+yet the reviewer won't resolve it either: CodeRabbit resolves only what it sees fixed. `--settled-by-reaction` lists
+these threads so a caller can offer to resolve them.
+
 `--all` brings back resolved and addressed threads and top-level comments, each with the `resolved` and `open` flags
 that say where it stands, so the caller can tell three resolved threads from none at all. AI reviewers' top-level
 comments and the current user's own top-level comments stay out: a reply the user posted appears under the comment it
@@ -94,45 +102,17 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
-from utils import GH_TIMEOUT_SECONDS
 from utils import VERDICT_DISAGREE
-from utils import add_repo_arguments
-from utils import enter_checkout
-from utils import gh_graphql
 from utils import gh_rest
 from utils import map_line_between
-from utils import owner_and_repo
 from utils import parse_ai_review_finding
 from utils import parse_ai_review_verdict
 from utils import parse_issue_comment_reply
+from utils import parse_pr_arguments
 from utils import parse_review_reply
+from utils import print_or_exit_on_gh_error
+from utils import review_threads
 from utils import strip_markup
-
-# Fetches only what we need to determine resolution: the root comment URL.
-# We intentionally do NOT use databaseId here — it does not match the REST
-# pulls/comments id that the replies endpoint requires.
-RESOLVED_THREAD_URLS_QUERY = """
-query($owner: String!, $repo: String!, $number: Int!, $after: String) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      reviewThreads(first: 100, after: $after) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-        nodes {
-          isResolved
-          comments(first: 1) {
-            nodes {
-              url
-            }
-          }
-        }
-      }
-    }
-  }
-}
-"""
 
 
 def fetch_current_user_login() -> str:
@@ -140,6 +120,11 @@ def fetch_current_user_login() -> str:
 
 
 _BOT_LOGINS = frozenset({"coderabbitai[bot]", "copilot-pull-request-reviewer[bot]", "Copilot"})
+# The reactions with which a bot reviewer ends a thread from its side when the current user's reply is the last
+# comment: no answer is coming. CodeRabbit puts a rocket on a reply it doesn't dispute, such as an accepted deferral,
+# and leaves the thread open, since it resolves only what it sees fixed. Its eyes reaction is left out on purpose: it
+# marks a reply it is still answering, and that answer can disagree.
+_SETTLING_REACTIONS_BY_BOT = {"coderabbitai[bot]": frozenset({"rocket"})}
 # The sections in which CodeRabbit lists findings in a review's body, with no inline thread to hold them; a heading
 # with a count of zero lists none
 _REVIEW_BODY_FINDINGS_RE = re.compile(
@@ -182,21 +167,9 @@ def fetch_resolved_html_urls(*, owner: str, repo: str, pr_number: int) -> set[st
     so ID-based matching produces 404s on the replies endpoint.
     """
     resolved: set[str] = set()
-    after: str | None = None
-    while True:
-        variables: dict[str, str | int] = {"owner": owner, "repo": repo, "number": pr_number}
-        if after is not None:
-            variables["after"] = after
-        data = gh_graphql(RESOLVED_THREAD_URLS_QUERY, variables)
-        page = data["repository"]["pullRequest"]["reviewThreads"]
-        for node in page["nodes"]:
-            if node["isResolved"]:
-                comments = node["comments"]["nodes"]
-                if comments:
-                    resolved.add(comments[0]["url"])
-        if not page["pageInfo"]["hasNextPage"]:
-            break
-        after = page["pageInfo"]["endCursor"]
+    for thread in review_threads(owner=owner, repo=repo, pr_number=pr_number):
+        if thread.is_resolved:
+            resolved.add(thread.root_url)
     return resolved
 
 
@@ -244,6 +217,65 @@ def _ai_review_status(thread: dict[str, Any], current_user: str) -> str:
     if verdict["verdict"] == VERDICT_DISAGREE:
         return "disputed"
     return "accepted"
+
+
+def _reply_a_bot_could_settle(*, thread: dict[str, Any], current_user: str) -> int | None:
+    """Return the ID of the current user's reply that ends an unresolved inline thread a bot reviewer opened, if any.
+
+    Only an inline thread can be resolved, so only one can be settled by a reaction.
+    """
+    if thread["type"] != "pulls/comments":
+        return None
+    if thread["resolved"]:
+        return None
+    if thread["author"] not in _SETTLING_REACTIONS_BY_BOT:
+        return None
+    replies: list[dict[str, Any]] = thread["replies"]
+    if not replies:
+        return None
+    if replies[-1]["author"] != current_user:
+        return None
+    return replies[-1]["id"]
+
+
+def _settling_reaction(*, thread: dict[str, Any], owner: str, repo: str, current_user: str) -> dict[str, Any] | None:
+    """Return the reaction with which a bot reviewer settled the current user's last reply in its thread, if any.
+
+    A REST comment carries reaction counts but not who reacted, so the reactions endpoint is asked, once per
+    candidate reply.
+    """
+    reply_id = _reply_a_bot_could_settle(thread=thread, current_user=current_user)
+    if reply_id is None:
+        return None
+    reviewer = thread["author"]
+    reactions: list[dict[str, Any]] = gh_rest(
+        "api", f"repos/{owner}/{repo}/pulls/comments/{reply_id}/reactions", "--paginate"
+    )
+    for reaction in reactions:
+        if _login_from_comment(reaction) != reviewer:
+            continue
+        if reaction["content"] not in _SETTLING_REACTIONS_BY_BOT[reviewer]:
+            continue
+        return {
+            "reply_id": reply_id,
+            "reactor": reviewer,
+            "content": reaction["content"],
+            "created_at": reaction["created_at"],
+        }
+    return None
+
+
+def _with_settling_reactions(
+    entries: list[dict[str, Any]], *, owner: str, repo: str, current_user: str
+) -> list[dict[str, Any]]:
+    """Set `settled_by_reaction` on each of `entries`, asking GitHub about reactions for these entries only.
+
+    Each candidate reply costs a request, so callers pass only the entries they will return, never the whole PR,
+    except when looking for settled threads, where every entry is a candidate.
+    """
+    for e in entries:
+        e["settled_by_reaction"] = _settling_reaction(thread=e, owner=owner, repo=repo, current_user=current_user)
+    return entries
 
 
 def _line_anchor(c: dict[str, Any]) -> tuple[str, int, str] | None:
@@ -553,7 +585,11 @@ def fetch(
 
 
 def select(
-    entries: list[dict[str, Any]], *, all_entries: bool, needs_verification: bool, thread_id: int | None
+    entries: list[dict[str, Any]],
+    *,
+    all_entries: bool,
+    needs_verification: bool,
+    thread_id: int | None,
 ) -> list[dict[str, Any]]:
     if thread_id is not None:
         return [e for e in entries if e["id"] == thread_id]
@@ -581,6 +617,11 @@ def main() -> None:
         "--thread", type=int, default=None, help="return only this thread or top-level comment, whatever its state"
     )
     _ = selection.add_argument(
+        "--settled-by-reaction",
+        action="store_true",
+        help="list unresolved inline threads whose bot reviewer settled your last reply with a reaction",
+    )
+    _ = selection.add_argument(
         "--all",
         action="store_true",
         help="list resolved and addressed threads and comments too, with their flags",
@@ -590,43 +631,36 @@ def main() -> None:
         action="store_true",
         help="with --all or --thread, also list AI reviewers' top-level comments (summaries, chat replies); never open",
     )
-    add_repo_arguments(parser)
-    args = parser.parse_args()
-    enter_checkout(args.checkout)
+    pr = parse_pr_arguments(parser)
+    args = pr.args
 
-    pr_number_raw = args.pr_number.strip().lstrip("#")
-    try:
-        pr_number = int(pr_number_raw)
-    except ValueError:
-        _ = sys.stderr.write(f"Invalid PR number: {pr_number_raw}\n")
-        sys.exit(1)
-
-    owner, repo = owner_and_repo(repo=args.repo)
-
-    try:
+    def selected_comments_json() -> str:
         current_user = fetch_current_user_login()
-        comments = select(
-            fetch(
-                owner=owner,
-                repo=repo,
-                pr_number=pr_number,
-                current_user=current_user,
-                include_bot_comments=args.include_bot_comments,
-            ),
-            all_entries=args.all,
-            needs_verification=args.needs_verification,
-            thread_id=args.thread,
+        entries = fetch(
+            owner=pr.owner,
+            repo=pr.repo,
+            pr_number=pr.pr_number,
+            current_user=current_user,
+            include_bot_comments=args.include_bot_comments,
         )
-        _ = sys.stdout.write(json.dumps(comments, indent=2) + "\n")
-    except subprocess.CalledProcessError as e:
-        _ = sys.stderr.write(f"gh api error: {e.stderr}\n")
-        sys.exit(1)
-    except subprocess.TimeoutExpired:
-        _ = sys.stderr.write(f"gh api timed out after {GH_TIMEOUT_SECONDS}s\n")
-        sys.exit(1)
-    except RuntimeError as e:
-        _ = sys.stderr.write(f"{e}\n")
-        sys.exit(1)
+        if args.settled_by_reaction:
+            comments = [
+                e
+                for e in _with_settling_reactions(entries, owner=pr.owner, repo=pr.repo, current_user=current_user)
+                if e["settled_by_reaction"] is not None
+            ]
+        else:
+            comments = _with_settling_reactions(
+                select(
+                    entries, all_entries=args.all, needs_verification=args.needs_verification, thread_id=args.thread
+                ),
+                owner=pr.owner,
+                repo=pr.repo,
+                current_user=current_user,
+            )
+        return json.dumps(comments, indent=2)
+
+    print_or_exit_on_gh_error(selected_comments_json)
 
 
 if __name__ == "__main__":

@@ -77,8 +77,9 @@ def _push_environment(*, checkout: Path | None) -> dict[str, str] | None:
     """Return the environment for `git push`: without the injected tokens when pushing another repo's checkout.
 
     In a codespace, git's credential helper answers with the injected GITHUB_TOKEN, which reaches only the codespace's
-    own repository. Without the token, git falls through to the helper `gh auth login` set up, whose stored login
-    reaches every repo the user can.
+    own repository. Without the token, git falls through to the `gh auth git-credential` helper that
+    .devcontainer/post-start-command.sh configures, which answers with the login `gh auth login` stored and so reaches
+    every repo the user can.
     """
     if checkout is None:
         return None

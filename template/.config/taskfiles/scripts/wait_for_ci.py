@@ -15,8 +15,9 @@ Result lines and exit codes, in PR mode unless marked otherwise:
   on a release tag). Exit 0 means CI passed, not that the PR can merge. Only a status that GitHub Actions posted
   counts as a hold: once every Actions run has finished, one it left pending can only be deliberate. Only the first
   pending required status is looked at, so one from other CI is taken as still running only when it comes first.
-- CI_PASSED_MERGE_BLOCKED: reviewDecision=<decision> (0): with auto-merge on, CI passed but the merge waits on a review
-  (REVIEW_REQUIRED or CHANGES_REQUESTED), so it won't happen without a person
+- CI_PASSED_MERGE_BLOCKED: reviewDecision=<decision> (0): with auto-merge on, CI passed but the PR still hasn't merged
+  a minute later, and a review is pending (REVIEW_REQUIRED or CHANGES_REQUESTED), so it won't happen without a person.
+  Waited for like any other hold, because someone allowed to bypass the review requirement merges without one
 - CI_PASSED_MERGE_BLOCKED: mergeStateStatus=<status> (0): with auto-merge on, CI passed but the PR still hasn't merged
   a minute later, so something else holds it (a ruleset, unresolved conversations, a deployment gate)
 - CLOSED (1)
@@ -509,10 +510,8 @@ def _passed_result(*, snapshot: _PrSnapshot) -> tuple[str, int] | None:
         return None
     if not snapshot.pr.auto_merge_on:
         return "CHECKS_PASSED", 0
-    # With auto-merge on, the merge itself is the outcome, unless something besides CI holds it; a review is the usual
-    # hold, and the one GitHub reports directly.
-    if _review_blocks_merge(review_decision=snapshot.pr.review_decision):
-        return f"CI_PASSED_MERGE_BLOCKED: reviewDecision={snapshot.pr.review_decision}", 0
+    # With auto-merge on, the merge itself is the outcome; _merge_grace waits for it, and names what holds it if it
+    # doesn't come.
     return None
 
 
@@ -749,6 +748,10 @@ def _merge_grace(
     state.merge_wait_polls += 1
     if state.merge_wait_polls < MERGE_GRACE_POLLS:
         return None, None
+    # A pending review is no reason to stop waiting sooner: auto-merge enabled by someone allowed to bypass the review
+    # requirement merges without one, and reviewDecision still reads REVIEW_REQUIRED after it has.
+    if _review_blocks_merge(review_decision=snapshot.pr.review_decision):
+        return (f"CI_PASSED_MERGE_BLOCKED: reviewDecision={snapshot.pr.review_decision}", 0), None
     return (f"CI_PASSED_MERGE_BLOCKED: mergeStateStatus={snapshot.pr.merge_state_status}", 0), None
 
 
