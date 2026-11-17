@@ -38,6 +38,7 @@ $CU new-questions [repo] --ref REF    # questions REF's copier.yml asks that are
 $CU update [repo] [--ref REF] [--data K=V ...]   # the repo's update task, --data forwarded and verified
 $CU conflicts [repo]                  # `task prune-copier-rejects`, then the .rej files left
 $CU capture-rej FILE.rej --root .     # report schema rejFile object, contents verbatim
+$CU deleted-files [repo]              # files the update deleted, each marked edited or not
 $CU lint [repo]                       # uv sync each project, then the all-files hook run as CI runs it
 $CU commit [repo] --draft D --message-file M [--approved FILE ...] [--skip HOOK ...]
 $CU report [repo] DRAFT.json          # validate, write tmp/copier-update-report-*.json + .html
@@ -49,7 +50,7 @@ Every verb prints JSON. Do not re-derive by hand what a verb gives you, especial
 contents: retyping is where truncation and whitespace damage creep in.
 
 In a GitHub Codespace, pass `--stored-gh-credentials` to `refs`, `new-questions`, `update`,
-`pr` and `comment-report`. The injected `GITHUB_TOKEN` only reaches the codespace's own repo; the flag drops
+`deleted-files`, `pr` and `comment-report`. The injected `GITHUB_TOKEN` only reaches the codespace's own repo; the flag drops
 it (and `GH_TOKEN`) so git and gh fall back to the credentials `gh auth login` stored.
 
 ## Arguments
@@ -236,10 +237,12 @@ ask. For each file in `rej_files`:
 
 Then check the files the update deleted, which no `.rej` reports: copier removes every file
 the old template had and the new one doesn't, whether or not the repo had edited it.
-`git diff HEAD --no-renames --diff-filter=D --name-only` lists them (without `--no-renames`, a deleted file
-copier replaced with a similar one shows as a rename and drops out), and `git log --follow --oneline -- <file>`
-shows whether any commit besides template updates touched each one. A file the repo never
-edited stays deleted, with no draft entry. For a file the repo did edit, decide as for a
+`$CU deleted-files <repo>` lists them. It renders the template version the repo was on with
+the saved answers and marks each file `edited` unless the repo's pre-update file matches
+that render. Don't judge edits from commit history: a repo edit hand-merged while resolving
+an earlier update's `.rej` sits inside that update's commit. Each entry's `commits` only
+helps work out what the edits were. If the verb fails, treat every deleted file as edited.
+A file not marked `edited` stays deleted, with no draft entry. For an edited file, decide as for a
 `.rej` and record it in the draft with `conflict_type: "delete/modify"`: let the deletion
 stand (`deleted`, and the repo's edits go with it), or restore the repo's file with
 `git restore --source=HEAD --staged --worktree -- <file>` (`kept_deleted`) when the repo
