@@ -148,13 +148,18 @@ Once approved, never write to the file again: post it as it is on disk, with `--
 ## Resolve
 
 ```bash
-.claude/skills/pr-comments/resolve.py <pr> --thread <root comment id> [--repo OWNER/NAME | --checkout <path>]
+.claude/skills/pr-comments/resolve.py <pr> --thread <root comment id> --last-comment <comment id> [--repo OWNER/NAME | --checkout <path>]
 ```
 
 Resolves one inline review thread (GitHub can't resolve a top-level comment or a review body) and prints
 `Resolved: <url>`, or `Already resolved: <url>` without changing anything. Resolving collapses the thread for every
 reviewer, so the user approves each one first: show the thread as Showing a comment says, with what settled it, and
 ask. Run the script on its own, never chained with another command.
+
+`--last-comment` is the ID of the thread's newest comment as it stood when the user approved (the root's ID when it has
+no replies). If the thread's newest comment is any other, the script resolves nothing and exits 1 naming both
+(`Not resolved: the newest comment in <root url> is <url>, not the approved <url>`): read the thread again
+(`read.py --thread`), since a comment posted since needs an answer before the thread can be resolved.
 
 ## Markers
 

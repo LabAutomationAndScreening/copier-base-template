@@ -230,7 +230,12 @@ query($owner: String!, $repo: String!, $number: Int!, $after: String) {
         nodes {
           id
           isResolved
-          comments(first: 1) {
+          root: comments(first: 1) {
+            nodes {
+              url
+            }
+          }
+          latest: comments(last: 1) {
             nodes {
               url
             }
@@ -248,12 +253,14 @@ class ReviewThread:
     """A PR's review thread as GraphQL describes it.
 
     `root_url` is how it is matched to a REST comment: GraphQL's databaseId doesn't equal the REST pulls/comments id,
-    which is the one the replies endpoint takes.
+    which is the one the replies endpoint takes. `last_url` is the thread's newest comment, the root itself when
+    nobody has replied.
     """
 
     graphql_id: str
     is_resolved: bool
     root_url: str
+    last_url: str
 
 
 def review_threads(*, owner: str, repo: str, pr_number: int) -> list[ReviewThread]:
@@ -266,11 +273,16 @@ def review_threads(*, owner: str, repo: str, pr_number: int) -> list[ReviewThrea
             variables["after"] = after
         page = gh_graphql(_REVIEW_THREADS_QUERY, variables)["repository"]["pullRequest"]["reviewThreads"]
         for node in page["nodes"]:
-            comments = node["comments"]["nodes"]
-            if not comments:
+            roots = node["root"]["nodes"]
+            if not roots:
                 continue
             threads.append(
-                ReviewThread(graphql_id=node["id"], is_resolved=node["isResolved"], root_url=comments[0]["url"])
+                ReviewThread(
+                    graphql_id=node["id"],
+                    is_resolved=node["isResolved"],
+                    root_url=roots[0]["url"],
+                    last_url=node["latest"]["nodes"][0]["url"],
+                )
             )
         if not page["pageInfo"]["hasNextPage"]:
             return threads
