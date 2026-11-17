@@ -306,7 +306,7 @@ def map_line_between(*, path: str, line: int, from_commit: str, to_commit: str) 
             from_commit,
             to_commit,
             "--",
-            path,
+            f":(top,literal){path}",  # path is repo-relative, so anchor the pathspec at the top rather than the cwd
         ],
         timeout=GH_TIMEOUT_SECONDS,
         timeout_msg=f"Timed out diffing {path} between {from_commit} and {to_commit}.",
