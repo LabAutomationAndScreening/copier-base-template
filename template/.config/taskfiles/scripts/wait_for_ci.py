@@ -4,6 +4,8 @@
 """Wait for CI on a GitHub PR, or with no PR on a pushed commit, then print exactly one result line.
 
 Meant to run as a background command, so the caller gets one notification when CI settles instead of polling it.
+Only CI that runs on GitHub Actions is supported for now: required checks or statuses posted by other CI (Jenkins,
+CircleCI, an App) aren't reliably waited on.
 Result lines and exit codes, in PR mode unless marked otherwise:
 
 - MERGED (0)
@@ -11,8 +13,8 @@ Result lines and exit codes, in PR mode unless marked otherwise:
 - CI_PASSED_MERGE_BLOCKED: <check>: <its description> (0): every GitHub Actions check finished without a failure, but a
   required commit status was posted as pending, which holds the merge on purpose (such as a copier template not yet
   on a release tag). Exit 0 means CI passed, not that the PR can merge. Only a status that GitHub Actions posted
-  counts as a hold: once every Actions run has finished, one it left pending can only be deliberate, whereas a pending
-  status from anyone else (Jenkins, CircleCI, an App) is CI still running, so the wait goes on.
+  counts as a hold: once every Actions run has finished, one it left pending can only be deliberate. Only the first
+  pending required status is looked at, so one from other CI is taken as still running only when it comes first.
 - CI_PASSED_MERGE_BLOCKED: reviewDecision=<decision> (0): with auto-merge on, CI passed but the merge waits on a review
   (REVIEW_REQUIRED or CHANGES_REQUESTED), so it won't happen without a person
 - CI_PASSED_MERGE_BLOCKED: mergeStateStatus=<status> (0): with auto-merge on, CI passed but the PR still hasn't merged
