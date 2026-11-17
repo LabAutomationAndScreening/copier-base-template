@@ -331,12 +331,16 @@ def _parse_related(*, raw: dict[str, Any], context: str) -> list[Related]:
     for entry in value:
         if not isinstance(entry, dict):
             raise InputError(f"{context}: each `related` entry must be an object with `id` and `note`")
+        note = _require_str(raw=entry, key="note", context=context)
+        # a note is rendered inline as `- F<n>: <note>`; a line break would end the list there
+        if "\n" in note:
+            raise InputError(f"{context}: a `related` note must be a single line")
         related.append(
             Related(
                 finding_id=_require_finding_id(
                     finding_id=_require_str(raw=entry, key="id", context=context), context=context
                 ),
-                note=_require_str(raw=entry, key="note", context=context),
+                note=note,
             )
         )
     return related
