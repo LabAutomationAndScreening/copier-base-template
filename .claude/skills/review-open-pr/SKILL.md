@@ -20,8 +20,11 @@ collects every finding the reviewer had, and posts them all on the PR as one rev
 
 ## Conventions
 
-- `<repo_root>` is `git rev-parse --show-toplevel`. Every work file goes in `<work_dir>`, which is
-  `<repo_root>/tmp/review-open-pr/pr<pr>/` (`tmp/` is gitignored); creating the worktree in Step 1 creates it. It holds:
+- `<repo_root>` is `git rev-parse --show-toplevel`. Every work file a later session or the record of the run
+  needs goes in `<work_dir>`, which is `<repo_root>/tmp/review-open-pr/pr<pr>/` (`tmp/` is gitignored);
+  creating the worktree in Step 1 creates it. A file written for one AskUserQuestion goes in `/tmp`, as
+  `/post-review-findings`' Conventions say, and anything only you read within this session, such as the raw
+  threads from Step 2, goes in your scratchpad. `<work_dir>` holds:
   - `<work_dir>/run.json`: how far this run got, so a later session can pick it up (see
     [Resuming](#resuming-an-interrupted-run)): `{"pr", "reviewed_commit", "reviewed_base", "effort",
     "review_agent", "stage"}`. Write it in Step 1 and update `stage` (and `review_agent`) where the steps say;
@@ -117,6 +120,8 @@ answered threads count too, `--include-bot-comments` so AI reviewers' top-level 
 ```bash
 .claude/skills/pr-comments/read.py <pr> --all --include-bot-comments --checkout <work_dir>/tree
 ```
+
+Save its output to your scratchpad if you need to search it: the brief records what matters from it.
 
 From it, note:
 - **Settled**: decisions made in replies, and findings that were answered, verified or resolved. The review
