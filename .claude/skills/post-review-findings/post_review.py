@@ -5,13 +5,15 @@
 """Post the findings of a /code-review run to a PR as one review, attributed to the AI reviewer.
 
 Usage:
-  post_review.py import --from <file> --pr <number> --commit <sha> --out <findings file> [--model <id>] [--effort <level>]
+  post_review.py import (--from <file> | --agent <id>) --pr <number> --commit <sha> --out <findings file> [--model <id>] [--effort <level>]
   post_review.py plan --findings-file <findings file> [--preview <markdown file>] [--resume]
   post_review.py post --findings-file <findings file> --head <approved pr_head> --base <approved pr_base> [--resume]
 
 import  Reads either a file holding the JSON array of findings /code-review reports, or the transcript of the
-        /code-review agent (the .jsonl output file named in its task notification, whose final message holds that
-        array in a ```json block). Writes a findings file:
+        /code-review agent, whose final report holds that array in a ```json block, as plain text or as a
+        SubagentHandback message. --from takes the file (or the .jsonl output file named in the agent's task
+        notification); --agent takes the agent's ID (the notification's task-id) and finds its transcript under
+        ~/.claude/projects. Writes a findings file:
           {"pr", "reviewed_commit", "reviewer": {"model", "effort"}, "summary", "findings": [{"id", "file", "line",
            "category", "short_summary", "summary", "failure_scenario", "related": [{"id", "note"}]}]}
         `reviewer` is the model and effort level that ran the review, which every posted comment names in its first
@@ -412,6 +414,27 @@ def _write_findings_file(*, path: Path, findings_file: FindingsFile) -> None:
     _ = path.write_text(json.dumps(_findings_file_json(findings_file), indent=2, ensure_ascii=False) + "\n", "utf-8")
 
 
+def _report_text(block: object) -> str | None:
+    """Return the text of a content block that carries an agent's report, else None.
+
+    A background agent reports either as plain assistant text or, when the harness tells it to, as the `message` of a
+    SubagentHandback tool call; which one it uses can differ between runs of the same skill, so both count.
+    """
+    if not isinstance(block, dict):
+        return None
+    block_type = block.get("type")
+    if block_type == "text":
+        return str(block.get("text", ""))
+    if block_type != "tool_use":
+        return None
+    if block.get("name") != "SubagentHandback":
+        return None
+    tool_input = block.get("input")
+    if not isinstance(tool_input, dict):
+        return None
+    return str(tool_input.get("message", ""))
+
+
 def _findings_array_from_transcript(text: str) -> list[Any]:
     last_block: str | None = None
     for transcript_line in text.splitlines():
@@ -425,13 +448,14 @@ def _findings_array_from_transcript(text: str) -> list[Any]:
         if not isinstance(content, list):
             continue
         for block in content:
-            if not isinstance(block, dict) or block.get("type") != "text":
+            report = _report_text(block)
+            if report is None:
                 continue
-            blocks = _JSON_BLOCK_RE.findall(block.get("text", ""))
+            blocks = _JSON_BLOCK_RE.findall(report)
             if blocks:
                 last_block = blocks[-1]
     if last_block is None:
-        raise InputError("no ```json block found in any assistant message of the transcript")
+        raise InputError("no ```json block found in any assistant message or SubagentHandback report of the transcript")
     findings = json.loads(last_block)
     if not isinstance(findings, list):
         raise InputError("the transcript's last ```json block is not a JSON array")
@@ -465,7 +489,7 @@ def read_code_review_findings(path: Path) -> tuple[list[Any], Reviewer]:
     """Read the findings array a /code-review run reported, and the model and effort that ran it when recorded.
 
     The file holds either exactly that array, which records no model, or the transcript of the /code-review agent,
-    whose last ```json block in an assistant message holds it.
+    whose last ```json block in an assistant message or SubagentHandback report holds it.
     """
     text = path.read_text(encoding="utf-8")
     try:
@@ -869,8 +893,26 @@ def _post(*, plan: Plan, findings_file: FindingsFile, resume: bool) -> dict[str,
     }
 
 
+def agent_transcript(agent_id: str) -> Path:
+    """Return the transcript Claude Code keeps for the background agent with this ID (a task notification's task-id).
+
+    It lives under the session's project folder as `<session id>/subagents/agent-<agent id>.jsonl` and outlasts the
+    task notification's output file, which sits under /tmp in a folder named after the session ID from before any
+    `/clear`.
+    """
+    matches = sorted((Path.home() / ".claude" / "projects").glob(f"*/*/subagents/agent-{agent_id}.jsonl"))
+    if not matches:
+        raise InputError(f"no transcript named agent-{agent_id}.jsonl under ~/.claude/projects")
+    if len(matches) > 1:
+        raise InputError(f"several transcripts for agent {agent_id}: {', '.join(str(path) for path in matches)}")
+    return matches[0]
+
+
 def cmd_import(args: argparse.Namespace) -> None:
-    raw_findings, recorded_reviewer = read_code_review_findings(args.source)
+    source = args.source
+    if source is None:
+        source = agent_transcript(args.agent)
+    raw_findings, recorded_reviewer = read_code_review_findings(source)
     reviewer = Reviewer(
         model=args.model if args.model is not None else recorded_reviewer.model,
         effort=args.effort if args.effort is not None else recorded_reviewer.effort,
@@ -982,7 +1024,11 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     import_parser = subparsers.add_parser("import", help="convert /code-review output into a findings file")
-    _ = import_parser.add_argument("--from", dest="source", required=True, type=Path)
+    import_source = import_parser.add_mutually_exclusive_group(required=True)
+    _ = import_source.add_argument("--from", dest="source", type=Path)
+    _ = import_source.add_argument(
+        "--agent", help="the background /code-review agent's ID (its task-id); reads that agent's transcript"
+    )
     _ = import_parser.add_argument("--pr", required=True, type=int)
     _ = import_parser.add_argument("--commit", required=True, help="the commit the review was run against")
     _ = import_parser.add_argument("--out", required=True, type=Path)

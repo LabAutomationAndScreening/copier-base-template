@@ -34,13 +34,13 @@ The findings are posted under the user's account, since that is the only identit
 Find the findings, in this order of preference:
 
 1. **`--from <path>`** if the user passed one: a file holding the `/code-review` JSON array, or a `/code-review` agent transcript.
-2. **The `/code-review` task notification in this conversation.** When `/code-review` runs in the background, its completion notification names an `<output-file>`. That is the agent's transcript, and its final message holds the findings array in a ```json block. Pass that path as `--from`, so the findings are copied byte for byte instead of retyped.
+2. **The `/code-review` task notification in this conversation.** When `/code-review` runs in the background, its completion notification names the agent in `<task-id>`. Its report, holding the findings array in a ```json block, is in the agent's transcript, whether it arrived in the notification's `<result>` or as a `[Subagent hand-back]` message. Pass `--agent <task-id>` in place of `--from`, so the findings are copied byte for byte instead of retyped.
 3. **The findings array shown in this conversation**, when there is no transcript (e.g. the review ran inline). Write the array exactly as reported, unedited, to `<repo_root>/tmp/code-review-findings-pr<pr>.json` and pass that.
 
 If none of these exists (e.g. the conversation was compacted and the array is gone), ask the user for a file. Never rebuild findings from a summary.
 
 ```bash
-.claude/skills/post-review-findings/post_review.py import --from <path> --pr <pr> --commit <reviewed sha> --out <findings_file> [--model <model id>] [--effort <level>]
+.claude/skills/post-review-findings/post_review.py import (--from <path> | --agent <task-id>) --pr <pr> --commit <reviewed sha> --out <findings_file> [--model <model id>] [--effort <level>]
 ```
 
 Every posted comment opens with a line naming the model and effort level that ran the review, e.g. `🤖 AI code review finding by Claude Opus 5.5 (claude-opus-5-5) at max effort, reviewing 4fa7227`, so a reader knows from the first line that it came from an AI. A transcript records the model and effort, and `import` reads them. A bare array records neither, so pass `--model` with the model ID, and `--effort` if known. A `/code-review` run in this session, forked or inline, ran on this session's model, so that is your own model ID and effort level. Otherwise ask the user. Never guess.
