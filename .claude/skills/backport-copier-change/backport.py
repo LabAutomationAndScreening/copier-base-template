@@ -1636,7 +1636,8 @@ def cmd_merge_command(a: argparse.Namespace) -> dict[str, Any]:
     if behind_by:
         raise FailError(
             f"PR {a.pr}'s branch is {behind_by} commit(s) behind {base}, so CI never ran on what the merge would "
-            f"produce: run update-branch on {checkout}, ci on the new head, then the pre-merge check again"
+            f"produce: pause the PR's AI reviewer, then run update-branch on {checkout}, ci on the new head, then the "
+            "pre-merge check again"
         )
     draft = pr["isDraft"]
     # `tag` confirms the merge afterwards, since gh pr merge can succeed without printing anything
