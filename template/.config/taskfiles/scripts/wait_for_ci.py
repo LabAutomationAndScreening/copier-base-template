@@ -66,9 +66,10 @@ workflows never run on pull requests, therefore never reaches either and times o
 
 Right after a push, GitHub can still report the previous commit as the PR's head, with that commit's finished checks.
 So while the PR is open, checks count only once its head is the awaited commit: --sha when given; otherwise, when the
-PR's branch is the one checked out here (and --repo isn't given), the local HEAD, which must already be pushed;
-otherwise whatever head GitHub shows. That choice is settled once, on the first poll that reads the PR, so a commit
-pushed while waiting doesn't change what is awaited.
+PR's branch is the one checked out here (and --repo isn't given), the local HEAD, which must already be pushed. Which
+commit that is gets settled once, on the first poll that reads the PR, so a commit pushed while waiting doesn't change
+what is awaited. With neither, no commit is known to await, so each poll follows whatever head GitHub shows then;
+pinning the first head GitHub reports could pin the previous commit, for the reason above.
 
 If the PR's head moves past the awaited commit instead (a later push, a commit CI itself pushes, "Update branch", a
 force-push), that commit's own CI still finishes, so the wait switches to commit mode's rules for it, and every line
