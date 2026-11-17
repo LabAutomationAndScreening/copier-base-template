@@ -79,6 +79,7 @@ _FINDING_NUMBER_RE = re.compile(rf"{FINDING_ID_PREFIX}(\d+)")
 _JSON_BLOCK_RE = re.compile(r"```json\s*\n(.*?)\n```", re.DOTALL)
 
 POSTED_UNDER_NOTE = "<sub>Posted under the account of the person who ran the review.</sub>"
+RELATED_HEADING = "**Related:**"
 
 PR_QUERY = """
 query($owner: String!, $repo: String!, $number: Int!) {
@@ -200,6 +201,8 @@ class PostedComment:
     node_id: str
     url: str
     is_review_comment: bool
+    # the comment's text as it is on the PR, for a finding an earlier post added; None for one this post adds
+    body: str | None = None
 
 
 @dataclass
@@ -258,7 +261,13 @@ class Plan:
                 f"Finding IDs already used on this PR: {', '.join(collisions)}. Renumber them, or, if they are this "
                 "file's own findings from a post that did not finish, pass --resume to post only the rest."
             )
-        problems.extend(f"{p.finding.finding_id}: {p.attention}" for p in self.planned if p.attention is not None)
+        # a finding already on the PR stays where it was posted, so a push that moved its code since blocks nothing
+        already_posted = self.already_posted(resume=resume)
+        problems.extend(
+            f"{p.finding.finding_id}: {p.attention}"
+            for p in self.planned
+            if p.attention is not None and p.finding.finding_id not in already_posted
+        )
         return problems
 
 
@@ -273,6 +282,15 @@ def _is_ancestor(*, ancestor: str, descendant: str) -> bool:
 
 def _file_exists_at(*, commit: str, path: str) -> bool:
     return git("cat-file", "-e", f"{commit}:{path}").returncode == 0
+
+
+def _file_changed_between(*, path: str, from_commit: str, to_commit: str) -> bool:
+    result = git("diff", "--quiet", from_commit, to_commit, "--", f":(top,literal){path}")
+    if result.returncode == 0:
+        return False
+    if result.returncode == 1:
+        return True
+    raise RuntimeError(f"git diff {from_commit} {to_commit} -- {path} failed: {result.stderr.strip()}")
 
 
 def _require_str(*, raw: dict[str, Any], key: str, context: str) -> str:
@@ -319,12 +337,16 @@ def _parse_related(*, raw: dict[str, Any], context: str) -> list[Related]:
     for entry in value:
         if not isinstance(entry, dict):
             raise InputError(f"{context}: each `related` entry must be an object with `id` and `note`")
+        note = _require_str(raw=entry, key="note", context=context)
+        # a note is rendered inline as `- F<n>: <note>`; a line break would end the list there
+        if "\n" in note:
+            raise InputError(f"{context}: a `related` note must be a single line")
         related.append(
             Related(
                 finding_id=_require_finding_id(
                     finding_id=_require_str(raw=entry, key="id", context=context), context=context
                 ),
-                note=_require_str(raw=entry, key="note", context=context),
+                note=note,
             )
         )
     return related
@@ -516,10 +538,11 @@ def _existing_findings(*, owner: str, repo: str, pr: int) -> dict[str, PostedCom
             # only a thread's root holds a finding; a reply may quote one
             if c.get("in_reply_to_id") is not None:
                 continue
-            finding = parse_ai_review_finding(c.get("body") or "")
+            body = c.get("body") or ""
+            finding = parse_ai_review_finding(body)
             if finding is not None:
                 existing[finding.finding_id] = PostedComment(
-                    node_id=c["node_id"], url=c["html_url"], is_review_comment=is_review_comment
+                    node_id=c["node_id"], url=c["html_url"], is_review_comment=is_review_comment, body=body
                 )
     return existing
 
@@ -551,11 +574,14 @@ def build_plan(findings_file: FindingsFile) -> Plan:
     reviewed_in_pr = _is_ancestor(ancestor=reviewed, descendant=head) and not _is_ancestor(
         ancestor=reviewed, descendant=base
     )
-    anchor = reviewed if reviewed_in_pr else head
+    # Always the head, even when the reviewed commit is still in the PR: addPullRequestReviewThread places `line` on
+    # the PR head's diff whatever commit the review was created on, so a line numbered for an older commit would land
+    # on different code, or be refused (`thread: null`) when it falls outside the head's hunks.
+    anchor = head
     commentable = commentable_lines(base=base, anchor=anchor)
 
     planned = [
-        _plan_finding(finding=finding, reviewed=reviewed, anchor=anchor, head=head, commentable=commentable)
+        _plan_finding(finding=finding, reviewed=reviewed, anchor=anchor, commentable=commentable)
         for finding in findings_file.findings
     ]
 
@@ -573,13 +599,24 @@ def build_plan(findings_file: FindingsFile) -> Plan:
     )
 
 
-def _plan_finding(
-    *, finding: Finding, reviewed: str, anchor: str, head: str, commentable: dict[str, set[int]]
-) -> PlannedFinding:
+def _plan_finding(*, finding: Finding, reviewed: str, anchor: str, commentable: dict[str, set[int]]) -> PlannedFinding:
     in_diff = finding.file in commentable
+    source = ensure_commit(finding.line_commit) if finding.line_commit is not None else reviewed
     if not _file_exists_at(commit=anchor, path=finding.file):
+        if _file_exists_at(commit=source, path=finding.file):
+            return PlannedFinding(
+                finding=finding,
+                placement="pr_comment",
+                line_at_anchor=None,
+                changed_since_review=True,
+                attention=(
+                    f"{finding.file} exists at {source[:SHORT_SHA_LENGTH]} but was deleted by "
+                    f"{anchor[:SHORT_SHA_LENGTH]}. Drop the finding if it no longer applies, or point `file`, `line` "
+                    f"and `line_commit` at where the code went."
+                ),
+            )
         if in_diff:
-            # deleted by the PR: only the left side of the diff has the line, so comment on the file
+            # deleted by the PR before the review: only the left side of the diff has the line, so comment on the file
             return PlannedFinding(
                 finding=finding, placement="file", line_at_anchor=None, changed_since_review=False, attention=None
             )
@@ -593,10 +630,13 @@ def _plan_finding(
     if finding.line is None:
         placement = "file" if in_diff else "pr_comment"
         return PlannedFinding(
-            finding=finding, placement=placement, line_at_anchor=None, changed_since_review=False, attention=None
+            finding=finding,
+            placement=placement,
+            line_at_anchor=None,
+            changed_since_review=_file_changed_between(path=finding.file, from_commit=source, to_commit=anchor),
+            attention=None,
         )
 
-    source = ensure_commit(finding.line_commit) if finding.line_commit is not None else reviewed
     line_at_anchor = map_line_between(path=finding.file, line=finding.line, from_commit=source, to_commit=anchor)
     if line_at_anchor is None:
         return PlannedFinding(
@@ -611,10 +651,6 @@ def _plan_finding(
             ),
         )
 
-    changed_since_review = False
-    if anchor != head:
-        line_at_head = map_line_between(path=finding.file, line=line_at_anchor, from_commit=anchor, to_commit=head)
-        changed_since_review = line_at_head is None
     if line_at_anchor in commentable.get(finding.file, set()):
         placement = "line"
     elif in_diff:
@@ -625,7 +661,8 @@ def _plan_finding(
         finding=finding,
         placement=placement,
         line_at_anchor=line_at_anchor,
-        changed_since_review=changed_since_review,
+        # mapped, so the line itself is unchanged since the review; a changed one got an `attention` above
+        changed_since_review=False,
         attention=None,
     )
 
@@ -710,14 +747,18 @@ def render_finding_body(*, planned: PlannedFinding, urls: dict[str, str], findin
         lines += [f"**Location:** {_location(planned)} (outside this PR's diff hunks)", ""]
     lines += [finding.summary, "", f"**Failure scenario:** {finding.failure_scenario}", ""]
     if finding.related:
-        lines.append("**Related:**")
-        for related in finding.related:
-            url = urls.get(related.finding_id)
-            reference = f"[{related.finding_id}]({url})" if url is not None else related.finding_id
-            lines.append(f"- {reference}: {related.note}")
-        lines.append("")
+        lines += [*_related_lines(related=finding.related, urls=urls), ""]
     lines.append(POSTED_UNDER_NOTE)
     return "\n".join(lines)
+
+
+def _related_lines(*, related: list[Related], urls: dict[str, str]) -> list[str]:
+    lines = [RELATED_HEADING]
+    for entry in related:
+        url = urls.get(entry.finding_id)
+        reference = f"[{entry.finding_id}]({url})" if url is not None else entry.finding_id
+        lines.append(f"- {reference}: {entry.note}")
+    return lines
 
 
 def render_review_body(
@@ -810,7 +851,8 @@ def _relink(
 
     Every finding related to one added now is edited, whether it was added now too or by an earlier post (which is
     what plan reports as will_edit_posted_findings). Links to earlier findings were already in each new comment's
-    first body, so a finding related only to those is left alone.
+    first body, so a finding related only to those is left alone. A finding an earlier post added keeps the text it
+    was posted with, apart from its relations (see _relinked_body).
     """
     comments = {**already_posted, **posted}
     urls = _urls(comments)
@@ -818,9 +860,44 @@ def _relink(
         if not {r.finding_id for r in p.finding.related} & posted.keys():
             continue
         entry = comments[p.finding.finding_id]
-        body = render_finding_body(planned=p, urls=urls, findings_file=findings_file)
+        if entry.body is not None:
+            body = _relinked_body(stored_body=entry.body, finding=p.finding, urls=urls)
+        else:
+            body = render_finding_body(planned=p, urls=urls, findings_file=findings_file)
         mutation = UPDATE_REVIEW_COMMENT if entry.is_review_comment else UPDATE_PR_COMMENT
         _ = gh_graphql(mutation, {"id": entry.node_id, "body": body})
+
+
+def _relinked_body(*, stored_body: str, finding: Finding, urls: dict[str, str]) -> str:
+    """Return a posted finding's text with its relations as the findings file has them now, linked to every URL known.
+
+    Only the parts render_finding_body generates from the relations change: the marker on the first line, which
+    read.py takes the related IDs from, and the related list. The rest stays as it was posted, since rendering it
+    again would describe where the current plan puts the finding, which after a push can differ from where it sits.
+    """
+    # the marker it was posted with says whether render_finding_body wrote a list; a summary or failure scenario that
+    # merely quotes the heading must not be taken for one
+    posted_marker = parse_ai_review_finding(stored_body)
+    first_line, newline, rest = stored_body.partition("\n")
+    if first_line.startswith("<!-- ai-review-finding "):
+        marker = ai_review_finding_marker(
+            finding_id=finding.finding_id, related_ids=[r.finding_id for r in finding.related]
+        )
+        stored_body = marker + newline + rest
+    related_block = "\n".join(_related_lines(related=finding.related, urls=urls))
+    if posted_marker is not None:
+        if posted_marker.related_ids:
+            # render_finding_body puts the list last, after the summary and failure scenario, and ends it with a blank
+            # line before the footer
+            before_list, heading_separator, after_heading = stored_body.rpartition(f"\n{RELATED_HEADING}\n")
+            if heading_separator:
+                _, blank_line, footer = after_heading.partition("\n\n")
+                return f"{before_list}\n{related_block}{blank_line}{footer}"
+    # posted with no relations: the list goes where render_finding_body would have put it, just before the footer
+    before_footer, footer_separator, footer = stored_body.rpartition(f"\n\n{POSTED_UNDER_NOTE}")
+    if not footer_separator:
+        return f"{stored_body}\n\n{related_block}"
+    return f"{before_footer}\n\n{related_block}{footer_separator}{footer}"
 
 
 def _settle_failed_post(*, review_id: str | None, posted: dict[str, PostedComment]) -> str | None:
@@ -1007,14 +1084,17 @@ def render_preview(*, plan: Plan, findings_file: FindingsFile, resume: bool) -> 
         relinked = plan.earlier_findings_to_relink(resume=resume)
         if relinked:
             sections.append(f"Edited to link the new findings (GitHub marks them edited): {', '.join(relinked)}.")
-            # an edit to a comment already on the PR goes out too, so its new body is shown like a new one
+            # an edit to a comment already on the PR goes out too, so its new body is shown like a new one, built the
+            # way _relink builds it
             for p in plan.planned:
                 if p.finding.finding_id not in relinked:
                     continue
-                sections += [
-                    f"---\n\n# {p.finding.finding_id} (already posted; edited to this)",
-                    render_finding_body(planned=p, urls=urls, findings_file=findings_file),
-                ]
+                stored_body = already_posted[p.finding.finding_id].body
+                if stored_body is not None:
+                    edited_body = _relinked_body(stored_body=stored_body, finding=p.finding, urls=urls)
+                else:
+                    edited_body = render_finding_body(planned=p, urls=urls, findings_file=findings_file)
+                sections += [f"---\n\n# {p.finding.finding_id} (already posted; edited to this)", edited_body]
     if to_post:
         sections += [
             "---\n\n# Review body",
