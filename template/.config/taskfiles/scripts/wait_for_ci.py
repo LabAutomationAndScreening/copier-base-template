@@ -445,8 +445,12 @@ def _is_failure(*, check: _Check) -> bool:
 def _failed_check_names(*, checks: list[_Check], required_checks: list[_Check]) -> list[str]:
     required_names = {check.name for check in required_checks}
     names: list[str] = []
-    for check in checks:
+    # the two lists come from separate `gh pr checks` calls, so a required check still pending in the first can have
+    # failed by the second, and _passed_result only rejects a pending one
+    for check in [*checks, *required_checks]:
         if not _is_failure(check=check):
+            continue
+        if check.name in names:
             continue
         if check.workflow != "":
             names.append(check.name)
