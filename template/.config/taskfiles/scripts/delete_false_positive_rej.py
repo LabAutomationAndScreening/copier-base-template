@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Delete .rej files whose corresponding source files are unchanged in git.
 
 Typically run after a `copier update` to discard false-positive rejects (hunks that couldn't apply because the target file was already up-to-date).
