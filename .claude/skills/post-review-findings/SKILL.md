@@ -34,7 +34,7 @@ The findings are posted under the user's account, since that is the only identit
 Find the findings, in this order of preference:
 
 1. **`--from <path>`** if the user passed one: a file holding the `/code-review` JSON array, or a `/code-review` agent transcript.
-2. **The `/code-review` task notification in this conversation.** When `/code-review` runs in the background, its completion notification names the agent in `<task-id>`. Its report, holding the findings array in a ```json block, is in the agent's transcript, whether it arrived in the notification's `<result>` or as a `[Subagent hand-back]` message. Pass `--agent <task-id>` in place of `--from`, so the findings are copied byte for byte instead of retyped.
+2. **The `/code-review` task notification in this conversation.** When `/code-review` runs in the background, its completion notification names the agent in `<task-id>`. Its report, holding the findings array in a ```json block, is in the agent's transcript, whether it arrived in the notification's `<result>` or as a `[Subagent hand-back]` message. Pass `--agent <task-id>` in place of `--from`, so the findings are copied byte for byte instead of retyped. While the review is still running, `post_review.py review-agent` prints the same ID (`{"review_agent": <id>}`), for a caller that has to record it before the notification arrives.
 3. **The findings array shown in this conversation**, when there is no transcript (e.g. the review ran inline). Write the array exactly as reported, unedited, to `<repo_root>/tmp/code-review-findings-pr<pr>.json` and pass that.
 
 If none of these exists (e.g. the conversation was compacted and the array is gone), ask the user for a file. Never rebuild findings from a summary.

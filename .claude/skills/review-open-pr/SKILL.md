@@ -213,12 +213,16 @@ It lifts only the cap on the final report, not the cap `/code-review`'s recipe g
 so the args lift that one too: a candidate a finder drops to stay under its cap never reaches
 the reviewer, and Step 4.2 can't recover it.
 
-If the review runs in the background, set `stage` to `reviewing` in `run.json`, end your turn and wait for its
-task notification. Don't poll, and don't review the code yourself in the meantime. The report arrives in one
-of two ways, and either can happen: in the notification's `<result>`, or as a message from the agent marked
-`[Subagent hand-back]`, with the notification's `<result>` saying only that the report was delivered as a
-message. Either way, the notification's `<task-id>` is the agent's ID: record it as `review_agent` in
-`run.json`. If the review instead reports its findings inline, write that array unedited to
+If the review runs in the background, its ID is needed before it finishes: a session that ends mid-review can
+only import the finished report by that ID (see [Resuming](#resuming-an-interrupted-run)), and the Skill tool's
+result names the agent only as `code-review`. So right away run
+`.claude/skills/post-review-findings/post_review.py review-agent`, record the ID it prints as `review_agent` and
+set `stage` to `reviewing` in `run.json`, then end your turn and wait for its task notification. Don't poll,
+and don't review the code yourself in the meantime. The report arrives in one of two ways, and either can
+happen: in the notification's `<result>`, or as a message from the agent marked `[Subagent hand-back]`, with
+the notification's `<result>` saying only that the report was delivered as a message. Either way, the
+notification's `<task-id>` is the agent's ID; if it isn't the recorded `review_agent`, record it instead and
+tell the user. If the review instead reports its findings inline, write that array unedited to
 `<work_dir>/code-review-findings.json`.
 
 ## Step 4: Import, then collect what the reviewer left out

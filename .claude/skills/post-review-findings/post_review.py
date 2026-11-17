@@ -6,6 +6,7 @@
 
 Usage:
   post_review.py import (--from <file> | --agent <id>) --pr <number> --commit <sha> --out <findings file> [--model <id>] [--effort <level>]
+  post_review.py review-agent
   post_review.py plan --findings-file <findings file> [--preview <markdown file>] [--resume]
   post_review.py post --findings-file <findings file> --head <approved pr_head> --base <approved pr_base> [--resume]
 
@@ -22,7 +23,9 @@ import  Reads either a file holding the JSON array of findings /code-review repo
         IDs (F1, F2, ...) are numbered after any finding IDs already on the PR. `summary` (the review body) and each
         `related` list start empty for the agent to fill in. A finding may also carry `line_commit`, the commit its
         `line` refers to, when that is not reviewed_commit.
-plan    Prints, as JSON, where each finding would be posted and anything that must be resolved first. Posts nothing.
+review-agent  Prints {"review_agent": <id>}: the ID of the /code-review agent this session (CLAUDE_CODE_SESSION_ID)
+        is running in the background, so the ID --agent needs can be recorded before the review finishes.
+plan   Prints, as JSON, where each finding would be posted and anything that must be resolved first. Posts nothing.
         With --preview, also writes the review body and every comment, exactly as they would be posted, to a
         markdown file for the user to read.
 post    Re-runs the plan and refuses if anything needs attention, or if the PR head or base is no longer the --head or
@@ -921,6 +924,42 @@ def agent_transcript(agent_id: str) -> Path:
     return matches[0]
 
 
+def running_review_agent(session_id: str) -> str:
+    """Return the ID of the `/code-review` agent this Claude Code session is running in the background.
+
+    The Skill tool's result for a forked `/code-review` names the agent only as `code-review`, and its ID otherwise
+    arrives only with the task notification, when the review is done. Claude Code writes
+    `<session id>/subagents/agent-<agent id>.meta.json` under the session's project folder as soon as it starts the
+    agent, naming it, giving its spawn depth (1 for an agent this session started itself, not one of its finders)
+    and, once it is done, marking it `finished`. So the one unfinished depth-1 agent named `code-review` is the
+    review that is running.
+    """
+    running: list[str] = []
+    for meta_path in sorted(_claude_projects_dir().glob(f"*/{session_id}/subagents/agent-*.meta.json")):
+        meta = json.loads(meta_path.read_text("utf-8"))
+        if not isinstance(meta, dict):
+            continue
+        if meta.get("name") != "code-review":
+            continue
+        if meta.get("spawnDepth") != 1:
+            continue
+        if meta.get("finished") is True:
+            continue
+        running.append(meta_path.name.removeprefix("agent-").removesuffix(".meta.json"))
+    if not running:
+        raise InputError(f"session {session_id} has no running agent named code-review")
+    if len(running) > 1:
+        raise InputError(f"session {session_id} has several running agents named code-review: {', '.join(running)}")
+    return running[0]
+
+
+def cmd_review_agent(_args: argparse.Namespace) -> None:  # noqa: ARG001 # main() calls every subcommand's handler with the parsed args; this one takes no options
+    session_id = os.environ.get("CLAUDE_CODE_SESSION_ID")
+    if not session_id:
+        raise InputError("CLAUDE_CODE_SESSION_ID is not set; run this from a Bash command in the Claude Code session")
+    _ = sys.stdout.write(json.dumps({"review_agent": running_review_agent(session_id)}) + "\n")
+
+
 def cmd_import(args: argparse.Namespace) -> None:
     source = args.source
     if source is None:
@@ -1052,6 +1091,11 @@ def main() -> None:
         "--effort", default=None, help="the effort level the review ran at; overrides what a transcript records"
     )
     import_parser.set_defaults(handler=cmd_import)
+
+    review_agent_parser = subparsers.add_parser(
+        "review-agent", help="print the ID of the /code-review agent this session is running in the background"
+    )
+    review_agent_parser.set_defaults(handler=cmd_review_agent)
 
     plan_parser = subparsers.add_parser("plan", help="show where each finding would be posted, posting nothing")
     _ = plan_parser.add_argument("--findings-file", required=True, type=Path)
