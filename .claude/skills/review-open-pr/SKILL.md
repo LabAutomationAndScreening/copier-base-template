@@ -254,9 +254,9 @@ tell the user. If the review instead reports its findings inline, write that arr
    > the line at that commit, a summary and a failure scenario, and say why you set it aside. Then give two
    > more lists, one line per item, and put each item in only one of them:
    > - **Known, not raised**: real, but left out because the context brief settles it, names it as an
-   >   accepted interim form, or a `TODO` defers it. Give the file and the line at that commit, the thread URL,
-   >   the decision or the quoted `TODO`, and whether a verifier confirmed or reproduced it. Mark any you think
-   >   the user should decide on again despite that, and say why.
+   >   accepted interim form, or a `TODO` defers it. Give the file and the line at that commit, a summary and a
+   >   failure scenario, the thread URL, the decision or the quoted `TODO`, and whether a verifier confirmed or
+   >   reproduced it. Mark any you think the user should decide on again despite that, and say why.
    > - **Refuted**: what you checked and found wrong, or already guarded elsewhere, with why.
    >
    > Leave out what you already reported. If a list has nothing, say so instead of padding it. Write prose and
@@ -291,8 +291,9 @@ tell the user. If the review instead reports its findings inline, write that arr
   Offer as candidates to add the reply's "Known, not raised" items the reviewer marked for a fresh decision,
   with its reason and the thread, decision or `TODO` that left each out; skip any already in `<findings_file>`
   (a resumed run may have added it). Add each one the user picks with its exact line at the reviewed commit,
-  and start its `summary` with "Left out by the reviewer as <its reason>; added at the user's request." followed
-  by "A verifier confirmed it." or "A verifier reproduced it." when the reply says so. Never call one
+  and the reply's failure scenario for it, and start its `summary` with "Left out by the reviewer as <its
+  reason>; added at the user's request." followed by "A verifier confirmed it." or "A verifier reproduced it."
+  when the reply says so, then the reply's summary of it. Never call one
   "Unverified": it was checked and found real, and only the decision to leave it out is being revisited.
 - **Step 4**: also relate findings through the split context, for example one finding about this layer's code
   and another about a later layer that depends on it. In `summary`, list the reply's "Known, not raised"
