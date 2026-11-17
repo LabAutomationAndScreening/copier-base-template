@@ -13,7 +13,7 @@ import  Reads either a file holding the JSON array of findings /code-review repo
         /code-review agent, whose final report holds that array in a ```json block, as plain text or as a
         SubagentHandback message. --from takes the file (or the .jsonl output file named in the agent's task
         notification); --agent takes the agent's ID (the notification's task-id) and finds its transcript under
-        ~/.claude/projects. Writes a findings file:
+        Claude Code's projects folder ($CLAUDE_CONFIG_DIR/projects, or ~/.claude/projects). Writes a findings file:
           {"pr", "reviewed_commit", "reviewer": {"model", "effort"}, "summary", "findings": [{"id", "file", "line",
            "category", "short_summary", "summary", "failure_scenario", "related": [{"id", "note"}]}]}
         `reviewer` is the model and effort level that ran the review, which every posted comment names in its first
@@ -45,6 +45,7 @@ mapped forward through the diff; a line inside changed code cannot be mapped and
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -893,6 +894,17 @@ def _post(*, plan: Plan, findings_file: FindingsFile, resume: bool) -> dict[str,
     }
 
 
+def _claude_projects_dir() -> Path:
+    """Return the folder Claude Code keeps session transcripts in: `projects` under its configuration directory.
+
+    The configuration directory is `CLAUDE_CONFIG_DIR` when that is set, and `~/.claude` otherwise.
+    """
+    config_dir = os.environ.get("CLAUDE_CONFIG_DIR")
+    if config_dir:
+        return Path(config_dir) / "projects"
+    return Path.home() / ".claude" / "projects"
+
+
 def agent_transcript(agent_id: str) -> Path:
     """Return the transcript Claude Code keeps for the background agent with this ID (a task notification's task-id).
 
@@ -900,9 +912,10 @@ def agent_transcript(agent_id: str) -> Path:
     task notification's output file, which sits under /tmp in a folder named after the session ID from before any
     `/clear`.
     """
-    matches = sorted((Path.home() / ".claude" / "projects").glob(f"*/*/subagents/agent-{agent_id}.jsonl"))
+    projects_dir = _claude_projects_dir()
+    matches = sorted(projects_dir.glob(f"*/*/subagents/agent-{agent_id}.jsonl"))
     if not matches:
-        raise InputError(f"no transcript named agent-{agent_id}.jsonl under ~/.claude/projects")
+        raise InputError(f"no transcript named agent-{agent_id}.jsonl under {projects_dir}")
     if len(matches) > 1:
         raise InputError(f"several transcripts for agent {agent_id}: {', '.join(str(path) for path in matches)}")
     return matches[0]
