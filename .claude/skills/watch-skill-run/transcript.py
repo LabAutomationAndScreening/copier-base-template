@@ -13,9 +13,9 @@ Usage:
       calls, the user's answers to questions, tool errors and the user's own messages. With --subagents, also
       every agent the session starts (forks, finders, verifiers), each line prefixed with the agent's name.
       Starts at the transcripts' current ends, or with --from-start replays everything already written first.
-      With --since, first replays every event stamped at or after STAMP (a stamp as printed, such as
-      2026-11-16T21:33:48Z), so a follower started again with the stamp of the last line its predecessor printed
-      misses nothing written in between; an event in that same second may be printed twice.
+      With --since, first replays every event stamped at most a few seconds before STAMP (a stamp as printed, such
+      as 2026-11-16T21:33:48Z), so a follower started again with the stamp of the last line its predecessor printed
+      misses nothing written in between; an event from those few seconds may be printed twice.
 
 Each line is `<stamp> <source> <kind>: <text>`, the stamp in UTC to the second (`2026-11-16T21:33:48Z`), with
 newlines collapsed and text cut to a few hundred characters, so it can feed the Monitor tool directly. Each poll's
@@ -25,7 +25,10 @@ with --from-start, or else the moment it took the transcripts' current ends. So 
 carries a stamp that is safe to resume from, even when the follower was killed before it printed anything else.
 `TRANSCRIPT MOVED`, `NEW AGENT` and `IDLE` carry the stamp of the last line printed before them, for the same
 reason (a record can reach the transcript a moment after a poll, stamped in an earlier second than the clock
-shows), and the time they were printed in their text: `(at <stamp>)`.
+shows), and the time they were printed in their text: `(at <stamp>)`. No stamp is quite safe on its own, though: a
+record can reach a transcript a moment after its stamp, after the follower took its positions or read that file in a
+poll, and the follower reads its transcripts one after another. So --since replays the few seconds before STAMP as
+well, which covers a record stamped before the last line printed but read after it.
 
 The session is looked up by ID under every project folder on each poll, because a session that enters a worktree
 starts writing its transcript under a different project folder; `TRANSCRIPT MOVED` reports that. `IDLE` reports a
@@ -41,12 +44,14 @@ from dataclasses import dataclass
 from dataclasses import field
 from datetime import UTC
 from datetime import datetime
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
 PROJECTS_ROOT = Path.home() / ".claude" / "projects"
 TEXT_LIMIT = 400
 STAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+RESUME_OVERLAP = timedelta(seconds=5)
 
 
 @dataclass
@@ -185,7 +190,7 @@ def _is_before(*, record: dict[str, Any], since: datetime | None) -> bool:
     record_time = _record_time(record)
     if record_time is None:
         return False
-    return record_time < since
+    return record_time < since - RESUME_OVERLAP
 
 
 def _read_new_events(*, followed: _FollowedFile, since: datetime | None) -> list[str]:
@@ -290,7 +295,7 @@ def _start(*, follower: _Follower, main_path: Path) -> datetime:
     """Take the follower's starting positions, and return the moment it resumes from.
 
     The positions are taken before the moment is read from the clock, so a follower started again from the
-    returned stamp misses nothing written in between.
+    returned stamp, with the overlap --since replays, misses nothing written in between.
     """
     lines_read = 0
     if _starts_at_end(follower=follower):

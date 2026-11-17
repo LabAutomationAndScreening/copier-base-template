@@ -98,8 +98,8 @@ end and silently skips whatever the session wrote while no Monitor ran. Every li
 `TOOL ERROR`, `USER`, plus `FOLLOWING` (the follower started; its stamp is the point it resumed from, so the
 last line is safe to re-arm from even when the Monitor expired before printing anything else), `TRANSCRIPT
 MOVED` (the session entered a worktree) and `IDLE` (no event for 10 minutes: a question waiting on the user, a
-long background step, or a dead session; check which). After a re-arm, a line from the same second as the last
-one may repeat. Read the full record from the transcript when a line is cut short.
+long background step, or a dead session; check which). After a re-arm, lines from the few seconds before the
+last one may repeat. Read the full record from the transcript when a line is cut short.
 
 Leave `--subagents` off the Monitor: a review's finder and verifier agents produce far more events than a
 Monitor allows. When the session starts or hears back from an agent, audit the agents' transcripts in one
