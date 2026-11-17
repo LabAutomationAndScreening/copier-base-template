@@ -180,7 +180,8 @@ Before asking, give:
 - the chain from the layer down, with each repo's visibility;
 - one branch name for every repo, describing the change;
 - that the release pass pauses each child PR's AI reviewer (for CodeRabbit, a
-  `@coderabbitai pause` comment) just before pushing its re-pin (Step 7.2);
+  `@coderabbitai pause` comment) just before pushing its re-pin (Step 7.2), and any PR's
+  just before merging its default branch in (Step 7.1);
 - for each downstream repo, whether `$BP behind --repo <repo>` says it needs a catch-up first.
 
 Then ask, in one AskUserQuestion call: the layer (the proposed one and its reasoning first,
@@ -392,10 +393,12 @@ top, one level at a time:
    every open thread, since a reviewer may have written since the last look and a merge never
    starts over an unread finding, and refresh the description (Step 6.1). Then
    `$BP merge-command --repo R --pr N --checkout <checkout>`: while the branch is behind its
-   base it refuses, so run `update-branch` on the checkout (with `--chain`), `ci` on the new
-   head, and the pre-merge check again. Run its `commands` in order, each as its own command,
-   and start `$BP tag --repo R --pr N` in the background: it confirms the merge, then waits for
-   the tag. Pass `--merge-only` for a repo with no tag-on-merge workflow (often a project).
+   base it refuses, so first pause the PR's AI reviewer as for a re-pin (step 2), since a
+   merge of the default branch brings nothing of the PR's own to review and `update-branch`
+   pushes as soon as the merge is clean, then run `update-branch` on the checkout (with
+   `--chain`), `ci` on the new head, and the pre-merge check again. Run its `commands` in
+   order, each as its own command, and start `$BP tag --repo R --pr N` in the background: it
+   confirms the merge, then waits for the tag. Pass `--merge-only` for a repo with no tag-on-merge workflow (often a project).
 2. **Re-pin its children** as soon as a repo's tag lands: note the child's HEAD, copier-update
    with no `--ref`, then `net-diff --base <the noted sha>`. `only_commit_changed` must be true;
    if not, stop and show the user what else changed. Then pause the child PR's AI reviewer,
