@@ -14,9 +14,12 @@ comment's URL and the resolveReviewThread mutation is run on it. Prints `Resolve
 `--last-comment` is the thread's newest comment when the user approved resolving it. The user may take a while to
 answer, and a resolved thread drops out of read.py's default output, so a comment posted in the meantime would never be
 triaged. When the thread's newest comment is no longer that one, nothing is resolved and the script exits 1 naming both.
+The mutation has no such precondition, so a comment posted between reading the threads and resolving is caught from
+the mutation's own response instead: the thread is reopened and the script exits 1 the same way.
 """
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 
@@ -30,6 +33,21 @@ from utils import review_threads
 RESOLVE_MUTATION = """
 mutation($threadId: ID!) {
   resolveReviewThread(input: {threadId: $threadId}) {
+    thread {
+      isResolved
+      comments(last: 1) {
+        nodes {
+          url
+        }
+      }
+    }
+  }
+}
+"""
+
+UNRESOLVE_MUTATION = """
+mutation($threadId: ID!) {
+  unresolveReviewThread(input: {threadId: $threadId}) {
     thread {
       isResolved
     }
@@ -50,6 +68,14 @@ class ThreadChangedSinceApprovalError(RuntimeError):
         )
 
 
+class ThreadLeftResolvedError(RuntimeError):
+    def __init__(self, *, root_url: str, last_url: str, approved_last_url: str, cause: str):
+        super().__init__(
+            f"Resolved {root_url}, but its newest comment is {last_url}, not the approved {approved_last_url}, and "
+            f"reopening it failed, so reopen it by hand: {cause}"
+        )
+
+
 class ThreadNotResolvedError(RuntimeError):
     def __init__(self, *, root_url: str):
         super().__init__(f"GitHub accepted the request but still reports the thread at {root_url} as unresolved")
@@ -67,11 +93,39 @@ def resolve(*, owner: str, repo: str, pr_number: int, root_comment_id: int, last
             raise ThreadChangedSinceApprovalError(
                 root_url=root_url, last_url=thread.last_url, approved_last_url=approved_last_url
             )
-        result = gh_graphql(RESOLVE_MUTATION, {"threadId": thread.graphql_id})
-        if not result["resolveReviewThread"]["thread"]["isResolved"]:
+        resolved = gh_graphql(RESOLVE_MUTATION, {"threadId": thread.graphql_id})["resolveReviewThread"]["thread"]
+        if not resolved["isResolved"]:
             raise ThreadNotResolvedError(root_url=root_url)
+        last_url_when_resolved: str = resolved["comments"]["nodes"][0]["url"]
+        if last_url_when_resolved != approved_last_url:
+            _reopen(
+                thread_id=thread.graphql_id,
+                root_url=root_url,
+                last_url=last_url_when_resolved,
+                approved_last_url=approved_last_url,
+            )
+            raise ThreadChangedSinceApprovalError(
+                root_url=root_url, last_url=last_url_when_resolved, approved_last_url=approved_last_url
+            )
         return f"Resolved: {root_url}"
     raise ThreadNotFoundError(pr_number=pr_number, root_url=root_url)
+
+
+def _reopen(*, thread_id: str, root_url: str, last_url: str, approved_last_url: str) -> None:
+    try:
+        _ = gh_graphql(UNRESOLVE_MUTATION, {"threadId": thread_id})
+    except subprocess.CalledProcessError as e:
+        raise ThreadLeftResolvedError(
+            root_url=root_url, last_url=last_url, approved_last_url=approved_last_url, cause=f"gh api error: {e.stderr}"
+        ) from e
+    except subprocess.TimeoutExpired as e:
+        raise ThreadLeftResolvedError(
+            root_url=root_url, last_url=last_url, approved_last_url=approved_last_url, cause="gh api timed out"
+        ) from e
+    except RuntimeError as e:
+        raise ThreadLeftResolvedError(
+            root_url=root_url, last_url=last_url, approved_last_url=approved_last_url, cause=str(e)
+        ) from e
 
 
 def main() -> None:

@@ -159,7 +159,9 @@ ask. Run the script on its own, never chained with another command.
 `--last-comment` is the ID of the thread's newest comment as it stood when the user approved (the root's ID when it has
 no replies). If the thread's newest comment is any other, the script resolves nothing and exits 1 naming both
 (`Not resolved: the newest comment in <root url> is <url>, not the approved <url>`): read the thread again
-(`read.py --thread`), since a comment posted since needs an answer before the thread can be resolved.
+(`read.py --thread`), since a comment posted since needs an answer before the thread can be resolved. A comment that
+lands in the moment between that check and the resolve is caught from GitHub's answer to the resolve: the script
+reopens the thread and exits 1 the same way, or, if reopening fails, says so, and the thread is reopened by hand.
 
 ## Markers
 
