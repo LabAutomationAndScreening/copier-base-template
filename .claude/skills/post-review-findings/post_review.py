@@ -603,14 +603,16 @@ def _plan_finding(*, finding: Finding, reviewed: str, anchor: str, commentable: 
     in_diff = finding.file in commentable
     source = ensure_commit(finding.line_commit) if finding.line_commit is not None else reviewed
     if not _file_exists_at(commit=anchor, path=finding.file):
-        if _file_exists_at(commit=source, path=finding.file):
+        # judged at the reviewed commit, not `line_commit`: a finding on a file the PR deleted before the review cites
+        # the older commit that still has it, and belongs on the file, not behind an attention
+        if _file_exists_at(commit=reviewed, path=finding.file):
             return PlannedFinding(
                 finding=finding,
                 placement="pr_comment",
                 line_at_anchor=None,
                 changed_since_review=True,
                 attention=(
-                    f"{finding.file} exists at {source[:SHORT_SHA_LENGTH]} but was deleted by "
+                    f"{finding.file} exists at the reviewed commit {reviewed[:SHORT_SHA_LENGTH]} but was deleted by "
                     f"{anchor[:SHORT_SHA_LENGTH]}. Drop the finding if it no longer applies, or point `file`, `line` "
                     f"and `line_commit` at where the code went."
                 ),
