@@ -847,6 +847,9 @@ def _relinked_body(*, stored_body: str, finding: Finding, urls: dict[str, str]) 
     read.py takes the related IDs from, and the related list. The rest stays as it was posted, since rendering it
     again would describe where the current plan puts the finding, which after a push can differ from where it sits.
     """
+    # the marker it was posted with says whether render_finding_body wrote a list; a summary or failure scenario that
+    # merely quotes the heading must not be taken for one
+    posted_marker = parse_ai_review_finding(stored_body)
     first_line, newline, rest = stored_body.partition("\n")
     if first_line.startswith("<!-- ai-review-finding "):
         marker = ai_review_finding_marker(
@@ -854,12 +857,14 @@ def _relinked_body(*, stored_body: str, finding: Finding, urls: dict[str, str]) 
         )
         stored_body = marker + newline + rest
     related_block = "\n".join(_related_lines(related=finding.related, urls=urls))
-    # render_finding_body puts the list last, after a summary and failure scenario that may quote the heading
-    # themselves, and ends it with a blank line before the footer
-    before_list, heading_separator, after_heading = stored_body.rpartition(f"\n{RELATED_HEADING}\n")
-    if heading_separator:
-        _, blank_line, footer = after_heading.partition("\n\n")
-        return f"{before_list}\n{related_block}{blank_line}{footer}"
+    if posted_marker is not None:
+        if posted_marker.related_ids:
+            # render_finding_body puts the list last, after the summary and failure scenario, and ends it with a blank
+            # line before the footer
+            before_list, heading_separator, after_heading = stored_body.rpartition(f"\n{RELATED_HEADING}\n")
+            if heading_separator:
+                _, blank_line, footer = after_heading.partition("\n\n")
+                return f"{before_list}\n{related_block}{blank_line}{footer}"
     # posted with no relations: the list goes where render_finding_body would have put it, just before the footer
     before_footer, footer_separator, footer = stored_body.rpartition(f"\n\n{POSTED_UNDER_NOTE}")
     if not footer_separator:
