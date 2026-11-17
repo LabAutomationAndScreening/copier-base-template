@@ -265,6 +265,19 @@ def _settling_reaction(*, thread: dict[str, Any], owner: str, repo: str, current
     return None
 
 
+def _with_settling_reactions(
+    entries: list[dict[str, Any]], *, owner: str, repo: str, current_user: str
+) -> list[dict[str, Any]]:
+    """Set `settled_by_reaction` on each of `entries`, asking GitHub about reactions for these entries only.
+
+    Each candidate reply costs a request, so callers pass only the entries they will return, never the whole PR,
+    except when looking for settled threads, where every entry is a candidate.
+    """
+    for e in entries:
+        e["settled_by_reaction"] = _settling_reaction(thread=e, owner=owner, repo=repo, current_user=current_user)
+    return entries
+
+
 def _line_anchor(c: dict[str, Any]) -> tuple[str, int, str] | None:
     """Return the path, line and commit an inline comment was made on, or None for a file-level or incomplete one."""
     path = c.get("path")
@@ -558,8 +571,6 @@ def fetch(
         + _all_flat_issues(issues_raw, current_user, include_bot_comments=include_bot_comments)
         + _all_review_bodies(reviews_raw=reviews_raw, issues_raw=issues_raw, current_user=current_user)
     )
-    for e in everything:
-        e["settled_by_reaction"] = _settling_reaction(thread=e, owner=owner, repo=repo, current_user=current_user)
     open_ids = {e["id"] for e in everything if not e["resolved"] and not _addressed_by_current_user(e, current_user)}
     # an AI reviewer's top-level comment is a summary or an acknowledgement, with nothing to answer
     open_ids -= {c["id"] for c in issues_raw if is_bot_pr_body_comment(c)}
@@ -578,15 +589,12 @@ def select(
     *,
     all_entries: bool,
     needs_verification: bool,
-    settled_by_reaction: bool,
     thread_id: int | None,
 ) -> list[dict[str, Any]]:
     if thread_id is not None:
         return [e for e in entries if e["id"] == thread_id]
     if all_entries:
         return entries
-    if settled_by_reaction:
-        return [e for e in entries if e["settled_by_reaction"] is not None]
     if needs_verification:
         return [
             e
@@ -627,19 +635,29 @@ def main() -> None:
     args = pr.args
 
     def selected_comments_json() -> str:
-        comments = select(
-            fetch(
+        current_user = fetch_current_user_login()
+        entries = fetch(
+            owner=pr.owner,
+            repo=pr.repo,
+            pr_number=pr.pr_number,
+            current_user=current_user,
+            include_bot_comments=args.include_bot_comments,
+        )
+        if args.settled_by_reaction:
+            comments = [
+                e
+                for e in _with_settling_reactions(entries, owner=pr.owner, repo=pr.repo, current_user=current_user)
+                if e["settled_by_reaction"] is not None
+            ]
+        else:
+            comments = _with_settling_reactions(
+                select(
+                    entries, all_entries=args.all, needs_verification=args.needs_verification, thread_id=args.thread
+                ),
                 owner=pr.owner,
                 repo=pr.repo,
-                pr_number=pr.pr_number,
-                current_user=fetch_current_user_login(),
-                include_bot_comments=args.include_bot_comments,
-            ),
-            all_entries=args.all,
-            needs_verification=args.needs_verification,
-            settled_by_reaction=args.settled_by_reaction,
-            thread_id=args.thread,
-        )
+                current_user=current_user,
+            )
         return json.dumps(comments, indent=2)
 
     print_or_exit_on_gh_error(selected_comments_json)
