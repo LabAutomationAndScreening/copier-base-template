@@ -764,10 +764,12 @@ def deleted_paths(project: Path) -> list[str]:
     return [path for path in out.split("\0") if path]
 
 
-def render_old_template(*, src_path: str, ref: str, answers_text: str, dest: Path, stored_gh_credentials: bool) -> None:
-    """Render the template at REF with the saved answers into DEST, as `copier update` renders its old copy.
+def render_old_template(*, project: Path, answers_file: str, dest: Path, stored_gh_credentials: bool) -> str:
+    """Render the template version the project was on before the update into DEST, and return that version.
 
-    Copier's update renders the version the project is on from its last answers, tasks included, and diffs that
+    The version and the answers come from the answers file as committed in HEAD: the update has already rewritten
+    the working-tree copy with the new version. Copier's update renders the version the project is on from its
+    last answers, tasks included, and diffs that
     against the project to find the repo's own edits. A file the new version no longer has is deleted whether or
     not the repo edited it, so comparing it with this render is what tells the two apart. Commit history can't:
     a repo edit made while resolving an earlier update's conflicts lands inside that update's commit.
@@ -776,6 +778,11 @@ def render_old_template(*, src_path: str, ref: str, answers_text: str, dest: Pat
     make nearly every file look edited. A secret answer is never saved, so it renders with its default here; a file
     that depends on one compares as edited, which costs a decision but never drops an edit.
     """
+    answers_text = _git("show", f"HEAD:./{answers_file}", cwd=project)
+    answers = _parse_answers(text=answers_text, project=project, source=f"HEAD:{answers_file}")
+    ref = answers.get("_commit")
+    if not ref:
+        raise FailError(f"HEAD:{answers_file} has no _commit, so there is no earlier template version to render")
     data_file = dest.parent / "answers.yml"
     _ = data_file.write_text(answers_text, encoding="utf-8")
     res = _run(
@@ -786,10 +793,14 @@ def render_old_template(*, src_path: str, ref: str, answers_text: str, dest: Pat
             ref,
             "--data-file",
             str(data_file),
+            # --data-file only supplies answers; a template can also render the answers file's own location
+            # (`_copier_conf.answers_file`), which falls back to the template's default without this
+            "--answers-file",
+            answers_file,
             "--defaults",
             "--trust",
             "--quiet",
-            src_path,
+            answers["_src_path"],
             str(dest),
         ],
         cwd=dest.parent,
@@ -797,6 +808,7 @@ def render_old_template(*, src_path: str, ref: str, answers_text: str, dest: Pat
     )
     if res.returncode != 0:
         raise FailError(f"rendering the template at {ref} failed:\n{(res.stdout + res.stderr).strip()}")
+    return ref
 
 
 def _matches_render(*, project: Path, path: str, render: Path) -> bool:
@@ -816,20 +828,10 @@ def cmd_deleted_files(a: argparse.Namespace) -> dict[str, Any]:
     deleted = deleted_paths(project)
     if not deleted:
         return {"answers_file": answers_file, "from_version": None, "deleted": []}
-    # the update already rewrote the answers file with the new version, so the version the repo was on is in HEAD
-    answers_text = _git("show", f"HEAD:./{answers_file}", cwd=project)
-    answers = _parse_answers(text=answers_text, project=project, source=f"HEAD:{answers_file}")
-    from_version = answers.get("_commit")
-    if not from_version:
-        raise FailError(f"HEAD:{answers_file} has no _commit, so there is no earlier template version to render")
     with tempfile.TemporaryDirectory(prefix="copier-update-old-render.") as tmp:
         render = Path(tmp) / "render"
-        render_old_template(
-            src_path=answers["_src_path"],
-            ref=from_version,
-            answers_text=answers_text,
-            dest=render,
-            stored_gh_credentials=a.stored_gh_credentials,
+        from_version = render_old_template(
+            project=project, answers_file=answers_file, dest=render, stored_gh_credentials=a.stored_gh_credentials
         )
         files = [
             {
