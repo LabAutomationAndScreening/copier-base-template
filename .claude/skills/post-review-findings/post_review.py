@@ -73,6 +73,7 @@ _FINDING_NUMBER_RE = re.compile(rf"{FINDING_ID_PREFIX}(\d+)")
 _JSON_BLOCK_RE = re.compile(r"```json\s*\n(.*?)\n```", re.DOTALL)
 
 POSTED_UNDER_NOTE = "<sub>Posted under the account of the person who ran the review.</sub>"
+RELATED_HEADING = "**Related:**"
 
 PR_QUERY = """
 query($owner: String!, $repo: String!, $number: Int!) {
@@ -194,6 +195,8 @@ class PostedComment:
     node_id: str
     url: str
     is_review_comment: bool
+    # the comment's text as it is on the PR, for a finding an earlier post added; None for one this post adds
+    body: str | None = None
 
 
 @dataclass
@@ -252,7 +255,13 @@ class Plan:
                 f"Finding IDs already used on this PR: {', '.join(collisions)}. Renumber them, or, if they are this "
                 "file's own findings from a post that did not finish, pass --resume to post only the rest."
             )
-        problems.extend(f"{p.finding.finding_id}: {p.attention}" for p in self.planned if p.attention is not None)
+        # a finding already on the PR stays where it was posted, so a push that moved its code since blocks nothing
+        already_posted = self.already_posted(resume=resume)
+        problems.extend(
+            f"{p.finding.finding_id}: {p.attention}"
+            for p in self.planned
+            if p.attention is not None and p.finding.finding_id not in already_posted
+        )
         return problems
 
 
@@ -497,10 +506,11 @@ def _existing_findings(*, owner: str, repo: str, pr: int) -> dict[str, PostedCom
             # only a thread's root holds a finding; a reply may quote one
             if c.get("in_reply_to_id") is not None:
                 continue
-            finding = parse_ai_review_finding(c.get("body") or "")
+            body = c.get("body") or ""
+            finding = parse_ai_review_finding(body)
             if finding is not None:
                 existing[finding.finding_id] = PostedComment(
-                    node_id=c["node_id"], url=c["html_url"], is_review_comment=is_review_comment
+                    node_id=c["node_id"], url=c["html_url"], is_review_comment=is_review_comment, body=body
                 )
     return existing
 
@@ -705,7 +715,7 @@ def render_finding_body(*, planned: PlannedFinding, urls: dict[str, str], findin
         lines += [f"**Location:** {_location(planned)} (outside this PR's diff hunks)", ""]
     lines += [finding.summary, "", f"**Failure scenario:** {finding.failure_scenario}", ""]
     if finding.related:
-        lines.append("**Related:**")
+        lines.append(RELATED_HEADING)
         for related in finding.related:
             url = urls.get(related.finding_id)
             reference = f"[{related.finding_id}]({url})" if url is not None else related.finding_id
@@ -805,7 +815,9 @@ def _relink(
 
     Every finding related to one added now is edited, whether it was added now too or by an earlier post (which is
     what plan reports as will_edit_posted_findings). Links to earlier findings were already in each new comment's
-    first body, so a finding related only to those is left alone.
+    first body, so a finding related only to those is left alone. A finding an earlier post added keeps the text it
+    was posted with, apart from the new links: re-rendering it would describe where the current plan would put it,
+    which after a push can differ from where it sits.
     """
     comments = {**already_posted, **posted}
     urls = _urls(comments)
@@ -813,9 +825,27 @@ def _relink(
         if not {r.finding_id for r in p.finding.related} & posted.keys():
             continue
         entry = comments[p.finding.finding_id]
-        body = render_finding_body(planned=p, urls=urls, findings_file=findings_file)
+        if entry.body is not None:
+            body = _link_related(body=entry.body, urls=_urls(posted))
+        else:
+            body = render_finding_body(planned=p, urls=urls, findings_file=findings_file)
         mutation = UPDATE_REVIEW_COMMENT if entry.is_review_comment else UPDATE_PR_COMMENT
         _ = gh_graphql(mutation, {"id": entry.node_id, "body": body})
+
+
+def _link_related(*, body: str, urls: dict[str, str]) -> str:
+    """Link each of `urls`' finding IDs in a posted finding's **Related:** list, leaving the rest as it was posted.
+
+    The links take the form render_finding_body gives them, so the edited comment reads as if it had been rendered
+    with those URLs known.
+    """
+    head, marker, related = body.partition(RELATED_HEADING)
+    if not marker:
+        return body
+    for finding_id, url in urls.items():
+        link = f"- [{finding_id}]({url}): "
+        related = re.sub(rf"^- {re.escape(finding_id)}: ", lambda _, link=link: link, related, flags=re.MULTILINE)
+    return head + marker + related
 
 
 def _settle_failed_post(*, review_id: str | None, posted: dict[str, PostedComment]) -> str | None:
