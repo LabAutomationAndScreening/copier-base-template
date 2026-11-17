@@ -269,6 +269,15 @@ def _file_exists_at(*, commit: str, path: str) -> bool:
     return git("cat-file", "-e", f"{commit}:{path}").returncode == 0
 
 
+def _file_changed_between(*, path: str, from_commit: str, to_commit: str) -> bool:
+    result = git("diff", "--quiet", from_commit, to_commit, "--", f":(top,literal){path}")
+    if result.returncode == 0:
+        return False
+    if result.returncode == 1:
+        return True
+    raise RuntimeError(f"git diff {from_commit} {to_commit} -- {path} failed: {result.stderr.strip()}")
+
+
 def _require_str(*, raw: dict[str, Any], key: str, context: str) -> str:
     value = raw.get(key)
     if not isinstance(value, str):
@@ -530,7 +539,7 @@ def build_plan(findings_file: FindingsFile) -> Plan:
     commentable = commentable_lines(base=base, anchor=anchor)
 
     planned = [
-        _plan_finding(finding=finding, reviewed=reviewed, anchor=anchor, head=head, commentable=commentable)
+        _plan_finding(finding=finding, reviewed=reviewed, anchor=anchor, commentable=commentable)
         for finding in findings_file.findings
     ]
 
@@ -548,13 +557,24 @@ def build_plan(findings_file: FindingsFile) -> Plan:
     )
 
 
-def _plan_finding(
-    *, finding: Finding, reviewed: str, anchor: str, head: str, commentable: dict[str, set[int]]
-) -> PlannedFinding:
+def _plan_finding(*, finding: Finding, reviewed: str, anchor: str, commentable: dict[str, set[int]]) -> PlannedFinding:
     in_diff = finding.file in commentable
+    source = ensure_commit(finding.line_commit) if finding.line_commit is not None else reviewed
     if not _file_exists_at(commit=anchor, path=finding.file):
+        if _file_exists_at(commit=source, path=finding.file):
+            return PlannedFinding(
+                finding=finding,
+                placement="pr_comment",
+                line_at_anchor=None,
+                changed_since_review=True,
+                attention=(
+                    f"{finding.file} exists at {source[:SHORT_SHA_LENGTH]} but was deleted by "
+                    f"{anchor[:SHORT_SHA_LENGTH]}. Drop the finding if it no longer applies, or point `file`, `line` "
+                    f"and `line_commit` at where the code went."
+                ),
+            )
         if in_diff:
-            # deleted by the PR: only the left side of the diff has the line, so comment on the file
+            # deleted by the PR before the review: only the left side of the diff has the line, so comment on the file
             return PlannedFinding(
                 finding=finding, placement="file", line_at_anchor=None, changed_since_review=False, attention=None
             )
@@ -568,10 +588,13 @@ def _plan_finding(
     if finding.line is None:
         placement = "file" if in_diff else "pr_comment"
         return PlannedFinding(
-            finding=finding, placement=placement, line_at_anchor=None, changed_since_review=False, attention=None
+            finding=finding,
+            placement=placement,
+            line_at_anchor=None,
+            changed_since_review=_file_changed_between(path=finding.file, from_commit=source, to_commit=anchor),
+            attention=None,
         )
 
-    source = ensure_commit(finding.line_commit) if finding.line_commit is not None else reviewed
     line_at_anchor = map_line_between(path=finding.file, line=finding.line, from_commit=source, to_commit=anchor)
     if line_at_anchor is None:
         return PlannedFinding(
@@ -586,10 +609,6 @@ def _plan_finding(
             ),
         )
 
-    changed_since_review = False
-    if anchor != head:
-        line_at_head = map_line_between(path=finding.file, line=line_at_anchor, from_commit=anchor, to_commit=head)
-        changed_since_review = line_at_head is None
     if line_at_anchor in commentable.get(finding.file, set()):
         placement = "line"
     elif in_diff:
@@ -600,7 +619,8 @@ def _plan_finding(
         finding=finding,
         placement=placement,
         line_at_anchor=line_at_anchor,
-        changed_since_review=changed_since_review,
+        # mapped, so the line itself is unchanged since the review; a changed one got an `attention` above
+        changed_since_review=False,
         attention=None,
     )
 

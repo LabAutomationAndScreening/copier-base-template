@@ -117,7 +117,7 @@ It prints the plan as JSON and writes `<preview_file>`: the review body and ever
   - `file`: a file-level comment, because the file is in the PR but the line is outside its diff hunks.
   - `pr_comment`: a top-level PR comment, because the file is not in the PR at all.
 - `line_at_anchor`: the line the comment will sit on.
-- `changed_since_review`: the code at that line changed after the reviewed commit, so GitHub will show the comment as outdated. The finding may already be fixed.
+- `changed_since_review`: a whole-file finding (`line: null`) whose file changed after the reviewed commit, or a finding whose file was deleted since. The finding may already be fixed. A line finding is never flagged: its line either maps forward unchanged or gets an `attention`.
 - `attention`: a problem that blocks posting.
 
 At the top level, the plan gives:
@@ -127,6 +127,7 @@ At the top level, the plan gives:
 
 Resolve every `blocking_problems` entry by editing `<findings_file>`, then re-run `plan`:
 - **An unmappable line**: find the code at `anchor_commit`. Set `line` to it and `line_commit` to `anchor_commit`, or drop the finding if it no longer applies.
+- **A file deleted since the review**: drop the finding if it no longer applies, or, if the code moved to another file, set `file`, `line` and `line_commit` to where it is at `anchor_commit`.
 - **An existing pending review**: the user must submit or discard it in the GitHub UI. GitHub allows one pending review per person per PR.
 - **A finding ID collision**: renumber.
 
