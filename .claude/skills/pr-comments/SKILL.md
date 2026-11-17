@@ -162,6 +162,10 @@ no replies). If the thread's newest comment is any other, the script resolves no
 (`read.py --thread`), since a comment posted since needs an answer before the thread can be resolved. A comment that
 lands in the moment between that check and the resolve is caught from GitHub's answer to the resolve: the script
 reopens the thread and exits 1 the same way, or, if reopening fails, says so, and the thread is reopened by hand.
+A gh error or timeout from the script leaves the outcome unknown: run it again with the same arguments. An already
+resolved thread is then reported as `Already resolved` only while its newest comment is still the approved one;
+otherwise the script exits 1 naming both and leaves the thread resolved (someone else may have resolved it), so read
+the new comment and reopen the thread if it needs an answer.
 
 ## Markers
 

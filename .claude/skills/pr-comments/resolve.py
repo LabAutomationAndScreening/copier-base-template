@@ -16,6 +16,11 @@ answer, and a resolved thread drops out of read.py's default output, so a commen
 triaged. When the thread's newest comment is no longer that one, nothing is resolved and the script exits 1 naming both.
 The mutation has no such precondition, so a comment posted between reading the threads and resolving is caught from
 the mutation's own response instead: the thread is reopened and the script exits 1 the same way.
+
+A gh error or timeout during the mutation leaves its outcome unknown, so run the script again with the same arguments:
+an unresolved thread is checked and resolved afresh, and a thread already resolved is reported as such only while its
+newest comment is still the approved one. Otherwise the script exits 1 naming both, without reopening the thread,
+since someone else may have resolved it.
 """
 
 import argparse
@@ -68,6 +73,14 @@ class ThreadChangedSinceApprovalError(RuntimeError):
         )
 
 
+class ResolvedWithNewerCommentError(RuntimeError):
+    def __init__(self, *, root_url: str, last_url: str, approved_last_url: str):
+        super().__init__(
+            f"Already resolved, but the newest comment in {root_url} is {last_url}, not the approved "
+            f"{approved_last_url}: read it, and reopen the thread if it needs an answer"
+        )
+
+
 class ThreadLeftResolvedError(RuntimeError):
     def __init__(self, *, root_url: str, last_url: str, approved_last_url: str, cause: str):
         super().__init__(
@@ -88,6 +101,10 @@ def resolve(*, owner: str, repo: str, pr_number: int, root_comment_id: int, last
         if thread.root_url != root_url:
             continue
         if thread.is_resolved:
+            if thread.last_url != approved_last_url:
+                raise ResolvedWithNewerCommentError(
+                    root_url=root_url, last_url=thread.last_url, approved_last_url=approved_last_url
+                )
             return f"Already resolved: {root_url}"
         if thread.last_url != approved_last_url:
             raise ThreadChangedSinceApprovalError(
