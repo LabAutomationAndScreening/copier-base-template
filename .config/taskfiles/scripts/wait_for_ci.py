@@ -793,7 +793,7 @@ def _merge_grace(
 _MERGE_QUEUE_QUERY = """
 query($owner: String!, $name: String!, $number: Int!) {
   repository(owner: $owner, name: $name) {
-    pullRequest(number: $number) { isInMergeQueue mergeQueueEntry { position state } }
+    pullRequest(number: $number) { state isInMergeQueue mergeQueueEntry { position state } }
   }
 }
 """
@@ -817,8 +817,11 @@ def _merge_queue_detail(*, pr_state: _PrState, env: dict[str, str], deadline: fl
         "-F",
         f"number={pr_state.number}",
         "--jq",
+        # a queued PR can merge between this poll's `gh pr view` and this query, which then finds no queue entry; it is
+        # reported as still on its way, so the next poll reads MERGED instead of this one reporting it unmerged
         ".data.repository.pullRequest"
-        ' | if .isInMergeQueue then "in merge queue (position \\(.mergeQueueEntry.position), \\(.mergeQueueEntry.state))"'
+        ' | if .state == "MERGED" then "merged since this poll read it as open"'
+        ' elif .isInMergeQueue then "in merge queue (position \\(.mergeQueueEntry.position), \\(.mergeQueueEntry.state))"'
         ' else "" end',
         env=env,
         deadline=deadline,
