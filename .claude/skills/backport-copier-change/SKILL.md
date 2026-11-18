@@ -38,22 +38,23 @@ $BP behind --checkout P [--parent-checkout P2]   # `_commit` against the parent 
 $BP behind --repo OWNER/NAME         # the same, read from its default branch: no checkout needed
 $BP push --checkout P --chain <chain.json>   # check commit messages and changes if public, push, print the full head SHA
 $BP net-diff --checkout P --base SHA  # net change since SHA, the commit before a copier pull; only_commit_changed for re-pins
-$BP ci --repo OWNER/NAME --sha SHA  # wait for every CI run on that commit, push and pull_request alike
+$BP ci --repo OWNER/NAME --sha SHA  # wait for every CI run on that commit (the repo's wait-for-ci task); on a failure, which jobs need a fix
 $BP scan --chain <chain.json> --repo R --file F   # private repo names F would leak into public R
 $BP pr-command --checkout P --chain <chain.json> --title T --body-file B   # scan, then the draft PR command
 $BP pr-body --checkout P --chain <chain.json> --pr N --body-file B   # merge in others' edits, then the edit command
 $BP ai-review --repo R --pr N --checkout P [--noted-hold SHA ...]   # every configured AI reviewer's verdict on the PR head
+$BP pause --repo R --pr N --checkout P   # post each AI reviewer's pause command, wait for its confirmation
 $BP review-watch --chain F --branch B --checkouts DIR [--settled SHA ...] [--noted-hold SHA ...]   # every chain PR's reviews; stops at the first one needing you
 $BP status --chain F --branch B      # snapshot of every chain PR: head, CI, reviewer checks, what awaits an answer
-$BP merge-command --repo R --pr N --checkout P   # refuses while the branch is behind its base; else the commands that mark the PR ready and merge it, in order
-$BP tag --repo R --pr N              # wait for the merge, then for the tag on the merge commit
+$BP merge-command --repo R --pr N --checkout P   # refuses while the branch is behind its base; else the commands that mark the PR ready and merge it (auto-merge where allowed), in order
+$BP tag --repo R --pr N              # wait for the merge (the repo's wait-for-ci task), then for the tag on the merge commit
 $BP delete-branch --repo R --branch B --checkout P --chain F --downstream D1 --downstream D2   # once every child is re-pinned; one --downstream per child
 $BP update-branch --checkout P --branch B --chain <chain.json> [--finish]   # merge the default branch in and push; conflicts list each file's branch commits, --finish stages the resolved files
 $BP cleanup --worktree P             # remove a clean, fully pushed worktree
 ```
 
 Every verb prints JSON: take SHAs, URLs and PR numbers from it, never retype them. When a verb
-refuses, its error says why and what to do. Run a waiting verb (`ci`, `ai-review`, `review-watch`, `tag`) in
+refuses, its error says why and what to do. Run a waiting verb (`ci`, `ai-review`, `pause`, `review-watch`, `tag`) in
 the background and on its own, with nothing chained before it (a `bd` update goes in its own
 command), so `head -1 <file> | jq` reads its JSON; the harness appends a status line after it.
 
@@ -236,11 +237,21 @@ run the repo's hooks, and commit in its commit style (its `commit` skill if it h
 two commits. Then `$BP push --checkout <checkout> --chain <chain.json>` and
 `$BP ci --repo <layer> --sha <sha from push>`.
 
-`passed` is the verdict. `failed_jobs` need a fix (see Rules: stop for the user), and so do
-`failed_runs`, runs that failed before creating any job, such as on an invalid workflow file
-(open the run's URL for GitHub's error). `not_started_jobs` never got a runner (`not_started_reasons` says why, such as a spent Actions
-budget): there is nothing to fix, so tell the user, and once they say it's sorted,
-`gh run rerun <id> --failed` and run `ci` again.
+`passed` is the verdict, and `result` is wait-for-ci's line. It stops at the first failed job,
+and `ci` reads the lists below just after it, so they hold the jobs finished by then, which can
+include one that failed after the verdict; each job in them comes with its run's
+`run_id`, since a job name can repeat across workflows. `failed_jobs` need a fix (see Rules:
+stop for the user), and so do `failed_runs`, runs that ended before creating any job, such as on
+an invalid workflow file or awaiting approval (open the run's URL for GitHub's reason).
+`not_started_jobs` never got a runner (`not_started_reasons` says why, such as a spent Actions
+budget): there is nothing to fix, so tell the user, and once they say it's sorted, for each
+distinct `run_id` they name (R being the repo `ci` waited on), wait for the run to finish, since
+GitHub refuses to rerun one still going (`env -u GITHUB_TOKEN -u GH_TOKEN gh run watch <run_id>
+--repo R`, in the background), then `env -u GITHUB_TOKEN -u GH_TOKEN gh run rerun <run_id> --repo R
+--failed`, and run `ci` again. With `breakdown_error` in place of the lists,
+GitHub kept failing while `ci` read the jobs: the failure stands, and `result` names the failed
+jobs. Any other outcome (a timeout, GitHub unreachable) makes `ci` exit with the line as its
+error.
 
 ### Step 5: Carry it down by SHA (pre-merge pass)
 
@@ -398,15 +409,27 @@ top, one level at a time:
    merge of the default branch brings nothing of the PR's own to review and `update-branch`
    pushes as soon as the merge is clean, then run `update-branch` on the checkout (with
    `--chain`), `ci` on the new head, and the pre-merge check again. Run its `commands` in
-   order, each as its own command, and start `$BP tag --repo R --pr N` in the background: it
-   confirms the merge, then waits for the tag. Pass `--merge-only` for a repo with no tag-on-merge workflow (often a project).
+   order, each as its own command. Where the repo allows auto-merge (`auto_merge` in the
+   output), the merge command turns it on, and GitHub merges once the required checks pass.
+   If it fails, read `gh pr view N --repo R --json state,mergeStateStatus`: GitHub refuses to
+   turn auto-merge on for a PR that has just become mergeable, so a PR still `OPEN` and `CLEAN`
+   gets the same command without `--auto`; any other state, stop for the user.
+   Then start `$BP tag --repo R --pr N` in the background: it waits for the merge, then for the
+   tag. Pass `--merge-only` for a repo with no tag-on-merge workflow (often a project). When
+   the PR doesn't merge, `tag` exits with wait-for-ci's line as its error, naming what holds it:
+   `CI_PASSED_MERGE_BLOCKED: reviewDecision=REVIEW_REQUIRED` needs an approval from the user or
+   a teammate, so tell the user and run `tag` again once they say it's approved;
+   any other line (`AUTO_MERGE_DISABLED`, `CHECKS_FAILED`, another hold, `CLOSED`, a timeout)
+   means stop and show the user the line.
 2. **Re-pin its children** as soon as a repo's tag lands: note the child's HEAD, copier-update
    with no `--ref`, then `net-diff --base <the noted sha>`. `only_commit_changed` must be true;
    if not, stop and show the user what else changed. Then pause the child PR's AI reviewer,
-   since a re-pin that moves only `_commit` gives it nothing to review (for CodeRabbit, a
-   `@coderabbitai pause` comment, posted with pr-comments' Post, then a wait for its "Reviews
-   paused." reply, which `read.py <pr> --all --include-bot-comments` lists, since a push that
-   reaches it first is still reviewed). The plan approved in Step 2
+   since a re-pin that moves only `_commit` gives it nothing to review:
+   `$BP pause --repo R --pr N --checkout <checkout>` posts the pause command and waits for the
+   reviewer to confirm it, since a push that reaches it first is still reviewed. If it times out,
+   the command is already posted: don't run `pause` again, which posts a second one; wait for the
+   reviewer's confirmation of that command on the PR (pr-comments' Read with `--all
+   --include-bot-comments`), and hold the push until it comes. The plan approved in Step 2
    covers these pause comments. Pause each PR just before its own push rather than the whole
    level up front, so a plan change mid-stream leaves no paused PR to resume. Then `push`,
    `ci`. The pre-merge check's `ai-review` then reports `head_not_reviewed`, which a

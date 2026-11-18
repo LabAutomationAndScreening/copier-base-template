@@ -42,10 +42,10 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
   pr-body --pr N --chain F --body-file B   scan, merge in whatever anyone else changed in the PR's
                                     description since it was posted, and print the command that
                                     replaces it
-  ci --repo OWNER/NAME --sha SHA     wait for every push and pull_request CI run on SHA, then for
-                                    every one of their jobs to report completed, and list each
-                                    job's conclusion, and any job that never started, with
-                                    GitHub's reason, and any run that failed before creating a job
+  ci --repo OWNER/NAME --sha SHA     wait for every CI run on SHA through the repo's wait-for-ci
+                                    task; on a failed job, list the failed jobs, any job that never
+                                    started, with GitHub's reason, and any run that failed before
+                                    creating a job
   ai-review --repo R --pr N         wait for every AI reviewer the repo configures (one module
                                     per reviewer in ai_reviewers/) to give its verdict on the
                                     PR's latest commit: clean, flagged or skipped, ignored when the
@@ -63,6 +63,11 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
                                     commits, not a merge of the default branch;
                                     a flagged reviewer's entry lists its open findings (id, type,
                                     path, line, url, body_text), read through the pr-comments skill
+  pause --repo R --pr N --checkout DIR
+                                    post each configured AI reviewer's pause command on the PR (through
+                                    the pr-comments skill) and wait until the reviewer confirms it in a
+                                    comment posted or edited since; a reviewer the PR's description
+                                    tells to skip it is reported ignored and not paused
   review-watch --chain F --branch B --checkouts DIR [--settled SHA ...] [--noted-hold SHA ...]
                                     ai-review across every chain PR at once (each found by branch B,
                                     its checkout at DIR/<name>): wait while a review is running or
@@ -78,9 +83,11 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
   merge-command --repo R --pr N --checkout DIR
                                     refuse while the PR's branch is behind its base; else the
                                     commands that mark the draft ready and merge it the way the
-                                    repo allows, in order, for the agent to run one by one
-  tag --repo R --pr N               wait for the PR to merge and for a tag on its merge
-                                    commit (the tag-on-merge workflow) and print it
+                                    repo allows, with auto-merge where the repo allows it, in
+                                    order, for the agent to run one by one
+  tag --repo R --pr N               wait for the PR to merge through the repo's wait-for-ci task,
+                                    failing with its result line if it doesn't, then for a tag on
+                                    its merge commit (the tag-on-merge workflow) and print it
   delete-branch --repo R --branch B --checkout DIR --chain F --downstream DIR ...
                                     delete a template repo's merged branch, on GitHub and locally,
                                     once every repo generated from it records no commit only it holds
@@ -138,13 +145,23 @@ class TransientError(FailError):
     pass
 
 
-def _attempt(*, cmd: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+def _env_without_tokens() -> dict[str, str]:
     env = dict(os.environ)
     _ = env.pop("GITHUB_TOKEN", None)
     _ = env.pop("GH_TOKEN", None)
+    return env
+
+
+def _attempt(*, cmd: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(  # noqa: S603 # argv lists, never a shell; the variable parts come from this script's own CLI arguments
-            cmd, cwd=cwd, capture_output=True, text=True, env=env, check=False, timeout=SUBPROCESS_TIMEOUT_SECONDS
+            cmd,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            env=_env_without_tokens(),
+            check=False,
+            timeout=SUBPROCESS_TIMEOUT_SECONDS,
         )
     except subprocess.TimeoutExpired as e:
         # transient, so a wait counts it as one failed check and tries again
@@ -918,99 +935,126 @@ def _wait[T](*, timeout: int, interval: int, what: str, probe: Callable[[], T | 
         time.sleep(min(interval, remaining))
 
 
-CI_EVENTS = {"push", "pull_request", "pull_request_target"}
-# a push starts its push runs and, with a PR open, its pull_request runs within seconds of each other
-LATE_RUN_SECONDS = 30
+SECONDS_PER_MINUTE = 60
+# the conclusions wait_for_ci.py (.config/taskfiles/scripts/) counts as a failed job, so the breakdown lists the jobs
+# its verdict failed on and no others, such as a neutral one
+FAILED_JOB_CONCLUSIONS = frozenset({"failure", "cancelled", "timed_out", "startup_failure", "action_required", "stale"})
+# wait_for_ci.py stops polling at its deadline, but the gh calls of the poll it started just before can still be running
+WAIT_FOR_CI_OVERRUN_SECONDS = 300
+
+
+def _wait_for_ci(*, repo: str, timeout: int, pr: str | None = None, sha: str | None = None) -> tuple[str, int]:
+    """Run the repo's `wait-for-ci` task against another repo's PR or commit and return its result line and exit code.
+
+    The task's script (.config/taskfiles/scripts/wait_for_ci.py) documents every result line. It runs from the
+    originating repo's root, where this helper is always run, since a template checkout may carry an older copy.
+    """
+    cmd = ["task", "wait-for-ci", f"REPO={repo}", f"DEADLINE_MINUTES={timeout / SECONDS_PER_MINUTE:g}"]
+    if pr is not None:
+        cmd.append(f"PR={pr}")
+    if sha is not None:
+        cmd.append(f"SHA={sha}")
+    try:
+        completed = subprocess.run(  # noqa: S603 # argv list, never a shell; the variable parts come from this script's own CLI arguments
+            cmd,
+            capture_output=True,
+            text=True,
+            env=_env_without_tokens(),
+            check=False,
+            timeout=timeout + WAIT_FOR_CI_OVERRUN_SECONDS,
+        )
+    except subprocess.TimeoutExpired as e:
+        raise FailError(f"{' '.join(cmd)} was still running {WAIT_FOR_CI_OVERRUN_SECONDS}s past its deadline") from e
+    lines = completed.stdout.strip().splitlines()
+    if not lines:
+        raise FailError(f"{' '.join(cmd)} printed no result line:\n{completed.stderr.strip()}")
+    return lines[-1], completed.returncode
 
 
 def cmd_ci(a: argparse.Namespace) -> dict[str, Any]:
-    """Wait for every CI run on a commit, whatever its event, and report each job's conclusion.
+    """Wait for every CI run on a commit through `wait-for-ci`, then tell real failures from jobs that never started.
 
-    With a PR open, a repo whose CI also runs on pull_request may skip most push-run jobs as duplicates, and some
-    jobs (such as a tagged-template check) run only on the PR, while another repo's CI runs only on push. So rather
-    than guess which events will run, this takes every push and pull_request run that appears for the commit, and
-    judges by all of them together.
+    `wait-for-ci` stops at the first failed job, so the breakdown covers the jobs finished by then. When reading it
+    keeps failing, the verdict still stands, with `breakdown_error` in place of the lists. Any outcome other than a pass
+    or a failed job (a timeout, an unreachable GitHub, an unknown commit) is an error.
     """
-    # gh filters runs by commit only on the full SHA
-    if re.fullmatch(r"[0-9a-f]{40}", a.sha) is None:
-        raise FailError(f"--sha must be a full 40-character commit SHA, such as push prints, not {a.sha!r}")
-
-    def find_runs() -> list[int] | None:
-        # filtered by GitHub, so no run for the commit can scroll out of a page of the repo's newest runs
-        runs = _gh_json(
-            "run", "list", "--repo", a.repo, "--commit", a.sha, "--limit", "100", "--json", "databaseId,event"
+    # wait-for-ci expands an abbreviated SHA by itself, but the breakdown's `gh run list --commit` matches only the full
+    # one, so it is resolved here once, whatever length a full SHA has
+    sha = _wait(
+        timeout=300,
+        interval=15,
+        what=f"GitHub to resolve {a.sha} in {a.repo}",
+        probe=lambda: _run(cmd=["gh", "api", f"repos/{a.repo}/commits/{a.sha}", "--jq", ".sha"]).strip(),
+    )
+    line, exit_code = _wait_for_ci(repo=a.repo, timeout=a.timeout, sha=sha)
+    if exit_code == 0:
+        return {"result": line, "passed": True}
+    if not line.startswith("CHECKS_FAILED"):
+        raise FailError(f"waiting for CI on {sha} in {a.repo}: {line}")
+    try:
+        breakdown = _wait(
+            timeout=300,
+            interval=15,
+            what=f"the jobs of {sha}'s runs",
+            probe=lambda: _ci_failure_breakdown(repo=a.repo, sha=sha),
         )
-        ids = [r["databaseId"] for r in runs if r["event"] in CI_EVENTS]
-        return ids or None
+    except FailError as e:
+        return {"result": line, "passed": False, "breakdown_error": str(e)}
+    return {"result": line, "passed": False, **breakdown}
 
-    run_ids = _wait(timeout=600, interval=15, what=f"a CI run for {a.sha}", probe=find_runs)
-    first_seen = time.monotonic()
 
-    # a run can report completed while some of its jobs still say in_progress, so wait on the jobs themselves, and on
-    # every run, since one commit can trigger several workflows and events
-    def finished() -> list[dict[str, Any]] | None:
-        nonlocal run_ids
-        run_ids = sorted({*run_ids, *(find_runs() or [])})
-        views = [
-            _gh_json(
-                "run", "view", str(run_id), "--repo", a.repo, "--json", "status,conclusion,jobs,url,workflowName,event"
-            )
-            for run_id in run_ids
-        ]
-        for view in views:
-            if view["status"] != "completed":
-                return None
-            if [j for j in view["jobs"] if j["status"] != "completed"]:
-                return None
-        if time.monotonic() - first_seen < LATE_RUN_SECONDS:
-            return None
-        return views
+def _ci_failure_breakdown(*, repo: str, sha: str) -> dict[str, Any]:
+    """List the failed jobs, the jobs that never started and the runs that failed without a job.
 
-    views = _wait(timeout=a.timeout, interval=30, what=f"the CI runs for {a.sha} to finish", probe=finished)
-    jobs = [
-        {"workflow": v["workflowName"], "event": v["event"], "name": j["name"], "conclusion": j["conclusion"]}
-        for v in views
-        for j in v["jobs"]
-    ]
-    # a job that failed without running a single step never got a runner (a spent Actions budget, say), so there is
-    # nothing in the code to fix
-    not_started = [j["name"] for v in views for j in v["jobs"] if j["conclusion"] == "failure" and not j["steps"]]
+    Each job comes with its run's ID, which `gh run rerun` takes: a job name alone can repeat across workflows.
+    """
+    runs = _gh_json("run", "list", "--repo", repo, "--commit", sha, "--limit", "100", "--json", "databaseId")
+    failed: list[dict[str, Any]] = []
+    not_started: list[dict[str, Any]] = []
+    failed_runs: list[str] = []
+    for run in runs:
+        run_id = run["databaseId"]
+        view = _gh_json("run", "view", str(run_id), "--repo", repo, "--json", "status,conclusion,jobs,url")
+        if _failed_before_any_job(view):
+            failed_runs.append(view["url"])
+        for job in view["jobs"]:
+            if job["status"] != "completed":
+                continue
+            if job["conclusion"] not in FAILED_JOB_CONCLUSIONS:
+                continue
+            entry = {"name": job["name"], "run_id": run_id}
+            # a job that failed without running a single step never got a runner (a spent Actions budget, say), so
+            # there is nothing in the code to fix
+            if job["conclusion"] == "failure":
+                if not job["steps"]:
+                    not_started.append(entry)
+                    continue
+            failed.append(entry)
     reasons: set[str] = set()
-    if not_started:
-        for run_id in run_ids:
-            reasons.update(_failure_annotations(repo=a.repo, run_id=run_id))
-    failed = [j["name"] for j in jobs if j["conclusion"] not in {"success", "skipped"} and j["name"] not in not_started]
-    failed_runs = _jobless_failed_runs(views)
+    for run_id in sorted({entry["run_id"] for entry in not_started}):
+        reasons.update(_failure_annotations(repo=repo, run_id=run_id))
     return {
-        "events": sorted({v["event"] for v in views}),
-        "runs": [
-            {"id": run_id, "event": v["event"], "url": v["url"], "conclusion": v["conclusion"]}
-            for run_id, v in zip(run_ids, views, strict=True)
-        ],
-        "passed": not failed and not not_started and not failed_runs,
         "failed_jobs": failed,
         "failed_runs": failed_runs,
         "not_started_jobs": not_started,
         "not_started_reasons": sorted(reasons),
-        "jobs": jobs,
     }
 
 
-def _jobless_failed_runs(views: list[dict[str, Any]]) -> list[str]:
-    """List the URL of each run that failed before creating a single job, such as one with an invalid workflow file.
+def _failed_before_any_job(view: dict[str, Any]) -> bool:
+    """Whether a run ended without creating a single job, such as on an invalid workflow file or awaiting approval.
 
-    Such a run has no job to put in failed_jobs, so without this it would count as passed.
+    Such a run has no job to put in failed_jobs, so without this it would go unreported.
     """
-    urls: list[str] = []
-    for view in views:
-        if view["jobs"]:
-            continue
-        if view["conclusion"] == "success":
-            continue
-        if view["conclusion"] == "skipped":
-            continue
-        urls.append(view["url"])
-    return urls
+    if view["jobs"]:
+        return False
+    if view["status"] != "completed":
+        return False
+    if view["conclusion"] == "success":
+        return False
+    if view["conclusion"] == "skipped":
+        return False
+    return True
 
 
 def _failure_annotations(*, repo: str, run_id: int) -> list[str]:
@@ -1267,6 +1311,8 @@ def enabled_reviewers(*, checkout: Path, names: list[str]) -> list[ModuleType]:
 
 
 PR_COMMENTS_READ = Path(__file__).resolve().parent.parent / "pr-comments" / "read.py"
+PR_COMMENTS_POST = Path(__file__).resolve().parent.parent / "pr-comments" / "post.py"
+_ISSUE_COMMENT_ID = re.compile(r"#issuecomment-(\d+)")
 _FINDING_KEYS = ("id", "type", "path", "line", "url", "body_text")
 
 
@@ -1396,6 +1442,81 @@ def cmd_ai_review(a: argparse.Namespace) -> dict[str, Any]:
         return _wait(timeout=a.timeout, interval=60, what=f"every AI reviewer on PR {a.pr}", probe=reviews.probe)
     except FailError as e:
         raise _review_timeout(error=e, reviewers=reviewers, verdicts=reviews.verdicts, latest=reviews.latest) from e
+
+
+def cmd_pause(a: argparse.Namespace) -> dict[str, Any]:
+    """Post each configured AI reviewer's pause command on the PR and wait until the reviewer confirms it.
+
+    A push that reaches a reviewer before it has acted on the command is still reviewed, so only a confirmation
+    makes the next push safe. A confirmation counts only when the reviewer posted or edited it after the command:
+    a "paused" note left from an earlier pause may since have been resumed.
+    """
+    reviewers = enabled_reviewers(checkout=Path(a.checkout), names=a.reviewer)
+    pr_body = _gh_json("pr", "view", a.pr, "--repo", a.repo, "--json", "body")["body"]
+    outcomes: dict[str, str] = {}
+    for reviewer in reviewers:
+        # it leaves no review on such a PR anyway, and might answer the command with one
+        if reviewer.ignored(pr_body):
+            outcomes[reviewer.NAME] = "ignored"
+            continue
+        posted_at = _post_pause(repo=a.repo, pr=a.pr, reviewer=reviewer)
+        outcomes[reviewer.NAME] = _wait(
+            timeout=a.timeout,
+            interval=15,
+            what=f"{reviewer.NAME} to confirm the pause on PR {a.pr}",
+            probe=lambda reviewer=reviewer, posted_at=posted_at: _pause_confirmed(
+                repo=a.repo, pr=a.pr, reviewer=reviewer, posted_at=posted_at
+            ),
+        )
+    return {"reviewers": outcomes}
+
+
+def _post_pause(*, repo: str, pr: str, reviewer: ModuleType) -> str:
+    body_file = Path("tmp") / f"backport-pause-{repo.replace('/', '-')}-{pr}-{reviewer.NAME}.md"
+    body_file.parent.mkdir(exist_ok=True)
+    _ = body_file.write_text(reviewer.PAUSE_COMMAND + "\n")
+    posted = _run(cmd=[str(PR_COMMENTS_POST), "--pr", pr, "--repo", repo, "--body-file", str(body_file)])
+    # post.py exited 0, so the command is most likely posted even when its output can't be read
+    unreadable = (
+        f"post.py printed no comment URL for the pause command ({posted!r}), but the command may already be posted:"
+        " check the PR before running pause again, which would post it twice"
+    )
+    lines = posted.splitlines()
+    if not lines:
+        raise FailError(unreadable)
+    posted_line = lines[0]
+    match = _ISSUE_COMMENT_ID.search(posted_line)
+    if match is None:
+        raise FailError(unreadable)
+    try:
+        return _wait(
+            timeout=300,
+            interval=15,
+            what=f"when pause comment {match.group(1)} was posted",
+            probe=lambda: _run(
+                cmd=["gh", "api", f"repos/{repo}/issues/comments/{match.group(1)}", "--jq", ".created_at"]
+            ).strip(),
+        )
+    except FailError as e:
+        raise FailError(
+            f"the pause command is posted ({posted_line}), but reading when failed: {e}. Running pause again would post"
+            f" it twice: wait for {reviewer.NAME}'s confirmation on the PR instead"
+        ) from e
+
+
+def _pause_confirmed(*, repo: str, pr: str, reviewer: ModuleType, posted_at: str) -> str | None:
+    pages = _gh_json("api", "--paginate", "--slurp", f"repos/{repo}/issues/{pr}/comments")
+    for page in pages:
+        for comment in page:
+            if not reviewer.LOGIN.search(comment["user"]["login"]):
+                continue
+            # GitHub's timestamps share one format, so comparing them as text orders them. They have whole seconds, and a
+            # reply can't come within the command's own second, so an edit in that second predates the command's effect
+            if comment["updated_at"] <= posted_at:
+                continue
+            if reviewer.confirms_pause(comment["body"]):
+                return "paused"
+    return None
 
 
 def _chain_prs(*, chain: dict[str, Any], branch: str) -> list[tuple[str, str | None]]:
@@ -1626,6 +1747,11 @@ def cmd_merge_command(a: argparse.Namespace) -> dict[str, Any]:
         merge = f"gh pr merge {a.pr} --repo {a.repo} --rebase"
     else:
         merge = f"gh pr merge {a.pr} --repo {a.repo} --merge"
+    # `gh repo view --json` has no auto-merge field. With auto-merge, `tag` waits through wait-for-ci, which names what
+    # holds a merge that doesn't come (a required review, a ruleset, a conflict that turned auto-merge off).
+    auto_merge = _gh_json("api", f"repos/{a.repo}", "--jq", "{allowed: (.allow_auto_merge == true)}")["allowed"]
+    if auto_merge:
+        merge += " --auto"
     pr = _gh_json("pr", "view", a.pr, "--repo", a.repo, "--json", "isDraft,state,baseRefName,headRefName,headRefOid")
     if pr["state"] != "OPEN":
         raise FailError(f"PR {a.pr} is already {pr['state'].lower()}; there is nothing to merge")
@@ -1646,20 +1772,17 @@ def cmd_merge_command(a: argparse.Namespace) -> dict[str, Any]:
         steps.insert(0, f"gh pr ready {a.pr} --repo {a.repo}")
     return {
         "draft": draft,
+        "auto_merge": auto_merge,
         "commands": [f"env -u GITHUB_TOKEN -u GH_TOKEN {step}" for step in steps],
     }
 
 
 def cmd_tag(a: argparse.Namespace) -> dict[str, Any]:
-    def merged() -> str | None:
-        view = _gh_json("pr", "view", a.pr, "--repo", a.repo, "--json", "state,mergeCommit")
-        if view["state"] == "CLOSED":
-            raise FailError(f"PR {a.pr} was closed without merging")
-        if view["state"] != "MERGED":
-            return None
-        return view["mergeCommit"]["oid"]
-
-    merge_sha = _wait(timeout=a.timeout, interval=30, what=f"PR {a.pr} to merge", probe=merged)
+    line, _ = _wait_for_ci(repo=a.repo, timeout=a.timeout, pr=a.pr)
+    # wait-for-ci also exits 0 on a PR that passed CI but hasn't merged, such as one held by a required review
+    if line != "MERGED":
+        raise FailError(f"PR {a.pr} in {a.repo} has not merged: {line}")
+    merge_sha = _gh_json("pr", "view", a.pr, "--repo", a.repo, "--json", "mergeCommit")["mergeCommit"]["oid"]
     if a.merge_only:
         return {"merge_commit": merge_sha, "tag": None}
 
@@ -2052,6 +2175,7 @@ def _add_github_verbs(add: AddVerb) -> None:
     for name, fn, default_timeout in (
         ("ci", cmd_ci, 3600),
         ("ai-review", cmd_ai_review, 5400),
+        ("pause", cmd_pause, 600),
         ("merge-command", cmd_merge_command, 0),
         ("tag", cmd_tag, 7200),
     ):
@@ -2077,13 +2201,22 @@ def _add_github_verbs(add: AddVerb) -> None:
                 "--checkout", required=True, help="a local checkout of the repo, to check the branch against its base"
             )
         if name == "ai-review":
-            sp.add_argument(
-                "--checkout", default=".", help="a local checkout of the repo, to see which reviewers it configures"
-            )
-            sp.add_argument(
-                "--reviewer", action="append", default=[], help="only these reviewers (default: every configured one)"
-            )
+            _add_reviewer_arguments(sp, checkout_required=False)
             sp.add_argument("--noted-hold", action="append", default=[], metavar="SHA", help=_NOTED_HOLD_HELP)
+        if name == "pause":
+            _add_reviewer_arguments(sp, checkout_required=True)
+
+
+def _add_reviewer_arguments(sp: argparse.ArgumentParser, *, checkout_required: bool) -> None:
+    help_text = "a local checkout of the repo, to see which reviewers it configures"
+    if checkout_required:
+        # this helper runs from the originating repo, so a default of "." would read that repo's reviewers, not the PR's
+        sp.add_argument("--checkout", required=True, help=help_text)
+    else:
+        sp.add_argument("--checkout", default=".", help=help_text)
+    sp.add_argument(
+        "--reviewer", action="append", default=[], help="only these reviewers (default: every configured one)"
+    )
 
 
 _NOTED_HOLD_HELP = "a head whose long_hold the user has already been told about; its hold is then waited out"

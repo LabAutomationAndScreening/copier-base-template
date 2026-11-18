@@ -46,6 +46,9 @@ _NEXT_REVIEW = re.compile(r"next included review available in (\d+) minutes", re
 _REVIEW_REQUEST = re.compile(r"@coderabbitai\s+(?:full\s+)?review\b", re.IGNORECASE)
 _IGNORE = re.compile(r"@coderabbitai\s+ignore\b", re.IGNORECASE)
 _NOT_REVIEWED = re.compile(r"Latest commit, not reviewed: [0-9a-f]+", re.IGNORECASE)
+PAUSE_COMMAND = "@coderabbitai pause"
+# its chat reply to the command, and the note it puts atop its summary comment while reviews are paused
+_PAUSED = re.compile(r"Reviews paused|pause automatic reviews", re.IGNORECASE)
 # CodeRabbit can leave a small follow-up commit unreviewed without saying so; this long after the commit its silence
 # is a verdict in itself, and any note that it is held back goes to the agent with it
 QUIET_AFTER_SECONDS = 300
@@ -130,6 +133,10 @@ def allowance_used_up(bodies: list[str]) -> bool:
 def asks_for_review(body: str) -> bool:
     """Return whether a PR comment asks CodeRabbit for a review, as `@coderabbitai review` or `full review` do."""
     return _REVIEW_REQUEST.search(body) is not None
+
+
+def confirms_pause(body: str) -> bool:
+    return _PAUSED.search(body) is not None
 
 
 def ignored(pr_body: str) -> bool:

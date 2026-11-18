@@ -1,8 +1,1 @@
-version: '3'
-
-tasks:
-  wait-for-ci:
-    desc: Run as a background command, since it blocks until CI settles. Waits for CI on a PR (`task wait-for-ci PR=517`; with auto-merge on, also its merge) or, with no PR, on a pushed commit's workflow runs (`task wait-for-ci`); prints one result line, and exit 0 means CI passed (the line says whether a PR's merge is still blocked). Optional REPO=owner/name, SHA=<commit> (default the pushed local HEAD, for a PR only when it's the checked-out branch; required with REPO and no PR) and DEADLINE_MINUTES=60 (default 20)
-    silent: true
-    cmds:
-      - python3 ./.config/taskfiles/scripts/wait_for_ci.py{{if .PR}} {{.PR | shellQuote}}{{end}}{{if .REPO}} --repo {{.REPO | shellQuote}}{{end}}{{if .SHA}} --sha {{.SHA | shellQuote}}{{end}}{{if .DEADLINE_MINUTES}} --deadline-minutes {{.DEADLINE_MINUTES | shellQuote}}{{end}}
+../../../.config/taskfiles/github.yaml

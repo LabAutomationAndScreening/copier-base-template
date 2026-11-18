@@ -1,0 +1,8 @@
+# Task definitions live in .config/taskfiles/; template/Taskfile.yaml.jinja-base explains why this shim exists and why every include is flattened.
+# Only the tasks this repo runs on itself are included: copier-template.yaml is for repos generated from a copier template, and this one isn't.
+version: '3'
+
+includes:
+  github:
+    taskfile: ./.config/taskfiles/github.yaml
+    flatten: true
