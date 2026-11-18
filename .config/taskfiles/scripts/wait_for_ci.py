@@ -1103,7 +1103,11 @@ def _failed_job_names(*, runs: list[_Run], repo: str | None, env: dict[str, str]
         try:
             jobs = _jobs(run_id=run.run_id, repo=repo, env=env, deadline=deadline)
         except GhCallFailedError:
-            # a failure already found decides the verdict, so a later run's lookup error must not cost it
+            # a failure already known decides the verdict, so a lookup error must not cost it: a run listed as completed
+            # here has failed (passing ones were skipped above), and its jobs only name the failure
+            if run.status == "completed":
+                names.append(f"{run.workflow_name} ({run.conclusion})")
+                continue
             if len(names) > 0:
                 return names
             raise
