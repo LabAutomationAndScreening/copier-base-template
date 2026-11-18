@@ -1266,6 +1266,8 @@ def _poll_until_settled(
         except GhNotFoundError as e:
             return f"GH_NOT_FOUND: {e}", 1
         except GhCallFailedError as e:
+            # a confirmed pass takes two polls in a row that reach it, and this one didn't
+            state.passing_sample = None
             consecutive_failed_polls += 1
             if consecutive_failed_polls >= MAX_CONSECUTIVE_FAILED_POLLS:
                 return f"GH_UNREACHABLE: {e}", 1
