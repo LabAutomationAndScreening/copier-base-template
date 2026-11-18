@@ -404,6 +404,9 @@ top, one level at a time:
    `--chain`), `ci` on the new head, and the pre-merge check again. Run its `commands` in
    order, each as its own command. Where the repo allows auto-merge (`auto_merge` in the
    output), the merge command turns it on, and GitHub merges once the required checks pass.
+   If it fails, read `gh pr view N --repo R --json state,mergeStateStatus`: GitHub refuses to
+   turn auto-merge on for a PR that has just become mergeable, so a PR still `OPEN` and `CLEAN`
+   gets the same command without `--auto`; any other state, stop for the user.
    Then start `$BP tag --repo R --pr N` in the background: it waits for the merge, then for the
    tag. Pass `--merge-only` for a repo with no tag-on-merge workflow (often a project). When
    the PR doesn't merge, `tag` exits with wait-for-ci's line as its error, naming what holds it:
