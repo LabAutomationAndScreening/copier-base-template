@@ -1467,7 +1467,7 @@ def cmd_pause(a: argparse.Namespace) -> dict[str, Any]:
 
 
 def _post_pause(*, repo: str, pr: str, reviewer: ModuleType) -> str:
-    body_file = Path("tmp") / f"backport-pause-{repo.split('/')[1]}-{pr}-{reviewer.NAME}.md"
+    body_file = Path("tmp") / f"backport-pause-{repo.replace('/', '-')}-{pr}-{reviewer.NAME}.md"
     body_file.parent.mkdir(exist_ok=True)
     _ = body_file.write_text(reviewer.PAUSE_COMMAND + "\n")
     posted = _run(cmd=[str(PR_COMMENTS_POST), "--pr", pr, "--repo", repo, "--body-file", str(body_file)])
