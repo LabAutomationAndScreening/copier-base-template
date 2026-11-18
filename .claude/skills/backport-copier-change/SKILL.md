@@ -243,8 +243,10 @@ stop for the user), and so do `failed_runs`, runs that ended before creating any
 an invalid workflow file or awaiting approval (open the run's URL for GitHub's reason).
 `not_started_jobs` never got a runner (`not_started_reasons` says why, such as a spent Actions
 budget): there is nothing to fix, so tell the user, and once they say it's sorted,
-`gh run rerun <id> --failed` and run `ci` again. Any other outcome (a timeout, GitHub
-unreachable) makes `ci` exit with the line as its error.
+`gh run rerun <id> --failed` and run `ci` again. With `breakdown_error` in place of the lists,
+GitHub kept failing while `ci` read the jobs: the failure stands, and `result` names the failed
+jobs. Any other outcome (a timeout, GitHub unreachable) makes `ci` exit with the line as its
+error.
 
 ### Step 5: Carry it down by SHA (pre-merge pass)
 

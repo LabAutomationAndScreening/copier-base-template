@@ -970,15 +970,25 @@ def _wait_for_ci(*, repo: str, timeout: int, pr: str | None = None, sha: str | N
 def cmd_ci(a: argparse.Namespace) -> dict[str, Any]:
     """Wait for every CI run on a commit through `wait-for-ci`, then tell real failures from jobs that never started.
 
-    `wait-for-ci` stops at the first failed job, so the breakdown covers the jobs finished by then. Any outcome other
-    than a pass or a failed job (a timeout, an unreachable GitHub, an unknown commit) is an error.
+    `wait-for-ci` stops at the first failed job, so the breakdown covers the jobs finished by then. When reading it
+    keeps failing, the verdict still stands, with `breakdown_error` in place of the lists. Any outcome other than a pass
+    or a failed job (a timeout, an unreachable GitHub, an unknown commit) is an error.
     """
     line, exit_code = _wait_for_ci(repo=a.repo, timeout=a.timeout, sha=a.sha)
     if exit_code == 0:
         return {"result": line, "passed": True}
     if not line.startswith("CHECKS_FAILED"):
         raise FailError(f"waiting for CI on {a.sha} in {a.repo}: {line}")
-    return {"result": line, "passed": False, **_ci_failure_breakdown(repo=a.repo, sha=a.sha)}
+    try:
+        breakdown = _wait(
+            timeout=300,
+            interval=15,
+            what=f"the jobs of {a.sha}'s runs",
+            probe=lambda: _ci_failure_breakdown(repo=a.repo, sha=a.sha),
+        )
+    except FailError as e:
+        return {"result": line, "passed": False, "breakdown_error": str(e)}
+    return {"result": line, "passed": False, **breakdown}
 
 
 def _ci_failure_breakdown(*, repo: str, sha: str) -> dict[str, list[str]]:
