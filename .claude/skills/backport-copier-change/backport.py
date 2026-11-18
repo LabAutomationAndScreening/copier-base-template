@@ -1502,8 +1502,9 @@ def _pause_confirmed(*, repo: str, pr: str, reviewer: ModuleType, posted_at: str
         for comment in page:
             if not reviewer.LOGIN.search(comment["user"]["login"]):
                 continue
-            # GitHub's timestamps share one format, so comparing them as text orders them
-            if comment["updated_at"] < posted_at:
+            # GitHub's timestamps share one format, so comparing them as text orders them. They have whole seconds, and a
+            # reply can't come within the command's own second, so an edit in that second predates the command's effect
+            if comment["updated_at"] <= posted_at:
                 continue
             if reviewer.confirms_pause(comment["body"]):
                 return "paused"
