@@ -566,6 +566,13 @@ class _Superseded:
     pr: _OpenPr
 
 
+@dataclass(frozen=True)
+class _PassingSample:
+    run_ids: frozenset[int]
+    # time.monotonic() when the sample was taken
+    taken_at: float
+
+
 @dataclass
 class _PollState:
     gh_env: dict[str, str] | None = None
@@ -579,8 +586,9 @@ class _PollState:
     superseded: _Superseded | None = None
     # polls since the switch that found no workflow runs at all for the superseded commit
     empty_run_polls: int = 0
-    # the runs a commit's last poll found all completed and passing, which the next poll must find unchanged
-    passing_run_ids: frozenset[int] | None = None
+    # the runs a commit's last poll found all completed and passing, which a poll a full POLL_SECONDS later must find
+    # unchanged
+    passing_sample: _PassingSample | None = None
     # polls with auto-merge on and CI fully passed that found the PR still unmerged
     merge_wait_polls: int = 0
     # what the TIMED_OUT line adds about why nothing settled, as of the latest successful poll
@@ -1152,23 +1160,37 @@ def _commit_result(
     # drops the sample
     state.timeout_detail = _unfinished_runs_detail(runs=runs, commit_sha=commit_sha)
     if state.timeout_detail is not None:
-        state.passing_run_ids = None
+        state.passing_sample = None
         return None
     if not _any_pull_request_run(runs=runs):
         state.timeout_detail = _missing_pull_request_run_detail(
             commit_sha=commit_sha, access=access, runs=runs, superseding_pr=superseding_pr
         )
         if state.timeout_detail is not None:
-            state.passing_run_ids = None
+            state.passing_sample = None
             return None
+    return _confirmed_pass(state=state, runs=runs, commit_sha=commit_sha)
+
+
+def _confirmed_pass(*, state: _PollState, runs: list[_Run], commit_sha: str) -> tuple[str, int] | None:
     # a workflow can start after another has finished (one triggered by workflow_run, say), so a pass counts only once
     # the next poll finds no run beyond these
     run_ids = frozenset(run.run_id for run in runs)
-    if state.passing_run_ids != run_ids:
-        state.passing_run_ids = run_ids
+    if state.passing_sample is None:
+        return _take_passing_sample(state=state, run_ids=run_ids, commit_sha=commit_sha)
+    if state.passing_sample.run_ids != run_ids:
+        return _take_passing_sample(state=state, run_ids=run_ids, commit_sha=commit_sha)
+    # the poll loop cuts its last sleep short at the deadline, so a confirming poll can come early; one that does
+    # confirms nothing, and the wait times out instead
+    if time.monotonic() - state.passing_sample.taken_at < POLL_SECONDS:
         state.timeout_detail = f"confirming no further workflow runs start for {commit_sha}"
         return None
     return "CHECKS_PASSED", 0
+
+
+def _take_passing_sample(*, state: _PollState, run_ids: frozenset[int], commit_sha: str) -> None:
+    state.passing_sample = _PassingSample(run_ids=run_ids, taken_at=time.monotonic())
+    state.timeout_detail = f"confirming no further workflow runs start for {commit_sha}"
 
 
 def _missing_pull_request_run_detail(
