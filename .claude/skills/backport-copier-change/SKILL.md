@@ -244,9 +244,11 @@ include one that failed after the verdict; each job in them comes with its run's
 stop for the user), and so do `failed_runs`, runs that ended before creating any job, such as on
 an invalid workflow file or awaiting approval (open the run's URL for GitHub's reason).
 `not_started_jobs` never got a runner (`not_started_reasons` says why, such as a spent Actions
-budget): there is nothing to fix, so tell the user, and once they say it's sorted,
-`env -u GITHUB_TOKEN -u GH_TOKEN gh run rerun <run_id> --repo R --failed` (R being the repo
-`ci` waited on) once for each distinct `run_id` they name, and run `ci` again. With `breakdown_error` in place of the lists,
+budget): there is nothing to fix, so tell the user, and once they say it's sorted, for each
+distinct `run_id` they name (R being the repo `ci` waited on), wait for the run to finish, since
+GitHub refuses to rerun one still going (`env -u GITHUB_TOKEN -u GH_TOKEN gh run watch <run_id>
+--repo R`, in the background), then `env -u GITHUB_TOKEN -u GH_TOKEN gh run rerun <run_id> --repo R
+--failed`, and run `ci` again. With `breakdown_error` in place of the lists,
 GitHub kept failing while `ci` read the jobs: the failure stands, and `result` names the failed
 jobs. Any other outcome (a timeout, GitHub unreachable) makes `ci` exit with the line as its
 error.
