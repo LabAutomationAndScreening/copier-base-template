@@ -991,14 +991,18 @@ def cmd_ci(a: argparse.Namespace) -> dict[str, Any]:
     return {"result": line, "passed": False, **breakdown}
 
 
-def _ci_failure_breakdown(*, repo: str, sha: str) -> dict[str, list[str]]:
+def _ci_failure_breakdown(*, repo: str, sha: str) -> dict[str, Any]:
+    """List the failed jobs, the jobs that never started and the runs that failed without a job.
+
+    Each job comes with its run's ID, which `gh run rerun` takes: a job name alone can repeat across workflows.
+    """
     runs = _gh_json("run", "list", "--repo", repo, "--commit", sha, "--limit", "100", "--json", "databaseId")
-    failed: list[str] = []
-    not_started: list[str] = []
+    failed: list[dict[str, Any]] = []
+    not_started: list[dict[str, Any]] = []
     failed_runs: list[str] = []
-    not_started_run_ids: list[int] = []
     for run in runs:
-        view = _gh_json("run", "view", str(run["databaseId"]), "--repo", repo, "--json", "status,conclusion,jobs,url")
+        run_id = run["databaseId"]
+        view = _gh_json("run", "view", str(run_id), "--repo", repo, "--json", "status,conclusion,jobs,url")
         if _failed_before_any_job(view):
             failed_runs.append(view["url"])
         for job in view["jobs"]:
@@ -1008,16 +1012,16 @@ def _ci_failure_breakdown(*, repo: str, sha: str) -> dict[str, list[str]]:
                 continue
             if job["conclusion"] == "skipped":
                 continue
+            entry = {"name": job["name"], "run_id": run_id}
             # a job that failed without running a single step never got a runner (a spent Actions budget, say), so
             # there is nothing in the code to fix
             if job["conclusion"] == "failure":
                 if not job["steps"]:
-                    not_started.append(job["name"])
-                    not_started_run_ids.append(run["databaseId"])
+                    not_started.append(entry)
                     continue
-            failed.append(job["name"])
+            failed.append(entry)
     reasons: set[str] = set()
-    for run_id in sorted(set(not_started_run_ids)):
+    for run_id in sorted({entry["run_id"] for entry in not_started}):
         reasons.update(_failure_annotations(repo=repo, run_id=run_id))
     return {
         "failed_jobs": failed,

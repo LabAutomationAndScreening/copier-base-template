@@ -238,12 +238,14 @@ two commits. Then `$BP push --checkout <checkout> --chain <chain.json>` and
 `$BP ci --repo <layer> --sha <sha from push>`.
 
 `passed` is the verdict, and `result` is wait-for-ci's line. It stops at the first failed job,
-so the lists below cover only the jobs finished by then. `failed_jobs` need a fix (see Rules:
+so the lists below cover only the jobs finished by then; each job in them comes with its run's
+`run_id`, since a job name can repeat across workflows. `failed_jobs` need a fix (see Rules:
 stop for the user), and so do `failed_runs`, runs that ended before creating any job, such as on
 an invalid workflow file or awaiting approval (open the run's URL for GitHub's reason).
 `not_started_jobs` never got a runner (`not_started_reasons` says why, such as a spent Actions
 budget): there is nothing to fix, so tell the user, and once they say it's sorted,
-`gh run rerun <id> --failed` and run `ci` again. With `breakdown_error` in place of the lists,
+`env -u GITHUB_TOKEN -u GH_TOKEN gh run rerun <run_id> --repo R --failed` (R being the repo
+`ci` waited on) for each run they name, and run `ci` again. With `breakdown_error` in place of the lists,
 GitHub kept failing while `ci` read the jobs: the failure stands, and `result` names the failed
 jobs. Any other outcome (a timeout, GitHub unreachable) makes `ci` exit with the line as its
 error.
