@@ -44,12 +44,14 @@ Commit mode (no PR given) waits on every GitHub Actions workflow run for one com
 --sha (expanded through GitHub when abbreviated, since the `gh run list` filter only matches a full SHA), or else the
 pushed local HEAD. Its result lines:
 
-- CHECKS_PASSED (0): at least one run exists and every run completed without a failed job. When the commit is the head
-  of an open PR whose CI runs on pull requests, a pull_request run must also exist: a push to a PR's branch triggers
-  both a push run and a pull_request run, and CI may skip the push run's jobs as a duplicate, so the push run can
-  finish before the pull_request run that does the work has even been created. CI counts as running on pull requests
-  once the PR's branch has had a pull_request run since the PR was opened, which such CI gets as the PR opens; CI that
-  runs only on push never has one, so its push runs alone decide.
+- CHECKS_PASSED (0): at least one run exists, every run completed without a failed job, and the next poll found no
+  further run, since a workflow can start after another has finished (one triggered by workflow_run, say), which
+  costs one poll on every pass. When the commit is the head of an open PR whose CI runs on pull requests, a
+  pull_request run must also exist: a push to a PR's branch triggers both a push run and a pull_request run, and CI
+  may skip the push run's jobs as a duplicate, so the push run can finish before the pull_request run that does the
+  work has even been created. CI counts as running on pull requests once the PR's branch has had a pull_request run
+  since the PR was opened, which such CI gets as the PR opens; CI that runs only on push never has one, so its push
+  runs alone decide.
 - CHECKS_FAILED: <job names> (1): a job concluded failure, cancelled, timed_out or startup_failure; reported as soon as
   the job finishes, without waiting for the rest of its run. A run that never ran its jobs, because it awaits approval
   (action_required) or GitHub gave up on it (stale), is listed as `<workflow> (<conclusion>)`.
@@ -575,6 +577,8 @@ class _PollState:
     superseded: _Superseded | None = None
     # polls since the switch that found no workflow runs at all for the superseded commit
     empty_run_polls: int = 0
+    # the runs a commit's last poll found all completed and passing, which the next poll must find unchanged
+    passing_run_ids: frozenset[int] | None = None
     # polls with auto-merge on and CI fully passed that found the PR still unmerged
     merge_wait_polls: int = 0
     # what the TIMED_OUT line adds about why nothing settled, as of the latest successful poll
@@ -1129,6 +1133,13 @@ def _commit_result(
         )
         if state.timeout_detail is not None:
             return None
+    # a workflow can start after another has finished (one triggered by workflow_run, say), so a pass counts only once
+    # the next poll finds no run beyond these
+    run_ids = frozenset(run.run_id for run in runs)
+    if state.passing_run_ids != run_ids:
+        state.passing_run_ids = run_ids
+        state.timeout_detail = f"confirming no further workflow runs start for {commit_sha}"
+        return None
     return "CHECKS_PASSED", 0
 
 
