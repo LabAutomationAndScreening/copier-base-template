@@ -935,6 +935,9 @@ def _wait[T](*, timeout: int, interval: int, what: str, probe: Callable[[], T | 
 
 
 SECONDS_PER_MINUTE = 60
+# the conclusions wait_for_ci.py (.config/taskfiles/scripts/) counts as a failed job, so the breakdown lists the jobs
+# its verdict failed on and no others, such as a neutral one
+FAILED_JOB_CONCLUSIONS = frozenset({"failure", "cancelled", "timed_out", "startup_failure", "action_required", "stale"})
 # wait_for_ci.py stops polling at its deadline, but the gh calls of the poll it started just before can still be running
 WAIT_FOR_CI_OVERRUN_SECONDS = 300
 
@@ -1008,9 +1011,7 @@ def _ci_failure_breakdown(*, repo: str, sha: str) -> dict[str, Any]:
         for job in view["jobs"]:
             if job["status"] != "completed":
                 continue
-            if job["conclusion"] == "success":
-                continue
-            if job["conclusion"] == "skipped":
+            if job["conclusion"] not in FAILED_JOB_CONCLUSIONS:
                 continue
             entry = {"name": job["name"], "run_id": run_id}
             # a job that failed without running a single step never got a runner (a spent Actions budget, say), so
