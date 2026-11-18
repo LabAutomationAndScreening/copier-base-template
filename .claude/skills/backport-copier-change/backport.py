@@ -1462,10 +1462,24 @@ def _post_pause(*, repo: str, pr: str, reviewer: ModuleType) -> str:
     body_file.parent.mkdir(exist_ok=True)
     _ = body_file.write_text(reviewer.PAUSE_COMMAND + "\n")
     posted = _run(cmd=[str(PR_COMMENTS_POST), "--pr", pr, "--repo", repo, "--body-file", str(body_file)])
-    match = _ISSUE_COMMENT_ID.search(posted.splitlines()[0])
+    posted_line = posted.splitlines()[0]
+    match = _ISSUE_COMMENT_ID.search(posted_line)
     if match is None:
         raise FailError(f"post.py printed no comment URL for the pause command:\n{posted}")
-    return _run(cmd=["gh", "api", f"repos/{repo}/issues/comments/{match.group(1)}", "--jq", ".created_at"]).strip()
+    try:
+        return _wait(
+            timeout=300,
+            interval=15,
+            what=f"when pause comment {match.group(1)} was posted",
+            probe=lambda: _run(
+                cmd=["gh", "api", f"repos/{repo}/issues/comments/{match.group(1)}", "--jq", ".created_at"]
+            ).strip(),
+        )
+    except FailError as e:
+        raise FailError(
+            f"the pause command is posted ({posted_line}), but reading when failed: {e}. Running pause again would post"
+            f" it twice: wait for {reviewer.NAME}'s confirmation on the PR instead"
+        ) from e
 
 
 def _pause_confirmed(*, repo: str, pr: str, reviewer: ModuleType, posted_at: str) -> str | None:
