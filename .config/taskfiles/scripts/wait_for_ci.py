@@ -9,7 +9,9 @@ CircleCI, an App) aren't reliably waited on.
 Result lines and exit codes, in PR mode unless marked otherwise:
 
 - MERGED (0)
-- CHECKS_PASSED (0): every required check passed and auto-merge is off, so nothing more happens without a person
+- CHECKS_PASSED (0): every required check passed and auto-merge is off, so nothing more happens without a person. A
+  PR in a merge queue is waited on instead, since it is on its way to merging: `gh pr merge` queues a PR whose checks
+  have passed without turning auto-merge on
 - CI_PASSED_MERGE_BLOCKED: <check>: <its description> (0): every GitHub Actions check finished without a failure, but a
   required commit status was posted as pending, which holds the merge on purpose (such as a copier template not yet
   on a release tag). Exit 0 means CI passed, not that the PR can merge. Only a status that GitHub Actions posted
@@ -733,11 +735,27 @@ def _head_poll(
         if runs_result is not None:
             return runs_result
         if runs_detail is None:
-            return result
+            queue_detail = _queue_holding_pass(result=result, pr_state=pr_state, env=gh_env, deadline=target.deadline)
+            if queue_detail is None:
+                return result
     state.timeout_detail = _pr_timeout_detail(
         snapshot=snapshot, runs_detail=runs_detail, hold_detail=hold_detail, queue_detail=queue_detail
     )
     return None
+
+
+def _queue_holding_pass(
+    *, result: tuple[str, int], pr_state: _PrState, env: dict[str, str], deadline: float
+) -> str | None:
+    """Return the merge queue entry of a PR about to be reported CHECKS_PASSED, or None when it isn't queued.
+
+    `gh pr merge` puts a PR whose checks have passed straight into a merge queue without turning auto-merge on, so a
+    queued PR looks like one nobody is merging; it is on its way, and waited on like an auto-merging one.
+    """
+    line, _ = result
+    if line != "CHECKS_PASSED":
+        return None
+    return _merge_queue_detail(pr_state=pr_state, env=env, deadline=deadline)
 
 
 def _awaiting_merge(*, snapshot: _PrSnapshot) -> bool:
