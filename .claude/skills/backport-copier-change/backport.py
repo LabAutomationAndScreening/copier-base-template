@@ -978,17 +978,20 @@ def cmd_ci(a: argparse.Namespace) -> dict[str, Any]:
     keeps failing, the verdict still stands, with `breakdown_error` in place of the lists. Any outcome other than a pass
     or a failed job (a timeout, an unreachable GitHub, an unknown commit) is an error.
     """
-    line, exit_code = _wait_for_ci(repo=a.repo, timeout=a.timeout, sha=a.sha)
+    # wait-for-ci expands an abbreviated SHA by itself, but the breakdown's `gh run list --commit` matches only the full
+    # one, so it is resolved here once, whatever length a full SHA has
+    sha = _run(cmd=["gh", "api", f"repos/{a.repo}/commits/{a.sha}", "--jq", ".sha"]).strip()
+    line, exit_code = _wait_for_ci(repo=a.repo, timeout=a.timeout, sha=sha)
     if exit_code == 0:
         return {"result": line, "passed": True}
     if not line.startswith("CHECKS_FAILED"):
-        raise FailError(f"waiting for CI on {a.sha} in {a.repo}: {line}")
+        raise FailError(f"waiting for CI on {sha} in {a.repo}: {line}")
     try:
         breakdown = _wait(
             timeout=300,
             interval=15,
-            what=f"the jobs of {a.sha}'s runs",
-            probe=lambda: _ci_failure_breakdown(repo=a.repo, sha=a.sha),
+            what=f"the jobs of {sha}'s runs",
+            probe=lambda: _ci_failure_breakdown(repo=a.repo, sha=sha),
         )
     except FailError as e:
         return {"result": line, "passed": False, "breakdown_error": str(e)}
