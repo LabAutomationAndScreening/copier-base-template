@@ -1145,14 +1145,18 @@ def _commit_result(
             state.empty_run_polls += 1
             if state.empty_run_polls >= NO_RUNS_GRACE_POLLS:
                 return f"NO_RUNS: {commit_sha} was never the tip of a push, so CI never ran on it", 1
+    # a pass is confirmed only by two polls in a row that both reach it, so any poll that doesn't (a run rerunning, say)
+    # drops the sample
     state.timeout_detail = _unfinished_runs_detail(runs=runs, commit_sha=commit_sha)
     if state.timeout_detail is not None:
+        state.passing_run_ids = None
         return None
     if not _any_pull_request_run(runs=runs):
         state.timeout_detail = _missing_pull_request_run_detail(
             commit_sha=commit_sha, access=access, runs=runs, superseding_pr=superseding_pr
         )
         if state.timeout_detail is not None:
+            state.passing_run_ids = None
             return None
     # a workflow can start after another has finished (one triggered by workflow_run, say), so a pass counts only once
     # the next poll finds no run beyond these
