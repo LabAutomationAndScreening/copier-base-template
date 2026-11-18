@@ -419,7 +419,8 @@ top, one level at a time:
    the PR doesn't merge, `tag` exits with wait-for-ci's line as its error, naming what holds it:
    `CI_PASSED_MERGE_BLOCKED: reviewDecision=REVIEW_REQUIRED` needs an approval from the user or
    a teammate, so tell the user and run `tag` again once they say it's approved;
-   `AUTO_MERGE_DISABLED` or `CHECKS_FAILED` means stop for the user.
+   any other line (`AUTO_MERGE_DISABLED`, `CHECKS_FAILED`, another hold, `CLOSED`, a timeout)
+   means stop and show the user the line.
 2. **Re-pin its children** as soon as a repo's tag lands: note the child's HEAD, copier-update
    with no `--ref`, then `net-diff --base <the noted sha>`. `only_commit_changed` must be true;
    if not, stop and show the user what else changed. Then pause the child PR's AI reviewer,
