@@ -1476,10 +1476,18 @@ def _post_pause(*, repo: str, pr: str, reviewer: ModuleType) -> str:
     body_file.parent.mkdir(exist_ok=True)
     _ = body_file.write_text(reviewer.PAUSE_COMMAND + "\n")
     posted = _run(cmd=[str(PR_COMMENTS_POST), "--pr", pr, "--repo", repo, "--body-file", str(body_file)])
-    posted_line = posted.splitlines()[0]
+    # post.py exited 0, so the command is most likely posted even when its output can't be read
+    unreadable = (
+        f"post.py printed no comment URL for the pause command ({posted!r}), but the command may already be posted:"
+        " check the PR before running pause again, which would post it twice"
+    )
+    lines = posted.splitlines()
+    if not lines:
+        raise FailError(unreadable)
+    posted_line = lines[0]
     match = _ISSUE_COMMENT_ID.search(posted_line)
     if match is None:
-        raise FailError(f"post.py printed no comment URL for the pause command:\n{posted}")
+        raise FailError(unreadable)
     try:
         return _wait(
             timeout=300,
