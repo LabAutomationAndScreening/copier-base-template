@@ -63,6 +63,10 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
                                     commits, not a merge of the default branch;
                                     a flagged reviewer's entry lists its open findings (id, type,
                                     path, line, url, body_text), read through the pr-comments skill
+  pause --repo R --pr N             post each configured AI reviewer's pause command on the PR (through
+                                    the pr-comments skill) and wait until the reviewer confirms it in a
+                                    comment posted or edited since; a reviewer the PR's description
+                                    tells to skip it is reported ignored and not paused
   review-watch --chain F --branch B --checkouts DIR [--settled SHA ...] [--noted-hold SHA ...]
                                     ai-review across every chain PR at once (each found by branch B,
                                     its checkout at DIR/<name>): wait while a review is running or
@@ -1283,6 +1287,8 @@ def enabled_reviewers(*, checkout: Path, names: list[str]) -> list[ModuleType]:
 
 
 PR_COMMENTS_READ = Path(__file__).resolve().parent.parent / "pr-comments" / "read.py"
+PR_COMMENTS_POST = Path(__file__).resolve().parent.parent / "pr-comments" / "post.py"
+_ISSUE_COMMENT_ID = re.compile(r"#issuecomment-(\d+)")
 _FINDING_KEYS = ("id", "type", "path", "line", "url", "body_text")
 
 
@@ -1412,6 +1418,58 @@ def cmd_ai_review(a: argparse.Namespace) -> dict[str, Any]:
         return _wait(timeout=a.timeout, interval=60, what=f"every AI reviewer on PR {a.pr}", probe=reviews.probe)
     except FailError as e:
         raise _review_timeout(error=e, reviewers=reviewers, verdicts=reviews.verdicts, latest=reviews.latest) from e
+
+
+def cmd_pause(a: argparse.Namespace) -> dict[str, Any]:
+    """Post each configured AI reviewer's pause command on the PR and wait until the reviewer confirms it.
+
+    A push that reaches a reviewer before it has acted on the command is still reviewed, so only a confirmation
+    makes the next push safe. A confirmation counts only when the reviewer posted or edited it after the command:
+    a "paused" note left from an earlier pause may since have been resumed.
+    """
+    reviewers = enabled_reviewers(checkout=Path(a.checkout), names=a.reviewer)
+    pr_body = _gh_json("pr", "view", a.pr, "--repo", a.repo, "--json", "body")["body"]
+    outcomes: dict[str, str] = {}
+    for reviewer in reviewers:
+        # it leaves no review on such a PR anyway, and might answer the command with one
+        if reviewer.ignored(pr_body):
+            outcomes[reviewer.NAME] = "ignored"
+            continue
+        posted_at = _post_pause(repo=a.repo, pr=a.pr, reviewer=reviewer)
+        outcomes[reviewer.NAME] = _wait(
+            timeout=a.timeout,
+            interval=15,
+            what=f"{reviewer.NAME} to confirm the pause on PR {a.pr}",
+            probe=lambda reviewer=reviewer, posted_at=posted_at: _pause_confirmed(
+                repo=a.repo, pr=a.pr, reviewer=reviewer, posted_at=posted_at
+            ),
+        )
+    return {"reviewers": outcomes}
+
+
+def _post_pause(*, repo: str, pr: str, reviewer: ModuleType) -> str:
+    body_file = Path("tmp") / f"backport-pause-{repo.split('/')[1]}-{pr}-{reviewer.NAME}.md"
+    body_file.parent.mkdir(exist_ok=True)
+    _ = body_file.write_text(reviewer.PAUSE_COMMAND + "\n")
+    posted = _run(cmd=[str(PR_COMMENTS_POST), "--pr", pr, "--repo", repo, "--body-file", str(body_file)])
+    match = _ISSUE_COMMENT_ID.search(posted.splitlines()[0])
+    if match is None:
+        raise FailError(f"post.py printed no comment URL for the pause command:\n{posted}")
+    return _run(cmd=["gh", "api", f"repos/{repo}/issues/comments/{match.group(1)}", "--jq", ".created_at"]).strip()
+
+
+def _pause_confirmed(*, repo: str, pr: str, reviewer: ModuleType, posted_at: str) -> str | None:
+    pages = _gh_json("api", "--paginate", "--slurp", f"repos/{repo}/issues/{pr}/comments")
+    for page in pages:
+        for comment in page:
+            if not reviewer.LOGIN.search(comment["user"]["login"]):
+                continue
+            # GitHub's timestamps share one format, so comparing them as text orders them
+            if comment["updated_at"] < posted_at:
+                continue
+            if reviewer.confirms_pause(comment["body"]):
+                return "paused"
+    return None
 
 
 def _chain_prs(*, chain: dict[str, Any], branch: str) -> list[tuple[str, str | None]]:
@@ -2070,6 +2128,7 @@ def _add_github_verbs(add: AddVerb) -> None:
     for name, fn, default_timeout in (
         ("ci", cmd_ci, 3600),
         ("ai-review", cmd_ai_review, 5400),
+        ("pause", cmd_pause, 600),
         ("merge-command", cmd_merge_command, 0),
         ("tag", cmd_tag, 7200),
     ):
@@ -2095,13 +2154,19 @@ def _add_github_verbs(add: AddVerb) -> None:
                 "--checkout", required=True, help="a local checkout of the repo, to check the branch against its base"
             )
         if name == "ai-review":
-            sp.add_argument(
-                "--checkout", default=".", help="a local checkout of the repo, to see which reviewers it configures"
-            )
-            sp.add_argument(
-                "--reviewer", action="append", default=[], help="only these reviewers (default: every configured one)"
-            )
+            _add_reviewer_arguments(sp)
             sp.add_argument("--noted-hold", action="append", default=[], metavar="SHA", help=_NOTED_HOLD_HELP)
+        if name == "pause":
+            _add_reviewer_arguments(sp)
+
+
+def _add_reviewer_arguments(sp: argparse.ArgumentParser) -> None:
+    sp.add_argument(
+        "--checkout", default=".", help="a local checkout of the repo, to see which reviewers it configures"
+    )
+    sp.add_argument(
+        "--reviewer", action="append", default=[], help="only these reviewers (default: every configured one)"
+    )
 
 
 _NOTED_HOLD_HELP = "a head whose long_hold the user has already been told about; its hold is then waited out"

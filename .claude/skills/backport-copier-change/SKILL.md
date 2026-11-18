@@ -43,6 +43,7 @@ $BP scan --chain <chain.json> --repo R --file F   # private repo names F would l
 $BP pr-command --checkout P --chain <chain.json> --title T --body-file B   # scan, then the draft PR command
 $BP pr-body --checkout P --chain <chain.json> --pr N --body-file B   # merge in others' edits, then the edit command
 $BP ai-review --repo R --pr N --checkout P [--noted-hold SHA ...]   # every configured AI reviewer's verdict on the PR head
+$BP pause --repo R --pr N --checkout P   # post each AI reviewer's pause command, wait for its confirmation
 $BP review-watch --chain F --branch B --checkouts DIR [--settled SHA ...] [--noted-hold SHA ...]   # every chain PR's reviews; stops at the first one needing you
 $BP status --chain F --branch B      # snapshot of every chain PR: head, CI, reviewer checks, what awaits an answer
 $BP merge-command --repo R --pr N --checkout P   # refuses while the branch is behind its base; else the commands that mark the PR ready and merge it (auto-merge where allowed), in order
@@ -53,7 +54,7 @@ $BP cleanup --worktree P             # remove a clean, fully pushed worktree
 ```
 
 Every verb prints JSON: take SHAs, URLs and PR numbers from it, never retype them. When a verb
-refuses, its error says why and what to do. Run a waiting verb (`ci`, `ai-review`, `review-watch`, `tag`) in
+refuses, its error says why and what to do. Run a waiting verb (`ci`, `ai-review`, `pause`, `review-watch`, `tag`) in
 the background and on its own, with nothing chained before it (a `bd` update goes in its own
 command), so `head -1 <file> | jq` reads its JSON; the harness appends a status line after it.
 
@@ -412,10 +413,9 @@ top, one level at a time:
 2. **Re-pin its children** as soon as a repo's tag lands: note the child's HEAD, copier-update
    with no `--ref`, then `net-diff --base <the noted sha>`. `only_commit_changed` must be true;
    if not, stop and show the user what else changed. Then pause the child PR's AI reviewer,
-   since a re-pin that moves only `_commit` gives it nothing to review (for CodeRabbit, a
-   `@coderabbitai pause` comment, posted with pr-comments' Post, then a wait for its "Reviews
-   paused." reply, which `read.py <pr> --all --include-bot-comments` lists, since a push that
-   reaches it first is still reviewed). The plan approved in Step 2
+   since a re-pin that moves only `_commit` gives it nothing to review:
+   `$BP pause --repo R --pr N --checkout <checkout>` posts the pause command and waits for the
+   reviewer to confirm it, since a push that reaches it first is still reviewed. The plan approved in Step 2
    covers these pause comments. Pause each PR just before its own push rather than the whole
    level up front, so a plan change mid-stream leaves no paused PR to resume. Then `push`,
    `ci`. The pre-merge check's `ai-review` then reports `head_not_reviewed`, which a
