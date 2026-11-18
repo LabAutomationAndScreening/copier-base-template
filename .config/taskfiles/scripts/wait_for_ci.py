@@ -1092,11 +1092,14 @@ def _failed_job_names(*, runs: list[_Run], repo: str | None, env: dict[str, str]
         if run.status == "completed":
             if not _is_failed_conclusion(conclusion=run.conclusion):
                 continue
-        run_failures = [
-            job.name
-            for job in _jobs(run_id=run.run_id, repo=repo, env=env, deadline=deadline)
-            if _is_failed_conclusion(conclusion=job.conclusion)
-        ]
+        try:
+            jobs = _jobs(run_id=run.run_id, repo=repo, env=env, deadline=deadline)
+        except GhCallFailedError:
+            # a failure already found decides the verdict, so a later run's lookup error must not cost it
+            if len(names) > 0:
+                return names
+            raise
+        run_failures = [job.name for job in jobs if _is_failed_conclusion(conclusion=job.conclusion)]
         # a run can fail before any job exists, such as on an invalid workflow file
         if len(run_failures) == 0:
             if run.status == "completed":

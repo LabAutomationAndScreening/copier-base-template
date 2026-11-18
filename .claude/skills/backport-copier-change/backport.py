@@ -63,7 +63,8 @@ Verbs (all print JSON on stdout; errors go to stderr with exit 1):
                                     commits, not a merge of the default branch;
                                     a flagged reviewer's entry lists its open findings (id, type,
                                     path, line, url, body_text), read through the pr-comments skill
-  pause --repo R --pr N             post each configured AI reviewer's pause command on the PR (through
+  pause --repo R --pr N --checkout DIR
+                                    post each configured AI reviewer's pause command on the PR (through
                                     the pr-comments skill) and wait until the reviewer confirms it in a
                                     comment posted or edited since; a reviewer the PR's description
                                     tells to skip it is reported ignored and not paused
@@ -2183,16 +2184,19 @@ def _add_github_verbs(add: AddVerb) -> None:
                 "--checkout", required=True, help="a local checkout of the repo, to check the branch against its base"
             )
         if name == "ai-review":
-            _add_reviewer_arguments(sp)
+            _add_reviewer_arguments(sp, checkout_required=False)
             sp.add_argument("--noted-hold", action="append", default=[], metavar="SHA", help=_NOTED_HOLD_HELP)
         if name == "pause":
-            _add_reviewer_arguments(sp)
+            _add_reviewer_arguments(sp, checkout_required=True)
 
 
-def _add_reviewer_arguments(sp: argparse.ArgumentParser) -> None:
-    sp.add_argument(
-        "--checkout", default=".", help="a local checkout of the repo, to see which reviewers it configures"
-    )
+def _add_reviewer_arguments(sp: argparse.ArgumentParser, *, checkout_required: bool) -> None:
+    help_text = "a local checkout of the repo, to see which reviewers it configures"
+    if checkout_required:
+        # this helper runs from the originating repo, so a default of "." would read that repo's reviewers, not the PR's
+        sp.add_argument("--checkout", required=True, help=help_text)
+    else:
+        sp.add_argument("--checkout", default=".", help=help_text)
     sp.add_argument(
         "--reviewer", action="append", default=[], help="only these reviewers (default: every configured one)"
     )
