@@ -238,7 +238,8 @@ two commits. Then `$BP push --checkout <checkout> --chain <chain.json>` and
 `$BP ci --repo <layer> --sha <sha from push>`.
 
 `passed` is the verdict, and `result` is wait-for-ci's line. It stops at the first failed job,
-so the lists below cover only the jobs finished by then; each job in them comes with its run's
+and `ci` reads the lists below just after it, so they hold the jobs finished by then, which can
+include one that failed after the verdict; each job in them comes with its run's
 `run_id`, since a job name can repeat across workflows. `failed_jobs` need a fix (see Rules:
 stop for the user), and so do `failed_runs`, runs that ended before creating any job, such as on
 an invalid workflow file or awaiting approval (open the run's URL for GitHub's reason).
