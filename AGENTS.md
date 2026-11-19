@@ -10,7 +10,7 @@ Rules for writing code and tests live in `.claude/rules/*.md`. Each file's `path
 
 ## Memory and Rules
 
-- Before saving any memory or adding any rule, explicitly ask the user whether the concept should be: (1) added to AGENTS.md as a general rule applicable across all projects, (2) added to AGENTS.md as a rule specific to this project, or (3) stored as a temporary local memory only relevant to the current active work. The devcontainer environment is ephemeral, so local memory files are rarely the right choice.
+- Before saving any memory or adding any rule, explicitly ask the user where it belongs: (1) every project: a change to the template that owns the file, carried there with the backport-copier-change skill, either in `AGENTS.md` (guidance that applies whatever files are open) or in the `.claude/rules/` file whose `paths:` covers the code it governs; (2) this project only: a rule file this repository owns under `.claude/rules/` (one that `.config/.copier-managed-files.json` does not list), with `paths:` frontmatter when it governs particular files, and never an edit to a template-managed file; or (3) a temporary local memory only relevant to the current active work. The devcontainer environment is ephemeral, so local memory files are rarely the right choice.
 
 ## Public Repositories
 
