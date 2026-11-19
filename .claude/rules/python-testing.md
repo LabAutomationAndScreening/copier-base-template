@@ -1,9 +1,9 @@
 ---
 paths:
-  - "**/tests/**/*.{py,py.jinja,ambr,jsonl}"
+  - "**/tests/**/*.{py,py.jinja,py.jinja-base,ambr,jsonl}"
   - "**/tests/**/cassettes/**"
-  - "**/test_*.{py,py.jinja}"
-  - "**/conftest.{py,py.jinja}"
+  - "**/test_*.{py,py.jinja,py.jinja-base}"
+  - "**/conftest.{py,py.jinja,py.jinja-base}"
 ---
 # Python Testing
 

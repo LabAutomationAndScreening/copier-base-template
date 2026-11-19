@@ -2,8 +2,8 @@
 paths:
   - "**/tests/**"
   - "**/__tests__/**"
-  - "**/test_*.{py,py.jinja}"
-  - "**/conftest.{py,py.jinja}"
+  - "**/test_*.{py,py.jinja,py.jinja-base}"
+  - "**/conftest.{py,py.jinja,py.jinja-base}"
   - "**/*.spec.ts"
   - "**/*.test.ts"
   - "**/*.spec.ts.jinja"
