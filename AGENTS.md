@@ -62,7 +62,7 @@ bd ready --json
 **Create new issues:**
 
 ```bash
-bd create "Issue title" --description="Detailed context" -t bug|feature|task -p 0-4 --json
+bd create "Issue title" --description="Detailed context" -t bug|feature|task|epic|chore|decision -p 0-4 --json
 bd create "Issue title" --description="What this issue is about" -p 1 --deps discovered-from:<parent-id> --json
 ```
 
@@ -105,12 +105,14 @@ bd export -o [relative path to repository root]/.claude/.beads/issues-dump.jsonl
 
 ### Workflow for AI Agents
 
-1. **Check ready work**: `bd ready` shows unblocked issues
-2. **Claim your task**: `bd update <id> --status in_progress`
+1. **Check ready work**: `bd ready --json` shows unblocked issues
+2. **Claim your task**: `bd update <id> --status in_progress --json`
 3. **Work on it**: Implement, test, document
 4. **Discover new work?** Create linked issue:
-   - `bd create "Found bug" --description="Details about what was found" -p 1 --deps discovered-from:<parent-id>`
-5. **Complete**: `bd close <id> --reason "Done"`
+   - `bd create "Found bug" --description="Details about what was found" -p 1 --deps discovered-from:<parent-id> --json`
+5. **Complete**: `bd close <id> --reason "Done" --json`
+
+After each command that changes an issue, run the export from Quick Start.
 
 
 ### Important Rules
@@ -125,6 +127,8 @@ bd export -o [relative path to repository root]/.claude/.beads/issues-dump.jsonl
 
 For more details, run `bd quickstart` or see <https://github.com/gastownhall/beads>.
 
+<!-- END BEADS INTEGRATION -->
+
 # Copier-Managed Files
 
 Files generated from upstream copier templates are listed in `.config/.copier-managed-files.json` (if present).
@@ -137,5 +141,3 @@ it is the most-specific template in the chain. `parent_src` lets you trace the f
 When reviewing a PR that modifies a file listed in the manifest, check whether the change is generic enough to
 backport to the owning template. If so, add a single summary comment (not one per file) noting which files are
 template-managed and which template repo the changes should be backported to.
-
-<!-- END BEADS INTEGRATION -->
