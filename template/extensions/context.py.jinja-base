@@ -122,6 +122,7 @@ class ContextUpdater(ContextHook):
         context["k3d_version"] = "{{ k3d_version }}"
         context["gha_azure_setup_helm"] = "{{ gha_azure_setup_helm }}"
         context["helm_version"] = "{{ helm_version }}"
+        context["helm_unittest_version"] = "{{ helm_unittest_version }}"
         context["gha_azure_setup_kubectl"] = "{{ gha_azure_setup_kubectl }}"
         context["kubectl_version"] = "{{ kubectl_version }}"
         context["gha_linux_runner"] = "{{ gha_linux_runner }}"
