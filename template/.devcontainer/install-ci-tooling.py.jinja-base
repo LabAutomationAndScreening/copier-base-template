@@ -23,12 +23,18 @@ PREK_VERSION = "{% endraw %}{{ prek_version }}{% raw %}"
 TASK_VERSION = "{% endraw %}{{ task_version }}{% raw %}"
 BIOME_VERSION = "{% endraw %}{{ biome_version }}{% raw %}"
 {% endraw %}{% if pinned_helm %}{% raw %}HELM_VERSION = "{% endraw %}{{ helm_version }}{% raw %}"
+HELM_UNITTEST_VERSION = "{% endraw %}{{ helm_unittest_version }}{% raw %}"
 {% endraw %}{% endif %}{% raw %}DOWNLOAD_TIMEOUT_SECONDS = 90
-# CI runners regularly see transient network failures (connection resets, DNS blips, registry 5xx), so every step that
+{% endraw %}{% if pinned_helm %}{% raw %}# A backstop for a release archive that keeps crawling just above curl's stall floor (see CURL_DOWNLOAD_ARGS): the 30 MB
+# helm-unittest archive then needs only about 50 KB/s to finish
+ARCHIVE_DOWNLOAD_TIMEOUT_SECONDS = 600
+{% endraw %}{% endif %}{% raw %}# CI runners regularly see transient network failures (connection resets, DNS blips, registry 5xx), so every step that
 # touches the network is retried with exponential backoff before the job is failed.
 NETWORK_ATTEMPTS = 4
 FIRST_RETRY_DELAY_SECONDS = 5
-# --fail turns an HTTP error into a non-zero exit instead of saving the error page as the download
+# --fail turns an HTTP error into a non-zero exit instead of saving the error page as the download. Instead of a cap on
+# the whole transfer, which a large archive on a slow but working link can't meet, curl gives up only once the transfer
+# stalls: under 10 KiB/s for 30 seconds straight.
 CURL_DOWNLOAD_ARGS = [
     "--fail",
     "--silent",
@@ -38,8 +44,10 @@ CURL_DOWNLOAD_ARGS = [
     "=https",
     "--connect-timeout",
     "20",
-    "--max-time",
-    "60",
+    "--speed-limit",
+    "10240",
+    "--speed-time",
+    "30",
 ]
 # Where uv places both itself and the executables of the tools it installs. Resolves from USERPROFILE
 # on Windows, so it matches the runner's home directory without assuming its user name. Already on
@@ -81,7 +89,7 @@ _ = parser.add_argument(
     "--install-pre-commit-tooling",
     action="store_true",
     default=False,
-    help="Install pre-commit, identify, prek and Biome in CI. Outside CI, this script always installs them.",
+    help="Install pre-commit, identify, prek{% endraw %}{% if pinned_helm %}{% raw %}, Biome, Helm and the helm-unittest plugin{% endraw %}{% else %}{% raw %} and Biome{% endraw %}{% endif %}{% raw %} in CI. Outside CI, this script always installs them.",
 )
 {% endraw %}{% if pinned_helm %}{% raw %}_ = parser.add_argument(
     "--install-helm",
@@ -266,7 +274,30 @@ def install_biome(*, is_windows: bool) -> None:
             _ = github_path_file.write(f"{global_bin_dir}\n")
 
 
-{% endraw %}{% if pinned_helm %}{% raw %}def install_helm(*, is_windows: bool) -> None:
+{% endraw %}{% if pinned_helm %}{% raw %}def download_file(*, url: str, output_path: Path) -> None:
+    run_with_retries(
+        ["curl", *CURL_DOWNLOAD_ARGS, "--output", str(output_path), url],
+        description=f"Downloading {output_path.name}",
+        timeout=ARCHIVE_DOWNLOAD_TIMEOUT_SECONDS,
+    )
+
+
+def check_sha256(*, path: Path, expected_digest: str, publisher: str) -> None:
+    actual_digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual_digest != expected_digest:
+        raise RuntimeError(f"{path.name} has sha256 {actual_digest}, but {publisher} published {expected_digest}")
+
+
+def release_arch() -> str:
+    machine = platform.machine().lower()
+    if machine in ("x86_64", "amd64"):
+        return "amd64"
+    if machine in ("aarch64", "arm64"):
+        return "arm64"
+    raise RuntimeError(f"No Helm or helm-unittest release is installed for the {machine} architecture")
+
+
+def install_helm(*, is_windows: bool) -> Path:
     """Install the pinned Helm release into `LOCAL_BIN_DIR` from the official get.helm.sh archive.
 
     The helmlint pre-commit hook and any job that deploys the chart run whichever Helm is on PATH, while both GitHub's
@@ -274,13 +305,7 @@ def install_biome(*, is_windows: bool) -> None:
     publishes beside it before anything is extracted. `install_task` already appends `LOCAL_BIN_DIR` to `GITHUB_PATH`,
     which later CI steps put in front of the runner's own Helm.
     """
-    machine = platform.machine().lower()
-    if machine in ("x86_64", "amd64"):
-        arch = "amd64"
-    elif machine in ("aarch64", "arm64"):
-        arch = "arm64"
-    else:
-        raise RuntimeError(f"No Helm release is installed for the {machine} architecture")
+    arch = release_arch()
     if is_windows:
         os_name = "windows"
         archive_name = f"helm-{HELM_VERSION}-{os_name}-{arch}.zip"
@@ -292,20 +317,13 @@ def install_biome(*, is_windows: bool) -> None:
     with tempfile.TemporaryDirectory() as tmp_dir:
         archive_path = Path(tmp_dir) / archive_name
         checksum_path = Path(tmp_dir) / f"{archive_name}.sha256sum"
-        for url, output_path in (
-            (f"https://get.helm.sh/{archive_name}", archive_path),
-            (f"https://get.helm.sh/{archive_name}.sha256sum", checksum_path),
-        ):
-            run_with_retries(
-                ["curl", *CURL_DOWNLOAD_ARGS, "--output", str(output_path), url],
-                description=f"Downloading {output_path.name}",
-            )
-        expected_digest = checksum_path.read_text(encoding="utf-8").split()[0]
-        actual_digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
-        if actual_digest != expected_digest:
-            raise RuntimeError(
-                f"{archive_name} has sha256 {actual_digest}, but get.helm.sh published {expected_digest}"
-            )
+        download_file(url=f"https://get.helm.sh/{archive_name}", output_path=archive_path)
+        download_file(url=f"https://get.helm.sh/{archive_name}.sha256sum", output_path=checksum_path)
+        check_sha256(
+            path=archive_path,
+            expected_digest=checksum_path.read_text(encoding="utf-8").split()[0],
+            publisher="get.helm.sh",
+        )
         member_name = f"{os_name}-{arch}/{helm_path.name}"
         LOCAL_BIN_DIR.mkdir(parents=True, exist_ok=True)
         if is_windows:
@@ -324,6 +342,148 @@ def install_biome(*, is_windows: bool) -> None:
     on_path = shutil.which("helm")
     if "CI" not in os.environ and (on_path is None or Path(on_path).resolve() != helm_path.resolve()):
         raise RuntimeError(f"helm on PATH is {on_path}, not the pinned {helm_path}; put {LOCAL_BIN_DIR} first on PATH")
+    return helm_path
+
+
+def helm_unittest_archive_name(*, is_windows: bool) -> str:
+    arch = release_arch()
+    if is_windows:
+        # The chart renders the same on every platform, so its tests run in the devcontainer and CI. Reaching here means
+        # the tooling is being set up somewhere this repo doesn't support, which should fail loudly before any download.
+        if arch != "amd64":
+            raise RuntimeError(
+                f"helm-unittest {HELM_UNITTEST_VERSION} publishes no Windows build for {arch}, only for amd64"
+            )
+        os_name = "windows"
+    elif platform.system() == "Darwin":
+        os_name = "macos"
+    else:
+        os_name = "linux"
+    return f"helm-unittest-{os_name}-{arch}-{HELM_UNITTEST_VERSION.removeprefix('v')}.tgz"
+
+
+def helm_unittest_archive_to_install(*, install_pre_commit_tooling: bool, is_windows: bool) -> str | None:
+    if not install_pre_commit_tooling:
+        return None
+    return helm_unittest_archive_name(is_windows=is_windows)
+
+
+def helm_plugin_dirs(*, helm_path: Path) -> list[Path]:
+    """Return every directory Helm loads plugins from.
+
+    HELM_PLUGINS can hold a list of directories, which Helm splits with Go's filepath.SplitList: on the OS path-list
+    separator, skipping empty entries.
+
+    Helm loads every installed plugin before running any command, and prints some warnings about a plugin's plugin.yaml
+    (such as one setting both `command` and `platformCommand`) to stdout, ahead of the value. So this one call loads no
+    plugins: HELM_NO_PLUGINS doesn't change which directories HELM_PLUGINS names.
+    """
+    plugins_dirs_setting = subprocess.run(  # noqa: S603 # this is all our own input
+        [str(helm_path), "env", "HELM_PLUGINS"],
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+        env={**os.environ, "HELM_NO_PLUGINS": "1"},
+    ).stdout.strip()
+    return [Path(entry) for entry in plugins_dirs_setting.split(os.pathsep) if entry]
+
+
+def plugin_yaml_field(*, plugin_yaml: Path, field: str) -> str | None:
+    """Return a top-level scalar field of a Helm plugin.yaml, or None when it has none.
+
+    The file is read line by line because this script runs on a bare Python with no packages installed, so PyYAML can't
+    be assumed. Only unindented `key: value` lines match, and quotes around the value are stripped.
+    """
+    for line in plugin_yaml.read_text(encoding="utf-8").splitlines():
+        key, _, value = line.partition(":")
+        if key == field:
+            return value.strip().strip("\"'")
+    return None
+
+
+def installed_plugin_copies(*, plugin_dirs: list[Path], plugin_name: str) -> list[Path]:
+    copies: list[Path] = []
+    for plugin_dir in plugin_dirs:
+        if not plugin_dir.is_dir():
+            continue
+        for entry in plugin_dir.iterdir():
+            plugin_yaml = entry / "plugin.yaml"
+            if not plugin_yaml.is_file():
+                continue
+            if plugin_yaml_field(plugin_yaml=plugin_yaml, field="name") == plugin_name:
+                copies.append(entry)
+    return copies
+
+
+def remove_plugin_folder(*, path: Path) -> None:
+    # A symlinked plugin is unlinked rather than followed, so the checkout it points to survives
+    if path.is_symlink():
+        path.unlink()
+    elif path.exists():
+        shutil.rmtree(path)
+
+
+def only_pinned_copy_installed(*, plugin_copies: list[Path], plugin_dir: Path) -> bool:
+    # Only a copy this script unpacked counts: one installed some other way never had its archive checked against the
+    # published sha256
+    if plugin_copies != [plugin_dir]:
+        return False
+    installed_version = plugin_yaml_field(plugin_yaml=plugin_dir / "plugin.yaml", field="version")
+    if installed_version != HELM_UNITTEST_VERSION.removeprefix("v"):
+        return False
+    return True
+
+
+def install_helm_unittest(*, helm_path: Path, archive_name: str) -> None:
+    """Install the pinned helm-unittest plugin, which the helm-unittest pre-commit hook runs, into Helm's plugins directory.
+
+    The release archive is checked against the sha256 that helm-unittest publishes for every archive in one checksum
+    file, then unpacked straight into the plugins directory, where Helm discovers any plugin.yaml. `helm plugin install`
+    is not used: its install hook downloads the archive again with a script that skips the checksum when it finds no
+    sha256 tool, and the hook script is not inside the release archive, so installing from the downloaded archive fails.
+    """
+    release_url = f"https://github.com/helm-unittest/helm-unittest/releases/download/{HELM_UNITTEST_VERSION}"
+    plugin_name = "unittest"  # the name helm-unittest's plugin.yaml gives it
+    plugin_dirs = helm_plugin_dirs(helm_path=helm_path)
+    plugin_dir = plugin_dirs[0] / plugin_name
+    plugin_copies = installed_plugin_copies(plugin_dirs=plugin_dirs, plugin_name=plugin_name)
+    if only_pinned_copy_installed(plugin_copies=plugin_copies, plugin_dir=plugin_dir):
+        print(f"helm-unittest {HELM_UNITTEST_VERSION} is already installed at {plugin_dir}")  # noqa: T201 # we want the script to print to console for easy viewing
+    else:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            archive_path = Path(tmp_dir) / archive_name
+            checksum_path = Path(tmp_dir) / "helm-unittest-checksum.sha"
+            download_file(url=f"{release_url}/{archive_name}", output_path=archive_path)
+            download_file(url=f"{release_url}/{checksum_path.name}", output_path=checksum_path)
+            expected_digest = None
+            # Each line is `shasum -b` output for a path in helm-unittest's build directory, e.g.
+            # `<sha256> *./_dist/helm-unittest-linux-amd64-1.2.1.tgz`
+            for line in checksum_path.read_text(encoding="utf-8").splitlines():
+                digest, _, listed_path = line.partition(" ")
+                if Path(listed_path.lstrip("*")).name == archive_name:
+                    expected_digest = digest
+            if expected_digest is None:
+                raise RuntimeError(f"helm-unittest {HELM_UNITTEST_VERSION} publishes no checksum for {archive_name}")
+            check_sha256(path=archive_path, expected_digest=expected_digest, publisher="helm-unittest")
+            # `helm plugin install <helm-unittest's git repo>` puts the plugin in a folder named after the repo, and Helm loads no
+            # plugin at all while two share a name, so every copy is removed first. They're found by their plugin.yaml because
+            # `helm plugin list` itself fails while two share the name. The install target is cleared as well, since it can
+            # hold something no plugin.yaml identifies, such as a dangling symlink
+            for plugin_copy in plugin_copies:
+                remove_plugin_folder(path=plugin_copy)
+            remove_plugin_folder(path=plugin_dir)
+            plugin_dir.mkdir(parents=True)
+            # TODO: if this ever bites, unpack into a staging folder outside the plugins directory and rename it into place
+            # once complete. The archive lists plugin.yaml last, so an unpack that fails while writing it (a full disk, say)
+            # can leave name and version lines that only_pinned_copy_installed takes for a finished install: every later run
+            # then skips the install while Helm rejects the file, until someone deletes the install target. Accepted as rare,
+            # since a failure anywhere earlier leaves no plugin.yaml, which the next run already reinstalls over
+            with tarfile.open(archive_path) as archive:
+                archive.extractall(plugin_dir, filter="data")
+    # Only stdout is silenced: when Helm cannot load the plugin, its stderr is the only place that says why
+    _ = subprocess.run([str(helm_path), "unittest", "--help"], check=True, stdout=subprocess.DEVNULL)  # noqa: S603 # this is all our own input
+    # helm-unittest has no version flag, and the plugin list shows the version Helm loaded
+    _ = subprocess.run([str(helm_path), "plugin", "list"], check=True)  # noqa: S603 # this is all our own input
 
 
 {% endraw %}{% endif %}{% raw %}def node_cmd(cmd: str, *, is_windows: bool) -> list[str]:
@@ -470,8 +630,12 @@ def main():
         uv_path = str(LOCAL_BIN_DIR / "uv")
     else:
         uv_path = "uv"
-    install_uv(uv_path=uv_path, uv_env=uv_env, is_windows=is_windows)
     install_pre_commit_tooling = should_install(requested=args.install_pre_commit_tooling)
+{% endraw %}{% if pinned_helm %}{% raw %}    # worked out before anything is downloaded, so a platform helm-unittest publishes no build for fails with nothing installed
+    helm_unittest_archive = helm_unittest_archive_to_install(
+        install_pre_commit_tooling=install_pre_commit_tooling, is_windows=is_windows
+    )
+{% endraw %}{% endif %}{% raw %}    install_uv(uv_path=uv_path, uv_env=uv_env, is_windows=is_windows)
     if not args.no_python:
         if should_install(requested=args.install_copier):
             run_with_retries(
@@ -512,7 +676,9 @@ def main():
     if install_pre_commit_tooling:
         install_biome(is_windows=is_windows)
 {% endraw %}{% if pinned_helm %}{% raw %}    if install_pre_commit_tooling or should_install(requested=args.install_helm):
-        install_helm(is_windows=is_windows)
+        helm_path = install_helm(is_windows=is_windows)
+        if helm_unittest_archive is not None:
+            install_helm_unittest(helm_path=helm_path, archive_name=helm_unittest_archive)
 {% endraw %}{% endif %}{% raw %}    if not args.no_node:
         install_pnpm(is_windows=is_windows)
     # Task is installed outside the --no-node branch because CI always passes --no-node (pnpm/setup handles pnpm there), and every job still needs the task runner

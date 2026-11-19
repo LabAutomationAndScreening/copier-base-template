@@ -140,6 +140,7 @@ class ContextUpdater(ContextHook):
         context["k3d_version"] = "v5.9.0"
         context["gha_azure_setup_helm"] = "v5.0.1"
         context["helm_version"] = "v3.22.1"
+        context["helm_unittest_version"] = "v1.2.1"
         context["gha_azure_setup_kubectl"] = "v5.1.0"
         context["kubectl_version"] = "v1.37.0"
         context["gha_windows_runner"] = (
