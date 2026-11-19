@@ -473,6 +473,11 @@ def install_helm_unittest(*, helm_path: Path, archive_name: str) -> None:
                 remove_plugin_folder(path=plugin_copy)
             remove_plugin_folder(path=plugin_dir)
             plugin_dir.mkdir(parents=True)
+            # TODO: if this ever bites, unpack into a staging folder outside the plugins directory and rename it into place
+            # once complete. The archive lists plugin.yaml last, so an unpack that fails while writing it (a full disk, say)
+            # can leave name and version lines that only_pinned_copy_installed takes for a finished install: every later run
+            # then skips the install while Helm rejects the file, until someone deletes the install target. Accepted as rare,
+            # since a failure anywhere earlier leaves no plugin.yaml, which the next run already reinstalls over
             with tarfile.open(archive_path) as archive:
                 archive.extractall(plugin_dir, filter="data")
     # Only stdout is silenced: when Helm cannot load the plugin, its stderr is the only place that says why
