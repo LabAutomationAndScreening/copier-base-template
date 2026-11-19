@@ -90,6 +90,13 @@ export const noJsConfig = {
   },
 };
 
+const COMPARING_MATCHER_CALL =
+  "CallExpression[callee.type='MemberExpression'][callee.property.name=/^(toBe|toEqual|toStrictEqual|toHaveLength|toHaveBeenCalledTimes)$/]";
+// `value>1` alone also matches the string "2", which the comparison coerces to a number, so the literal's source text has to start like a number as well.
+const NUMBER_ABOVE_ONE = "[value>1][raw=/^[0-9.]/]";
+const MAGIC_NUMBER_MESSAGE =
+  "Name or derive this number: an assertion compares against a bare literal only when it is 0, 1 or -1.";
+
 /** @type {import("eslint").Linter.Config} */
 export const vitestConfig = {
   files: ["**/*.{test,spec}.ts"],
@@ -123,6 +130,15 @@ export const vitestConfig = {
     "vitest/consistent-test-it": "off", // consistency for this is overrated, let the dev choose what's most readable based on the test title
     "vitest/prefer-to-be-falsy": "off", // sometimes you want to check explicitly for false and not just falsy
     "vitest/prefer-to-be-truthy": "off", // sometimes you want to check explicitly for true and not just truthy
+    // What ruff's PLR2004 does for Python tests: a bare number an assertion compares against is a magic value unless it is 0, 1 or -1. The check is syntactic, so it also fails a count the test body visibly produces.
+    "no-restricted-syntax": [
+      "error",
+      { selector: `${COMPARING_MATCHER_CALL} > Literal.arguments${NUMBER_ABOVE_ONE}`, message: MAGIC_NUMBER_MESSAGE },
+      {
+        selector: `${COMPARING_MATCHER_CALL} > UnaryExpression.arguments[operator='-'] > Literal${NUMBER_ABOVE_ONE}`,
+        message: MAGIC_NUMBER_MESSAGE,
+      },
+    ],
   },
 };
 
