@@ -373,9 +373,17 @@ def helm_plugin_dirs(*, helm_path: Path) -> list[Path]:
 
     HELM_PLUGINS can hold a list of directories, which Helm splits with Go's filepath.SplitList: on the OS path-list
     separator, skipping empty entries.
+
+    Helm loads every installed plugin before running any command, and prints some warnings about a plugin's plugin.yaml
+    (such as one setting both `command` and `platformCommand`) to stdout, ahead of the value. So this one call loads no
+    plugins: HELM_NO_PLUGINS doesn't change which directories HELM_PLUGINS names.
     """
     plugins_dirs_setting = subprocess.run(  # noqa: S603 # this is all our own input
-        [str(helm_path), "env", "HELM_PLUGINS"], check=True, stdout=subprocess.PIPE, text=True
+        [str(helm_path), "env", "HELM_PLUGINS"],
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+        env={**os.environ, "HELM_NO_PLUGINS": "1"},
     ).stdout.strip()
     return [Path(entry) for entry in plugins_dirs_setting.split(os.pathsep) if entry]
 
