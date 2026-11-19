@@ -9,9 +9,9 @@
     "**/template/**/AGENTS.md",
     "**/template/.claude/rules/**",
     "**/template/**/.claude/rules/**",
-    // A review-open-pr worktree under tmp/ is a second copy of the whole repository, and its instruction files load the same way. The session's own rules still match the files inside it.
-    "**/tmp/review-open-pr/**/AGENTS.md",
-    "**/tmp/review-open-pr/**/.claude/rules/**"
+    // Anything under a repository's own tmp/ is a copy or scratch data (a review-open-pr worktree, guidance arms under test), and its instruction files load the same way. The session's own rules still match the files inside it. Anchored on /workspaces, where these devcontainers mount a repository, so that a repository checked out under the system /tmp never excludes its own files.
+    "/workspaces/*/tmp/**/AGENTS.md",
+    "/workspaces/*/tmp/**/.claude/rules/**"
   ],
   "env": {
     // An agent cannot answer a credential prompt, so its git must fail when no helper has credentials rather than ask. Left to ask, git waits on VS Code's askpass, which never answers once the session's VSCODE_GIT_IPC_HANDLE names an extension host whose window has gone, and then on the terminal. Credentials come from git's credential helpers instead; .devcontainer/post-start-command.sh adds the one that covers pushes to other repositories.
