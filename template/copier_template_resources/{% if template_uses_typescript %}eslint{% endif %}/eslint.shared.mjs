@@ -92,8 +92,8 @@ export const noJsConfig = {
 
 const COMPARING_MATCHER_CALL =
   "CallExpression[callee.type='MemberExpression'][callee.property.name=/^(toBe|toEqual|toStrictEqual|toHaveLength|toHaveBeenCalledTimes)$/]";
-// `value>1` alone also matches the string "2", which the comparison coerces to a number, so the literal's source text has to start like a number as well.
-const NUMBER_ABOVE_ONE = "[value>1][raw=/^[0-9.]/]";
+// Every string, boolean and null literal is "not 0 or 1" too, so the literal's source text also has to start like a number.
+const NUMBER_OTHER_THAN_ZERO_OR_ONE = "[value!=0][value!=1][raw=/^[0-9.]/]";
 const MAGIC_NUMBER_MESSAGE =
   "Name or derive this number: an assertion compares against a bare literal only when it is 0, 1 or -1.";
 
@@ -133,9 +133,12 @@ export const vitestConfig = {
     // What ruff's PLR2004 does for Python tests: a bare number an assertion compares against is a magic value unless it is 0, 1 or -1. The check is syntactic, so it also fails a count the test body visibly produces.
     "no-restricted-syntax": [
       "error",
-      { selector: `${COMPARING_MATCHER_CALL} > Literal.arguments${NUMBER_ABOVE_ONE}`, message: MAGIC_NUMBER_MESSAGE },
       {
-        selector: `${COMPARING_MATCHER_CALL} > UnaryExpression.arguments[operator='-'] > Literal${NUMBER_ABOVE_ONE}`,
+        selector: `${COMPARING_MATCHER_CALL} > Literal.arguments${NUMBER_OTHER_THAN_ZERO_OR_ONE}`,
+        message: MAGIC_NUMBER_MESSAGE,
+      },
+      {
+        selector: `${COMPARING_MATCHER_CALL} > UnaryExpression.arguments[operator='-'] > Literal${NUMBER_OTHER_THAN_ZERO_OR_ONE}`,
         message: MAGIC_NUMBER_MESSAGE,
       },
     ],
