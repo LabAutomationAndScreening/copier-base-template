@@ -19,3 +19,22 @@ def test_When_matching_rules_to_links_with_template_tags_stripped__Then_every_sh
 
     assert shared_rules != set()
     assert unlinked_rules == []
+
+
+def test_When_resolving_each_shared_rule_link_with_template_tags_stripped__Then_it_points_to_the_root_rule_of_that_name() -> (
+    None
+):
+    links = [
+        path
+        for path in _GENERATED_RULES_DIR.iterdir()
+        if _JINJA_TAG.sub("", path.name) not in _RULES_FOR_THIS_REPOSITORY_ONLY
+    ]
+
+    wrong_links = [
+        path.name
+        for path in links
+        if not path.is_symlink() or path.resolve() != (_ROOT_RULES_DIR / _JINJA_TAG.sub("", path.name)).resolve()
+    ]
+
+    assert links != []
+    assert wrong_links == []
