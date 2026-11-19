@@ -26,6 +26,7 @@ Work through a PR's review comments: make code changes, answer questions, or dis
 With `--checkout <path>` (e.g. `/address-pr-comments 42 --checkout /abs/path/to/clone`), the PR belongs to the repo checked out at that path, typically a template repo another skill cloned. Stay in the current repo and run every script from here by the paths below, since the checkout may carry an older copy of these skills or none. Then:
 - Pass `--checkout <path>` to every script below that runs in this skill, and to pr-comments' Read and Post commands. `repo_root` (Step 1) is then the checkout, so paths shown to the user and `<reply_file>` are in it.
 - Run your own git commands as `git -C <path> …`, give `commit_for_comment.py` absolute `--files` paths, and read code from the checkout.
+- The checkout's `.claude/rules/` files do not load for files outside the current repo: before changing code or tests there, read the ones whose `paths:` match.
 - bd stays in the current repo.
 - Phase 2 has no `create-issues`, `red`, `green` or `refactor`: those carry this repo's rules, not the checkout's. Make each change directly, then prove and check it the way the skill that started this run says for that repo, before getting its reply approved.
 - When that skill gives rules for the repo, such as what a public repo's commit messages and replies may name, they apply to every commit and reply here too.

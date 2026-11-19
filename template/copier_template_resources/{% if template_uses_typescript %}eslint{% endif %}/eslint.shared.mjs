@@ -109,7 +109,7 @@ export const vitestConfig = {
     "vitest/unbound-method": "off", // requires typed linting (parserOptions.project), not configured in this project
     "vitest/require-mock-type-parameters": "off", // stylistic; vi.fn() inferred type is sufficient and explicit generics add noise on trivial mocks
     "vitest/prefer-describe-function-title": "off", // autofix rewrites string titles to identifier references, which then conflicts with vitest/valid-title for default-imported functions
-    "vitest/padding-around-all": "off", // project test style keeps blank lines minimal (see AGENTS.md); these rules pad every block boundary
+    "vitest/padding-around-all": "off", // project test style keeps blank lines minimal (see .claude/rules/testing.md); these rules pad every block boundary
     "vitest/padding-around-after-all-blocks": "off",
     "vitest/padding-around-after-each-blocks": "off",
     "vitest/padding-around-before-all-blocks": "off",
