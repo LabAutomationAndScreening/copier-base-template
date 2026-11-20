@@ -168,7 +168,10 @@ jobs:
           # Add everything to git so that pre-commit recognizes the files and runs on them
           git add .
           git status
-
+{% endraw %}{% if template_might_want_to_use_helm %}{% raw %}
+      - name: Install the instantiated project's pinned Helm and helm-unittest plugin # this repo's own tooling installs neither, and the project's Helm hooks need both
+        run: python .devcontainer/install-ci-tooling.py --install-pre-commit-tooling --no-python --no-node
+{% endraw %}{% endif %}{% raw %}
       - name: Compute Pre-commit cache key # must run after the instantiated template is in place, since hashFiles reads its .pre-commit-config.yaml
         run: |
           echo "CACHE_RESTORE_KEY=${{ matrix.os }}-${{ matrix.python-version }}-build-cache-pre-commit-hooks-" >> "$GITHUB_ENV"
