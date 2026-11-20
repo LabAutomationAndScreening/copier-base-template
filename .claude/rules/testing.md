@@ -13,7 +13,6 @@ paths:
 
 Write each test for a reader without your context: someone opening it because it failed or because the code it covers has to change. From the test alone, they should be able to tell what behavior it protects and which of its details that behavior depends on, so they can decide whether to fix the code, update the test, or delete it.
 
-- Avoid magic values in comparisons in tests in all languages (like ruff rule PLR2004 specifies). Note: `1` and `0` are not magic numbers (according to PLR2004)
 - A reader without your context assumes every specific value in a test was chosen because the outcome depends on it, and that goes for values in fixtures, mock return values, and fake classes as much as in the test body. Make that assumption true:
   - **Load-bearing** values (a boundary, a threshold, a regression input) stay fixed, and their reason is readable where they are defined: in a constant's name, a parametrized case's label, a helper's name, or the test title. A short comment is the fallback when no name can carry why the test uses that value.
   - **Incidental** values, where the behavior under test is the same for any valid value, are generated: faker, uuids, `random.choice` over valid values, a random enum member. When nothing generates that kind of value (a status code within a class, an instance type, a version string), write a small `_random_<thing>()` helper rather than hardcoding one example. This covers every argument of a call: when some are random and others fixed, the fixed ones read as the point of the test.
