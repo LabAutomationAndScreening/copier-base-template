@@ -5,6 +5,7 @@
   "attribution": false,
   // A template repository holds, under template/, the copies of AGENTS.md and .claude/rules that generated repositories receive. Claude Code loads such a nested copy as live instructions whenever a file beside it is read, on top of the repository's own, and .claudeignore does not stop that.
   "claudeMdExcludes": [
+    // Deliberately not anchored on /workspaces like the tmp/ patterns below: a template repository is then covered wherever it is checked out (a scratch checkout, a clone outside a devcontainer). The price is that a repository checked out beneath a directory itself named template loses its own instructions, and nothing in this template chain checks one out there.
     "**/template/AGENTS.md",
     "**/template/**/AGENTS.md",
     "**/template/.claude/rules/**",
