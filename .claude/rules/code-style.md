@@ -1,6 +1,7 @@
 ---
 paths:
   - "**/*.{py,py.jinja,py.jinja-base,ts,ts.jinja,vue,vue.jinja,mts,mjs,mjs.jinja}"
+  - "**/generated/**"
 ---
 # Code Style
 
