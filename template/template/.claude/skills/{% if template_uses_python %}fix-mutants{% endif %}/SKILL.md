@@ -206,10 +206,12 @@ The five steps in detail:
 
 5. **Strengthen the test** following the project's TDD discipline. The mutants
    *are* the failing cases: write/adjust the assertion so the test passes on the
-   original and would fail on every mutant in the group. Follow `AGENTS.md`
-   testing rules (tight mock assertions, no magic values, presence-before-absence,
-   etc.). Run the single affected test first (`uv run pytest <path>::<test>
-   --no-cov`) and confirm it is green on real code.
+   original and would fail on every mutant in the group. Follow the testing
+   rules in `.claude/rules/testing.md` and `.claude/rules/python-testing.md`
+   (tight mock assertions, no magic values, presence-before-absence, etc.):
+   read both first if this session has not loaded them. Run the single
+   affected test first (`uv run pytest <path>::<test> --no-cov`) and confirm
+   it is green on real code.
 
 6. **Verify every mutant in the group is dead:**
    ```bash

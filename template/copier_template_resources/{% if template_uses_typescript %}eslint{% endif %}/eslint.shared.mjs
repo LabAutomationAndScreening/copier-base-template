@@ -90,6 +90,13 @@ export const noJsConfig = {
   },
 };
 
+const COMPARING_MATCHER_CALL =
+  "CallExpression[callee.type='MemberExpression'][callee.property.name=/^(toBe|toEqual|toStrictEqual|toHaveLength|toHaveBeenCalledTimes)$/]";
+// Every string, boolean and null literal is "not 0 or 1" too, so the literal's source text also has to start like a number.
+const NUMBER_OTHER_THAN_ZERO_OR_ONE = "[value!=0][value!=1][raw=/^[0-9.]/]";
+const MAGIC_NUMBER_MESSAGE =
+  "Name or derive this number: an assertion compares against a bare literal only when it is 0, 1 or -1.";
+
 /** @type {import("eslint").Linter.Config} */
 export const vitestConfig = {
   files: ["**/*.{test,spec}.ts"],
@@ -109,7 +116,7 @@ export const vitestConfig = {
     "vitest/unbound-method": "off", // requires typed linting (parserOptions.project), not configured in this project
     "vitest/require-mock-type-parameters": "off", // stylistic; vi.fn() inferred type is sufficient and explicit generics add noise on trivial mocks
     "vitest/prefer-describe-function-title": "off", // autofix rewrites string titles to identifier references, which then conflicts with vitest/valid-title for default-imported functions
-    "vitest/padding-around-all": "off", // project test style keeps blank lines minimal (see AGENTS.md); these rules pad every block boundary
+    "vitest/padding-around-all": "off", // project test style keeps blank lines minimal (see .claude/rules/testing.md); these rules pad every block boundary
     "vitest/padding-around-after-all-blocks": "off",
     "vitest/padding-around-after-each-blocks": "off",
     "vitest/padding-around-before-all-blocks": "off",
@@ -123,6 +130,18 @@ export const vitestConfig = {
     "vitest/consistent-test-it": "off", // consistency for this is overrated, let the dev choose what's most readable based on the test title
     "vitest/prefer-to-be-falsy": "off", // sometimes you want to check explicitly for false and not just falsy
     "vitest/prefer-to-be-truthy": "off", // sometimes you want to check explicitly for true and not just truthy
+    // What ruff's PLR2004 does for Python tests: a bare number an assertion compares against is a magic value unless it is 0, 1 or -1. The check is syntactic, so it also fails a count the test body visibly produces.
+    "no-restricted-syntax": [
+      "error",
+      {
+        selector: `${COMPARING_MATCHER_CALL} > Literal.arguments${NUMBER_OTHER_THAN_ZERO_OR_ONE}`,
+        message: MAGIC_NUMBER_MESSAGE,
+      },
+      {
+        selector: `${COMPARING_MATCHER_CALL} > UnaryExpression.arguments[operator='-'] > Literal${NUMBER_OTHER_THAN_ZERO_OR_ONE}`,
+        message: MAGIC_NUMBER_MESSAGE,
+      },
+    ],
   },
 };
 

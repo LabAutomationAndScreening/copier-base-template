@@ -138,6 +138,7 @@ _templates_suffix: .jinja-base
 
 _exclude:
     - "copier.yaml"
+    - ".claude/rules/base-template.md" # describes this repository itself; a generated template writes its own .claude/rules/project.md
 
 # adapted from https://github.com/copier-org/copier-template-extensions#context-hook-extension
 _jinja_extensions:
