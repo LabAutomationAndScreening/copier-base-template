@@ -8,7 +8,7 @@ paths:
 # Python Testing
 
 - Do not apply the keyword-only parameter rule (`*`) to test functions or fixtures — pytest injects its parameters, so `*` has no effect.
-- When using `mocker.spy` on a class-level method (including inherited ones), the spy records the unbound call, so assertions need `ANY` as the first argument to match self: `spy.assert_called_once_with(ANY, expected_arg)`
+- When using `mocker.spy` on an instance method through its class (including inherited ones), the spy records the unbound call, so assertions need `ANY` as the first argument to match self: `spy.assert_called_once_with(ANY, expected_arg)`
 - Before writing new mock/spy helpers, check the `tests/unit/` folder for pre-built helpers in files like `fixtures.py` or `*mocks.py`
 - When a test needs a fixture only for its side effects (not its return value), use `@pytest.mark.usefixtures(fixture_name.__name__)` instead of adding an unused parameter with a noqa comment
 - Prefer exercising code through the project's public interface: its HTTP routes for a server, its exported functions and classes for a library. When a unit test calls internal code directly instead, put it in a `Test…` class whose docstring opens with `Tests for <the thing> directly.` and then says why: the public interface can't reach or observe what the tests check (a background job's internals, which error was raised, an exact concurrency moment), nothing public exposes the code (a developer script, a deployment job's entry point), the code wraps an external service and is tested against recorded traffic (see choosing between cassettes and mocks, below), or the code is meant to become a standalone library and its tests must not depend on this project.
