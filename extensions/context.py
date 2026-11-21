@@ -152,7 +152,7 @@ class ContextUpdater(ContextHook):
         context["gha_xlong_timeout_minutes"] = "45"
         context["gha_xxlong_timeout_minutes"] = "90"
         #######
-        context["vacuum_openapi_version"] = "0.30.0"
+        context["vacuum_openapi_version"] = "0.42.1"
         #######
         context["debian_release_name"] = "trixie"
         context["alpine_image_version"] = "3.23"
