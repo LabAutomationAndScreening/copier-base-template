@@ -1,6 +1,6 @@
 # Project Structure
 
-What this repository is and how it is laid out is described in a rule file the repository owns under `.claude/rules/`, which loads alongside this file. This file is the same in every repository generated from this template chain, so guidance for a single repository never goes here (see Memory and Rules).
+What this repository is and how it is laid out is described in a rule file under `.claude/rules/`, which loads alongside this file. This file is the same in every repository generated from this template chain, so guidance for a single repository never goes here (see Memory and Rules).
 
 # Code Guidelines
 
