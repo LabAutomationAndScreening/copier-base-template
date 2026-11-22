@@ -80,7 +80,7 @@ If the session ran `/clear`, a new session ID takes over; `sessions` shows it wi
 - Earlier watch notes for this skill (the markdown file, or `bd list --all --type epic --json` for earlier
   watch epics): list the findings still open, so this run can say whether each recurred, was fixed or didn't
   come up.
-- The project's agent rules (`AGENTS.md`, `CLAUDE.md`), since the watched session should follow them too.
+- The project's agent rules (`AGENTS.md`, `CLAUDE.md`, the files under `.claude/rules/`), since the watched session should follow them too.
 
 ## Step 4: Follow the run
 
