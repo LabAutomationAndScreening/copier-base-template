@@ -128,7 +128,7 @@ another repo's files from its checkout (Step 3) or a shallow clone in your scrat
   since both paths are then the same place), and remember one source can render to several
   downstream paths, including a file a child keeps as its own copy.
 - **Rule files.** Claude Code loads a repo's `.claude/rules/` files only for files inside the
-  session's own repo, so a checkout loads none of them. Before changing code or tests in a
+  session's own repo, so a checkout loads none of them. Before changing any file in a
   checkout, read the files in its `.claude/rules/` that have no `paths:`, which apply to all of
   it, and the ones whose `paths:` match.
 
