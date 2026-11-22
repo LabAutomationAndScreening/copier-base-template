@@ -1,6 +1,8 @@
 ---
 paths:
   - "**/tests/**/*.{py,py.jinja,py.jinja-base,ambr,jsonl}"
+  # In a template repository, a file rendered only on a condition has a name that ends in a Jinja tag, such as test_x.py{% endif %} or test_x.py{% endif %}.jinja. "?%" matches the "{%" that follows the extension.
+  - "**/tests/**/*.py?%*"
   - "**/tests/**/cassettes/**"
   - "**/test_*.{py,py.jinja,py.jinja-base}"
   - "**/conftest.{py,py.jinja,py.jinja-base}"

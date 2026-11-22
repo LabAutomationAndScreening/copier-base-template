@@ -1,6 +1,8 @@
 ---
 paths:
   - "**/*.{ts,ts.jinja,vue,vue.jinja,mts,mjs,mjs.jinja}"
+  # In a template repository, a file rendered only on a condition has a name that ends in a Jinja tag, such as x.ts{% endif %} or x.ts{% endif %}.jinja. "?%" matches the "{%" that follows the extension.
+  - "**/*.{ts,vue,mts,mjs}?%*"
 ---
 # TypeScript
 
