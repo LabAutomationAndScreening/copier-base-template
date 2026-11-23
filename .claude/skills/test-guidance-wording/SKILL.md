@@ -286,9 +286,13 @@ above still holds; what it drops is breadth.
 4. **The user confirms all six labels** before any run, as in the full process.
 5. **Two arms**, `base` and the candidate, checked with `arms.py`. Run the pasted-mode canary (Step 4), then
    reviewing only (Step 5): baseline first, two runs each, four runs in all.
-6. **Read the result against one test.** The candidate passes when it loses no case the baseline caught, flags
-   no Clean case the baseline passed, and its two runs agree on every labelled case. Anything else stops quick
-   mode: tell the user what happened and offer the full process, starting from Step 2 with these cases kept.
+6. **Read the result against one test.** The candidate passes when it catches every Violation case in both
+   runs, flags no Clean case the baseline passed, and its two runs agree on every labelled case. A candidate
+   that only matches a baseline missing the same violations has not fixed the harm, however clean its record
+   otherwise. When the baseline also caught every Violation case, the candidate is a rewording with no
+   measured gain: that still passes for a change made for clarity or length, and the Verdict says so. Anything
+   else stops quick mode: tell the user what happened and offer the full process, starting from Step 2 with
+   these cases kept.
 7. **Verdict.** Write the README's Verdict section: the clause, the six-case table with base beside candidate,
    tokens spent, and the limits (six cases, reviewers only, no authoring runs, no breaker batch). Applying the
    change still needs the user's word.
