@@ -155,6 +155,10 @@ An arm is one version of the guidance, as a directory holding what a run folder 
 
 - Take `base` from the last commit, with `git show <ref>:<path>`, and not from a working tree that may already
   carry the proposed change.
+- When the rule goes in a rules file that doesn't exist yet, give `base` that file holding everything but the
+  rule (its `paths:` frontmatter, its heading and the blank line under it), and keep every existing file in both
+  arms. An empty placeholder would leave the candidate three lines apart, not one. Say in the report that the base
+  file is a placeholder.
 - Make each candidate by copying `base` and changing one line. Name arms with lower-case letters and digits
   only (`a`, `b`, `c2`).
 - An arm that removes one existing sentence is how to find out what that sentence was doing.
