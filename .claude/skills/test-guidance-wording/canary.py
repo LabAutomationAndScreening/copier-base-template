@@ -116,7 +116,13 @@ def _place_codewords(*, folder: Path, codewords: dict[Path, str]) -> list[Path]:
 def _result_path(*, save: Path | None, folder: Path) -> Path:
     if save is None:
         return folder.parent / f"{folder.name}-canary.json"
-    return save.resolve()
+    saved = save.resolve()
+    if saved.is_relative_to(folder):
+        raise _CanaryError(
+            f"--save {saved} is the run folder or inside it, where the result would count as a stray file or be"
+            " removed with the codewords. Save it beside the run folder instead."
+        )
+    return saved
 
 
 def _ask(*, args: argparse.Namespace, folder: Path, codewords: dict[Path, str], result_path: Path) -> RunResult:
@@ -168,8 +174,8 @@ def main() -> int:
         _ = sys.stderr.write("--with-rules-file needs --mode project: pasted mode places no files.\n")
         return 1
     codewords = _codewords(with_rules_file=args.with_rules_file)
-    result_path = _result_path(save=args.save, folder=folder)
     try:
+        result_path = _result_path(save=args.save, folder=folder)
         _check_empty_run_folder(folder)
         result = _ask(args=args, folder=folder, codewords=codewords, result_path=result_path)
     except HarnessError as error:
