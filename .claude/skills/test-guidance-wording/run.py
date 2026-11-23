@@ -97,7 +97,11 @@ def _is_usable_result(path: Path) -> bool:
 
 
 def _has_baseline_result(*, results: Path, baseline: str, input_id: str) -> bool:
+    # The glob alone would also match another input whose ID starts with this one's plus "-run" (pilot-runner).
+    own_name = re.compile(rf"{re.escape(baseline)}-{re.escape(input_id)}-run\d+")
     for path in sorted(results.glob(f"{baseline}-{input_id}-run*.json")):
+        if own_name.fullmatch(path.stem) is None:
+            continue
         if _is_usable_result(path):
             return True
     return False
