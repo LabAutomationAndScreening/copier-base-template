@@ -19,8 +19,9 @@ The checks cost nothing and are how a leak shows up:
   add thousands of tokens.
 - Every input with a candidate result also has a baseline result.
 
-Exits non-zero when a check fails. A constant difference of zero is reported as a failure too, since it means
-an arm's change never reached the runs.
+Exits non-zero when a check fails. A difference of zero is not a failure but a note: either the arm's change never
+reached the runs, or the new wording happens to be as long as the old. Token counts cannot tell those apart;
+arms.py shows the changed line, and in project mode the canary shows whether an arm's files load.
 
 --replies prints what each run answered. A reviewing reply in the findings format is laid out one finding at a
 time, with the guidance sentence it cites; any other reply is printed as it came.
@@ -130,7 +131,10 @@ def _failed_checks(*, runs: list[_Run], baseline: str) -> list[str]:
             continue
         difference = distinct.pop()
         if difference == 0:
-            failures.append(f"{arm} has the same input count as {baseline}, so its change never reached the runs")
+            _ = sys.stdout.write(
+                f"NOTE: {arm} has the same input count as {baseline}. Either its change never reached the runs or the"
+                " new wording is as long as the old: check the arm with arms.py, and in project mode with the canary.\n"
+            )
             continue
         _ = sys.stdout.write(
             f"{arm} is {baseline} {difference:+} input tokens on every input compared ({len(by_input)})\n"

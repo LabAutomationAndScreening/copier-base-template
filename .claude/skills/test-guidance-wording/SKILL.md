@@ -191,7 +191,8 @@ environment signs in. Do not print the key or read credential files to find out.
 
 `tally.py` repeats three checks on every batch for free: one turn per run, the same input token count for
 identical runs, and a constant difference between each arm and the baseline. That difference is the changed
-line. A leak of a repository's guidance would add thousands of tokens.
+line. A leak of a repository's guidance would add thousands of tokens. A difference of zero gets a note rather
+than a failure, since a reworded line can be as long as the one it replaces; `arms.py` and the canary settle it.
 
 ## Step 5: Reviewing: what does the wording decide?
 
