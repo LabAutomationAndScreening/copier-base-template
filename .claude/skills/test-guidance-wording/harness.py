@@ -147,18 +147,28 @@ def files_under(tree: Path) -> set[Path]:
     return {path.relative_to(tree) for path in tree.rglob("*") if path.is_file()}
 
 
-def empty_run_folder(*, folder: Path, placed_by_arms: set[Path]) -> None:
-    """Remove what an earlier arm left in the run folder, and refuse to go on if anything else is there.
+def require_empty_run_folder(folder: Path) -> None:
+    entries = sorted(path.name for path in folder.iterdir())
+    if entries:
+        raise RunFolderError(
+            f"{folder} is not empty ({', '.join(entries)}). Runs start in an empty folder, so that removing what"
+            " an arm placed there can never remove anything else."
+        )
 
-    Only paths that some arm could have placed are removed, so pointing this at the wrong folder deletes nothing
-    of the user's. Whatever remains afterwards was not put there by this tool, and the CLI might load it, so it
-    is reported instead of ignored.
+
+def remove_placed_files(*, folder: Path, placed: set[Path]) -> None:
+    """Remove the files one arm placed in the run folder, and refuse to go on if anything else is there.
+
+    Only the files this invocation placed are removed, in a folder that was empty when the runs began, so a file
+    of the user's is never deleted even when it shares a name with an arm's file. Whatever remains afterwards was
+    put there by something else while the runs went on, and the CLI might load it, so it is reported instead of
+    ignored.
     """
-    for relative in placed_by_arms:
-        placed = folder / relative
-        if placed.is_file():
-            placed.unlink()
-    directories = {parent for relative in placed_by_arms for parent in relative.parents if parent != Path()}
+    for relative in placed:
+        placed_file = folder / relative
+        if placed_file.is_file():
+            placed_file.unlink()
+    directories = {parent for relative in placed for parent in relative.parents if parent != Path()}
     for relative in sorted(directories, key=lambda directory: len(directory.parts), reverse=True):
         directory = folder / relative
         if directory.is_dir() and not any(directory.iterdir()):
@@ -213,12 +223,15 @@ def rules_files_with_paths(tree: Path) -> list[Path]:
     return found
 
 
-def place_arm(*, arm_tree: Path, folder: Path) -> None:
+def place_arm(*, arm_tree: Path, folder: Path) -> set[Path]:
+    placed: set[Path] = set()
     for relative in files_under(arm_tree):
         destination = folder / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         source = (arm_tree / relative).read_bytes().decode("utf-8")
         _ = destination.write_bytes(as_delivered(relative=relative, text=source).encode("utf-8"))
+        placed.add(relative)
+    return placed
 
 
 def _cli_arguments(*, mode: str, model: str, effort: str) -> list[str]:

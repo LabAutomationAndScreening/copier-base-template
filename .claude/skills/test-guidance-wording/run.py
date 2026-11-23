@@ -16,7 +16,8 @@ into the run folder before its runs, so the CLI loads them as project instructio
 arm. In pasted mode the guidance is already inside each arm's prompt, so --input names one file per arm through
 the `{arm}` placeholder, and the run folder stays empty.
 
-Every arm of an input runs in the same folder, so the path the model sees never differs between arms. To run
+Every arm of an input runs in the same folder, so the path the model sees never differs between arms. The folder
+must be empty when the runs begin, and only the files this invocation placed in it are removed. To run
 inputs side by side, start one of these per input, each with a run folder of its own.
 
 The baseline goes first, and a candidate arm is refused while its input has no baseline result. Without the
@@ -42,10 +43,10 @@ from harness import HarnessError
 from harness import add_cli_arguments
 from harness import check_run_folder
 from harness import cli_settings
-from harness import empty_run_folder
-from harness import files_under
 from harness import place_arm
 from harness import read_result
+from harness import remove_placed_files
+from harness import require_empty_run_folder
 from harness import run_cli
 
 _ARM_NAME_RE = re.compile(r"[a-z0-9]+")
@@ -85,21 +86,12 @@ def _has_baseline_result(*, results: Path, baseline: str, input_id: str) -> bool
     return any(results.glob(f"{baseline}-{input_id}-run*.json"))
 
 
-def _files_any_arm_places(arms_dir: Path | None) -> set[Path]:
-    if arms_dir is None:
-        return set()
-    placed: set[Path] = set()
-    for arm_tree in arms_dir.iterdir():
-        if arm_tree.is_dir():
-            placed |= files_under(arm_tree)
-    return placed
-
-
 def _run_all(args: argparse.Namespace) -> int:
     folder: Path = args.folder.resolve()
     results: Path = args.results.resolve()
-    placed_by_arms = _files_any_arm_places(args.arms_dir)
     check_run_folder(folder)
+    require_empty_run_folder(folder)
+    placed: set[Path] = set()
     try:
         for arm in _baseline_first(arms=args.arms, baseline=args.baseline):
             if arm != args.baseline:
@@ -114,9 +106,10 @@ def _run_all(args: argparse.Namespace) -> int:
                 result_path = results / f"{name}.json"
                 if result_path.exists() and not args.overwrite:
                     raise _PlanError(f"{result_path} exists. Pass other --runs numbers, or --overwrite to replace it.")
-                empty_run_folder(folder=folder, placed_by_arms=placed_by_arms)
+                remove_placed_files(folder=folder, placed=placed)
+                placed = set()
                 if args.mode == PROJECT:
-                    place_arm(arm_tree=args.arms_dir / arm, folder=folder)
+                    placed = place_arm(arm_tree=args.arms_dir / arm, folder=folder)
                 exit_code = run_cli(
                     settings=cli_settings(args), mode=args.mode, folder=folder, prompt=prompt, result_path=result_path
                 )
@@ -143,7 +136,7 @@ def _run_all(args: argparse.Namespace) -> int:
                     _ = sys.stderr.write(f"{name}: took {result.turns} turns. With tools off a run is one turn.\n")
                     return 1
     finally:
-        empty_run_folder(folder=folder, placed_by_arms=placed_by_arms)
+        remove_placed_files(folder=folder, placed=placed)
     return 0
 
 
