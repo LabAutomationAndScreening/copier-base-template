@@ -175,6 +175,12 @@ def _write_replies(*, runs: list[_Run], baseline: str, fields: list[str]) -> Non
         _ = sys.stdout.write(f"{run.result.reply}\n")
 
 
+def _finding_fields(requested: list[str] | None) -> list[str]:
+    if requested is None:
+        return list(_FINDING_FIELDS)
+    return requested
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     _ = parser.add_argument("--results", type=Path, required=True)
@@ -191,7 +197,7 @@ def main() -> int:
     )
     args = parser.parse_args()
     show_replies = args.replies or args.only is not None or args.fields is not None
-    fields = list(_FINDING_FIELDS) if args.fields is None else args.fields
+    fields = _finding_fields(args.fields)
 
     runs, unreadable = _load(results=args.results, only_input=args.id)
     for problem in unreadable:

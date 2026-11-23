@@ -35,8 +35,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from harness import MODES
 from harness import PROJECT
 from harness import RULES_DIR
-from harness import ResultFormatError
-from harness import RunFolderError
+from harness import HarnessError
 from harness import RunResult
 from harness import add_cli_arguments
 from harness import check_run_folder
@@ -72,7 +71,7 @@ def _remove_placed(*, folder: Path, placed: list[Path]) -> None:
                 directory.rmdir()
 
 
-class _CanaryError(Exception):
+class _CanaryError(HarnessError):
     pass
 
 
@@ -173,13 +172,7 @@ def main() -> int:
     try:
         _check_empty_run_folder(folder)
         result = _ask(args=args, folder=folder, codewords=codewords, result_path=result_path)
-    except _CanaryError as error:
-        _ = sys.stderr.write(f"{error}\n")
-        return 1
-    except RunFolderError as error:
-        _ = sys.stderr.write(f"{error}\n")
-        return 1
-    except ResultFormatError as error:
+    except HarnessError as error:
         _ = sys.stderr.write(f"{error}\n")
         return 1
     return _report(result=result, result_path=result_path, mode=args.mode, codewords=codewords)

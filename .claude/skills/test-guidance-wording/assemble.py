@@ -104,7 +104,9 @@ def main() -> int:
     args = parser.parse_args()
 
     arms: list[str] = args.arms
-    guidance_files: list[str] = args.guidance if args.guidance is not None else [_DEFAULT_GUIDANCE]
+    guidance_files: list[str] = [_DEFAULT_GUIDANCE]
+    if args.guidance is not None:
+        guidance_files = args.guidance
     if arms is None:
         arms = sorted(path.name for path in args.arms_dir.iterdir() if path.is_dir())
     try:
@@ -121,7 +123,10 @@ def main() -> int:
             prompt_path: Path = args.out_dir / f"{arm}-{args.id}.txt"
             _ = prompt_path.write_text(_HEAD + guidance + after_guidance, encoding="utf-8")
             _ = sys.stdout.write(f"{prompt_path}  {prompt_path.stat().st_size} bytes\n")
-    except (OSError, ValueError) as error:
+    except OSError as error:
+        _ = sys.stderr.write(f"{error}\n")
+        return 1
+    except ValueError as error:
         _ = sys.stderr.write(f"{error}\n")
         return 1
     return 0

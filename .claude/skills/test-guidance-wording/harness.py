@@ -41,11 +41,19 @@ _INSTRUCTION_PATHS = (
 )
 
 
-class RunFolderError(Exception):
+class HarnessError(Exception):
+    """A failure a script reports as one line on stderr before exiting with 1.
+
+    Every script's entry point catches it, so raising one ends the run with its message and no traceback. Errors
+    from outside the scripts (OSError, a timeout) are caught beside it, since their messages are already readable.
+    """
+
+
+class RunFolderError(HarnessError):
     pass
 
 
-class ResultFormatError(Exception):
+class ResultFormatError(HarnessError):
     pass
 
 
@@ -106,7 +114,11 @@ def _is_inside_git_work_tree(folder: Path) -> bool:
         encoding="utf-8",
         check=False,
     )
-    return completed.returncode == 0 and completed.stdout.strip() == "true"
+    if completed.returncode != 0:
+        return False
+    if completed.stdout.strip() != "true":
+        return False
+    return True
 
 
 def _nearest_existing(folder: Path) -> Path:
@@ -156,6 +168,13 @@ def empty_run_folder(*, folder: Path, placed_by_arms: set[Path]) -> None:
         raise RunFolderError(f"{folder} holds files this tool did not place: {', '.join(leftovers)}")
 
 
+def _declares_paths(frontmatter: list[str]) -> bool:
+    for entry in frontmatter:
+        if entry.startswith("paths:"):
+            return True
+    return False
+
+
 def _without_paths_frontmatter(text: str) -> str:
     lines = text.splitlines(keepends=True)
     if not lines:
@@ -164,7 +183,7 @@ def _without_paths_frontmatter(text: str) -> str:
         return text
     for index, line in enumerate(lines[1:], start=1):
         if line.rstrip("\r\n") == _FRONTMATTER_FENCE:
-            if not any(entry.startswith("paths:") for entry in lines[1:index]):
+            if not _declares_paths(lines[1:index]):
                 return text
             rest = lines[index + 1 :]
             while rest and not rest[0].strip():

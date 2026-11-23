@@ -38,8 +38,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from harness import MODES
 from harness import PROJECT
-from harness import ResultFormatError
-from harness import RunFolderError
+from harness import HarnessError
 from harness import add_cli_arguments
 from harness import check_run_folder
 from harness import cli_settings
@@ -53,7 +52,7 @@ _ARM_NAME_RE = re.compile(r"[a-z0-9]+")
 _ARM_PLACEHOLDER = "{arm}"
 
 
-class _PlanError(Exception):
+class _PlanError(HarnessError):
     pass
 
 
@@ -166,7 +165,13 @@ def main() -> int:
     try:
         _check_plan(args)
         return _run_all(args)
-    except (_PlanError, RunFolderError, ResultFormatError, OSError, subprocess.TimeoutExpired) as error:
+    except HarnessError as error:
+        _ = sys.stderr.write(f"{error}\n")
+        return 1
+    except OSError as error:
+        _ = sys.stderr.write(f"{error}\n")
+        return 1
+    except subprocess.TimeoutExpired as error:
         _ = sys.stderr.write(f"{error}\n")
         return 1
 
