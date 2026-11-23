@@ -78,11 +78,6 @@ def get_uv_lock_bytes_for_hashing(file_path: Path) -> bytes:
 
 
 def expand_directories_to_files(paths: list[Path]) -> list[Path]:
-    """Replace each directory in the list with every file under it, hidden files included.
-
-    A directory passed as an extra path is usually content git does not track, such as generated code downloaded from a CI artifact,
-    so it has to be hashed by what is on disk rather than through `git ls-files`.
-    """
     files: list[Path] = []
     for path in paths:
         if not path.is_dir():
@@ -96,7 +91,8 @@ def compute_adler32(repo_path: Path, files: list[str], extra_paths: list[Path] |
     """Compute an overall Adler-32 checksum of the provided files.
 
     The checksum incorporates both the file names and their contents. Files are processed in sorted order to ensure consistent ordering. Extra paths
-    are hashed after the main files, keyed by their string representation; a directory among them contributes every file under it.
+    are hashed after the main files, keyed by their string representation; a directory among them contributes every file under it,
+    hidden files included.
     """
     checksum = 1  # Adler-32 default starting value
 

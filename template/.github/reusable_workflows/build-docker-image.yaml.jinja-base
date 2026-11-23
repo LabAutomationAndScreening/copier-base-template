@@ -37,7 +37,7 @@ on:
         required: false
         default: ''
       download-artifact-name:
-        description: 'Optional artifact of this workflow run to download before hashing and building, such as generated code that git does not track. List where it lands in additional-hash-paths, so the image tag follows its contents'
+        description: 'Optional artifact of this workflow run to download before hashing and building. List where it lands in additional-hash-paths, so the image tag follows its contents'
         type: string
         required: false
         default: ''
