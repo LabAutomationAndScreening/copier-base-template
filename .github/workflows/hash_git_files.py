@@ -179,7 +179,10 @@ def main():
         nargs="*",
         type=Path,
         default=[],
-        help="Additional files or directories to include in the hash (relative to CWD); a directory contributes every file under it",
+        help=(
+            "Additional files or directories to include in the hash (relative to CWD), read from disk whether git tracks them or not: "
+            ".gitignore does not apply, and a directory contributes every file under it, so pass the narrowest one"
+        ),
     )
     _ = parser.add_argument("--debug", action="store_true", help="Print all discovered Git-tracked files")
     _ = parser.add_argument(

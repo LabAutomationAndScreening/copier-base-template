@@ -32,7 +32,7 @@ on:
         required: false
         default: ''
       additional-hash-paths:
-        description: 'Space-separated extra file or directory paths (relative to repo root) to include in the build context hash; a directory contributes every file under it'
+        description: 'Space-separated extra file or directory paths (relative to repo root) to include in the build context hash, read from disk whether git tracks them or not: .gitignore does not apply, and a directory contributes every file under it, so pass the narrowest one'
         type: string
         required: false
         default: ''
