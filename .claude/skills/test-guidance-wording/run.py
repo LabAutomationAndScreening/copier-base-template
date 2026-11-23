@@ -64,6 +64,12 @@ def _baseline_first(*, arms: list[str], baseline: str) -> list[str]:
 
 
 def _check_plan(args: argparse.Namespace) -> None:
+    results = args.results.resolve()
+    if results.is_relative_to(args.folder.resolve()):
+        raise _PlanError(
+            f"--results {results} is the run folder or inside it, where each result would count as a stray file."
+            " Put results beside the run folder instead."
+        )
     unusable = [arm for arm in args.arms if _ARM_NAME_RE.fullmatch(arm) is None]
     if unusable:
         raise _PlanError(
