@@ -208,8 +208,10 @@ Read `.claude/skills/test-guidance-wording/reviewing.md` before building the fir
 3. **Then the candidates**, on the same input.
 4. **Score each case as gained, lost, both or neither** against the baseline. A lost case, one the baseline
    caught and the candidate does not, is the worst outcome a wording can have, and only the baseline shows it.
-5. **Decide.** If a candidate gets a case wrong for a reason its text invites, rewrite the line and rerun that
-   batch. If two candidates agree everywhere, the shorter one wins.
+5. **Decide.** If a candidate gets a case wrong for a reason its text invites, rewrite the line as a new arm
+   (`a2`): check it with `arms.py`, build its prompt with `assemble.py`, and run it on the same input. Never rerun
+   an arm under its old name: its prompt and its results would mix two wordings. If two candidates agree
+   everywhere, the shorter one wins.
 
 A pilot like this costs well under 100,000 tokens and has usually told the wordings apart by its end.
 

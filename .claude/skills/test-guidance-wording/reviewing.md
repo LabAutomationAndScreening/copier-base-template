@@ -141,5 +141,5 @@ only if the leader fails on a case that wording was meant to protect.
 ## Shortening a wording
 
 Shorter guidance is read more reliably and costs every session less. Once a wording works, cut it to the
-sentences that carried the criterion and rerun the batches. If no verdict changes, keep the short one, and
-list what was cut and how few cases covered it.
+sentences that carried the criterion, as a new arm beside the long one, and run the batches on it. If no verdict
+changes, keep the short one, and list what was cut and how few cases covered it.
