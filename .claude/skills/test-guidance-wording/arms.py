@@ -54,13 +54,12 @@ def _changed_lines(*, baseline_tree: Path, arm_tree: Path) -> tuple[list[str], l
             relative=relative, text=(baseline_tree / relative).read_text(encoding="utf-8")
         ).splitlines()
         after = as_delivered(relative=relative, text=(arm_tree / relative).read_text(encoding="utf-8")).splitlines()
-        for line in difflib.unified_diff(before, after, lineterm="", n=0):
-            if line.startswith(("---", "+++", "@@")):
+        matcher = difflib.SequenceMatcher(a=before, b=after, autojunk=False)
+        for tag, before_start, before_end, after_start, after_end in matcher.get_opcodes():
+            if tag == "equal":
                 continue
-            if line.startswith("-"):
-                removed.append(f"{relative}: {line[1:]}")
-            if line.startswith("+"):
-                added.append(f"{relative}: {line[1:]}")
+            removed.extend(f"{relative}: {line}" for line in before[before_start:before_end])
+            added.extend(f"{relative}: {line}" for line in after[after_start:after_end])
     return removed, added
 
 
