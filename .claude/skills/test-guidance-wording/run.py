@@ -20,7 +20,8 @@ Every arm of an input runs in the same folder, so the path the model sees never 
 must be empty when the runs begin, and only the files this invocation placed in it are removed. To run
 inputs side by side, start one of these per input, each with a run folder of its own.
 
-The baseline goes first, and a candidate arm is refused while its input has no baseline result. Without the
+The baseline goes first, and a candidate arm is refused while its input has no usable baseline result: one that
+reads back, reports no error and took one turn. Without the
 baseline there is no telling which catches the existing guidance already makes, or which ones a new wording loses.
 
 Each result is written to <results>/<arm>-<id>-run<N>.json, with the CLI's stderr beside it as .err. An existing
@@ -40,6 +41,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from harness import MODES
 from harness import PROJECT
 from harness import HarnessError
+from harness import ResultFormatError
 from harness import add_cli_arguments
 from harness import check_run_folder
 from harness import cli_settings
@@ -82,8 +84,23 @@ def _prompt_for(*, args: argparse.Namespace, arm: str) -> str:
     return Path(args.input.replace(_ARM_PLACEHOLDER, arm)).read_text(encoding="utf-8")
 
 
+def _is_usable_result(path: Path) -> bool:
+    try:
+        result = read_result(path)
+    except ResultFormatError:
+        return False
+    if result.is_error:
+        return False
+    if result.turns != 1:
+        return False
+    return True
+
+
 def _has_baseline_result(*, results: Path, baseline: str, input_id: str) -> bool:
-    return any(results.glob(f"{baseline}-{input_id}-run*.json"))
+    for path in sorted(results.glob(f"{baseline}-{input_id}-run*.json")):
+        if _is_usable_result(path):
+            return True
+    return False
 
 
 def _run_all(args: argparse.Namespace) -> int:
@@ -97,7 +114,7 @@ def _run_all(args: argparse.Namespace) -> int:
             if arm != args.baseline:
                 if not _has_baseline_result(results=results, baseline=args.baseline, input_id=args.id):
                     raise _PlanError(
-                        f"No {args.baseline} result for {args.id} yet. Run the baseline first, and look at it:"
+                        f"No usable {args.baseline} result for {args.id} yet. Run the baseline first, and look at it:"
                         " if it does not show the problem, a candidate arm has nothing to fix."
                     )
             prompt = _prompt_for(args=args, arm=arm)
