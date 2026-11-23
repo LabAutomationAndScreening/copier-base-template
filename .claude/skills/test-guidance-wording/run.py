@@ -80,6 +80,13 @@ def _check_plan(args: argparse.Namespace) -> None:
         raise _PlanError(f"In pasted mode --input must contain {_ARM_PLACEHOLDER}, since each arm has its own prompt")
 
 
+def _run_number(text: str) -> int:
+    number = int(text)
+    if number < 1:
+        raise argparse.ArgumentTypeError(f"run numbers start at 1, got {text}")
+    return number
+
+
 def _prompt_for(*, args: argparse.Namespace, arm: str) -> str:
     return Path(args.input.replace(_ARM_PLACEHOLDER, arm)).read_text(encoding="utf-8")
 
@@ -170,7 +177,9 @@ def main() -> int:
     _ = parser.add_argument("--input", required=True, help=f"prompt file; in pasted mode with {_ARM_PLACEHOLDER} in it")
     _ = parser.add_argument("--id", required=True, help="name of this input, used in result names")
     _ = parser.add_argument("--results", type=Path, required=True)
-    _ = parser.add_argument("--runs", type=int, nargs="+", default=[1, 2], help="run numbers to make (default: 1 2)")
+    _ = parser.add_argument(
+        "--runs", type=_run_number, nargs="+", default=[1, 2], help="run numbers to make, from 1 (default: 1 2)"
+    )
     _ = parser.add_argument("--baseline", default="base", help="name of the arm holding the guidance as it stands")
     _ = parser.add_argument("--overwrite", action="store_true")
     add_cli_arguments(parser)
