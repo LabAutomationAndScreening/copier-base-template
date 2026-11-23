@@ -137,7 +137,8 @@ From it, note:
 ### The PR's beads
 
 Find every bead, open or closed, whose description or notes name `<headRefName>` or `PR #<pr>`. A PR's bead
-need not be an epic's child, and `bd list --all --json` leaves out notes, so filter on the text itself:
+need not be an epic's child, so search the text itself; each match comes with its parent, description and
+notes:
 
 ```bash
 bd list --all --desc-contains '<headRefName>' --json
@@ -146,9 +147,9 @@ bd list --all --desc-contains 'PR #<pr>' --json
 bd list --all --notes-contains 'PR #<pr>' --json
 ```
 
-The filters match substrings, so drop a match where `PR #<pr>` is only the start of a longer number (`PR #850`
-when looking for `PR #85`). Run `bd show <id> --json` on each remaining match for its parent and full notes,
-and sort it:
+The filters match substrings. Drop a match only when it names neither `<headRefName>` nor this PR, that is,
+when every `PR #<pr>` in it is the start of a longer number (`PR #850` when looking for `PR #85`). Sort each
+one left:
 
 - **The PR's ticket**: a bead whose text says this PR or branch carries its work, such as notes naming the
   branch it was done on or saying it opened this PR. Its parent decides what it is:
