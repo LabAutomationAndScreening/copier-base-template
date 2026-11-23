@@ -111,7 +111,14 @@ def main() -> int:
             f"Runs get {listed} without the paths: frontmatter, as if each had loaded. Delivery through paths:"
             " (whether the rule is in context when a matching file is touched) was not tested.\n"
         )
-    arms = sorted(path.name for path in args.arms_dir.iterdir() if path.is_dir() and path.name != args.baseline)
+    arm_names: list[str] = []
+    for path in args.arms_dir.iterdir():
+        if not path.is_dir():
+            continue
+        if path.name == args.baseline:
+            continue
+        arm_names.append(path.name)
+    arms = sorted(arm_names)
     if not arms:
         _ = sys.stderr.write(f"No arm besides the baseline under {args.arms_dir}\n")
         return 1
