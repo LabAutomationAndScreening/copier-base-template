@@ -77,11 +77,26 @@ def get_uv_lock_bytes_for_hashing(file_path: Path) -> bytes:
     return "".join(result).encode("utf-8")
 
 
+def expand_directories_to_files(paths: list[Path]) -> list[Path]:
+    """Replace each directory in the list with every file under it, hidden files included.
+
+    A directory passed as an extra path is usually content git does not track, such as generated code downloaded from a CI artifact,
+    so it has to be hashed by what is on disk rather than through `git ls-files`.
+    """
+    files: list[Path] = []
+    for path in paths:
+        if not path.is_dir():
+            files.append(path)
+            continue
+        files.extend(child for child in path.rglob("*") if child.is_file())
+    return files
+
+
 def compute_adler32(repo_path: Path, files: list[str], extra_paths: list[Path] | None = None) -> int:
     """Compute an overall Adler-32 checksum of the provided files.
 
     The checksum incorporates both the file names and their contents. Files are processed in sorted order to ensure consistent ordering. Extra paths
-    are hashed after the main files, keyed by their string representation.
+    are hashed after the main files, keyed by their string representation; a directory among them contributes every file under it.
     """
     checksum = 1  # Adler-32 default starting value
 
@@ -99,7 +114,7 @@ def compute_adler32(repo_path: Path, files: list[str], extra_paths: list[Path] |
             # Ignore symlinks that on windows sometimes get confused as being directories
             continue
 
-    for extra_path in sorted(extra_paths or []):
+    for extra_path in sorted(expand_directories_to_files(extra_paths or [])):
         checksum = zlib.adler32(str(extra_path).encode("utf-8"), checksum)
         checksum = zlib.adler32(extra_path.read_bytes().replace(b"\r\n", b"\n"), checksum)
 
@@ -168,7 +183,7 @@ def main():
         nargs="*",
         type=Path,
         default=[],
-        help="Additional files to include in the hash (relative to CWD)",
+        help="Additional files or directories to include in the hash (relative to CWD); a directory contributes every file under it",
     )
     _ = parser.add_argument("--debug", action="store_true", help="Print all discovered Git-tracked files")
     _ = parser.add_argument(
