@@ -35,6 +35,7 @@ _INSTRUCTION_PATHS = (
     Path("CLAUDE.md"),
     Path("CLAUDE.local.md"),
     Path(".claude") / "CLAUDE.md",
+    Path(".claude") / "AGENTS.md",
     RULES_DIR,
     Path(".claude") / "settings.json",
     Path(".claude") / "settings.local.json",
