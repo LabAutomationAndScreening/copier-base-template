@@ -1,6 +1,6 @@
 minimum_pre_commit_version: 4.5.1
 # run `pre-commit autoupdate --freeze` to update all hooks
-default_install_hook_types: [pre-commit, post-checkout]
+default_install_hook_types: [pre-commit, post-checkout, post-merge, post-rewrite]
 repos:
   # package management
   - repo: local
@@ -26,8 +26,8 @@ repos:
         verbose: true
 
       - id: sync-dependencies-post-checkout
-        name: ensure python dependencies are up to date during checkouts
-        stages: [post-checkout]
+        name: ensure python dependencies are up to date after checkouts, merges and rebases
+        stages: [post-checkout, post-merge, post-rewrite]
         entry: bash -c 'uv sync --frozen'
         pass_filenames: false
         language: system

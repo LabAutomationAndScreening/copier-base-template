@@ -32,10 +32,20 @@ on:
         required: false
         default: ''
       additional-hash-paths:
-        description: 'Space-separated extra file paths (relative to repo root) to include in the build context hash'
+        description: 'Space-separated extra file or directory paths (relative to repo root) to include in the build context hash, read from disk whether git tracks them or not: .gitignore does not apply, and a directory contributes every file under it, so pass the narrowest one'
         type: string
         required: false
         default: ''
+      download-artifact-name:
+        description: 'Optional artifact of this workflow run to download before hashing and building. List where it lands in additional-hash-paths, so the image tag follows its contents'
+        type: string
+        required: false
+        default: ''
+      download-artifact-path:
+        description: 'Where to download download-artifact-name (relative to repo root)'
+        type: string
+        required: false
+        default: '.'
       push-role-name:
         type: string
         description: What's the IAM role name to use for Pushing to the ECR?
@@ -93,6 +103,13 @@ jobs:
         uses: actions/checkout@{% endraw %}{{ gha_checkout }}{% raw %}
         with:
           persist-credentials: false
+
+      - name: Download build input artifact
+        if: ${{ inputs.download-artifact-name != '' }}
+        uses: actions/download-artifact@{% endraw %}{{ gha_download_artifact }}{% raw %}
+        with:
+          name: ${{ inputs.download-artifact-name }}
+          path: ${{ inputs.download-artifact-path }}
 
       - name: OIDC Auth for ECR
         if: ${{ inputs.push-role-name != 'no-push' }}
