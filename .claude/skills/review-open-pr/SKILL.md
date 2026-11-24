@@ -81,8 +81,9 @@ Stop if the PR is not `OPEN`, or if `url` isn't a PR of the repo `origin` points
 origin`): the fetch below and the pr-comments and post-review-findings scripts all work on `origin`.
 
 Stop, too, if `headRefName` or `baseRefName` holds any character besides letters, digits, `.`, `_`, `/` and
-`-`, and tell the user the name. Both go into shell commands below, so a name such as `fix'$(id)'` would run a
-command. A big branch's name gets the same check (see below).
+`-`, or starts with `-`, and tell the user the name. Both go into shell commands below, so a name such as
+`fix'$(id)'` would run a command, and one such as `-p` would be read as an option. A big branch's name gets the
+same check (see below).
 
 ```bash
 git fetch origin <baseRefName> pull/<number>/head
