@@ -31,6 +31,11 @@ Result lines and exit codes, in PR mode unless marked otherwise:
   BLOCKED mean a person turned it off. In a repo with a merge queue, auto-merge also goes off when it puts the PR in
   the queue, so a queued PR is still waited on (the timeout then says "in merge queue"), and only a PR that is
   neither auto-merging nor queued, such as one the queue dropped after its merge_group CI failed, is reported.
+- MERGE_CONFLICT: PR #<n> conflicts with its base branch, so GitHub starts no pull_request run for <sha> (1): the
+  PR's CI runs on pull requests and the head's pull_request run is still missing, but GitHub reports the PR as
+  conflicting (mergeStateStatus DIRTY). GitHub runs no pull_request workflow while a PR conflicts, so that run never
+  comes, and the push run may have skipped its jobs as a duplicate of it, so nothing has tested the head. Waiting
+  could only time out; merging the base branch in (or rebasing) and pushing starts CI again.
 - GH_UNREACHABLE: <last error> (1): several polls in a row failed or timed out
 - GH_NOT_FOUND: <gh's message> (1): GitHub says the PR, repo or commit doesn't exist or isn't visible with either set of
   credentials, which no retry fixes, so it is reported at once
@@ -57,6 +62,8 @@ pushed local HEAD. Its result lines:
 - CHECKS_FAILED: <job names> (1): a job concluded failure, cancelled, timed_out or startup_failure; reported as soon as
   the job finishes, without waiting for the rest of its run. A run that never ran its jobs, because it awaits approval
   (action_required) or GitHub gave up on it (stale), is listed as `<workflow> (<conclusion>)`.
+- MERGE_CONFLICT: PR #<n> conflicts with its base branch, so GitHub starts no pull_request run for <sha> (1): as in PR
+  mode, for an open PR whose head is the commit
 - TIMED_OUT after <n> minutes (1): as in PR mode; when no run ever appeared, such as for a commit whose push triggers no
   workflow, the line says so
 
@@ -163,16 +170,29 @@ def _gh_failure(*, completed: subprocess.CompletedProcess[str]) -> GhCallFailedE
     return GhCallFailedError(message)
 
 
-class LocalHeadNotPushedError(Exception):
-    def __init__(self, *, sha: str) -> None:
-        super().__init__(sha)
-        self.sha = sha
+class SettlingError(Exception):
+    # raised from a poll when the wait is over: result_line is the line to print, always with exit code 1
+    def __init__(self, *, result_line: str) -> None:
+        super().__init__(result_line)
+        self.result_line = result_line
 
 
-class UnknownCommitError(Exception):
+class LocalHeadNotPushedError(SettlingError):
     def __init__(self, *, sha: str) -> None:
-        super().__init__(sha)
-        self.sha = sha
+        super().__init__(result_line=f"LOCAL_HEAD_NOT_PUSHED: {sha}")
+
+
+class UnknownCommitError(SettlingError):
+    def __init__(self, *, sha: str) -> None:
+        super().__init__(result_line=f"UNKNOWN_COMMIT: {sha}")
+
+
+class PrMergeConflictError(SettlingError):
+    def __init__(self, *, pr_number: int, sha: str) -> None:
+        super().__init__(
+            result_line=f"MERGE_CONFLICT: PR #{pr_number} conflicts with its base branch, so GitHub starts no"
+            f" pull_request run for {sha}"
+        )
 
 
 @dataclass(frozen=True)
@@ -919,8 +939,18 @@ def _pr_runs_outcome(*, pr_state: _PrState, access: _RepoAccess) -> tuple[tuple[
         return None, unfinished
     if not _any_pull_request_run(runs=runs):
         if _pull_request_runs_expected(pr=_open_pr(pr_state=pr_state), access=access):
+            _raise_if_conflicting(
+                merge_state_status=pr_state.merge_state_status, pr_number=pr_state.number, commit_sha=commit_sha
+            )
             return None, f"no pull_request run for {commit_sha} yet"
     return None, None
+
+
+def _raise_if_conflicting(*, merge_state_status: str, pr_number: int, commit_sha: str) -> None:
+    # GitHub creates no pull_request run while a PR conflicts with its base branch, so the run being waited for never
+    # comes. UNKNOWN (GitHub still computing the merge state after a push) keeps the wait going.
+    if merge_state_status == "DIRTY":
+        raise PrMergeConflictError(pr_number=pr_number, sha=commit_sha)
 
 
 def _pull_request_runs_expected(*, pr: _OpenPr, access: _RepoAccess) -> bool:
@@ -1208,6 +1238,11 @@ def _missing_pull_request_run_detail(
         return f"no pull_request run for {commit_sha} yet"
     for open_pr in _open_prs_headed_at(commit_sha=commit_sha, access=access):
         if _pull_request_runs_expected(pr=open_pr, access=access):
+            # the commits/{sha}/pulls listing carries no merge state, so it is read only for a PR still owed a run
+            pr_state = _pr_view(pr=str(open_pr.number), repo=access.repo, env=access.gh_env, deadline=access.deadline)
+            _raise_if_conflicting(
+                merge_state_status=pr_state.merge_state_status, pr_number=open_pr.number, commit_sha=commit_sha
+            )
             return f"PR #{open_pr.number} is open for {commit_sha} but no pull_request run has appeared"
     return None
 
@@ -1247,7 +1282,7 @@ def wait_for_ci(*, pr: str | None, repo: str | None, sha: str | None, deadline_m
     try:
         commit_sha = _commit_to_await(sha=sha)
     except LocalHeadNotPushedError as e:
-        return f"LOCAL_HEAD_NOT_PUSHED: {e.sha}", 1
+        return e.result_line, 1
     return _poll_until_settled(
         poll=lambda: _commit_poll(sha=commit_sha, repo=repo, deadline=deadline, state=state),
         deadline=deadline,
@@ -1271,10 +1306,8 @@ def _poll_until_settled(
             consecutive_failed_polls += 1
             if consecutive_failed_polls >= MAX_CONSECUTIVE_FAILED_POLLS:
                 return f"GH_UNREACHABLE: {e}", 1
-        except LocalHeadNotPushedError as e:
-            return f"LOCAL_HEAD_NOT_PUSHED: {e.sha}", 1
-        except UnknownCommitError as e:
-            return f"UNKNOWN_COMMIT: {e.sha}", 1
+        except SettlingError as e:
+            return e.result_line, 1
         else:
             if result is not None:
                 return result
