@@ -6,6 +6,14 @@
 Meant to run as a background command, so the caller gets one notification when CI settles instead of polling it.
 Only CI that runs on GitHub Actions is supported for now: required checks or statuses posted by other CI (Jenkins,
 CircleCI, an App) aren't reliably waited on.
+
+It assumes CI shaped like that of the repos generated from these templates, and other setups fall outside it:
+- the default branch has at least one required check, and a push run reports the same required checks a
+  pull_request run does (a summary job that every other job feeds), so a PR's head has its required checks reported
+  even when only its push run has run;
+- workflows are triggered by push, pull_request or merge_group, never pull_request_target, which runs even on a
+  conflicting PR, so a missing pull_request run on a conflicting PR means no run is coming.
+
 Result lines and exit codes, in PR mode unless marked otherwise:
 
 - MERGED (0)
