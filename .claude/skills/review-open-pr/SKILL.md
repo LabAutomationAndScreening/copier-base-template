@@ -335,10 +335,11 @@ tell the user. If the review instead reports its findings inline, write that arr
   finding, before asking anything and without asking whether to: the point of this skill is all the findings.
   Start each one's `summary` with "Unverified; the reviewer set this aside as <its reason>." and give it its
   exact line at the reviewed commit. Two kinds of candidate are not added, and Step 6 counts them:
-  - one the reviewer folded into a reported finding, when that finding already names its location: the
-    reported finding already says it, and a second comment on the same line only repeats it. Add it when its
-    file and line are ones the reported finding doesn't name, since a comment there points at code the
-    reported finding doesn't, and say in its `summary` which finding it was folded into;
+  - one the reviewer folded into a reported finding, when that finding already names its location and
+    describes its failure scenario: a second comment on the same line would only repeat it. Add it when the
+    reported finding doesn't name its file and line, since a comment there points at code the reported finding
+    doesn't, or doesn't describe its failure scenario, since that failure would otherwise go unreported, and
+    say in its `summary` which finding it was folded into;
   - one with no file and line in the reviewed code (about the PR description, say): there is no line to
     comment on, so list it in the Step 6 report instead.
 
@@ -385,7 +386,8 @@ Give the user, beyond `/post-review-findings`' own report:
   collected, and why, as in the approval question) and from known items the
   user chose to add, and how many were dropped as settled or duplicate;
 - how many set-aside candidates Step 5 didn't add because they were folded into a reported finding that names
-  their location, and each candidate with no file and line, with its summary and the reviewer's reason;
+  their location and describes their failure scenario, and each candidate with no file and line, with its
+  summary and the reviewer's reason;
 - each marked "Known, not raised" item Step 5 left on its open thread, with the thread's URL and the
   reviewer's reason for deciding it again;
 - the next step: `/address-pr-comments <pr>`.
