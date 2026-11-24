@@ -1240,9 +1240,11 @@ def _missing_pull_request_run_detail(
         if _pull_request_runs_expected(pr=open_pr, access=access):
             # the commits/{sha}/pulls listing carries no merge state, so it is read only for a PR still owed a run
             pr_state = _pr_view(pr=str(open_pr.number), repo=access.repo, env=access.gh_env, deadline=access.deadline)
-            _raise_if_conflicting(
-                merge_state_status=pr_state.merge_state_status, pr_number=open_pr.number, commit_sha=commit_sha
-            )
+            # a push between the listing and this view makes the merge state the newer head's, not this commit's
+            if pr_state.head_sha == commit_sha:
+                _raise_if_conflicting(
+                    merge_state_status=pr_state.merge_state_status, pr_number=open_pr.number, commit_sha=commit_sha
+                )
             return f"PR #{open_pr.number} is open for {commit_sha} but no pull_request run has appeared"
     return None
 
