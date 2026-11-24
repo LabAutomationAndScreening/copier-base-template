@@ -81,8 +81,8 @@ Stop if the PR is not `OPEN`, or if `url` isn't a PR of the repo `origin` points
 origin`): the fetch below and the pr-comments and post-review-findings scripts all work on `origin`.
 
 Stop, too, if `headRefName` or `baseRefName` holds any character besides letters, digits, `.`, `_`, `/` and
-`-`, and tell the user the name. Both go into shell commands below (and `<big-branch>` comes from
-`<headRefName>`), so a name such as `fix'$(id)'` would run a command.
+`-`, and tell the user the name. Both go into shell commands below, so a name such as `fix'$(id)'` would run a
+command. A big branch's name gets the same check (see below).
 
 ```bash
 git fetch origin <baseRefName> pull/<number>/head
@@ -191,6 +191,9 @@ From the beads, when they exist:
 - **Upcoming layers**: every other child that isn't closed: its title, the files it takes or carves, the
   interim forms it completes, and whether it builds on this layer, directly or through another layer (the
   split plan records stacking as bd dependencies).
+
+Whichever source names `<big-branch>` (the epic, the big PR, or `<headRefName>`), check it as Step 1 checks
+`headRefName` before any command below uses it, and stop and tell the user the name if it fails.
 
 From the big branch itself, after `git fetch origin <big-branch>`. Without beads, this is the only source, with
 the big PR's description:
