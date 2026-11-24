@@ -53,8 +53,8 @@ row that applies, instead of starting over. Tell the user which stage you found 
 | What `<work_dir>` holds | Resume at |
 |---|---|
 | `stage` is `posted`, or `review-findings.json` has `posted` (the session can end between posting and updating `stage`) | The earlier run finished. This is a new review: start again. |
-| `stage` is `set-aside-added` | Step 4.3, then Step 5, with every set-aside candidate already in the findings file: don't add any again, so a finding the user dropped stays dropped. |
-| `stage` is `reply-saved`, or `reviewer-reply.md` exists (the session can end between writing it and updating `stage`) | Step 4.3, then Step 5, with `reviewer-reply.md` as the reviewer's answer. The earlier session may have added some of its set-aside candidates before it ended, so check each one: add it unless a finding starting "Unverified;" already has its file, line and summary (two candidates can share a line). |
+| `stage` is `set-aside-added` | Step 4.3, then Step 5, with every set-aside candidate Step 5 adds already in the findings file: don't add any again, so a finding the user dropped stays dropped. |
+| `stage` is `reply-saved`, or `reviewer-reply.md` exists (the session can end between writing it and updating `stage`) | Step 4.3, then Step 5, with `reviewer-reply.md` as the reviewer's answer. The earlier session may have added some of its set-aside candidates before it ended, so check each one Step 5 adds: add it unless a finding starting "Unverified;" already has its file, line and summary (two candidates can share a line). |
 | `stage` is `imported` | The reviewer can't be resumed from a new session, so its set-aside candidates and refuted checks are lost. Ask the user whether to continue without them (Step 4.3, then Step 5) or to start again. |
 | `stage` is `reviewing` | The review ended with its session. If `import --agent <review_agent>` finds a report, it is complete: import it (Step 4.1), then treat it like `imported`. If not, start again. |
 | anything earlier, or no `run.json` | Start again. |
@@ -79,6 +79,11 @@ gh pr view [<pr>] --json number,title,url,state,isDraft,body,baseRefName,baseRef
 
 Stop if the PR is not `OPEN`, or if `url` isn't a PR of the repo `origin` points to (`git remote get-url
 origin`): the fetch below and the pr-comments and post-review-findings scripts all work on `origin`.
+
+Stop, too, if `headRefName` or `baseRefName` holds any character besides letters, digits, `.`, `_`, `/` and
+`-`, or starts with `-`, and tell the user the name. Both go into shell commands below, so a name such as
+`fix'$(id)'` would run a command, and one such as `-p` would be read as an option. A big branch's name gets the
+same check (see below).
 
 ```bash
 git fetch origin <baseRefName> pull/<number>/head
@@ -134,14 +139,42 @@ From it, note:
 - **Earlier AI review findings**: their `ai_review.finding_id` and `status`. `/post-review-findings` numbers
   new findings after these on its own.
 
+### The PR's beads
+
+Find every bead, open or closed, whose description or notes name `<headRefName>` or `PR #<pr>`. A PR's bead
+need not be an epic's child, so search the text itself; each match comes with its parent, description and
+notes:
+
+```bash
+bd list --all --desc-contains '<headRefName>' --json
+bd list --all --notes-contains '<headRefName>' --json
+bd list --all --desc-contains 'PR #<pr>' --json
+bd list --all --notes-contains 'PR #<pr>' --json
+```
+
+The filters match substrings. Drop a match only when it names neither `<headRefName>` nor this PR, that is,
+when every `PR #<pr>` in it is the start of a longer number (`PR #850` when looking for `PR #85`). Sort each
+one left:
+
+- **The PR's ticket**: a bead whose text says this PR or branch carries its work, such as notes naming the
+  branch it was done on or saying it opened this PR. Its parent decides what it is:
+  - a split epic, one `/split-branch-into-prs` made (its description names the big branch it splits, the tip
+    SHA the plan was made from, and the layers with their bases): this PR is that epic's layer, and the bead is
+    the layer's child. See the next two sections.
+  - no parent, or any other epic: the bead alone doesn't make this PR a layer. Carry the user's dated decisions
+    in its description and notes into the brief's review state as settled, each with the bead ID and date, in
+    the bead's own words. When it has a parent epic, carry that epic's decisions too, but only those about this
+    PR's work.
+- **Related**: a bead that only mentions the PR, such as follow-up work waiting on it or the record of an
+  earlier review run. Carry a decision it records about this PR's code the same way, and leave the rest.
+
+With no `bd` or no `.beads/` (a rebuilt environment loses them), skip this and rely on the PR body and threads.
+
 ### Is this one layer of a split big branch?
 
 `/split-branch-into-prs` carves a big branch into layer PRs. Any one of these signals means this PR is a layer:
 
-- A bead whose description or notes name `<headRefName>` or `PR #<pr>`. `bd list --all --json` leaves out
-  notes, so check the children of each epic: `bd list --all --type epic --json`, then
-  `bd list --parent <epic> --all --json`, then `bd show <child> --json` for each child's notes. With no `bd`
-  or no `.beads/` (a rebuilt environment loses them), rely on the other signals.
+- The PR's ticket from the beads has a split epic as its parent.
 - The PR body's reviewer notes say "Part of splitting #<big-pr>" or "Stacked on #<parent-pr>".
 - `<headRefName>` is `<big-branch>--<slug>` and `<big-branch>` exists on `origin`
   (`git ls-remote --heads origin <big-branch>`).
@@ -159,6 +192,9 @@ From the beads, when they exist:
 - **Upcoming layers**: every other child that isn't closed: its title, the files it takes or carves, the
   interim forms it completes, and whether it builds on this layer, directly or through another layer (the
   split plan records stacking as bd dependencies).
+
+Whichever source names `<big-branch>` (the epic, the big PR, or `<headRefName>`), check it as Step 1 checks
+`headRefName` before any command below uses it, and stop and tell the user the name if it fails.
 
 From the big branch itself, after `git fetch origin <big-branch>`. Without beads, this is the only source, with
 the big PR's description:
@@ -182,7 +218,8 @@ the big PR's description:
 Write `<brief>` with facts only, each with its source (a bead ID, a commit, a path, a comment URL):
 
 1. **PR**: number, title, URL, base, head, reviewed commit; the description verbatim.
-2. **Review state**: settled decisions, threads already raised, earlier AI finding IDs and their status. For
+2. **Review state**: settled decisions, from the threads and from the PR's beads, threads already raised,
+   earlier AI finding IDs and their status. For
    a point settled by a fix in this PR, name the fixing commit and say the fix is in the code under review;
    never tell the reviewer to skip the topic.
 3. **Split context** (only for a layer): the big branch at its SHA; this layer's interim forms and spots;
@@ -246,26 +283,45 @@ tell the user. If the review instead reports its findings inline, write that arr
    so the findings are copied, never retyped. Import before step 2 here, because `import` reads the
    transcript's last ```json block, and a reply from the resumed reviewer could take that place. Then set
    `stage` to `imported`.
-2. **Ask the reviewer what it left out.** Resume it with SendMessage (`to` the agent ID, or the name its
-   hand-back came `from`), which restores its whole context:
+2. **Collect what the reviewer left out.** Only `max` starts finder and verifier agents, so only at `max` do the
+   set-aside candidates exist as reports those agents returned. Below `max`, the reviewer set them aside in its
+   own reasoning, and asking for them is refused as a request to reveal that reasoning: a safeguard stopped the
+   reviewer on this question in every `xhigh` run. So:
 
-   > Report every candidate finding you set aside on judgment (low value, speculative, not reproduced) or
-   > folded into another finding, for the review of PR #<pr> at <reviewed commit>. For each one, give the file,
-   > the line at that commit, a summary and a failure scenario, and say why you set it aside. Then give two
-   > more lists, one line per item, and put each item in only one of them:
-   > - **Known, not raised**: real, but left out because the context brief settles it, names it as an
-   >   accepted interim form, or a `TODO` defers it. Give the file and the line at that commit, a summary and a
-   >   failure scenario, the thread URL, the decision or the quoted `TODO`, and whether a verifier confirmed or
-   >   reproduced it. Mark any you think the user should decide on again despite that, and say why.
-   > - **Refuted**: what you checked and found wrong, or already guarded elsewhere, with why.
-   >
-   > Leave out what you already reported. If a list has nothing, say so instead of padding it. Write prose and
-   > lists, with no ```json block. Don't change files or post anything.
+   - **Below `max`, or when the review ran inline**: don't resume the reviewer. Write
+     `<work_dir>/reviewer-reply.md` from the first report: a line saying the reviewer's set-aside candidates
+     were not collected, because at `<level>` they exist only in its own reasoning, which it can't be asked to
+     reveal (not that there were none), then the items of the report's not-reported lists,
+     copied, not retyped, under "Known, not raised" and "Refuted" by what each list says, whatever headings the
+     report gives them. Set `stage` to `reply-saved`.
+   - **At `max`**: resume the reviewer with SendMessage (`to` the agent ID, or the name its hand-back came
+     `from`), which restores its whole context:
 
-   Wait for its reply. As soon as it arrives, before anything else, write it verbatim to
-   `<work_dir>/reviewer-reply.md` and set `stage` to `reply-saved`: until then it exists only in this
-   conversation, and a session that ends loses it. When the review ran inline, there is no agent to resume:
-   write whatever the inline report says it set aside or ruled out to that file instead.
+     > Report every candidate finding your finder or verifier agents returned that you didn't report, whether
+     > you set it aside (low value, speculative, not reproduced) or folded it into another finding, for the review
+     > of PR #<pr> at <reviewed commit>. For each one, give the file, the line at that commit, a summary and a
+     > failure scenario, and say why you didn't report it; for one you folded, name the reported finding you
+     > folded it into. Then give two
+     > more lists, one line per item, and put each item in only one of them:
+     > - **Known, not raised**: real, but left out because the context brief settles it, names it as an
+     >   accepted interim form, or a `TODO` defers it. Give the file and the line at that commit, a summary and a
+     >   failure scenario, the thread URL, the decision or the quoted `TODO`, and whether a verifier confirmed or
+     >   reproduced it. Mark any you think the user should decide on again despite that, and say why.
+     > - **Refuted**: what you checked and found wrong, or already guarded elsewhere, with why.
+     >
+     > Leave out what you already reported. If a list has nothing, say so instead of padding it. Write prose and
+     > lists, with no ```json block. Don't change files or post anything.
+
+     Wait for its reply. As soon as it arrives, before anything else, write it verbatim to
+     `<work_dir>/reviewer-reply.md` and set `stage` to `reply-saved`: until then it exists only in this
+     conversation, and a session that ends loses it.
+
+     If the reviewer fails or is stopped before replying, don't resend the message, reworded or not, and don't
+     write the set-aside list yourself: it was the reviewer's. Tell the user, quoting its error and request ID,
+     write `<work_dir>/reviewer-reply.md` from the first report as below `max`, but with the line saying the
+     set-aside candidates were not collected because the follow-up failed, set `stage` to `reply-saved`, and
+     go on to Step 4.3. Nothing is posted before Step 5's approval question, so the user can still stop there,
+     or start the review again.
 3. **Remove the worktree** at `<work_dir>/tree`. It is disposable: discard anything the review left in it.
    Remove it too whenever the skill stops after Step 1 created it.
 
@@ -282,7 +338,16 @@ tell the user. If the review instead reports its findings inline, write that arr
 - **Step 3**: add every set-aside candidate in `<work_dir>/reviewer-reply.md` to `<findings_file>` as a
   finding, before asking anything and without asking whether to: the point of this skill is all the findings.
   Start each one's `summary` with "Unverified; the reviewer set this aside as <its reason>." and give it its
-  exact line at the reviewed commit. Once every one is in, set `stage` to `set-aside-added` in `run.json`,
+  exact line at the reviewed commit. Two kinds of candidate are not added, and Step 6 counts them:
+  - one the reviewer folded into a reported finding, when that finding already names its location and
+    describes its failure scenario: a second comment on the same line would only repeat it. Add it when the
+    reported finding doesn't name its file and line, since a comment there points at code the reported finding
+    doesn't, or doesn't describe its failure scenario, since that failure would otherwise go unreported, and
+    say in its `summary` which finding it was folded into;
+  - one with no file and line in the reviewed code (about the PR description, say): there is no line to
+    comment on, so list it in the Step 6 report instead.
+
+  Once every one to add is in, set `stage` to `set-aside-added` in `run.json`,
   before asking anything: from then on a resume must not add them again. Still ask the "settled since the review"
   question. Offer as candidates to drop any finding that repeats a decision or an open thread from the brief's
   review state, with the thread's URL as evidence. Also offer as candidates to drop any finding whose fix a
@@ -290,8 +355,11 @@ tell the user. If the review instead reports its findings inline, write that arr
   commit> -- <file>`) and that doesn't make the "Overrides TODO" case from the brief, quoting the `TODO`.
   Offer as candidates to add the reply's "Known, not raised" items the reviewer marked for a fresh decision,
   with its reason and the thread, decision or `TODO` that left each out; skip any already in `<findings_file>`
-  (a resumed run may have added it). Add each one the user picks with its exact line at the reviewed commit,
-  and the reply's failure scenario for it, and start its `summary` with "Left out by the reviewer as <its
+  (a resumed run may have added it). Don't offer one that is an open thread on this PR (one the brief lists as
+  already raised): a finding would only repeat that thread, which this step offers to drop. The fresh decision
+  belongs in a reply on the thread, so say in the question, with the thread's URL and the reviewer's reason,
+  that it stays there, and list it in the Step 6 report for `/address-pr-comments`. Add each one the user
+  picks with its exact line at the reviewed commit, and the reply's failure scenario for it, and start its `summary` with "Left out by the reviewer as <its
   reason>; added at the user's request." followed by "A verifier confirmed it." or "A verifier reproduced it."
   when the reply says so, then the reply's summary of it. Never call one
   "Unverified": it was checked and found real, and only the decision to leave it out is being revisited.
@@ -302,7 +370,9 @@ tell the user. If the review instead reports its findings inline, write that arr
   the review's own report lists as not included the same way, by its reason, whatever heading the report
   gives it: a real problem that a `TODO` defers is not ruled out. Leave pending merge-backs out of `summary`:
   nothing on the PR can act on them, so they go only in the Step 6 report.
-- **Step 6**: the approval question also gives the number of set-aside findings added, the number of known
+- **Step 6**: the approval question also gives the number of set-aside findings added (or, when they weren't
+  collected, that and why: the level starts no finder or verifier agents, or the follow-up failed; never that
+  the reviewer set none aside), the number of known
   items the user chose to add, and the brief's absolute path. If its `pr_base` isn't the reviewed base, say so and list the base's new commits
   (`git log --oneline <reviewed base>..<pr_base>`), so the user can judge whether to review again first.
 - **Step 7**: once the script reports success, set `stage` to `posted` in `run.json`, so `run.json` alone says
@@ -314,8 +384,14 @@ The approval in its Step 6 is still the only thing that lets anything be posted.
 
 Give the user, beyond `/post-review-findings`' own report:
 - the brief's absolute path;
-- whether the PR was treated as a split layer, and from which signals;
+- the PR's ticket bead, if any, and whether the PR was treated as a split layer, and from which signals;
 - any pending merge-backs from Step 2, as a reminder for the split workflow;
-- how many findings came from the review, from the reviewer's set-aside candidates and from known items the
+- how many findings came from the review, from the reviewer's set-aside candidates (or that those weren't
+  collected, and why, as in the approval question) and from known items the
   user chose to add, and how many were dropped as settled or duplicate;
+- how many set-aside candidates Step 5 didn't add because they were folded into a reported finding that names
+  their location and describes their failure scenario, and each candidate with no file and line, with its
+  summary and the reviewer's reason;
+- each marked "Known, not raised" item Step 5 left on its open thread, with the thread's URL and the
+  reviewer's reason for deciding it again;
 - the next step: `/address-pr-comments <pr>`.
