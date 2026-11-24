@@ -80,6 +80,10 @@ gh pr view [<pr>] --json number,title,url,state,isDraft,body,baseRefName,baseRef
 Stop if the PR is not `OPEN`, or if `url` isn't a PR of the repo `origin` points to (`git remote get-url
 origin`): the fetch below and the pr-comments and post-review-findings scripts all work on `origin`.
 
+Stop, too, if `headRefName` or `baseRefName` holds any character besides letters, digits, `.`, `_`, `/` and
+`-`, and tell the user the name. Both go into shell commands below (and `<big-branch>` comes from
+`<headRefName>`), so a name such as `fix'$(id)'` would run a command.
+
 ```bash
 git fetch origin <baseRefName> pull/<number>/head
 ```
